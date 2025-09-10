@@ -230,7 +230,11 @@ export default class ClientStore extends BaseStore {
     }
 
     get is_single_currency() {
-        return true; // Simplified for single account
+        return (
+            Object.keys(this.currencies_list)
+                .map(type => Object.values(this.currencies_list[type]).length)
+                .reduce((acc, cur) => acc + cur, 0) === 1
+        );
     }
 
     setIsAuthorize(value) {
