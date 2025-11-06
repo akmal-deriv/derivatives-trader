@@ -423,7 +423,7 @@ export default class TradeStore extends BaseStore {
 
         makeObservable(this, {
             accumulator_range_list: observable,
-            active_symbols: observable,
+            active_symbols: observable.ref, // Only react to reference changes
             amount: observable,
             barrier_1: observable,
             barrier_2: observable,
@@ -431,24 +431,24 @@ export default class TradeStore extends BaseStore {
             barrier_choices: observable,
             payout_choices: observable,
             barriers: observable,
-            basis_list: observable,
+            basis_list: observable.ref, // Array of objects - use ref
             basis: observable,
             payout_per_point: observable,
             cancellation_duration: observable,
             cancellation_price: observable,
-            cancellation_range_list: observable,
-            cached_multiplier_cancellation_list: observable,
+            cancellation_range_list: observable.ref, // Array of objects - use ref
+            cached_multiplier_cancellation_list: observable.ref, // Array of objects - use ref
             commission: observable,
             contract_expiry_type: observable,
             contract_type: observable,
-            contract_types_list: observable,
-            contract_types_list_v2: observable,
+            contract_types_list: observable.ref, // Object - use ref
+            contract_types_list_v2: observable.ref, // Object - use ref
             currency: observable,
             default_stake: observable,
             digit_stats: observable,
-            duration_min_max: observable,
+            duration_min_max: observable.ref, // Object - use ref
             duration_unit: observable,
-            duration_units_list: observable,
+            duration_units_list: observable.ref, // Array of objects - use ref
             duration: observable,
             expiration: observable,
             expiry_date: observable,
@@ -483,16 +483,16 @@ export default class TradeStore extends BaseStore {
             is_trade_params_expanded: observable,
             is_turbos: computed,
             last_digit: observable,
-            long_barriers: observable,
+            long_barriers: observable.ref, // Object - use ref
             main_barrier: observable,
             market_close_times: observable,
             market_open_times: observable,
             maximum_payout: observable,
             maximum_ticks: observable,
-            validation_params: observable,
-            multiplier_range_list: observable,
+            validation_params: observable.ref, // Object - use ref
+            multiplier_range_list: observable.ref, // Array of objects - use ref
             multiplier: observable,
-            non_available_contract_types_list: observable,
+            non_available_contract_types_list: observable.ref, // Object - use ref
             previous_symbol: observable,
             ref: observable,
             proposal_info: observable.ref,
@@ -502,26 +502,26 @@ export default class TradeStore extends BaseStore {
             setDefaultGrowthRate: action.bound,
             setDigitStats: action.bound,
             setTickData: action.bound,
-            short_barriers: observable,
+            short_barriers: observable.ref, // Object - use ref
             should_show_active_symbols_loading: observable,
             should_skip_prepost_lifecycle: observable,
-            stake_boundary: observable,
+            stake_boundary: observable.ref, // Object - use ref
             start_date: observable,
-            start_dates_list: observable,
+            start_dates_list: observable.ref, // Array of objects - use ref
             start_time: observable,
-            strike_price_choices: observable,
+            strike_price_choices: observable.ref, // Object - use ref
             stop_loss: observable,
             stop_out: observable,
             symbol: observable,
             take_profit: observable,
-            tick_data: observable,
+            tick_data: observable.ref, // Object - use ref
             tick_size_barrier_percentage: observable,
-            ticks_history_stats: observable,
+            ticks_history_stats: observable.ref, // Object - use ref
             trade_type_tab: observable,
-            trade_types: observable,
+            trade_types: observable.ref, // Object - use ref
             open_payout_wheelpicker: observable,
             togglePayoutWheelPicker: action.bound,
-            v2_params_initial_values: observable,
+            v2_params_initial_values: observable.ref, // Object - use ref
             languageChangeListener: action.bound,
             barrier_pipsize: computed,
             barriers_flattened: computed,

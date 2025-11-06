@@ -23,6 +23,12 @@ type TBottomWidgetsParams = {
 const BottomWidgetsMobile = observer(({ digits, tick }: TBottomWidgetsParams) => {
     const { setDigitStats, setTickData } = useTraderStore();
 
+    // Memoize the digits string to prevent unnecessary recalculations
+    const digitsKey = React.useMemo(() => digits.join('-'), [digits]);
+
+    // Memoize previous digits to prevent duplicate setDigitStats calls
+    const prevDigitsRef = React.useRef<string>('');
+
     // Using bottom widgets in V2 to get tick data for all trade types and to get digit stats for Digit trade types
     React.useEffect(() => {
         setTickData(tick);
@@ -30,11 +36,15 @@ const BottomWidgetsMobile = observer(({ digits, tick }: TBottomWidgetsParams) =>
     }, [tick]);
 
     React.useEffect(() => {
-        setDigitStats(digits);
+        // Only update if digits have actually changed
+        if (digitsKey !== prevDigitsRef.current) {
+            setDigitStats(digits);
+            prevDigitsRef.current = digitsKey;
+        }
         // For digits array, which is coming from SmartChart, reference is not always changing.
         // As it is the same, this useEffect was not triggered on every array update.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [digits.join('-')]);
+    }, [digitsKey]);
 
     // render no bottom widgets on chart
     return null;
@@ -78,15 +88,27 @@ const TradeChart = observer(() => {
         wsSubscribe,
     } = useTraderStore();
     const is_accumulator = isAccumulatorContract(contract_type);
-    const settings = {
-        countdown: is_chart_countdown_visible,
-        isHighestLowestMarkerEnabled: false, // TODO: Pending UI,
-        language: current_language.toLowerCase(),
-        position: is_chart_layout_default ? 'bottom' : 'left',
-        theme: is_dark_mode_on ? 'dark' : 'light',
-        ...(is_accumulator ? { whitespace: 190, minimumLeftBars: isMobile ? 3 : undefined } : {}),
-        ...(has_barrier ? { whitespace: 110 } : {}),
-    };
+    // Memoize settings object to prevent chart re-initialization
+    const settings = React.useMemo(
+        () => ({
+            countdown: is_chart_countdown_visible,
+            isHighestLowestMarkerEnabled: false,
+            language: current_language.toLowerCase(),
+            position: is_chart_layout_default ? 'bottom' : 'left',
+            theme: is_dark_mode_on ? 'dark' : 'light',
+            ...(is_accumulator ? { whitespace: 190, minimumLeftBars: isMobile ? 3 : undefined } : {}),
+            ...(has_barrier ? { whitespace: 110 } : {}),
+        }),
+        [
+            is_chart_countdown_visible,
+            current_language,
+            is_chart_layout_default,
+            is_dark_mode_on,
+            is_accumulator,
+            isMobile,
+            has_barrier,
+        ]
+    );
 
     const { current_spot, current_spot_time } = accumulator_barriers_data || {};
 
@@ -97,7 +119,8 @@ const TradeChart = observer(() => {
         }
     }, [is_accumulator, onChange, prev_contract_type, show_digits_stats]);
 
-    const getMarketsOrder = (active_symbols: ActiveSymbols): string[] => {
+    // Memoize getMarketsOrder callback to prevent recreation on every render
+    const getMarketsOrder = React.useCallback((active_symbols: ActiveSymbols): string[] => {
         const synthetic_index = 'synthetic_index';
         const has_synthetic_index = active_symbols.some(s => s.market === synthetic_index);
         return active_symbols
@@ -111,9 +134,13 @@ const TradeChart = observer(() => {
                 },
                 has_synthetic_index ? [synthetic_index] : []
             );
-    };
+    }, []);
 
-    const barriers: ChartBarrierStore[] = main_barrier ? [main_barrier, ...extra_barriers] : extra_barriers;
+    // Memoize barriers array to prevent unnecessary recalculations
+    const barriers: ChartBarrierStore[] = React.useMemo(
+        () => (main_barrier ? [main_barrier, ...extra_barriers] : extra_barriers),
+        [main_barrier, extra_barriers]
+    );
 
     // max ticks to display for mobile view for tick chart
     const max_ticks = granularity === 0 ? 8 : 24;
@@ -126,14 +153,26 @@ const TradeChart = observer(() => {
         [active_symbols]
     );
 
+    // Optimize chartData memoization - only recreate when symbol or granularity changes
     const chartData = React.useMemo(
         () => ({
             activeSymbols: active_symbols,
+            symbol,
+            granularity: show_digits_stats || is_accumulator ? 0 : granularity,
         }),
-        [active_symbols]
+        [active_symbols, symbol, granularity, show_digits_stats, is_accumulator]
     );
 
-    const feedCall = { activeSymbols: false };
+    // Memoize feedCall to prevent object recreation
+    const feedCall = React.useMemo(() => ({ activeSymbols: false }), []);
+
+    // Memoize yAxisMargin to prevent object recreation
+    const yAxisMargin = React.useMemo(
+        () => ({
+            top: isMobile ? 76 : 106,
+        }),
+        [isMobile]
+    );
 
     if (!symbol || !active_symbols.length) return null;
     return (
@@ -178,9 +217,7 @@ const TradeChart = observer(() => {
             hasAlternativeSource={has_alternative_source}
             getMarketsOrder={getMarketsOrder}
             should_zoom_out_on_yaxis={is_accumulator}
-            yAxisMargin={{
-                top: isMobile ? 76 : 106,
-            }}
+            yAxisMargin={yAxisMargin}
             isLive
             leftMargin={!isMobile && is_positions_drawer_on ? 328 : 80}
         >

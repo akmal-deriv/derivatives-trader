@@ -13,21 +13,21 @@ import {
     isMultiplierContract,
     isTurbosContract,
     isVanillaContract,
-    mapErrorMessage,
     LocalStore,
+    mapErrorMessage,
     setTradeURLParams,
     switch_to_tick_chart,
     TRADE_TYPES,
 } from '@deriv/shared';
 
-import BaseStore from './base-store';
 import { getAccumulatorMarkers } from './Helpers/chart-markers';
+import BaseStore from './base-store';
 import ContractStore from './contract-store';
 
 export default class ContractTradeStore extends BaseStore {
     // --- Observable properties ---
     contracts = [];
-    contracts_map = {};
+    contracts_map = {}; // Optimized with observable.ref for better performance
     has_error = false;
     error_message = '';
 
@@ -58,6 +58,7 @@ export default class ContractTradeStore extends BaseStore {
             clearAccumulatorBarriersData: action.bound,
             setBarriersLoadingState: action.bound,
             contracts: observable.shallow,
+            contracts_map: observable.ref, // Only react to reference changes, not deep property changes
             has_crossed_accu_barriers: computed,
             has_error: observable,
             error_message: observable,

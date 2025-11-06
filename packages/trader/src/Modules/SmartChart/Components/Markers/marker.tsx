@@ -54,32 +54,38 @@ const ChartMarker = ({
 }: TChartMarker) => {
     const { ContentComponent, ...marker_props } = marker_config;
 
-    // TODO:
-    //  - rename x to epoch
-    //  - rename y to price
-    const onRef = (ref?: TRef) => {
-        if (ref) {
-            // NOTE: null price means vertical line.
-            if (!marker_props.y) {
-                const margin = 24; // height of line marker icon
+    // Memoize toJS conversion to avoid expensive operation on every render
+    const contentProps = useMemo(() => toJS(marker_content_props), [marker_content_props]);
 
-                ref.div.style.height = `calc(100% - ${margin}px)`;
-            } else {
-                ref.div.style.zIndex = '1';
+    // Memoize onRef callback to prevent recreation
+    const onRef = React.useCallback(
+        (ref?: TRef) => {
+            if (ref) {
+                // NOTE: null price means vertical line.
+                if (!marker_props.y) {
+                    const margin = 24; // height of line marker icon
+
+                    ref.div.style.height = `calc(100% - ${margin}px)`;
+                } else {
+                    ref.div.style.zIndex = '1';
+                }
+                if (is_positioned_behind) ref.div.style.zIndex = '-1';
+                if (is_positioned_before) ref.div.style.zIndex = '102';
+                ref.setPosition({
+                    epoch: +marker_props.x,
+                    price: Number(marker_props.y),
+                });
             }
-            if (is_positioned_behind) ref.div.style.zIndex = '-1';
-            if (is_positioned_before) ref.div.style.zIndex = '102';
-            ref.setPosition({
-                epoch: +marker_props.x,
-                price: Number(marker_props.y),
-            });
-        }
-    };
+        },
+        [marker_props.x, marker_props.y, is_positioned_behind, is_positioned_before]
+    );
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
     const Component = useMemo(() => ContentComponent, []);
+
     return (
         <FastMarker markerRef={onRef}>
-            <Component {...toJS(marker_content_props)} />
+            <Component {...contentProps} />
         </FastMarker>
     );
 };

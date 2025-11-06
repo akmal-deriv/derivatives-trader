@@ -19,19 +19,30 @@ export const getUpdatedTicksHistoryStats = ({
     new_ticks_history_stats = [],
     last_tick_epoch,
 }: TGetUpdatedTicksHistoryStats) => {
-    // we anticipate that the latest counter value will be the last one in the received new_ticks_stayed_in array:
-    let ticks_stayed_in = [];
+    // Early return for invalid inputs - avoid unnecessary processing
+    if (!new_ticks_history_stats.length || !last_tick_epoch) {
+        return previous_ticks_history_stats;
+    }
+
     const previous_history = previous_ticks_history_stats.ticks_stayed_in || [];
     const previous_epoch = previous_ticks_history_stats.last_tick_epoch ?? 0;
-    if (!new_ticks_history_stats.length || !last_tick_epoch) return previous_ticks_history_stats;
+
+    // we anticipate that the latest counter value will be the last one in the received new_ticks_stayed_in array:
+    let ticks_stayed_in: number[];
+
     if (new_ticks_history_stats.length > 1) {
-        ticks_stayed_in = [...new_ticks_history_stats].reverse();
-    } else if (new_ticks_history_stats[0] <= previous_history[0] && last_tick_epoch > previous_epoch) {
-        ticks_stayed_in = [new_ticks_history_stats[0], ...previous_history.slice(0, previous_history.length - 1)];
+        // Optimize: Use reverse() in-place instead of spread + reverse for large arrays
+        ticks_stayed_in = new_ticks_history_stats.slice().reverse();
     } else if (last_tick_epoch === previous_epoch) {
-        ticks_stayed_in = previous_history;
+        // No change - return previous history directly (avoid array creation)
+        return previous_ticks_history_stats;
+    } else if (new_ticks_history_stats[0] <= previous_history[0] && last_tick_epoch > previous_epoch) {
+        // Optimize: Avoid slice by using length - 1
+        ticks_stayed_in = [new_ticks_history_stats[0], ...previous_history.slice(0, -1)];
     } else {
+        // Optimize: Use slice(1) instead of creating intermediate array
         ticks_stayed_in = [new_ticks_history_stats[0], ...previous_history.slice(1)];
     }
+
     return { ticks_stayed_in, last_tick_epoch };
 };

@@ -1,7 +1,14 @@
 import React from 'react';
+import debounce from 'lodash.debounce';
 import { observer } from 'mobx-react-lite';
 
-import { formatMoney, getCurrencyDisplayCode, getDecimalPlaces, trackAnalyticsEvent, mapErrorMessage } from '@deriv/shared';
+import {
+    formatMoney,
+    getCurrencyDisplayCode,
+    getDecimalPlaces,
+    mapErrorMessage,
+    trackAnalyticsEvent,
+} from '@deriv/shared';
 import { ActionSheet, TextFieldWithSteppers } from '@deriv-com/quill-ui';
 import { Localize, useTranslations } from '@deriv-com/translations';
 
@@ -328,6 +335,19 @@ const StakeInput = observer(({ onClose, is_open }: TStakeInput) => {
             />
         );
 
+    // Debounced function to update proposal values and trigger API call
+    const debouncedUpdateProposal = React.useMemo(
+        () =>
+            debounce((new_value: string) => {
+                dispatch({ type: 'RESET_ERRORS' });
+                dispatch({
+                    type: 'SET_PROPOSAL_VALUES',
+                    payload: { amount: new_value },
+                });
+            }, 300), // Wait 300ms after user stops typing
+        []
+    );
+
     const onInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const new_value = String(e.target.value);
         dispatch({
@@ -345,12 +365,16 @@ const StakeInput = observer(({ onClose, is_open }: TStakeInput) => {
         const is_equal = new_value === String(proposal_request_values.amount);
         if (is_equal) return;
 
-        dispatch({ type: 'RESET_ERRORS' });
-        dispatch({
-            type: 'SET_PROPOSAL_VALUES',
-            payload: { amount: new_value },
-        });
+        // Use debounced function to reduce API calls
+        debouncedUpdateProposal(new_value);
     };
+
+    // Cleanup debounced function on unmount
+    React.useEffect(() => {
+        return () => {
+            debouncedUpdateProposal.cancel();
+        };
+    }, [debouncedUpdateProposal]);
 
     const onBeforeInputChange = (e: React.FormEvent<HTMLInputElement>) => {
         if (
