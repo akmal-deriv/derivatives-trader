@@ -46,6 +46,7 @@ jest.mock('@deriv/quill-icons', () => ({
     StandaloneChevronRightRegularIcon: () => <div data-testid='chevron-right-icon'>ChevronRight</div>,
     StandaloneClockThreeRegularIcon: () => <div data-testid='clock-icon'>Clock</div>,
     StandaloneFileChartColumnRegularIcon: () => <div data-testid='file-chart-icon'>FileChart</div>,
+    StandaloneFileLinesRegularIcon: () => <div data-testid='file-lines-icon'>FileLines</div>,
     StandaloneGlobeRegularIcon: () => <div data-testid='globe-icon'>Globe</div>,
     StandaloneLifeRingRegularIcon: () => <div data-testid='life-ring-icon'>LifeRing</div>,
     StandaloneMoonRegularIcon: () => <div data-testid='moon-icon'>Moon</div>,
