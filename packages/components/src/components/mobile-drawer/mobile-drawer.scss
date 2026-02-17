@@ -107,9 +107,9 @@
 
     &__submenu {
         &-back {
-            width: 16px;
-            height: 16px;
-            margin-right: 16px;
+            padding: 0.8rem;
+            border-radius: 50%;
+            background: var(--color-surface-border);
             @include rtl {
                 rotate: 180deg;
             }
@@ -142,17 +142,15 @@
         }
         &-list {
             background: var(--color-surface-primary);
-            position: absolute;
-            z-index: 2;
+            position: fixed;
+            z-index: 7;
             transition: transform 0.25s cubic-bezier(0.25, 0.1, 0.1, 0.25);
             width: 100%;
             height: 100%;
             top: 0;
             left: 0;
             overflow: auto;
-            &:has(.settings-language__language-container) {
-                z-index: 7;
-            }
+            padding: var(--core-spacing-800);
 
             &--enter,
             &--exit {
@@ -170,8 +168,10 @@
             }
             &-title {
                 display: flex;
-                padding: 2rem 0 3.2rem 3.2rem;
-                align-items: center;
+                flex-direction: column;
+                padding: 0.8rem 0.8rem 2.4rem;
+                align-items: flex-start;
+                gap: 2.4rem;
             }
         }
     }

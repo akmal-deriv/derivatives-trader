@@ -46,6 +46,7 @@
         color: var(--color-text-primary);
     }
     &__menu-logout {
+        height: 9.6rem;
         .header__menu-mobile-link-text {
             border-bottom: none;
 
@@ -126,6 +127,11 @@
         }
         &-icon {
             margin-right: 16px;
+        }
+        &-suffix-icon {
+            @include rtl {
+                rotate: 180deg;
+            }
         }
         &-flag-icon {
             margin-right: 16px;

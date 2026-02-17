@@ -195,10 +195,8 @@ const ToggleMenuDrawer = observer(() => {
                                                 fill='var(--color-text-primary)'
                                             />
                                         )}
-                                        <div className='header__menu-mobile-link'>
-                                            <Text className='header__menu-mobile-link-text'>
-                                                {localize('Dark theme')}
-                                            </Text>
+                                        <div className='header__menu-mobile-link-text'>
+                                            <Text size='s'>{localize('Dark theme')}</Text>
                                             <ToggleSwitch
                                                 id='dt_mobile_drawer_theme_toggler'
                                                 handleToggle={() => toggleTheme(!is_dark_mode)}
@@ -252,7 +250,18 @@ const ToggleMenuDrawer = observer(() => {
                                 <NetworkStatus is_mobile />
                             </MobileDrawer.Footer>
                             {is_mobile_language_menu_open && (
-                                <MobileLanguageMenu expandSubMenu={setIsSubmenuExpanded} toggleDrawer={toggleDrawer} />
+                                <MobileDrawer.SubMenu
+                                    is_expanded={is_mobile_language_menu_open}
+                                    has_subheader
+                                    submenu_title={localize('Language')}
+                                    onToggle={is_expanded => {
+                                        setIsSubmenuExpanded(is_expanded);
+                                        setMobileLanguageMenuOpen(false);
+                                    }}
+                                    submenu_toggle_class='dc-mobile-drawer__submenu-toggle--hidden'
+                                >
+                                    <MobileLanguageMenu toggleDrawer={toggleDrawer} />
+                                </MobileDrawer.SubMenu>
                             )}
                         </React.Fragment>
                     </div>
