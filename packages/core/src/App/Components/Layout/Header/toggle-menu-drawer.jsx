@@ -8,6 +8,7 @@ import {
     StandaloneChevronRightRegularIcon,
     StandaloneClockThreeRegularIcon,
     StandaloneFileChartColumnRegularIcon,
+    StandaloneFileLinesRegularIcon,
     StandaloneGlobeRegularIcon,
     StandaloneLifeRingRegularIcon,
     StandaloneMoonRegularIcon,
@@ -152,7 +153,7 @@ const ToggleMenuDrawer = observer(() => {
                                     }}
                                 >
                                     <MenuLink
-                                        icon={<StandaloneFileChartColumnRegularIcon iconSize='sm' />}
+                                        icon={<StandaloneFileLinesRegularIcon iconSize='sm' />}
                                         text={localize('Statement')}
                                         suffix_icon={<StandaloneChevronRightRegularIcon iconSize='sm' />}
                                     />
@@ -184,20 +185,22 @@ const ToggleMenuDrawer = observer(() => {
                                 >
                                     <div className={classNames('header__menu-mobile-link')}>
                                         {is_dark_mode ? (
-                                            <StandaloneMoonRegularIcon
+                                            <StandaloneSunBrightRegularIcon
                                                 className='header__menu-mobile-link-icon'
                                                 iconSize='sm'
                                                 fill='var(--color-text-primary)'
                                             />
                                         ) : (
-                                            <StandaloneSunBrightRegularIcon
+                                            <StandaloneMoonRegularIcon
                                                 className='header__menu-mobile-link-icon'
                                                 iconSize='sm'
                                                 fill='var(--color-text-primary)'
                                             />
                                         )}
                                         <div className='header__menu-mobile-link-text'>
-                                            <Text size='s'>{localize('Dark theme')}</Text>
+                                            <Text size='s'>
+                                                {is_dark_mode ? localize('Light theme') : localize('Dark theme')}
+                                            </Text>
                                             <ToggleSwitch
                                                 id='dt_mobile_drawer_theme_toggler'
                                                 handleToggle={() => toggleTheme(!is_dark_mode)}
