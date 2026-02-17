@@ -25,6 +25,7 @@ export default class UIStore extends BaseStore {
     is_dark_mode_on = window?.matchMedia?.('(prefers-color-scheme: dark)').matches && isMobile();
     is_settings_modal_on = false;
     is_mobile_language_menu_open = false;
+    is_mobile_drawer_open = false;
 
     // Purchase Controls
     // @observable is_purchase_confirm_on    = false;
@@ -228,6 +229,7 @@ export default class UIStore extends BaseStore {
             is_history_tab_active: observable,
             is_landscape: observable,
             is_mobile_language_menu_open: observable,
+            is_mobile_drawer_open: observable,
             is_nativepicker_visible: observable,
 
             active_sidebar_flyout: observable,
@@ -332,6 +334,7 @@ export default class UIStore extends BaseStore {
             setSubSectionIndex: action.bound,
             setTopUpInProgress: action.bound,
             setMobileLanguageMenuOpen: action.bound,
+            setMobileDrawerOpen: action.bound,
             toggleCancellationWarning: action.bound,
             toggleHistoryTab: action.bound,
             toggleOnScreenKeyboard: action.bound,
@@ -524,6 +527,10 @@ export default class UIStore extends BaseStore {
 
     setMobileLanguageMenuOpen(is_mobile_language_menu_open) {
         this.is_mobile_language_menu_open = is_mobile_language_menu_open;
+    }
+
+    setMobileDrawerOpen(is_mobile_drawer_open) {
+        this.is_mobile_drawer_open = is_mobile_drawer_open;
     }
 
     setModalIndex(index = 0) {

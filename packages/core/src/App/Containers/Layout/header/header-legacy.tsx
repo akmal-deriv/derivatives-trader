@@ -1,13 +1,14 @@
 import React from 'react';
 import classNames from 'classnames';
 
+import { DerivProductBrandLightDerivTraderLogoIcon } from '@deriv/quill-icons';
 import { observer, useStore } from '@deriv/stores';
 import { useDevice } from '@deriv-com/ui';
 
+import { AccountActions } from 'App/Components/Layout/Header';
 import { AccountsInfoLoader } from 'App/Components/Layout/Header/Components/Preloader';
 import ToggleMenuDrawer from 'App/Components/Layout/Header/toggle-menu-drawer.jsx';
 import NewVersionNotification from 'App/Containers/new-version-notification';
-import { AccountActions } from 'App/Components/Layout/Header';
 
 const HeaderLegacy = observer(() => {
     const { client, ui, notifications } = useStore();
@@ -35,7 +36,11 @@ const HeaderLegacy = observer(() => {
             })}
         >
             <div className='header__menu-items'>
-                {isMobile && <ToggleMenuDrawer />}
+                {isMobile && (
+                    <div className='header__logo'>
+                        <DerivProductBrandLightDerivTraderLogoIcon height='32px' width='32px' />
+                    </div>
+                )}
                 {is_logging_in ? (
                     <div id='dt_core_header_acc-info-preloader' className='acc-info__preloader'>
                         <AccountsInfoLoader is_logged_in={is_logged_in} />
@@ -44,6 +49,7 @@ const HeaderLegacy = observer(() => {
                     <AccountActions />
                 )}
             </div>
+            {isMobile && <ToggleMenuDrawer />}
             <NewVersionNotification onUpdate={addUpdateNotification} />
         </header>
     );

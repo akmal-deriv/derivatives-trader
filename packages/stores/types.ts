@@ -1,16 +1,18 @@
 import React from 'react';
 import type { RouteComponentProps } from 'react-router';
 import type { Moment } from 'moment';
+
 import type {
     TActiveSymbolsResponse,
-    TUpdateContractResponse,
-    TUpdateContractHistoryResponse,
+    TLogOutResponse,
     TPortfolioResponse,
     TPriceProposalOpenContractsResponse,
     TTransactionsStreamResponse,
-    TLogOutResponse,
+    TUpdateContractHistoryResponse,
+    TUpdateContractResponse,
 } from '@deriv/api';
 import { TContractInfo } from '@deriv/shared/src/utils/contract/contract-types';
+
 import type { FeatureFlagsStore } from './src/stores';
 
 // Type aliases for compatibility
@@ -324,6 +326,7 @@ type TUiStore = {
     is_mobile: boolean;
     is_tablet: boolean;
     is_mobile_language_menu_open: boolean;
+    is_mobile_drawer_open: boolean;
     active_sidebar_flyout: 'theme' | 'language' | 'positions' | 'account' | null;
     is_positions_drawer_on: boolean;
     is_reset_email_modal_visible: boolean;
@@ -349,6 +352,7 @@ type TUiStore = {
     setIsPhoneVerificationCompleted: (value: boolean) => void;
     setRedirectFromEmail: (value: boolean) => void;
     setMobileLanguageMenuOpen: (is_mobile_language_menu_open: boolean) => void;
+    setMobileDrawerOpen: (is_mobile_drawer_open: boolean) => void;
     setReportsTabIndex: (value: number) => void;
     setIsClosingCreateRealAccountModal: (value: boolean) => void;
     setIsFromSignupAccount: (value: boolean) => void;

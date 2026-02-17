@@ -34,11 +34,11 @@ $BOTTOM_NAV_HEIGHT: var(--core-spacing-2800);
         }
         &--active {
             .quill-navigation-bottom-bar__action-label {
-                color: var(--component-navigationBar-label-color-selected);
+                color: var(--color-nav-item-active);
             }
 
             svg {
-                fill: var(--component-navigationBar-icon-selected);
+                fill: var(--color-nav-item-active);
             }
         }
         &--positions {

@@ -1,15 +1,16 @@
 /* eslint @typescript-eslint/triple-slash-reference: "off" */
 /// <reference path="../../../@types/react-drag-drawer/react-drag-drawer-config.d.ts" />
-import classNames from 'classnames';
 import React from 'react';
+import classNames from 'classnames';
+
+import { LegacyClose2pxIcon } from '@deriv/quill-icons';
+
 import Body from './mobile-drawer-body';
 import Footer from './mobile-drawer-footer';
-import SubHeader from './mobile-drawer-subheader';
 import Item from './mobile-drawer-item';
+import SubHeader from './mobile-drawer-subheader';
 import SubMenu from './mobile-drawer-submenu';
 import SubMenuSection from './mobile-drawer-submenu-section';
-import Text from '../text/text';
-import { LegacyClose2pxIcon } from '@deriv/quill-icons';
 
 type TMobileDrawer = {
     className: string;
@@ -18,9 +19,7 @@ type TMobileDrawer = {
     width: string;
     alignment: 'left' | 'right';
     is_open: boolean;
-    title: string | JSX.Element;
     toggle: () => void;
-    livechat: React.ReactElement;
     transitionExit: boolean;
 };
 
@@ -32,10 +31,8 @@ const MobileDrawer = ({
     alignment,
     is_open,
     transitionExit,
-    title,
     toggle,
     children,
-    livechat: LiveChat,
 }: React.PropsWithChildren<TMobileDrawer>) => {
     if (is_open)
         return (
@@ -66,21 +63,6 @@ const MobileDrawer = ({
                         >
                             <div onClick={toggle} className='dc-mobile-drawer__header-close'>
                                 <LegacyClose2pxIcon iconSize='xs' fill='var(--color-text-primary)' />
-                            </div>
-                            <div className='dc-mobile-drawer__header-wrapper'>
-                                {title && (
-                                    <Text
-                                        as='h3'
-                                        color='primary'
-                                        weight='bold'
-                                        className={classNames('dc-mobile-drawer__header-title', {
-                                            [`dc-mobile-drawer-header__title--${className}`]: className,
-                                        })}
-                                    >
-                                        {title}
-                                    </Text>
-                                )}
-                                {LiveChat}
                             </div>
                         </div>
                         {children}

@@ -3,13 +3,17 @@ import { useHistory, useLocation } from 'react-router';
 import classNames from 'classnames';
 import { observer } from 'mobx-react-lite';
 
+import { useMobileBridge } from '@deriv/api';
 import {
+    StandaloneBarsRegularIcon,
     StandaloneChartAreaFillIcon,
     StandaloneChartAreaRegularIcon,
     StandaloneClockThreeFillIcon,
     StandaloneClockThreeRegularIcon,
+    StandaloneHouseBlankFillIcon,
+    StandaloneHouseBlankRegularIcon,
 } from '@deriv/quill-icons';
-import { routes } from '@deriv/shared';
+import { getBrandUrl, routes } from '@deriv/shared';
 import { useStore } from '@deriv/stores';
 import { Badge, Navigation } from '@deriv-com/quill-ui';
 import { Localize } from '@deriv-com/translations';
@@ -22,14 +26,23 @@ type BottomNavProps = {
 const BottomNav = observer(({ children, className }: BottomNavProps) => {
     const history = useHistory();
     const location = useLocation();
-    const { client, portfolio } = useStore();
+    const { client, portfolio, ui, common } = useStore();
     const { active_positions_count } = portfolio;
-    const { is_logged_in } = client;
+    const { is_logged_in, currency } = client;
+    const { current_language } = common;
+    const { sendBridgeEvent, isBridgeAvailable } = useMobileBridge();
 
     const bottomNavItems = [
         {
+            icon: <StandaloneHouseBlankRegularIcon iconSize='sm' fill='var(--color-text-primary)' />,
+            activeIcon: <StandaloneHouseBlankFillIcon iconSize='sm' />,
+            label: <Localize i18n_default_text='Home' />,
+            path: null,
+            action: 'home' as const,
+        },
+        {
             icon: <StandaloneChartAreaRegularIcon iconSize='sm' fill='var(--color-text-primary)' />,
-            activeIcon: <StandaloneChartAreaFillIcon iconSize='sm' fill='var(--color-text-primary)' />,
+            activeIcon: <StandaloneChartAreaFillIcon iconSize='sm' />,
             label: <Localize i18n_default_text='Trade' />,
             path: routes.index,
         },
@@ -64,7 +77,7 @@ const BottomNav = observer(({ children, className }: BottomNavProps) => {
                         <StandaloneClockThreeFillIcon iconSize='sm' fill='var(--color-text-primary)' />
                     </Badge>
                 ) : (
-                    <StandaloneClockThreeFillIcon iconSize='sm' fill='var(--color-text-primary)' />
+                    <StandaloneClockThreeFillIcon iconSize='sm' />
                 ),
             label: (
                 <React.Fragment>
@@ -74,14 +87,40 @@ const BottomNav = observer(({ children, className }: BottomNavProps) => {
             ),
             path: routes.trader_positions,
         },
+        {
+            icon: <StandaloneBarsRegularIcon iconSize='sm' fill='var(--color-text-primary)' />,
+            activeIcon: <StandaloneBarsRegularIcon iconSize='sm' />,
+            label: <Localize i18n_default_text='Menu' />,
+            path: null,
+            action: 'menu' as const,
+        },
     ];
 
     const navIndex = bottomNavItems.findIndex(item => item.path === location.pathname);
-    const [selectedIndex, setSelectedIndex] = React.useState(navIndex > -1 ? navIndex : 0);
+    const [selectedIndex, setSelectedIndex] = React.useState(navIndex > -1 ? navIndex : 1); // Default to Trade (index 1)
 
     const handleSelect = (index: number) => {
-        setSelectedIndex(index);
-        history.push(bottomNavItems[index].path);
+        const item = bottomNavItems[index];
+
+        if (item.action === 'home') {
+            sendBridgeEvent('trading:home', () => {
+                const brandUrl = getBrandUrl();
+                const lang_param = current_language ? `&lang=${encodeURIComponent(current_language)}` : '';
+                const curr = encodeURIComponent(currency || '');
+                window.location.href = `${brandUrl}/home?source=options&acc=options&curr=${curr}${lang_param}`;
+            });
+            return;
+        }
+
+        if (item.action === 'menu') {
+            ui.setMobileDrawerOpen(true);
+            return;
+        }
+
+        if (item.path) {
+            setSelectedIndex(index);
+            history.push(item.path);
+        }
     };
 
     return (
