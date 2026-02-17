@@ -19,11 +19,10 @@ import { Badge, Navigation } from '@deriv-com/quill-ui';
 import { Localize } from '@deriv-com/translations';
 
 type BottomNavProps = {
-    children: React.ReactNode;
     className?: string;
 };
 
-const BottomNav = observer(({ children, className }: BottomNavProps) => {
+const BottomNav = observer(({ className }: BottomNavProps) => {
     const history = useHistory();
     const location = useLocation();
     const { client, portfolio, ui, common } = useStore();
@@ -99,6 +98,17 @@ const BottomNav = observer(({ children, className }: BottomNavProps) => {
     const navIndex = bottomNavItems.findIndex(item => item.path === location.pathname);
     const [selectedIndex, setSelectedIndex] = React.useState(navIndex > -1 ? navIndex : 1); // Default to Trade (index 1)
 
+    // Sync selectedIndex with route changes (e.g., when navigating from drawer)
+    React.useEffect(() => {
+        const currentNavIndex = bottomNavItems.findIndex(item => item.path === location.pathname);
+        if (currentNavIndex > -1) {
+            setSelectedIndex(currentNavIndex);
+        } else if (location.pathname === routes.profit || location.pathname === routes.statement) {
+            // No icon should be highlighted for these routes (accessed via drawer)
+            setSelectedIndex(-1);
+        }
+    }, [location.pathname, bottomNavItems]);
+
     const handleSelect = (index: number) => {
         const item = bottomNavItems[index];
 
@@ -123,30 +133,30 @@ const BottomNav = observer(({ children, className }: BottomNavProps) => {
         }
     };
 
+    if (!is_logged_in) return null;
+
     return (
-        <div className={classNames('bottom-nav', className)}>
-            <div className='bottom-nav-selection'>{children}</div>
-            {is_logged_in ? (
-                <Navigation.Bottom className='bottom-nav-container' onChange={(_, index) => handleSelect(index)}>
-                    {bottomNavItems.map((item, index) => (
-                        <Navigation.BottomAction
-                            key={index}
-                            index={index}
-                            activeIcon={<></>}
-                            icon={index === selectedIndex ? item.activeIcon : item.icon}
-                            label={item.label}
-                            selected={index === selectedIndex}
-                            showLabel
-                            className={classNames(
-                                'bottom-nav-item',
-                                index === selectedIndex && 'bottom-nav-item--active',
-                                item.path === routes.trader_positions && 'bottom-nav-item--positions'
-                            )}
-                        />
-                    ))}
-                </Navigation.Bottom>
-            ) : null}
-        </div>
+        <Navigation.Bottom
+            className={classNames('bottom-nav-container', className)}
+            onChange={(_, index) => handleSelect(index)}
+        >
+            {bottomNavItems.map((item, index) => (
+                <Navigation.BottomAction
+                    key={index}
+                    index={index}
+                    activeIcon={<></>}
+                    icon={index === selectedIndex ? item.activeIcon : item.icon}
+                    label={item.label}
+                    selected={index === selectedIndex}
+                    showLabel
+                    className={classNames(
+                        'bottom-nav-item',
+                        index === selectedIndex && 'bottom-nav-item--active',
+                        item.path === routes.trader_positions && 'bottom-nav-item--positions'
+                    )}
+                />
+            ))}
+        </Navigation.Bottom>
     );
 });
 

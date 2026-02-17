@@ -8,7 +8,6 @@ import { getSymbolDisplayName, trackAnalyticsEvent } from '@deriv/shared';
 import { useStore } from '@deriv/stores';
 
 import AccumulatorStats from 'AppV2/Components/AccumulatorStats';
-import BottomNav from 'AppV2/Components/BottomNav';
 import ClosedMarketMessage from 'AppV2/Components/ClosedMarketMessage';
 import CurrentSpot from 'AppV2/Components/CurrentSpot';
 import Guide from 'AppV2/Components/Guide';
@@ -118,7 +117,7 @@ const Trade = observer(() => {
     }, []);
 
     return (
-        <BottomNav>
+        <>
             {symbols.length && trade_types.length ? (
                 <React.Fragment>
                     <div className='trade'>
@@ -164,7 +163,7 @@ const Trade = observer(() => {
                 error_fields={['stop_loss', 'take_profit', 'date_start', 'stake', 'amount']}
                 should_show_snackbar={should_show_snackbar}
             />
-        </BottomNav>
+        </>
     );
 });
 
