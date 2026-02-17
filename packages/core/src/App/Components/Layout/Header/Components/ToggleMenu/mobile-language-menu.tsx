@@ -16,9 +16,15 @@ const MobileLanguageMenu = observer(({ toggleDrawer }: TMobileLanguageMenu) => {
     const allowed_languages = getAllowedLanguages(UNSUPPORTED_LANGUAGES);
 
     const handleLanguageChange = async (lang: string) => {
-        await changeSelectedLanguage(lang);
-        switchLanguage(lang);
-        toggleDrawer();
+        try {
+            await changeSelectedLanguage(lang);
+            switchLanguage(lang);
+            toggleDrawer();
+        } catch (error) {
+            // eslint-disable-next-line no-console
+            console.error('Failed to change language:', error);
+            // Keep drawer open on error so user can retry
+        }
     };
 
     return (

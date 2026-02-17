@@ -49,7 +49,7 @@ const InsufficientBalanceModal = observer(
                 <Modal.Footer>
                     <Button
                         has_effect
-                        text={is_virtual ? localize('OK') : localize('Transfer now')}
+                        text={is_virtual ? localize('OK') : localize('Deposit now')}
                         onClick={handleTransferClick}
                         primary
                     />

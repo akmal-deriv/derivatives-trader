@@ -106,12 +106,12 @@ describe('ServiceErrorSheet', () => {
         expect(container).toBeEmptyDOMElement();
     });
 
-    it('should redirect to brand deposit page when "Transfer now" is clicked for real accounts', async () => {
+    it('should redirect to brand deposit page when "Deposit now" is clicked for real accounts', async () => {
         render(mockTrade());
 
         expect(screen.getByText('Insufficient balance')).toBeInTheDocument();
 
-        const depositButton = screen.getByText(/transfer now/i);
+        const depositButton = screen.getByText(/Deposit now/i);
         await userEvent.click(depositButton);
 
         expect(fileUtils.getBrandUrl).toHaveBeenCalled();
@@ -121,12 +121,12 @@ describe('ServiceErrorSheet', () => {
         expect(default_mock_store.common.resetServicesError).toHaveBeenCalled();
     });
 
-    it('should show "OK" button for virtual accounts instead of "Transfer now"', async () => {
+    it('should show "OK" button for virtual accounts instead of "Deposit now"', async () => {
         default_mock_store.client.is_virtual = true;
         render(mockTrade());
 
         expect(screen.getByText('Insufficient balance')).toBeInTheDocument();
-        expect(screen.queryByText(/transfer now/i)).not.toBeInTheDocument();
+        expect(screen.queryByText(/Deposit now/i)).not.toBeInTheDocument();
 
         const okButton = screen.getByText(/ok/i);
         expect(okButton).toBeInTheDocument();
@@ -136,10 +136,10 @@ describe('ServiceErrorSheet', () => {
     });
 
     describe('Bridge events', () => {
-        it('should call sendBridgeEvent with trading:transfer when "Transfer now" is clicked', async () => {
+        it('should call sendBridgeEvent with trading:transfer when "Deposit now" is clicked', async () => {
             render(mockTrade());
 
-            const depositButton = screen.getByText(/transfer now/i);
+            const depositButton = screen.getByText(/Deposit now/i);
             await userEvent.click(depositButton);
 
             expect(mockSendBridgeEvent).toHaveBeenCalledWith('trading:transfer', expect.any(Function));
@@ -159,7 +159,7 @@ describe('ServiceErrorSheet', () => {
             window.location.href = '';
             render(mockTrade());
 
-            const depositButton = screen.getByText(/transfer now/i);
+            const depositButton = screen.getByText(/Deposit now/i);
             await userEvent.click(depositButton);
 
             // Since mockSendBridgeEvent executes the fallback, window.location should be set

@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { act } from 'react';
 import { Router } from 'react-router-dom';
 import { createMemoryHistory } from 'history';
 
 import { mockStore, StoreProvider } from '@deriv/stores';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import BottomNav from '../bottom-nav';
@@ -73,8 +73,11 @@ describe('BottomNav', () => {
 
     it('should render the correct number of navigation items', () => {
         renderBottomNav();
-        const navItems = screen.getAllByRole('button');
-        expect(navItems).toHaveLength(4); // Home, Trade, Positions, Menu
+        // Check by label text instead of role, as Navigation.BottomAction renders divs, not buttons
+        expect(screen.getByText('Home')).toBeInTheDocument();
+        expect(screen.getByText('Trade')).toBeInTheDocument();
+        expect(screen.getByText('Positions')).toBeInTheDocument();
+        expect(screen.getByText('Menu')).toBeInTheDocument();
     });
 
     it('should show badge when there are active positions', () => {
@@ -94,24 +97,38 @@ describe('BottomNav', () => {
     });
 
     it('should navigate to Positions page when clicked', async () => {
+        const user = userEvent.setup();
         renderBottomNav();
         const positionsButton = screen.getByText('Positions');
-        await userEvent.click(positionsButton);
-        expect(history.location.pathname).toBe('/reports/positions');
+
+        await act(async () => {
+            await user.click(positionsButton);
+        });
+
+        await waitFor(() => {
+            expect(history.location.pathname).toBe('/positions');
+        });
     });
 
     it('should open mobile drawer when Menu is clicked', async () => {
+        const user = userEvent.setup();
         renderBottomNav();
         const menuButton = screen.getByText('Menu');
-        await userEvent.click(menuButton);
-        expect(default_mock_store.ui.setMobileDrawerOpen).toHaveBeenCalledWith(true);
+
+        await act(async () => {
+            await user.click(menuButton);
+        });
+
+        await waitFor(() => {
+            expect(default_mock_store.ui.setMobileDrawerOpen).toHaveBeenCalledWith(true);
+        });
     });
 
     it('should highlight the correct icon based on current route', () => {
-        history.push('/reports/positions');
+        history.push('/positions');
         renderBottomNav();
         // Positions route should be active
-        expect(history.location.pathname).toBe('/reports/positions');
+        expect(history.location.pathname).toBe('/positions');
     });
 
     it('should not highlight any icon when on Trade table or Statement routes', () => {

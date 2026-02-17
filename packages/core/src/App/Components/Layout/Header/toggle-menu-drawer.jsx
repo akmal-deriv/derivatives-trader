@@ -53,6 +53,7 @@ const ToggleMenuDrawer = observer(() => {
         return () => {
             if (timeout.current) {
                 clearTimeout(timeout.current);
+                timeout.current = null;
                 setTransitionExit(false);
                 setMobileDrawerOpen(false);
             }

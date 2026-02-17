@@ -31,69 +31,72 @@ const BottomNav = observer(({ className }: BottomNavProps) => {
     const { current_language } = common;
     const { sendBridgeEvent, isBridgeAvailable } = useMobileBridge();
 
-    const bottomNavItems = [
-        {
-            icon: <StandaloneHouseBlankRegularIcon iconSize='sm' fill='var(--color-text-primary)' />,
-            activeIcon: <StandaloneHouseBlankFillIcon iconSize='sm' />,
-            label: <Localize i18n_default_text='Home' />,
-            path: null,
-            action: 'home' as const,
-        },
-        {
-            icon: <StandaloneChartAreaRegularIcon iconSize='sm' fill='var(--color-text-primary)' />,
-            activeIcon: <StandaloneChartAreaFillIcon iconSize='sm' />,
-            label: <Localize i18n_default_text='Trade' />,
-            path: routes.index,
-        },
-        {
-            icon:
-                active_positions_count > 0 ? (
-                    <Badge
-                        variant='notification'
-                        position='top-right'
-                        label={active_positions_count.toString()}
-                        color='danger'
-                        size='sm'
-                        contentSize='sm'
-                        className='bottom-nav-item__position-badge'
-                    >
+    const bottomNavItems = React.useMemo(
+        () => [
+            {
+                icon: <StandaloneHouseBlankRegularIcon iconSize='sm' fill='var(--color-text-primary)' />,
+                activeIcon: <StandaloneHouseBlankFillIcon iconSize='sm' />,
+                label: <Localize i18n_default_text='Home' />,
+                path: null,
+                action: 'home' as const,
+            },
+            {
+                icon: <StandaloneChartAreaRegularIcon iconSize='sm' fill='var(--color-text-primary)' />,
+                activeIcon: <StandaloneChartAreaFillIcon iconSize='sm' />,
+                label: <Localize i18n_default_text='Trade' />,
+                path: routes.index,
+            },
+            {
+                icon:
+                    active_positions_count > 0 ? (
+                        <Badge
+                            variant='notification'
+                            position='top-right'
+                            label={active_positions_count.toString()}
+                            color='danger'
+                            size='sm'
+                            contentSize='sm'
+                            className='bottom-nav-item__position-badge'
+                        >
+                            <StandaloneClockThreeRegularIcon iconSize='sm' fill='var(--color-text-primary)' />
+                        </Badge>
+                    ) : (
                         <StandaloneClockThreeRegularIcon iconSize='sm' fill='var(--color-text-primary)' />
-                    </Badge>
-                ) : (
-                    <StandaloneClockThreeRegularIcon iconSize='sm' fill='var(--color-text-primary)' />
+                    ),
+                activeIcon:
+                    active_positions_count > 0 ? (
+                        <Badge
+                            variant='notification'
+                            position='top-right'
+                            label={active_positions_count.toString()}
+                            color='danger'
+                            size='sm'
+                            contentSize='sm'
+                            className='bottom-nav-item__position-badge'
+                        >
+                            <StandaloneClockThreeFillIcon iconSize='sm' fill='var(--color-text-primary)' />
+                        </Badge>
+                    ) : (
+                        <StandaloneClockThreeFillIcon iconSize='sm' />
+                    ),
+                label: (
+                    <React.Fragment>
+                        <span className='user-guide__anchor' />
+                        <Localize i18n_default_text='Positions' />
+                    </React.Fragment>
                 ),
-            activeIcon:
-                active_positions_count > 0 ? (
-                    <Badge
-                        variant='notification'
-                        position='top-right'
-                        label={active_positions_count.toString()}
-                        color='danger'
-                        size='sm'
-                        contentSize='sm'
-                        className='bottom-nav-item__position-badge'
-                    >
-                        <StandaloneClockThreeFillIcon iconSize='sm' fill='var(--color-text-primary)' />
-                    </Badge>
-                ) : (
-                    <StandaloneClockThreeFillIcon iconSize='sm' />
-                ),
-            label: (
-                <React.Fragment>
-                    <span className='user-guide__anchor' />
-                    <Localize i18n_default_text='Positions' />
-                </React.Fragment>
-            ),
-            path: routes.trader_positions,
-        },
-        {
-            icon: <StandaloneBarsRegularIcon iconSize='sm' fill='var(--color-text-primary)' />,
-            activeIcon: <StandaloneBarsRegularIcon iconSize='sm' />,
-            label: <Localize i18n_default_text='Menu' />,
-            path: null,
-            action: 'menu' as const,
-        },
-    ];
+                path: routes.trader_positions,
+            },
+            {
+                icon: <StandaloneBarsRegularIcon iconSize='sm' fill='var(--color-text-primary)' />,
+                activeIcon: <StandaloneBarsRegularIcon iconSize='sm' />,
+                label: <Localize i18n_default_text='Menu' />,
+                path: null,
+                action: 'menu' as const,
+            },
+        ],
+        [active_positions_count]
+    );
 
     const navIndex = bottomNavItems.findIndex(item => item.path === location.pathname);
     const [selectedIndex, setSelectedIndex] = React.useState(navIndex > -1 ? navIndex : 1); // Default to Trade (index 1)
