@@ -2,7 +2,7 @@ import React from 'react';
 import { CSSTransition } from 'react-transition-group';
 import classNames from 'classnames';
 
-import { LegacyChevronLeft1pxIcon } from '@deriv/quill-icons';
+import { StandaloneArrowLeftBoldIcon } from '@deriv/quill-icons';
 
 import Text from '../text/text';
 
@@ -112,9 +112,9 @@ const SubMenuList = ({
             >
                 <div className='dc-mobile-drawer__submenu-list-title' onClick={collapse}>
                     <div className='dc-mobile-drawer__submenu-back'>
-                        <LegacyChevronLeft1pxIcon
+                        <StandaloneArrowLeftBoldIcon
                             className='dc-mobile-drawer__submenu-back-icon'
-                            iconSize='xs'
+                            iconSize='sm'
                             fill='var(--color-text-primary)'
                         />
                     </div>
