@@ -123,7 +123,7 @@ const ToggleMenuDrawer = observer(() => {
                                     onClick={e => {
                                         e.preventDefault();
                                         toggleDrawer();
-                                        history.push(routes.trader_positions);
+                                        history.push(routes.positions);
                                     }}
                                 >
                                     <MenuLink
