@@ -45,8 +45,14 @@ const AppContent: React.FC<{ passthrough: any }> = observer(({ passthrough }) =>
     React.useEffect(() => {
         switchLanguage(current_language);
         html?.setAttribute('lang', current_language.toLowerCase());
-        const is_arabic = current_language.toLowerCase() === 'ar';
-        html?.setAttribute('dir', is_arabic && isMobile ? 'rtl' : 'ltr');
+        html?.setAttribute('dir', current_language.toLowerCase() === 'ar' ? 'rtl' : 'ltr');
+        // On desktop, keep body LTR to prevent the main layout from flipping.
+        // html retains dir="rtl" so [dir='rtl'] CSS selectors still match for text-level RTL.
+        if (!isMobile && current_language.toLowerCase() === 'ar') {
+            document.body.setAttribute('dir', 'ltr');
+        } else {
+            document.body.removeAttribute('dir');
+        }
     }, [current_language, switchLanguage, html, isMobile]);
 
     // Send trading:config event when language or theme changes
