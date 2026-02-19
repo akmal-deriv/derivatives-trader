@@ -45,8 +45,9 @@ const AppContent: React.FC<{ passthrough: any }> = observer(({ passthrough }) =>
     React.useEffect(() => {
         switchLanguage(current_language);
         html?.setAttribute('lang', current_language.toLowerCase());
-        html?.setAttribute('dir', current_language.toLowerCase() === 'ar' ? 'rtl' : 'ltr');
-    }, [current_language, switchLanguage, html]);
+        const is_arabic = current_language.toLowerCase() === 'ar';
+        html?.setAttribute('dir', is_arabic && isMobile ? 'rtl' : 'ltr');
+    }, [current_language, switchLanguage, html, isMobile]);
 
     // Send trading:config event when language or theme changes
     React.useEffect(() => {
