@@ -75,7 +75,6 @@ $FOOTER_BUTTON_HEIGHT: var(--core-size-4000);
             .risk-management__tp-sl__wrapper {
                 height: calc(90dvh - $HANDLEBAR_HEIGHT - $HEADER_TITLE_HEIGHT - $SEGMENTED_CONTROL);
                 max-height: calc(480px - $HANDLEBAR_HEIGHT - $HEADER_TITLE_HEIGHT - $SEGMENTED_CONTROL);
-                min-height: 300px;
             }
             .trade-param-definition {
                 height: calc(90dvh - $HANDLEBAR_HEIGHT - $HEADER_TITLE_HEIGHT);
@@ -102,8 +101,8 @@ $FOOTER_BUTTON_HEIGHT: var(--core-size-4000);
     &__save-button {
         flex-shrink: 0;
         position: sticky;
-        bottom: 0;
-        margin: var(--core-spacing-800) 0;
+        bottom: var(--core-spacing-800);
+        margin-top: var(--core-spacing-800);
     }
 
     &__description {
@@ -125,7 +124,6 @@ $FOOTER_BUTTON_HEIGHT: var(--core-size-4000);
             flex-direction: column;
             justify-content: space-between;
             height: calc(480px - $HANDLEBAR_HEIGHT - $HEADER_TITLE_HEIGHT - $SEGMENTED_CONTROL);
-            position: relative;
         }
 
         .take-profit__overlay {

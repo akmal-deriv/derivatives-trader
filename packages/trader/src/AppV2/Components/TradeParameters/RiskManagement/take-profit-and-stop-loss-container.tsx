@@ -36,10 +36,8 @@ const TakeProfitAndStopLossContainer = observer(({ closeActionSheet }: TTakeProf
     const sl_ref = React.useRef({ has_stop_loss, stop_loss, sl_error_text: validation_errors?.stop_loss?.[0] });
     const is_api_response_sl_received_ref = React.useRef(false);
 
-    // Detect keyboard visibility for both inputs
-    const { is_key_board_visible: is_tp_keyboard_visible } = useIsVirtualKeyboardOpen('take_profit');
+    // Detect keyboard visibility for Stop Loss input
     const { is_key_board_visible: is_sl_keyboard_visible } = useIsVirtualKeyboardOpen('stop_loss');
-    const is_keyboard_visible = is_tp_keyboard_visible || is_sl_keyboard_visible;
 
     const wrapper_ref = React.useRef<HTMLDivElement>(null);
 
@@ -48,60 +46,77 @@ const TakeProfitAndStopLossContainer = observer(({ closeActionSheet }: TTakeProf
         if (!is_sl_keyboard_visible || !wrapper_ref.current) return;
 
         let rafId: number;
-        const initialHeight = window.visualViewport?.height || 0;
-        let lastHeight = initialHeight;
-        let stableFrameCount = 0;
-        let hasHeightChanged = false;
-        const STABLE_FRAMES_NEEDED = 3;
+        let lastViewportHeight = window.visualViewport?.height || 0;
+        let viewportStableFrames = 0;
+        const VIEWPORT_STABLE_FRAMES = 3;
+        // Save button may have a separate animation cycle from the keyboard —
+        // wait for its position to stop changing before scrolling
+        const BUTTON_STABLE_FRAMES = 3;
 
         const scrollToBottom = () => {
-            if (wrapper_ref.current) {
-                wrapper_ref.current.scrollTo({
-                    top: wrapper_ref.current.scrollHeight,
+            // Find the parent Action Sheet container which is the actual scrollable element
+            const scrollableParent = wrapper_ref.current?.closest('.risk-management__picker');
+            if (scrollableParent) {
+                scrollableParent.scrollTo({
+                    top: scrollableParent.scrollHeight,
                     behavior: 'smooth',
                 });
             }
         };
 
+        // After viewport is stable, poll save button position each frame until it stops moving.
+        // getBoundingClientRect is only called after keyboard animation ends (~20 reads total).
+        const checkSaveButtonStability = () => {
+            const saveButton = wrapper_ref.current?.querySelector('.risk-management__save-button');
+            if (!saveButton) {
+                scrollToBottom();
+                return;
+            }
+
+            let lastTop = saveButton.getBoundingClientRect().top;
+            let stableFrames = 0;
+
+            const poll = () => {
+                const currentTop = saveButton.getBoundingClientRect().top;
+                if (currentTop === lastTop) {
+                    stableFrames++;
+                    if (stableFrames >= BUTTON_STABLE_FRAMES) {
+                        scrollToBottom();
+                        return;
+                    }
+                } else {
+                    stableFrames = 0;
+                    lastTop = currentTop;
+                }
+                rafId = requestAnimationFrame(poll);
+            };
+
+            rafId = requestAnimationFrame(poll);
+        };
+
         const checkViewportStability = () => {
             const currentHeight = window.visualViewport?.height || 0;
 
-            // Track if viewport has changed at all
-            if (currentHeight !== initialHeight) {
-                hasHeightChanged = true;
-            }
-
-            if (currentHeight === lastHeight) {
-                stableFrameCount++;
-                if (stableFrameCount >= STABLE_FRAMES_NEEDED) {
-                    // Viewport is stable
-                    requestAnimationFrame(() => {
-                        requestAnimationFrame(scrollToBottom);
-                    });
+            if (currentHeight === lastViewportHeight) {
+                viewportStableFrames++;
+                if (viewportStableFrames >= VIEWPORT_STABLE_FRAMES) {
+                    // Viewport stable, now wait for save button to stop moving
+                    checkSaveButtonStability();
                     return;
                 }
             } else {
-                // Viewport still changing
-                stableFrameCount = 0;
-                lastHeight = currentHeight;
+                // Viewport still changing, reset counter
+                viewportStableFrames = 0;
+                lastViewportHeight = currentHeight;
             }
 
             rafId = requestAnimationFrame(checkViewportStability);
         };
 
-        // If viewport hasn't changed after first few frames, scroll immediately without waiting
-        const timeoutId = setTimeout(() => {
-            if (!hasHeightChanged) {
-                scrollToBottom();
-                cancelAnimationFrame(rafId);
-            }
-        }, 100);
-
         rafId = requestAnimationFrame(checkViewportStability);
 
         return () => {
             cancelAnimationFrame(rafId);
-            clearTimeout(timeoutId);
         };
     }, [is_sl_keyboard_visible]);
 
@@ -155,18 +170,8 @@ const TakeProfitAndStopLossContainer = observer(({ closeActionSheet }: TTakeProf
         closeActionSheet();
     };
 
-    // Dynamically adjust wrapper height and enable scrolling only when keyboard is visible
-    const wrapper_style = is_keyboard_visible
-        ? {
-              height: 'auto',
-              maxHeight: 'calc(100dvh - 192px)', // Leave space for keyboard
-              overflowY: 'auto' as const,
-              minHeight: '240px', // Ensure there's some height when keyboard is open
-          }
-        : undefined;
-
     return (
-        <div ref={wrapper_ref} className='risk-management__tp-sl__wrapper' style={wrapper_style}>
+        <div ref={wrapper_ref} className='risk-management__tp-sl__wrapper'>
             <TakeProfitAndStopLossInput
                 classname='risk-management__tp-sl'
                 has_save_button={false}
