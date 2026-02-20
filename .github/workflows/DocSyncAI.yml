@@ -2,7 +2,7 @@ name: DocSync AI - Documentation Sync
 
 on:
   schedule:
-    - cron: "0 6 * * 5" # 10:00 AM GST (6:00 AM UTC) every Friday
+    - cron: "15 7 * * 5" # 11:15 AM GST (7:15 AM UTC) every Friday
 
   issue_comment:
     types: [created]
