@@ -1,7 +1,7 @@
 import Cookies from 'js-cookie';
 
+import { getTrustedDomainName } from '../brand';
 import { getPropertyValue, isEmptyObject } from '../object/object';
-import { getBrandDomain } from '../brand';
 
 type TCookieStorageThis = {
     initialized: boolean;
@@ -186,7 +186,7 @@ export const CookieStorage = function (this: TCookieStorageThis, cookie_name: st
 
     this.initialized = false;
     this.cookie_name = cookie_name;
-    this.domain = cookie_domain || getBrandDomain();
+    this.domain = cookie_domain || getTrustedDomainName();
     /* eslint-enable no-nested-ternary */
     this.path = '/';
     this.expires = new Date('Thu, 1 Jan 2037 12:00:00 GMT');

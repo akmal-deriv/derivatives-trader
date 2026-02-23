@@ -7,7 +7,7 @@ import {
     filterUrlQuery,
     getAccountId,
     getAccountType,
-    getBrandDomain,
+    getTrustedDomainName,
     isCryptocurrency,
     isMobile,
     LocalStore,
@@ -230,7 +230,7 @@ export default class ClientStore extends BaseStore {
     };
 
     setCookieAccount() {
-        const domain = /deriv\.(com)/.test(window.location.hostname) ? getBrandDomain() : window.location.hostname;
+        const domain = getTrustedDomainName();
 
         const { loginid, landing_company_shortcode, currency, preferred_language, user_id } = this;
         const email = this.email;

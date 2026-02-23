@@ -7,23 +7,7 @@
  *
  */
 
-import { getProductionPlatformHostname, getStagingPlatformHostname, getWebSocketURL } from '../brand';
-
-export const isProduction = () => {
-    const productionHostname = getProductionPlatformHostname();
-    const stagingHostname = getStagingPlatformHostname();
-
-    // Create regex patterns for both production and staging domains (with optional www prefix)
-    const productionPattern = `(www\\.)?${productionHostname.replaceAll('.', '\\.')}`;
-    const stagingPattern = `(www\\.)?${stagingHostname.replaceAll('.', '\\.')}`;
-
-    // Check if current hostname matches any of the supported domains
-    const supportedDomainsRegex = new RegExp(`^(${productionPattern}|${stagingPattern})$`, 'i');
-
-    // Return true only if we're on the production hostname
-    const productionRegex = new RegExp(`^${productionPattern}$`, 'i');
-    return supportedDomainsRegex.test(window.location.hostname) && productionRegex.test(window.location.hostname);
-};
+import { getWebSocketURL } from '../brand';
 
 /**
  * Gets account_type with priority: URL parameter > localStorage > default 'public'
@@ -122,7 +106,7 @@ export const getSocketURL = () => {
     }
 
     // Get WebSocket server URL from brand config based on environment
-    const server_url = getWebSocketURL(isProduction());
+    const server_url = getWebSocketURL();
 
     return server_url;
 };

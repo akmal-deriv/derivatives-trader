@@ -11,8 +11,7 @@ import SocketCache from '_common/base/socket_cache';
  */
 export const requestRestLogout = async () => {
     try {
-        const isProduction = process.env.NODE_ENV === 'production';
-        const logoutUrl = getLogoutURL(isProduction);
+        const logoutUrl = getLogoutURL();
 
         // Step 1: Get logout URL and token
         const response = await fetch(logoutUrl, {
