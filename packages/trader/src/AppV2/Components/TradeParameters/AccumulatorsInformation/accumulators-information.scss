@@ -13,6 +13,10 @@
         align-items: center;
         width: 100%;
 
+        @include rtl {
+            direction: rtl;
+        }
+
         &--collapsible {
             @media (max-width: 768px) {
                 .trade-params__options-wrapper:not(.trade-params__options-wrapper--expanded) & {

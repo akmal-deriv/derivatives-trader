@@ -120,6 +120,15 @@
         border: 1px solid var(--color-surface-border);
         touch-action: manipulation; // Prevent hover states on touch devices
 
+        @include rtl {
+            direction: rtl;
+
+            .label {
+                left: unset;
+                right: var(--core-spacing-50);
+            }
+        }
+
         &--minimized {
             width: 16rem;
             flex-shrink: 0;
@@ -212,6 +221,11 @@
         transform: translateY(-50%);
         z-index: 1;
         pointer-events: auto;
+
+        @include rtl {
+            right: unset;
+            left: var(--core-spacing-800);
+        }
     }
 
     &__info-icon {
@@ -241,6 +255,11 @@
             max-width: 320px;
             box-shadow: var(--core-shadow-200);
 
+            @include rtl {
+                direction: rtl;
+                text-align: right;
+            }
+
             // Override Quill UI Text component styles in tooltip
             .quill-typography {
                 color: var(--color-text-inverse);
@@ -268,6 +287,19 @@
         // Override TooltipPortal arrow styles
         .dc-tooltip-portal__arrow--left {
             border-left-color: var(--color-surface-inverse);
+
+            // postcss-rtlcss auto-flips the arrow to the left side in RTL,
+            // but it should always stay on the right side pointing toward the field
+            @include rtl {
+                right: -0.6rem;
+                left: auto;
+                border-width: 0.6rem 0 0.6rem 0.6rem;
+                border-color: transparent transparent transparent var(--color-surface-inverse);
+            }
+        }
+
+        .dc-tooltip-portal__arrow--right {
+            border-right-color: var(--color-surface-inverse);
         }
     }
 

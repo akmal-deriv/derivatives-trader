@@ -11,6 +11,10 @@
         min-height: var(--core-spacing-1600);
         white-space: nowrap;
         scrollbar-width: none;
+
+        @include rtl {
+            direction: rtl;
+        }
         &::-webkit-scrollbar {
             display: none;
         }

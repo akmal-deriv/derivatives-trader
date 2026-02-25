@@ -36,6 +36,11 @@
             display: flex;
             flex-direction: column;
 
+            @include rtl {
+                direction: rtl;
+                text-align: right;
+            }
+
             &--separate {
                 padding: 0 var(--component-actionSheet-spacing-padding-lg)
                     var(--component-actionSheet-spacing-padding-md);

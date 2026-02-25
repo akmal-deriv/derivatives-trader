@@ -25,6 +25,10 @@
             display: flex;
             gap: var(--core-spacing-400);
             width: 100%;
+
+            @include rtl {
+                direction: ltr;
+            }
         }
         .digit {
             height: var(--core-size-2800);

@@ -76,6 +76,10 @@ $trade-types-modal-height: 67rem;
         justify-content: space-between;
         align-items: center;
         padding: var(--core-spacing-400) var(--core-spacing-400) 0;
+
+        @include rtl {
+            direction: rtl;
+        }
     }
 
     &__guide-button {
@@ -106,6 +110,10 @@ $trade-types-modal-height: 67rem;
         border-bottom: 1px solid var(--semantic-color-monochrome-border-normal-mid);
         position: relative;
         padding: 0 var(--core-spacing-400);
+
+        @include rtl {
+            direction: rtl;
+        }
     }
 
     &__tab {
@@ -157,6 +165,10 @@ $trade-types-modal-height: 67rem;
         display: block;
         font-size: 1.2rem;
         padding: 0 var(--core-spacing-400);
+
+        @include rtl {
+            text-align: right;
+        }
     }
 
     &__items {
@@ -172,6 +184,10 @@ $trade-types-modal-height: 67rem;
         border-radius: 0.8rem;
         text-align: left;
         cursor: pointer;
+
+        @include rtl {
+            text-align: right;
+        }
         transition: all 0.2s ease;
         color: var(--component-textIcon-normal-default);
 

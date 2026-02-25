@@ -227,6 +227,11 @@
         border: 1px solid var(--color-surface-border);
         z-index: 10;
 
+        @include rtl {
+            right: 0;
+            left: auto;
+        }
+
         .dc-themed-scrollbars {
             scrollbar-color: var(--color-text-secondary) transparent;
             &::-webkit-scrollbar-thumb {
@@ -322,6 +327,11 @@
 
             @include mobile-screen {
                 right: 1.6rem;
+            }
+
+            @include rtl {
+                right: 0.8rem;
+                left: auto;
             }
         }
     }

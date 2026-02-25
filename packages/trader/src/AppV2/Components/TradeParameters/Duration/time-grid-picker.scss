@@ -3,6 +3,10 @@
     gap: 0;
     padding: 0;
 
+    @include rtl {
+        direction: ltr;
+    }
+
     &__section {
         flex: 1;
         display: flex;
@@ -12,6 +16,11 @@
 
         &:first-child {
             border-right: 0.1rem solid var(--semantic-color-slate-solid-surface-frame-mid);
+
+            @include rtl {
+                border-right: 0.1rem solid var(--semantic-color-slate-solid-surface-frame-mid);
+                border-left: none;
+            }
         }
     }
 
@@ -20,6 +29,10 @@
         font-weight: 400;
         color: var(--component-textIcon-normal-prominent);
         text-align: left;
+
+        @include rtl {
+            text-align: right;
+        }
     }
 
     &__grid {

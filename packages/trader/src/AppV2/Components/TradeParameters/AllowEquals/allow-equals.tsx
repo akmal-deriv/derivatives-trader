@@ -42,7 +42,7 @@ const AllowEquals = observer(() => {
         <React.Fragment>
             <div className='allow-equals__wrapper'>
                 {isDesktop ? (
-                    <TooltipPortal message={tooltipMessage} position='left'>
+                    <TooltipPortal message={tooltipMessage} position='left' className='allow-equals__tooltip'>
                         <Text
                             size='sm'
                             className={clsx('allow-equals__title', is_market_closed && 'allow-equals__title--disabled')}

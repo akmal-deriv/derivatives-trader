@@ -18,6 +18,10 @@
         align-items: center;
         padding: 2.4rem 2.4rem 1.6rem;
         border-bottom: 1px solid var(--border-normal);
+
+        @include rtl {
+            direction: rtl;
+        }
     }
 
     &__close {
@@ -50,6 +54,11 @@
         max-height: calc(55rem);
         min-height: 50rem;
         scrollbar-width: none;
+
+        @include rtl {
+            direction: rtl;
+            text-align: right;
+        }
 
         // Fix for Cloudflare Stream component rendering in modal
         .guide-video__wrapper {

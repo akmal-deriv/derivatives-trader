@@ -4,6 +4,10 @@
         width: 100%;
         height: 100%;
         gap: var(--core-spacing-800);
+
+        @include rtl {
+            direction: ltr;
+        }
     }
 
     &__sidebar {
@@ -12,6 +16,11 @@
         border-right: 0.1rem solid var(--component-divider-default);
         background-color: transparent;
         overflow-y: auto;
+
+        @include rtl {
+            border-right: 0.1rem solid var(--component-divider-default);
+            border-left: none;
+        }
     }
 
     &__main {
@@ -55,10 +64,23 @@
         gap: var(--core-spacing-800);
         margin-bottom: var(--core-spacing-400);
 
+        @include rtl {
+            direction: rtl;
+
+            .label {
+                left: unset;
+                right: var(--core-spacing-50);
+            }
+        }
+
         &--hours-minutes {
             flex-direction: row;
             align-items: flex-start;
             gap: 0.8rem;
+
+            @include rtl {
+                direction: ltr;
+            }
         }
     }
 

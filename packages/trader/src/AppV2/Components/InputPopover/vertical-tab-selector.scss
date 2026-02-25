@@ -6,6 +6,11 @@
     height: 100%;
     border-right: 1px solid var(--semantic-color-monochrome-border-normal-mid);
 
+    @include rtl {
+        border-right: 1px solid var(--semantic-color-monochrome-border-normal-mid);
+        border-left: none;
+    }
+
     &__item {
         position: relative;
         display: flex;
@@ -21,6 +26,10 @@
         cursor: pointer;
         transition: all 0.2s ease;
         height: 4.8rem;
+
+        @include rtl {
+            text-align: right;
+        }
 
         &:hover {
             font-weight: bold;
@@ -40,6 +49,11 @@
                 width: 0.4rem;
                 background-color: var(--custom-indicator-red);
                 border-radius: 50px;
+
+                @include rtl {
+                    right: 0;
+                    left: auto;
+                }
             }
         }
     }
