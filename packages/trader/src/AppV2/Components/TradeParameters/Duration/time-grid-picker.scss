@@ -4,7 +4,7 @@
     padding: 0;
 
     @include rtl {
-        direction: ltr;
+        direction: rtl;
     }
 
     &__section {
@@ -18,8 +18,8 @@
             border-right: 0.1rem solid var(--semantic-color-slate-solid-surface-frame-mid);
 
             @include rtl {
-                border-right: 0.1rem solid var(--semantic-color-slate-solid-surface-frame-mid);
-                border-left: none;
+                border-right: none;
+                border-left: 0.1rem solid var(--semantic-color-slate-solid-surface-frame-mid);
             }
         }
     }

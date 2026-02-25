@@ -172,6 +172,10 @@
 
         svg {
             width: 16px;
+
+            @include rtl {
+                transform: scaleX(-1);
+            }
             height: 16px;
             fill: var(--component-textIcon-normal-prominent);
         }
