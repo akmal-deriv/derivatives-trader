@@ -72,6 +72,10 @@
             display: flex;
             justify-content: space-between;
 
+            @include rtl {
+                direction: rtl;
+            }
+
             p {
                 &:first-child {
                     color: var(--component-textIcon-normal-subtle);

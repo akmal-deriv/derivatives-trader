@@ -53,6 +53,10 @@
     &__date-picker-content {
         display: flex;
         flex-direction: column;
+
+        @include rtl {
+            direction: ltr;
+        }
     }
 
     // Time Picker Popover
