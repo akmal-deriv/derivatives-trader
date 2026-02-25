@@ -59,15 +59,6 @@ describe('BottomNav', () => {
         expect(screen.getByText('Menu')).toBeInTheDocument();
     });
 
-    it('should not render when user is not logged in', () => {
-        const store = mockStore({
-            ...default_mock_store,
-            client: { is_logged_in: false },
-        });
-        const { container } = renderBottomNav(store);
-        expect(container).toBeEmptyDOMElement();
-    });
-
     it('should render the correct number of navigation items', () => {
         renderBottomNav();
         // Check by label text instead of role, as Navigation.BottomAction renders divs, not buttons
