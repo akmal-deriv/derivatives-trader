@@ -127,8 +127,6 @@ const BottomNav = observer(({ className }: BottomNavProps) => {
         }
     };
 
-    if (!is_logged_in) return null;
-
     return (
         <Navigation.Bottom
             className={classNames('bottom-nav-container', className)}

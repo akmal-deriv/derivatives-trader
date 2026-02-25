@@ -20,7 +20,7 @@ const AppContent: React.FC<{ passthrough: any }> = observer(({ passthrough }) =>
     const { initTrackJS } = useTrackJS();
 
     const store = useStore();
-    const { current_account } = store.client;
+    const { current_account, is_logged_in } = store.client;
     const { current_language } = store.common;
     const { is_dark_mode_on } = store.ui;
 
@@ -69,7 +69,7 @@ const AppContent: React.FC<{ passthrough: any }> = observer(({ passthrough }) =>
                     <Routes {...({ passthrough } as any)} />
                 </AppContents>
             </ErrorBoundary>
-            {isMobile && <BottomNav />}
+            {isMobile && is_logged_in && <BottomNav />}
             <ErrorBoundary root_store={store}>
                 <AppModals />
             </ErrorBoundary>
