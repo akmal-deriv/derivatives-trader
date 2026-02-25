@@ -1,5 +1,5 @@
 import * as brandUtils from '../../brand';
-import { getAccountType, getSocketURL, isProduction } from '../config';
+import { getAccountType, getSocketURL } from '../config';
 
 // Mock the brand utils module
 jest.mock('../../brand', () => ({
@@ -181,7 +181,7 @@ describe('getSocketURL', () => {
         const result = getSocketURL();
 
         expect(result).toBe('staging-core.api.deriv.com/options/v1/ws');
-        expect(mockGetWebSocketURL).toHaveBeenCalledWith(false);
+        expect(mockGetWebSocketURL).toHaveBeenCalled();
     });
 
     it('should return server URL for staging with real account', () => {
@@ -195,7 +195,7 @@ describe('getSocketURL', () => {
         const result = getSocketURL();
 
         expect(result).toBe('staging-core.api.deriv.com/options/v1/ws');
-        expect(mockGetWebSocketURL).toHaveBeenCalledWith(false);
+        expect(mockGetWebSocketURL).toHaveBeenCalled();
     });
 
     it('should return server URL for staging with missing account_type', () => {
@@ -209,7 +209,7 @@ describe('getSocketURL', () => {
         const result = getSocketURL();
 
         expect(result).toBe('staging-core.api.deriv.com/options/v1/ws');
-        expect(mockGetWebSocketURL).toHaveBeenCalledWith(false);
+        expect(mockGetWebSocketURL).toHaveBeenCalled();
     });
 
     it('should return server URL for staging with invalid account_type', () => {
@@ -223,7 +223,7 @@ describe('getSocketURL', () => {
         const result = getSocketURL();
 
         expect(result).toBe('staging-core.api.deriv.com/options/v1/ws');
-        expect(mockGetWebSocketURL).toHaveBeenCalledWith(false);
+        expect(mockGetWebSocketURL).toHaveBeenCalled();
     });
 
     it('should return server URL for production with demo account', () => {
@@ -237,7 +237,7 @@ describe('getSocketURL', () => {
         const result = getSocketURL();
 
         expect(result).toBe('core.api.deriv.com/options/v1/ws');
-        expect(mockGetWebSocketURL).toHaveBeenCalledWith(true);
+        expect(mockGetWebSocketURL).toHaveBeenCalled();
     });
 
     it('should return server URL for production with real account', () => {
@@ -251,7 +251,7 @@ describe('getSocketURL', () => {
         const result = getSocketURL();
 
         expect(result).toBe('core.api.deriv.com/options/v1/ws');
-        expect(mockGetWebSocketURL).toHaveBeenCalledWith(true);
+        expect(mockGetWebSocketURL).toHaveBeenCalled();
     });
 
     it('should return localStorage value when config.server_url is set', () => {
@@ -280,7 +280,7 @@ describe('getSocketURL', () => {
 
         expect(result).toBe('staging-core.api.deriv.com/options/v1/ws');
         expect(window.localStorage.getItem('config.server_url')).toBeNull();
-        expect(mockGetWebSocketURL).toHaveBeenCalledWith(false);
+        expect(mockGetWebSocketURL).toHaveBeenCalled();
     });
 
     it('should ignore and remove invalid localStorage server URL without TLD', () => {
@@ -296,57 +296,48 @@ describe('getSocketURL', () => {
 
         expect(result).toBe('staging-core.api.deriv.com/options/v1/ws');
         expect(window.localStorage.getItem('config.server_url')).toBeNull();
-        expect(mockGetWebSocketURL).toHaveBeenCalledWith(false);
-    });
-});
-
-describe('isProduction', () => {
-    let originalLocation: Location;
-
-    beforeEach(() => {
-        originalLocation = window.location;
+        expect(mockGetWebSocketURL).toHaveBeenCalled();
     });
 
-    afterEach(() => {
-        Object.defineProperty(window, 'location', {
-            value: originalLocation,
-            writable: true,
+    it('should return server URL on dtrader.deriv.be', () => {
+        mockGetWebSocketURL.mockReturnValue('api-core.deriv.be/options/v1/ws');
+        mockLocation(originalLocation, {
+            hostname: 'dtrader.deriv.be',
+            search: '',
+            href: 'https://dtrader.deriv.be',
         });
+
+        const result = getSocketURL();
+
+        expect(result).toBe('api-core.deriv.be/options/v1/ws');
+        expect(mockGetWebSocketURL).toHaveBeenCalled();
     });
 
-    it('should return true for production hostname dtrader.deriv.com', () => {
-        mockLocation(originalLocation, { hostname: 'dtrader.deriv.com' });
+    it('should return server URL on dtrader.deriv.me', () => {
+        mockGetWebSocketURL.mockReturnValue('api-core.deriv.me/options/v1/ws');
+        mockLocation(originalLocation, {
+            hostname: 'dtrader.deriv.me',
+            search: '',
+            href: 'https://dtrader.deriv.me',
+        });
 
-        expect(isProduction()).toBe(true);
+        const result = getSocketURL();
+
+        expect(result).toBe('api-core.deriv.me/options/v1/ws');
+        expect(mockGetWebSocketURL).toHaveBeenCalled();
     });
 
-    it('should return true for production hostname with www prefix', () => {
-        mockLocation(originalLocation, { hostname: 'www.dtrader.deriv.com' });
+    it('should return server URL on staging-dtrader.deriv.be', () => {
+        mockGetWebSocketURL.mockReturnValue('staging-api-core.deriv.be/options/v1/ws');
+        mockLocation(originalLocation, {
+            hostname: 'staging-dtrader.deriv.be',
+            search: '',
+            href: 'https://staging-dtrader.deriv.be',
+        });
 
-        expect(isProduction()).toBe(true);
-    });
+        const result = getSocketURL();
 
-    it('should return false for staging hostname staging-dtrader.deriv.com', () => {
-        mockLocation(originalLocation, { hostname: 'staging-dtrader.deriv.com' });
-
-        expect(isProduction()).toBe(false);
-    });
-
-    it('should return false for staging hostname with www prefix', () => {
-        mockLocation(originalLocation, { hostname: 'www.staging-dtrader.deriv.com' });
-
-        expect(isProduction()).toBe(false);
-    });
-
-    it('should return false for localhost', () => {
-        mockLocation(originalLocation, { hostname: 'localhost' });
-
-        expect(isProduction()).toBe(false);
-    });
-
-    it('should return false for unsupported domain', () => {
-        mockLocation(originalLocation, { hostname: 'example.com' });
-
-        expect(isProduction()).toBe(false);
+        expect(result).toBe('staging-api-core.deriv.be/options/v1/ws');
+        expect(mockGetWebSocketURL).toHaveBeenCalled();
     });
 });

@@ -1,6 +1,6 @@
 import { configure } from 'mobx';
 
-import { clearAccountId, getAccountId } from '@deriv/shared';
+import { clearAccountId, getAccountId, getBrandDomains } from '@deriv/shared';
 
 import { checkWhoAmI } from 'Services';
 import NetworkMonitor from 'Services/network-monitor';
@@ -60,7 +60,7 @@ const initStore = async notification_messages => {
 
             // Validate URL is from trusted domain
             const url = new URL(decodedRecoveryLink);
-            const allowedHosts = ['auth.deriv.com', 'staging-auth.deriv.com'];
+            const allowedHosts = getBrandDomains().flatMap(domain => [`auth.${domain}`, `staging-auth.${domain}`]);
 
             if (!allowedHosts.includes(url.hostname)) {
                 // eslint-disable-next-line no-console

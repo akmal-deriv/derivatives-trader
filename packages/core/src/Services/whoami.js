@@ -6,8 +6,7 @@ import { getWhoAmIURL } from '@deriv/shared';
  */
 export const checkWhoAmI = async () => {
     try {
-        const isProduction = process.env.NODE_ENV === 'production';
-        const whoamiUrl = getWhoAmIURL(isProduction);
+        const whoamiUrl = getWhoAmIURL();
 
         const response = await fetch(whoamiUrl, {
             method: 'GET',

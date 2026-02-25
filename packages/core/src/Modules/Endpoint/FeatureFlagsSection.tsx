@@ -1,7 +1,8 @@
 import React from 'react';
-import { observer, useStore } from '@deriv/stores';
+
 import { Checkbox, Text } from '@deriv/components';
-import { getProductionPlatformHostname } from '@deriv/shared';
+import { isProduction } from '@deriv/shared';
+import { observer, useStore } from '@deriv/stores';
 
 export const FeatureFlagsSection = observer(() => {
     const { feature_flags } = useStore();
@@ -9,7 +10,7 @@ export const FeatureFlagsSection = observer(() => {
     // Only show feature flags on non-production environments
     const visible_feature_flags = Object.entries(feature_flags.data ?? {})?.reduce<{ [key: string]: boolean }>(
         (flags, [key, value]) => {
-            const is_production = location.hostname === getProductionPlatformHostname();
+            const is_production = isProduction();
             if (!is_production && typeof value === 'boolean') {
                 flags[key] = value;
             }
