@@ -97,19 +97,17 @@ const BottomNav = observer(({ className }: BottomNavProps) => {
         [active_positions_count]
     );
 
-    const navIndex = bottomNavItems.findIndex(item => item.path === location.pathname);
-    const [selectedIndex, setSelectedIndex] = React.useState(navIndex > -1 ? navIndex : 1); // Default to Trade (index 1)
-
-    // Sync selectedIndex with route changes (e.g., when navigating from drawer)
-    React.useEffect(() => {
-        const currentNavIndex = bottomNavItems.findIndex(item => item.path === location.pathname);
-        if (currentNavIndex > -1) {
-            setSelectedIndex(currentNavIndex);
-        } else if (location.pathname === routes.profit || location.pathname === routes.statement) {
-            // No icon should be highlighted for these routes (accessed via drawer)
-            setSelectedIndex(-1);
+    const selectedIndex = React.useMemo(() => {
+        if (
+            location.pathname === routes.positions ||
+            location.pathname === routes.profit ||
+            location.pathname === routes.statement
+        ) {
+            return -1; // No icon highlighted for report sub-routes
         }
-    }, [location.pathname, bottomNavItems]);
+        const idx = bottomNavItems.findIndex(item => item.path === location.pathname);
+        return idx > -1 ? idx : 1; // Default to Trade
+    }, [bottomNavItems, location.pathname]);
 
     const handleSelect = (index: number) => {
         const item = bottomNavItems[index];
@@ -125,7 +123,6 @@ const BottomNav = observer(({ className }: BottomNavProps) => {
         }
 
         if (item.path) {
-            setSelectedIndex(index);
             history.push(item.path);
         }
     };

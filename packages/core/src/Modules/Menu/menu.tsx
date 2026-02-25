@@ -35,18 +35,22 @@ const MenuPage = observer(() => {
 
     const [show_language_selector, setShowLanguageSelector] = React.useState(false);
 
-    if (!isMobile) return <Redirect to={routes.index} />;
-
     const handleLogout = React.useCallback(async () => {
-        await sendBridgeEvent('trading:back', async () => {
-            await logoutClient();
-        });
-        history.push(routes.index);
+        try {
+            await sendBridgeEvent('trading:back', async () => {
+                await logoutClient();
+            });
+            history.push(routes.index);
+        } catch (error) {
+            throw new Error(`Logout failed: ${error instanceof Error ? error.message : String(error)}`);
+        }
     }, [logoutClient, sendBridgeEvent, history]);
 
     const handleHelpCentreClick = React.useCallback(() => {
         window.open(getHelpCentreUrl(), '_blank', 'noopener,noreferrer');
     }, []);
+
+    if (!isMobile) return <Redirect to={routes.index} />;
 
     return (
         <div className='menu-page'>
