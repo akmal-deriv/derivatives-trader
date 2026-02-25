@@ -37,9 +37,6 @@ describe('BottomNav', () => {
             common: {
                 current_language: 'EN',
             },
-            ui: {
-                setMobileDrawerOpen: jest.fn(),
-            },
         });
     });
 
@@ -110,7 +107,7 @@ describe('BottomNav', () => {
         });
     });
 
-    it('should open mobile drawer when Menu is clicked', async () => {
+    it('should navigate to Menu page when Menu is clicked', async () => {
         const user = userEvent.setup();
         renderBottomNav();
         const menuButton = screen.getByText('Menu');
@@ -120,7 +117,7 @@ describe('BottomNav', () => {
         });
 
         await waitFor(() => {
-            expect(default_mock_store.ui.setMobileDrawerOpen).toHaveBeenCalledWith(true);
+            expect(history.location.pathname).toBe('/menu');
         });
     });
 

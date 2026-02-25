@@ -25,11 +25,11 @@ type BottomNavProps = {
 const BottomNav = observer(({ className }: BottomNavProps) => {
     const history = useHistory();
     const location = useLocation();
-    const { client, portfolio, ui, common } = useStore();
+    const { client, portfolio, common } = useStore();
     const { active_positions_count } = portfolio;
     const { is_logged_in, currency } = client;
     const { current_language } = common;
-    const { sendBridgeEvent, isBridgeAvailable } = useMobileBridge();
+    const { sendBridgeEvent } = useMobileBridge();
 
     const bottomNavItems = React.useMemo(
         () => [
@@ -91,8 +91,7 @@ const BottomNav = observer(({ className }: BottomNavProps) => {
                 icon: <StandaloneBarsRegularIcon iconSize='sm' fill='var(--color-text-primary)' />,
                 activeIcon: <StandaloneBarsRegularIcon iconSize='sm' />,
                 label: <Localize i18n_default_text='Menu' />,
-                path: null,
-                action: 'menu' as const,
+                path: routes.menu,
             },
         ],
         [active_positions_count]
@@ -122,11 +121,6 @@ const BottomNav = observer(({ className }: BottomNavProps) => {
                 const curr = encodeURIComponent(currency || '');
                 window.location.href = `${brandUrl}/home?source=options&acc=options&curr=${curr}${lang_param}`;
             });
-            return;
-        }
-
-        if (item.action === 'menu') {
-            ui.setMobileDrawerOpen(true);
             return;
         }
 

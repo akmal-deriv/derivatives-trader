@@ -352,7 +352,6 @@ type TUiStore = {
     setIsPhoneVerificationCompleted: (value: boolean) => void;
     setRedirectFromEmail: (value: boolean) => void;
     setMobileLanguageMenuOpen: (is_mobile_language_menu_open: boolean) => void;
-    setMobileDrawerOpen: (is_mobile_drawer_open: boolean) => void;
     setReportsTabIndex: (value: number) => void;
     setIsClosingCreateRealAccountModal: (value: boolean) => void;
     setIsFromSignupAccount: (value: boolean) => void;

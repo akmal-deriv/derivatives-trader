@@ -165,7 +165,6 @@ const mock = (): TStores & { is_mock: boolean } => {
             setIsClosingCreateRealAccountModal: jest.fn(),
             setIsFromSignupAccount: jest.fn(),
             setMobileLanguageMenuOpen: jest.fn(),
-            setMobileDrawerOpen: jest.fn(),
             setRealAccountSignupEnd: jest.fn(),
             setPromptHandler: jest.fn(),
             setPurchaseState: jest.fn(),

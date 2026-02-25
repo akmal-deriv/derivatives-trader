@@ -334,7 +334,6 @@ export default class UIStore extends BaseStore {
             setSubSectionIndex: action.bound,
             setTopUpInProgress: action.bound,
             setMobileLanguageMenuOpen: action.bound,
-            setMobileDrawerOpen: action.bound,
             toggleCancellationWarning: action.bound,
             toggleHistoryTab: action.bound,
             toggleOnScreenKeyboard: action.bound,
@@ -527,10 +526,6 @@ export default class UIStore extends BaseStore {
 
     setMobileLanguageMenuOpen(is_mobile_language_menu_open) {
         this.is_mobile_language_menu_open = is_mobile_language_menu_open;
-    }
-
-    setMobileDrawerOpen(is_mobile_drawer_open) {
-        this.is_mobile_drawer_open = is_mobile_drawer_open;
     }
 
     setModalIndex(index = 0) {

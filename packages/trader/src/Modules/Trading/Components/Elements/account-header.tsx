@@ -93,8 +93,8 @@ const AccountHeader = observer(
         // Button logic:
         // - If only demo accounts exist -> show "Try real"
         // - Otherwise (real only or both real and demo) -> show "Transfer"
-        const buttonLabel = hasOnlyDemoAccounts ? localize('Try real') : localize('Transfer');
-        const buttonType = hasOnlyDemoAccounts ? 'try_real' : 'transfer';
+        const buttonLabel = hasOnlyDemoAccounts ? localize('Try real') : localize('Deposit');
+        const buttonType = hasOnlyDemoAccounts ? 'try_real' : 'deposit';
 
         const handleTransferClick = () => {
             // Track analytics event

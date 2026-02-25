@@ -38,15 +38,19 @@
         position: relative;
         height: calc(100% - 4rem);
     }
+    &__menu-section {
+        display: flex;
+        flex-direction: column;
+        padding: 1.6rem 0 2.4rem;
+    }
     &__menu-section-header {
-        padding: 1.6rem 1.6rem 0.8rem;
-        margin-top: 1.6rem;
+        padding: 0 1.6rem;
     }
     &__menu-section-title {
         color: var(--color-text-primary);
     }
     &__menu-logout {
-        height: 9.6rem;
+        height: 7.2rem;
         .header__menu-mobile-link-text {
             border-bottom: none;
 
@@ -204,19 +208,6 @@
         padding: 0 1.6rem;
     }
 
-    &__mobile-drawer {
-        &-icon {
-            width: 16px;
-            height: 16px;
-            transform: scale(1.3); // TODO: fix the icons sizes and remove this
-        }
-        &-toggle {
-            padding: 0 1.2rem;
-            display: flex;
-            align-items: center;
-            height: inherit;
-        }
-    }
     &__title {
         display: inline-block;
         font-weight: bold;

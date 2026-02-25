@@ -9,6 +9,8 @@ import Endpoint from 'Modules/Endpoint';
 // Error Routes
 const Page404 = React.lazy(() => import(/* webpackChunkName: "404" */ 'Modules/Page404'));
 
+const MenuPage = React.lazy(() => import(/* webpackChunkName: "menu" */ 'Modules/Menu'));
+
 const Trader = React.lazy(() => import(/* webpackChunkName: "trader" */ '@deriv/trader'));
 
 const Reports = React.lazy(() => import(/* webpackChunkName: "reports" */ '@deriv/reports'));
@@ -45,6 +47,12 @@ const getModules = () => {
                     protected: true,
                 },
             ],
+        },
+        {
+            path: routes.menu,
+            component: MenuPage,
+            getTitle: () => localize('Menu'),
+            protected: true,
         },
         {
             path: routes.index,

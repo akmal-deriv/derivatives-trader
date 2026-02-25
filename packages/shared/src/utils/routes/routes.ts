@@ -6,6 +6,7 @@ export const routes = {
     endpoint: '/endpoint',
 
     // Trading routes
+    menu: '/menu',
     trader_positions: '/positions',
     contract: '/contract/:contract_id',
 

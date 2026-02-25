@@ -7,16 +7,15 @@ import { useDevice } from '@deriv-com/ui';
 
 import { AccountActions } from 'App/Components/Layout/Header';
 import { AccountsInfoLoader } from 'App/Components/Layout/Header/Components/Preloader';
-import ToggleMenuDrawer from 'App/Components/Layout/Header/toggle-menu-drawer.jsx';
 import NewVersionNotification from 'App/Containers/new-version-notification';
 
 const HeaderLegacy = observer(() => {
     const { client, ui, notifications } = useStore();
-    const { currency, is_logged_in, is_logging_in } = client;
+    const { is_logged_in, is_logging_in } = client;
     const { is_app_disabled, is_route_modal_on } = ui;
     const { addNotificationMessage, client_notifications, removeNotificationMessage } = notifications;
 
-    const { isDesktop, isMobile } = useDevice();
+    const { isMobile } = useDevice();
 
     const addUpdateNotification = () => addNotificationMessage(client_notifications?.new_version_available);
     const removeUpdateNotification = React.useCallback(
@@ -49,7 +48,6 @@ const HeaderLegacy = observer(() => {
                     <AccountActions />
                 )}
             </div>
-            {isMobile && <ToggleMenuDrawer />}
             <NewVersionNotification onUpdate={addUpdateNotification} />
         </header>
     );
