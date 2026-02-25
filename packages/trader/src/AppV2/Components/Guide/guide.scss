@@ -161,6 +161,10 @@
         text-decoration: none;
         color: inherit;
 
+        @include rtl {
+            direction: rtl;
+        }
+
         &:hover {
             text-decoration: underline;
             text-decoration-color: var(--component-textIcon-normal-prominent);

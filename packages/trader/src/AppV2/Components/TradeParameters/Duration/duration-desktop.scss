@@ -6,7 +6,7 @@
         gap: var(--core-spacing-800);
 
         @include rtl {
-            direction: ltr;
+            direction: rtl;
         }
     }
 
@@ -18,8 +18,8 @@
         overflow-y: auto;
 
         @include rtl {
-            border-right: 0.1rem solid var(--component-divider-default);
-            border-left: none;
+            border-right: none;
+            border-left: 0.1rem solid var(--component-divider-default);
         }
     }
 

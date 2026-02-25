@@ -7,8 +7,8 @@
     border-right: 1px solid var(--semantic-color-monochrome-border-normal-mid);
 
     @include rtl {
-        border-right: 1px solid var(--semantic-color-monochrome-border-normal-mid);
-        border-left: none;
+        border-right: none;
+        border-left: 1px solid var(--semantic-color-monochrome-border-normal-mid);
     }
 
     &__item {
@@ -51,8 +51,8 @@
                 border-radius: 50px;
 
                 @include rtl {
-                    right: 0;
-                    left: auto;
+                    right: auto;
+                    left: 0;
                 }
             }
         }
