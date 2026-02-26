@@ -19,7 +19,7 @@
         "uuid": "^9.0.1"
     },
     "devDependencies": {
-        "@deriv-com/analytics": "1.38.6",
+        "@deriv-com/analytics": "1.38.8",
         "@deriv/api-types": "1.0.172",
         "@testing-library/react": "^14.3.1",
         "@testing-library/react-hooks": "^7.0.2",

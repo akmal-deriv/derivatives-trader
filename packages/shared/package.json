@@ -40,7 +40,7 @@
         "typescript": "^5.0.0"
     },
     "dependencies": {
-        "@deriv-com/analytics": "1.38.6",
+        "@deriv-com/analytics": "1.38.8",
         "@deriv/quill-icons": "2.2.1",
         "@deriv-com/translations": "1.4.0",
         "@deriv-com/utils": "^0.0.42",
