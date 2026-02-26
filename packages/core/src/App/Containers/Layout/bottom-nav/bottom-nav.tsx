@@ -27,7 +27,7 @@ const BottomNav = observer(({ className }: BottomNavProps) => {
     const location = useLocation();
     const { client, portfolio, common } = useStore();
     const { active_positions_count } = portfolio;
-    const { is_logged_in, currency } = client;
+    const { currency } = client;
     const { current_language } = common;
     const { sendBridgeEvent } = useMobileBridge();
 

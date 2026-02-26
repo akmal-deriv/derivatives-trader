@@ -42,7 +42,8 @@ const MenuPage = observer(() => {
             });
             history.push(routes.index);
         } catch (error) {
-            throw new Error(`Logout failed: ${error instanceof Error ? error.message : String(error)}`);
+            // eslint-disable-next-line no-console
+            console.error('Logout failed:', error);
         }
     }, [logoutClient, sendBridgeEvent, history]);
 
@@ -178,9 +179,14 @@ const MenuPage = observer(() => {
                 className={classNames('menu-page__language-drawer', {
                     'menu-page__language-drawer--open': show_language_selector,
                 })}
+                data-testid='dt_menu_language_drawer'
             >
                 <div className='menu-page__header'>
-                    <div className='menu-page__header-close' onClick={() => setShowLanguageSelector(false)}>
+                    <div
+                        className='menu-page__header-close'
+                        data-testid='dt_menu_language_close'
+                        onClick={() => setShowLanguageSelector(false)}
+                    >
                         <StandaloneChevronLeftRegularIcon iconSize='sm' fill='var(--color-text-primary)' />
                     </div>
                     <Text weight='bold' size='s'>

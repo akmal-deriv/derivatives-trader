@@ -326,7 +326,6 @@ type TUiStore = {
     is_mobile: boolean;
     is_tablet: boolean;
     is_mobile_language_menu_open: boolean;
-    is_mobile_drawer_open: boolean;
     active_sidebar_flyout: 'theme' | 'language' | 'positions' | 'account' | null;
     is_positions_drawer_on: boolean;
     is_reset_email_modal_visible: boolean;

@@ -25,7 +25,6 @@ export default class UIStore extends BaseStore {
     is_dark_mode_on = window?.matchMedia?.('(prefers-color-scheme: dark)').matches && isMobile();
     is_settings_modal_on = false;
     is_mobile_language_menu_open = false;
-    is_mobile_drawer_open = false;
 
     // Purchase Controls
     // @observable is_purchase_confirm_on    = false;
@@ -229,7 +228,6 @@ export default class UIStore extends BaseStore {
             is_history_tab_active: observable,
             is_landscape: observable,
             is_mobile_language_menu_open: observable,
-            is_mobile_drawer_open: observable,
             is_nativepicker_visible: observable,
 
             active_sidebar_flyout: observable,
