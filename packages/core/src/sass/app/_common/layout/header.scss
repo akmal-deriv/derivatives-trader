@@ -36,7 +36,8 @@
 
     &__menu-mobile-body-wrapper {
         position: relative;
-        height: calc(100% - 4rem);
+        overflow-y: auto;
+        height: calc(100% - 5.6rem);
     }
     &__menu-section {
         display: flex;
