@@ -14,6 +14,10 @@ $TWO_BUTTONS_FOOTER_HEIGHT: 120px;
     height: 100%;
     padding-bottom: var(--semantic-spacing-general-sm);
 
+    @include mobile-screen {
+        padding-bottom: 6.4rem;
+    }
+
     .contract-details-chart {
         height: min(360px, calc(100vh - $HEADER_HEIGHT - $FIXED_PADDING_HEIGHT));
     }
