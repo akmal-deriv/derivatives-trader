@@ -287,6 +287,10 @@
 // Desktop Modal (follows guide-desktop-modal pattern)
 .accumulator-stats-desktop-modal {
     height: 54.1rem;
+
+    [dir='rtl'] & {
+        direction: rtl;
+    }
     .modal__content {
         width: 51.2rem;
         padding: 0;
