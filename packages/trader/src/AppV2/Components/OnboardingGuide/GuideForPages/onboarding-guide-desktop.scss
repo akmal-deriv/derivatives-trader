@@ -5,6 +5,15 @@
                 border-radius: 2.4rem;
             }
         }
+
+        [dir='rtl'] & {
+            direction: rtl;
+
+            .quill-modal__close-icon {
+                right: auto;
+                left: var(--core-spacing-800);
+            }
+        }
     }
 
     &__body {
