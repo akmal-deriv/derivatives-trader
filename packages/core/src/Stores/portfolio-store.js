@@ -580,7 +580,8 @@ export default class PortfolioStore extends BaseStore {
 
     onUnmount() {
         const is_reports_path = /^\/reports/.test(window.location.pathname);
-        if (!is_reports_path) {
+        const is_menu_path = /^\/menu/.test(window.location.pathname);
+        if (!is_reports_path && !is_menu_path) {
             this.clearTable();
             this.disposeLogout();
         }
