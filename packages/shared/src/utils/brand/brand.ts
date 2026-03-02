@@ -105,16 +105,20 @@ export const getTrustedDomainName = (): string => {
 
 /**
  * Returns window.location.hostname for use as an OAuth redirect parameter,
- * but only if the current hostname belongs to a known brand domain.
+ * but only if the current hostname belongs to a known brand domain or a
+ * recognised Cloudflare Pages preview deployment.
  * Returns empty string on unrecognised hostnames to prevent open-redirect
  * attacks where an attacker-controlled copy of the app injects a redirect
  * back to their domain after authentication.
  */
+const CLOUDFLARE_PAGES_PATTERN = /^[a-zA-Z0-9-]+\.derivatives-trader\.pages\.dev$/;
 export const getRedirectHostname = (): string => {
     if (typeof window === 'undefined') return '';
     const hostname = window.location.hostname;
     const domain = getDomainName();
-    return (config_data.brand_domains as string[]).includes(domain) ? hostname : '';
+    if ((config_data.brand_domains as string[]).includes(domain)) return hostname;
+    if (CLOUDFLARE_PAGES_PATTERN.test(hostname)) return hostname;
+    return '';
 };
 
 /**

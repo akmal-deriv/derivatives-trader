@@ -40,7 +40,7 @@ const ServiceErrorSheet = observer(() => {
 
     const getActionButtonProps = () => {
         if (is_insufficient_balance) {
-            // Show OK button for virtual accounts, Transfer now for real accounts
+            // Show OK button for virtual accounts, Deposit now for real accounts
             if (is_virtual) {
                 return {
                     primaryAction: {
@@ -54,7 +54,7 @@ const ServiceErrorSheet = observer(() => {
             }
             return {
                 primaryAction: {
-                    content: <Localize i18n_default_text='Transfer now' />,
+                    content: <Localize i18n_default_text='Deposit now' />,
                     onAction: () => {
                         resetServicesError();
                         const brandUrl = getBrandUrl();

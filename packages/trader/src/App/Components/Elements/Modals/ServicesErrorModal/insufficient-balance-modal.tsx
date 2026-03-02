@@ -50,7 +50,7 @@ const InsufficientBalanceModal = observer(
                     {/* TODO: Add topping up mechanism for demo accounts after confirmation */}
                     <Button
                         has_effect
-                        text={is_virtual ? localize('OK') : localize('Transfer now')}
+                        text={is_virtual ? localize('OK') : localize('Deposit now')}
                         onClick={handleTransferClick}
                         primary
                     />

@@ -13,35 +13,6 @@
     body,
     .derivatives-trader,
     .modal-root,
-    .dc-mobile-drawer__overlay {
-        /* Break the flow */
-        position: absolute !important;
-        top: 0 !important;
-
-        /* Give them all the available space */
-        width: 100%;
-        height: 100%;
-
-        /* Remove the margins if any */
-        margin: 0;
-
-        /* Allow them to scroll down the document */
-        overflow-y: hidden !important;
-
-        /* -webkit-touch-callout only is supported on iOS webkit engine, thus it should apply iOS only styles */
-        @supports (-webkit-touch-callout: none) {
-            position: fixed !important;
-        }
-    }
-    .dc-mobile-drawer__overlay {
-        position: fixed !important;
-        &.exit {
-            animation-name: closeDrawerWrapper;
-            animation-delay: 1s;
-            animation-duration: 0.1s;
-            animation-fill-mode: forwards;
-        }
-    }
     .body {
         /* Sending body at the bottom of the stack */
         z-index: 1;

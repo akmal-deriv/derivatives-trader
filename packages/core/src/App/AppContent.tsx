@@ -10,6 +10,7 @@ import ErrorBoundary from './Components/Elements/Errors/error-boundary.jsx';
 import LandscapeBlocker from './Components/Elements/LandscapeBlocker';
 import AppToastMessages from './Containers/app-toast-messages.jsx';
 import AppContents from './Containers/Layout/app-contents.jsx';
+import BottomNav from './Containers/Layout/bottom-nav';
 import Header from './Containers/Layout/header';
 import AppModals from './Containers/Modals';
 import Routes from './Containers/Routes/routes.jsx';
@@ -19,7 +20,7 @@ const AppContent: React.FC<{ passthrough: any }> = observer(({ passthrough }) =>
     const { initTrackJS } = useTrackJS();
 
     const store = useStore();
-    const { current_account } = store.client;
+    const { current_account, is_logged_in } = store.client;
     const { current_language } = store.common;
     const { is_dark_mode_on } = store.ui;
 
@@ -68,6 +69,7 @@ const AppContent: React.FC<{ passthrough: any }> = observer(({ passthrough }) =>
                     <Routes {...({ passthrough } as any)} />
                 </AppContents>
             </ErrorBoundary>
+            {isMobile && is_logged_in && <BottomNav />}
             <ErrorBoundary root_store={store}>
                 <AppModals />
             </ErrorBoundary>

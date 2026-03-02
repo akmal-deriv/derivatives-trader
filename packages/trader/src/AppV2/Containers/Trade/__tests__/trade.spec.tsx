@@ -47,9 +47,6 @@ jest.mock('Modules/Trading/Helpers/digits', () => ({
 jest.mock('AppV2/Components/AccumulatorStats', () =>
     jest.fn(() => <div data-testid='accumulator-stats'>AccumulatorStats</div>)
 );
-jest.mock('AppV2/Components/BottomNav', () =>
-    jest.fn(({ children }) => <div data-testid='bottom-nav'>{children}</div>)
-);
 jest.mock('AppV2/Components/ClosedMarketMessage', () =>
     jest.fn(() => <div data-testid='closed-market-message'>ClosedMarketMessage</div>)
 );
@@ -288,7 +285,6 @@ describe('Trade', () => {
         it('should render all main trading components when data is loaded', () => {
             renderTrade();
 
-            expect(screen.getByTestId('bottom-nav')).toBeInTheDocument();
             expect(screen.getByTestId('trade-types')).toBeInTheDocument();
             expect(screen.getByTestId('market-selector')).toBeInTheDocument();
             expect(screen.getByTestId('trade-params-container')).toBeInTheDocument();

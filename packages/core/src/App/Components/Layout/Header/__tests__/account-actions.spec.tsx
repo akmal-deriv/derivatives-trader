@@ -117,15 +117,15 @@ describe('AccountActions component', () => {
         expect(screen.getByTestId('dt_account_info')).toBeInTheDocument();
     });
 
-    it('should render transfer button when logged in (non-virtual)', async () => {
+    it('should render deposit button when logged in (non-virtual)', async () => {
         renderWithStore();
 
         await screen.findByTestId('dt_account_info');
-        const transfer_button = screen.getByRole('button', { name: /transfer/i });
-        expect(transfer_button).toBeInTheDocument();
+        const deposit_button = screen.getByRole('button', { name: /deposit/i });
+        expect(deposit_button).toBeInTheDocument();
     });
 
-    it('should render transfer button when logged in with both account types (virtual)', async () => {
+    it('should render deposit button when logged in with both account types (virtual)', async () => {
         renderWithStore({
             client: {
                 ...default_mock_store.client,
@@ -134,8 +134,8 @@ describe('AccountActions component', () => {
         });
 
         await screen.findByTestId('dt_account_info');
-        const transfer_button = screen.getByRole('button', { name: /transfer/i });
-        expect(transfer_button).toBeInTheDocument();
+        const deposit_button = screen.getByRole('button', { name: /deposit/i });
+        expect(deposit_button).toBeInTheDocument();
     });
 
     it('should render "Try real" button for demo-only accounts', async () => {
@@ -183,7 +183,7 @@ describe('AccountActions component', () => {
         expect(screen.queryByTestId('dt_account_info')).not.toBeInTheDocument();
     });
 
-    it('should handle transfer button click for real accounts', async () => {
+    it('should handle deposit button click for real accounts', async () => {
         // Mock window.location.href
         delete (window as any).location;
         (window as any).location = { href: '' };
@@ -191,8 +191,8 @@ describe('AccountActions component', () => {
         renderWithStore();
 
         await screen.findByTestId('dt_account_info');
-        const transfer_button = screen.getByRole('button', { name: /transfer/i });
-        await userEvent.click(transfer_button);
+        const deposit_button = screen.getByRole('button', { name: /deposit/i });
+        await userEvent.click(deposit_button);
 
         expect(window.location.href).toContain('deriv.com/transfer');
         expect(window.location.href).toContain('curr=USD');
@@ -229,16 +229,16 @@ describe('AccountActions component', () => {
     });
 
     describe('Analytics tracking', () => {
-        it('should track analytics event with "transfer" button_type for transfer button', async () => {
+        it('should track analytics event with "deposit" button_type for deposit button', async () => {
             renderWithStore();
 
             await screen.findByTestId('dt_account_info');
-            const transfer_button = screen.getByRole('button', { name: /transfer/i });
-            await userEvent.click(transfer_button);
+            const deposit_button = screen.getByRole('button', { name: /deposit/i });
+            await userEvent.click(deposit_button);
 
             expect(trackAnalyticsEvent).toHaveBeenCalledWith('ce_trade_types_form_v2', {
                 action: 'click',
-                button_type: 'transfer',
+                button_type: 'deposit',
             });
         });
 
@@ -277,12 +277,12 @@ describe('AccountActions component', () => {
     });
 
     describe('Bridge events', () => {
-        it('should call sendBridgeEvent with trading:transfer event when transfer button is clicked', async () => {
+        it('should call sendBridgeEvent with trading:transfer event when deposit button is clicked', async () => {
             renderWithStore();
 
             await screen.findByTestId('dt_account_info');
-            const transfer_button = screen.getByRole('button', { name: /transfer/i });
-            await userEvent.click(transfer_button);
+            const deposit_button = screen.getByRole('button', { name: /deposit/i });
+            await userEvent.click(deposit_button);
 
             expect(mockSendBridgeEvent).toHaveBeenCalledWith('trading:transfer', expect.any(Function));
         });
@@ -295,8 +295,8 @@ describe('AccountActions component', () => {
             renderWithStore();
 
             await screen.findByTestId('dt_account_info');
-            const transfer_button = screen.getByRole('button', { name: /transfer/i });
-            await userEvent.click(transfer_button);
+            const deposit_button = screen.getByRole('button', { name: /deposit/i });
+            await userEvent.click(deposit_button);
 
             // Since mockSendBridgeEvent executes the fallback, window.location should be set
             expect(window.location.href).toContain('deriv.com/transfer');

@@ -36,7 +36,30 @@
 
     &__menu-mobile-body-wrapper {
         position: relative;
-        height: calc(100% - 4rem);
+        overflow-y: auto;
+        height: calc(100% - 5.6rem);
+    }
+    &__menu-section {
+        display: flex;
+        flex-direction: column;
+        padding: 1.6rem 0 2.4rem;
+    }
+    &__menu-section-header {
+        padding: 0 1.6rem;
+    }
+    &__menu-section-title {
+        color: var(--color-text-primary);
+    }
+    &__menu-logout {
+        height: 7.2rem;
+        .header__menu-mobile-link-text {
+            border-bottom: none;
+
+            // Target the Text component inside
+            * {
+                color: var(--color-text-danger);
+            }
+        }
     }
     &__menu-mobile-theme {
         border-bottom: 1px solid var(--color-surface-border);
@@ -91,30 +114,32 @@
         text-decoration: none;
         display: flex;
         flex: 1;
+        height: 100%;
         align-items: center;
 
         &--active {
             .header__menu-mobile-link-text {
                 font-weight: bold;
-                color: var(--color-text-primary);
             }
         }
         &-text {
-            font-size: 1.4rem;
-            color: var(--color-text-secondary);
             flex: 1;
+            height: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--color-surface-border);
         }
         &-icon {
             margin-right: 16px;
         }
+        &-suffix-icon {
+            @include rtl {
+                rotate: 180deg;
+            }
+        }
         &-flag-icon {
             margin-right: 16px;
-        }
-        &-suffix-icon {
-            width: 16px;
-            height: 16px;
-            margin-right: auto;
-            margin-left: auto;
         }
     }
     &__menu-items {
@@ -181,31 +206,9 @@
         }
     }
     &__logo {
-        background-color: var(--brand-secondary);
-        border-radius: 10px;
-        color: var(--color-surface-primary);
-        display: inline-block;
-        font-size: 1.4rem;
-        font-weight: normal;
-        height: 20px;
-        line-height: 1.43;
-        text-align: center;
-        width: 50px;
-        margin-left: 8px;
+        padding: 0 1.6rem;
     }
-    &__mobile-drawer {
-        &-icon {
-            width: 16px;
-            height: 16px;
-            transform: scale(1.3); // TODO: fix the icons sizes and remove this
-        }
-        &-toggle {
-            padding: 0 1.2rem;
-            display: flex;
-            align-items: center;
-            height: inherit;
-        }
-    }
+
     &__title {
         display: inline-block;
         font-weight: bold;

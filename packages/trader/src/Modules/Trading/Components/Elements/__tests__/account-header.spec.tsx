@@ -175,7 +175,7 @@ describe('AccountHeader', () => {
         it('should render transfer button for logged in real account users', () => {
             renderComponent();
 
-            const transferButton = screen.getByRole('button', { name: /transfer/i });
+            const transferButton = screen.getByRole('button', { name: /deposit/i });
             expect(transferButton).toBeInTheDocument();
             expect(transferButton).toHaveAttribute('type', 'button');
             expect(transferButton).toHaveClass('account-header__transfer');
@@ -194,7 +194,7 @@ describe('AccountHeader', () => {
 
             renderComponent(demo_store);
 
-            const transferButton = screen.getByRole('button', { name: /transfer/i });
+            const transferButton = screen.getByRole('button', { name: /deposit/i });
             expect(transferButton).toBeInTheDocument();
             expect(transferButton).toHaveAttribute('type', 'button');
             expect(transferButton).toHaveClass('account-header__transfer');
@@ -493,8 +493,8 @@ describe('AccountHeader', () => {
         it('should have proper aria-label for transfer button with correct value for real account', () => {
             renderComponent();
 
-            const transferButton = screen.getByRole('button', { name: /transfer/i });
-            expect(transferButton).toHaveAttribute('aria-label', 'Transfer');
+            const transferButton = screen.getByRole('button', { name: /deposit/i });
+            expect(transferButton).toHaveAttribute('aria-label', 'Deposit');
         });
 
         it('should have proper aria-label for "Try real" button for demo-only accounts', () => {
@@ -544,7 +544,7 @@ describe('AccountHeader', () => {
         it('should have type="button" on transfer button', () => {
             renderComponent();
 
-            const transferButton = screen.getByRole('button', { name: /transfer/i });
+            const transferButton = screen.getByRole('button', { name: /deposit/i });
             expect(transferButton).toHaveAttribute('type', 'button');
         });
 
@@ -568,12 +568,12 @@ describe('AccountHeader', () => {
             it('should track analytics event when transfer button is clicked for real account', async () => {
                 renderComponent();
 
-                const transferButton = screen.getByRole('button', { name: /transfer/i });
+                const transferButton = screen.getByRole('button', { name: /deposit/i });
                 await userEvent.click(transferButton);
 
                 expect(trackAnalyticsEvent).toHaveBeenCalledWith('ce_trade_types_form_v2', {
                     action: 'click',
-                    button_type: 'transfer',
+                    button_type: 'deposit',
                 });
             });
 
@@ -631,7 +631,7 @@ describe('AccountHeader', () => {
 
                 renderComponent();
 
-                const transferButton = screen.getByRole('button', { name: /transfer/i });
+                const transferButton = screen.getByRole('button', { name: /deposit/i });
                 await userEvent.click(transferButton);
 
                 expect(callOrder).toEqual(['analytics', 'navigation']);
@@ -754,7 +754,7 @@ describe('AccountHeader', () => {
             it('should call sendBridgeEvent with trading:transfer event when transfer button is clicked', async () => {
                 renderComponent();
 
-                const transferButton = screen.getByRole('button', { name: /transfer/i });
+                const transferButton = screen.getByRole('button', { name: /deposit/i });
                 await userEvent.click(transferButton);
 
                 expect(mockSendBridgeEvent).toHaveBeenCalledWith('trading:transfer', expect.any(Function));
@@ -767,7 +767,7 @@ describe('AccountHeader', () => {
 
                 renderComponent();
 
-                const transferButton = screen.getByRole('button', { name: /transfer/i });
+                const transferButton = screen.getByRole('button', { name: /deposit/i });
                 await userEvent.click(transferButton);
 
                 // Since mockSendBridgeEvent executes the fallback, window.location should be set

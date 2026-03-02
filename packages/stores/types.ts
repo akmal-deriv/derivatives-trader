@@ -1,16 +1,18 @@
 import React from 'react';
 import type { RouteComponentProps } from 'react-router';
 import type { Moment } from 'moment';
+
 import type {
     TActiveSymbolsResponse,
-    TUpdateContractResponse,
-    TUpdateContractHistoryResponse,
+    TLogOutResponse,
     TPortfolioResponse,
     TPriceProposalOpenContractsResponse,
     TTransactionsStreamResponse,
-    TLogOutResponse,
+    TUpdateContractHistoryResponse,
+    TUpdateContractResponse,
 } from '@deriv/api';
 import { TContractInfo } from '@deriv/shared/src/utils/contract/contract-types';
+
 import type { FeatureFlagsStore } from './src/stores';
 
 // Type aliases for compatibility

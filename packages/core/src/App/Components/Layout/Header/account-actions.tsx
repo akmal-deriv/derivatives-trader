@@ -46,9 +46,9 @@ const AccountActionsComponent = observer(() => {
 
     // Button logic:
     // - If only demo accounts exist -> show "Try real"
-    // - Otherwise (real only or both real and demo) -> show "Transfer"
-    const buttonLabel = hasOnlyDemoAccounts ? localize('Try real') : localize('Transfer');
-    const buttonType = hasOnlyDemoAccounts ? 'try_real' : 'transfer';
+    // - Otherwise (real only or both real and demo) -> show "Deposit"
+    const buttonLabel = hasOnlyDemoAccounts ? localize('Try real') : localize('Deposit');
+    const buttonType = hasOnlyDemoAccounts ? 'try_real' : 'deposit';
 
     const handleTransferClick = () => {
         // Track analytics event
@@ -63,7 +63,7 @@ const AccountActionsComponent = observer(() => {
             // Show modal instead of redirecting directly
             ui.toggleTryRealModal(true);
         } else {
-            // Transfer button (for both account types or real-only accounts)
+            // Deposit button (for both account types or real-only accounts)
             const brandUrl = getBrandUrl();
             const lang_param = common.current_language ? `&lang=${common.current_language}` : '';
             sendBridgeEvent('trading:transfer', () => {

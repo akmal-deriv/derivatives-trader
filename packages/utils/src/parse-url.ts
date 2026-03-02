@@ -1,8 +1,8 @@
-// Whitelist of allowed domains for redirect
-export const ALLOWED_REDIRECT_DOMAINS = ['deriv.com', 'deriv.be', 'deriv.me'];
+// eslint-disable-next-line import/no-relative-packages
+import config_data from '../../../brand.config.json';
 
-// Pattern for preview deployment domains (e.g., branch-name.derivatives-bot.pages.dev)
-export const PREVIEW_DOMAIN_PATTERN = /^[a-zA-Z0-9-]+\.derivatives-bot\.pages\.dev$/;
+// Pattern for preview deployment domains (e.g., branch-name.derivatives-bot.pages.dev, branch-name.derivatives-smarttrader.pages.dev)
+export const PREVIEW_DOMAIN_PATTERN = /^[a-zA-Z0-9-]+\.(derivatives-bot|derivatives-smarttrader)\.pages\.dev$/;
 
 /**
  * Validates if a URL belongs to an allowed domain for secure redirects
@@ -20,8 +20,8 @@ export const isAllowedRedirectDomain = (url: string): boolean => {
 
         const hostname = urlObj.hostname;
 
-        // Check against main domain whitelist
-        const isMainDomain = ALLOWED_REDIRECT_DOMAINS.some(
+        // Check against main domain whitelist from brand config
+        const isMainDomain = (config_data.brand_domains as string[]).some(
             domain => hostname === domain || hostname.endsWith(`.${domain}`)
         );
 
