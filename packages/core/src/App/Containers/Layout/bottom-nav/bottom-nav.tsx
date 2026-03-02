@@ -1,5 +1,5 @@
 import React from 'react';
-import { useHistory, useLocation } from 'react-router';
+import { matchPath, useHistory, useLocation } from 'react-router';
 import classNames from 'classnames';
 import { observer } from 'mobx-react-lite';
 
@@ -104,6 +104,9 @@ const BottomNav = observer(({ className }: BottomNavProps) => {
             location.pathname === routes.statement
         ) {
             return -1; // No icon highlighted for report sub-routes
+        }
+        if (matchPath(location.pathname, { path: routes.contract, exact: true })) {
+            return -1; // No icon highlighted for contract details page
         }
         const idx = bottomNavItems.findIndex(item => item.path === location.pathname);
         return idx > -1 ? idx : 1; // Default to Trade
