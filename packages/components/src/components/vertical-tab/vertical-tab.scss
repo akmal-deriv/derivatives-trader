@@ -32,6 +32,10 @@
         flex-flow: column nowrap;
         flex-grow: 1;
 
+        @include rtl {
+            direction: rtl;
+        }
+
         &--has-side-note {
             flex-flow: unset;
         }
@@ -269,6 +273,7 @@
 
         @include rtl {
             border-radius: $BORDER_RADIUS 0 0 $BORDER_RADIUS;
+            direction: rtl;
         }
 
         &-side-note {
