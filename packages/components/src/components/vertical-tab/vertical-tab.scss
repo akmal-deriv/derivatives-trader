@@ -6,7 +6,7 @@
     height: 100%;
 
     @include rtl {
-        flex-direction: row-reverse;
+        direction: rtl;
     }
 
     &--floating {
@@ -181,6 +181,10 @@
         color: var(--color-text-primary);
         padding: 1rem 1.2rem 1rem 1.6rem;
         cursor: pointer;
+
+        @include rtl {
+            padding: 1rem 1.6rem 1rem 1.2rem;
+        }
         display: flex;
         align-items: center;
         transition: background-color 0.1s ease-in;
@@ -232,16 +236,11 @@
             content: '';
             color: var(--color-text-primary);
             background-color: var(--color-surface-primary);
-            border-left: 4px solid var(--brand-primary);
+            border-inline-start: 4px solid var(--brand-primary);
             width: 100%;
             height: 41px;
             transform: translate3d(0, 0, 0);
             z-index: 0;
-
-            @include rtl {
-                border-left: none;
-                border-right: 4px solid var(--brand-primary);
-            }
         }
         &--new {
             font-size: 1rem;

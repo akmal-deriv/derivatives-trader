@@ -761,6 +761,10 @@ $side-padding: 1.2em;
             align-items: flex-start;
             padding: 0.8rem 4rem 0 1rem;
 
+            @include rtl {
+                padding: 0.8rem 1rem 0 4rem;
+            }
+
             @include tablet-screen {
                 display: flex;
                 justify-content: center;
