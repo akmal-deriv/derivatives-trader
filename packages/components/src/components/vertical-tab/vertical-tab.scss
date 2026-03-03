@@ -7,6 +7,10 @@
 
     @include rtl {
         direction: rtl;
+
+        .table__row {
+            direction: rtl;
+        }
     }
 
     &--floating {
