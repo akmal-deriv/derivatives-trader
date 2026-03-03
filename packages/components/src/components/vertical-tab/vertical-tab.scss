@@ -5,6 +5,10 @@
     border-radius: $BORDER_RADIUS;
     height: 100%;
 
+    @include rtl {
+        flex-direction: row-reverse;
+    }
+
     &--floating {
         justify-content: center;
     }
@@ -69,6 +73,11 @@
             border-radius: $BORDER_RADIUS;
             margin-left: auto;
 
+            @include rtl {
+                margin-right: auto;
+                margin-left: unset;
+            }
+
             &:hover {
                 background: var(--color-interactive-hover);
             }
@@ -82,6 +91,10 @@
         border-radius: $BORDER_RADIUS 0 0 $BORDER_RADIUS;
         background-color: var(--color-surface-section);
         position: relative;
+
+        @include rtl {
+            border-radius: 0 $BORDER_RADIUS $BORDER_RADIUS 0;
+        }
 
         &--floating {
             min-width: 256px;
@@ -117,17 +130,32 @@
         .dc-vertical-tab__header {
             padding-left: 4.4rem;
 
+            @include rtl {
+                padding-right: 4.4rem;
+                padding-left: 0;
+            }
+
             &--highlight {
                 z-index: -1;
             }
             &--active {
                 padding-left: 4.8rem;
+
+                @include rtl {
+                    padding-right: 4.8rem;
+                    padding-left: 0;
+                }
             }
         }
     }
     &__header {
         &__icon.dc-vertical-tab__header__icon--active {
             margin-right: 2rem;
+
+            @include rtl {
+                margin-left: 2rem;
+                margin-right: 0;
+            }
         }
     }
     &__header-group {
@@ -135,6 +163,11 @@
             position: absolute;
             right: 2.4rem;
             transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+
+            @include rtl {
+                left: 2.4rem;
+                right: unset;
+            }
 
             &--invert {
                 transform: rotate(180deg);
@@ -161,9 +194,19 @@
         &__link {
             font-weight: normal;
             margin-right: 0.4rem;
+
+            @include rtl {
+                margin-left: 0.4rem;
+                margin-right: 0;
+            }
         }
         &__icon {
             margin-right: 1.6rem;
+
+            @include rtl {
+                margin-left: 1.6rem;
+                margin-right: 0;
+            }
 
             &--active {
                 --fill-color1: var(--color-text-primary);
@@ -172,6 +215,11 @@
         &__counter {
             position: absolute;
             right: 2rem;
+
+            @include rtl {
+                left: 2rem;
+                right: unset;
+            }
         }
         &--active &__link {
             color: var(--color-text-primary);
@@ -189,6 +237,11 @@
             height: 41px;
             transform: translate3d(0, 0, 0);
             z-index: 0;
+
+            @include rtl {
+                border-left: none;
+                border-right: 4px solid var(--brand-primary);
+            }
         }
         &--new {
             font-size: 1rem;
@@ -215,9 +268,18 @@
         position: relative;
         grid-area: form-content;
 
+        @include rtl {
+            border-radius: $BORDER_RADIUS 0 0 $BORDER_RADIUS;
+        }
+
         &-side-note {
             min-width: 25.6rem;
             margin-left: 2.4rem;
+
+            @include rtl {
+                margin-right: 2.4rem;
+                margin-left: 0;
+            }
 
             &-item {
                 background-color: var(--color-surface-primary);
@@ -240,6 +302,11 @@
                 106.2rem - 25.6rem - 2.4rem
             ); // 25.6rem is the width of the vertical tab. 2.4rem is the gap between tab and content
             margin-left: 2.4rem;
+
+            @include rtl {
+                margin-right: 2.4rem;
+                margin-left: 0;
+            }
 
             @include tablet-screen {
                 max-width: 100vw;

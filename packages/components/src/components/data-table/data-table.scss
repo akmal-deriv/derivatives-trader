@@ -21,9 +21,19 @@ $header-height: 52px;
 
         &:first-child {
             padding-left: 0;
+
+            @include rtl {
+                padding-right: 0;
+                padding-left: 0.75em;
+            }
         }
         &:last-child {
             padding-right: 0;
+
+            @include rtl {
+                padding-left: 0;
+                padding-right: 0.75em;
+            }
         }
     }
     &__row {
@@ -33,6 +43,10 @@ $header-height: 52px;
         box-sizing: border-box;
         text-decoration: none;
         position: relative;
+
+        @include rtl {
+            direction: rtl;
+        }
 
         &,
         &:active,
@@ -46,9 +60,19 @@ $header-height: 52px;
             height: 100%;
             max-height: 64px;
             width: 100%;
+
+            @include rtl {
+                right: 0;
+                left: unset;
+            }
         }
         &--icon {
             margin-left: 1rem;
+
+            @include rtl {
+                margin-right: 1rem;
+                margin-left: 0;
+            }
         }
     }
     &__head {
