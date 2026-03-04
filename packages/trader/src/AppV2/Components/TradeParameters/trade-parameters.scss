@@ -145,6 +145,10 @@
             padding-block: 1px;
             padding-inline-end: 2px;
             height: unset;
+
+            @include rtl {
+                text-align: right;
+            }
         }
         &.segmented-control-single--md {
             background-color: var(--semantic-color-monochrome-surface-normal-lowest);
@@ -336,4 +340,8 @@
             z-index: 2;
         }
     }
+}
+
+[dir='rtl'] .input__align--left {
+    text-align: right;
 }

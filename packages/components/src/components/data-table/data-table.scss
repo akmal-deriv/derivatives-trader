@@ -23,9 +23,8 @@ $header-height: 52px;
             padding-left: 0;
 
             @include rtl {
-                /*rtl:ignore*/
                 padding-right: 0;
-                /*rtl:ignore*/
+
                 padding-left: 0.75em;
             }
         }
@@ -33,9 +32,8 @@ $header-height: 52px;
             padding-right: 0;
 
             @include rtl {
-                /*rtl:ignore*/
                 padding-left: 0;
-                /*rtl:ignore*/
+
                 padding-right: 0.75em;
             }
         }
@@ -49,7 +47,6 @@ $header-height: 52px;
         position: relative;
 
         @include rtl {
-            /*rtl:ignore*/
             direction: rtl;
         }
 
@@ -67,9 +64,8 @@ $header-height: 52px;
             width: 100%;
 
             @include rtl {
-                /*rtl:ignore*/
                 right: 0;
-                /*rtl:ignore*/
+
                 left: unset;
             }
         }
@@ -77,9 +73,8 @@ $header-height: 52px;
             margin-left: 1rem;
 
             @include rtl {
-                /*rtl:ignore*/
                 margin-right: 1rem;
-                /*rtl:ignore*/
+
                 margin-left: 0;
             }
         }
