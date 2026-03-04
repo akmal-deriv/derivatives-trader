@@ -19,10 +19,6 @@
         }
     }
 
-    &[dir='rtl'] {
-        direction: rtl;
-    }
-
     &--floating {
         justify-content: center;
     }

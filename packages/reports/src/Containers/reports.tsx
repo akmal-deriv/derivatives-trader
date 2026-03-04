@@ -182,7 +182,6 @@ const Reports = observer(({ history, location, routes }: TReports) => {
                 <PageOverlay header={localize('Reports')} onClickClose={onClickClose}>
                     {!isMobile ? (
                         <VerticalTab
-                            dir={is_rtl ? 'rtl' : undefined}
                             is_floating
                             current_path={location.pathname}
                             is_routed

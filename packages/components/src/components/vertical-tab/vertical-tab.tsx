@@ -24,7 +24,6 @@ type TVerticalTab = {
     action_bar_classname?: string;
     className?: string;
     current_path: string;
-    dir?: string;
     extra_content?: React.ReactNode | React.ReactNode[];
     extra_offset?: number;
     has_mixed_dimensions?: boolean;
@@ -78,7 +77,6 @@ const VerticalTab = ({
     action_bar_classname,
     className,
     current_path,
-    dir,
     extra_content,
     extra_offset,
     has_mixed_dimensions,
@@ -124,7 +122,6 @@ const VerticalTab = ({
 
     return (
         <div
-            dir={dir}
             className={classNames('dc-vertical-tab', {
                 'dc-vertical-tab--floating': is_floating, // This is currently only configured for use in PageOverlay
                 'dc-vertical-tab--full-screen': is_full_width,
