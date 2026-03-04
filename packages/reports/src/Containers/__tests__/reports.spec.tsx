@@ -204,6 +204,32 @@ describe('Reports', () => {
         );
     });
 
+    test('passes dir="rtl" to VerticalTab when language is Arabic', () => {
+        (useDevice as jest.Mock).mockReturnValue({
+            isDesktop: true,
+            isMobile: false,
+            isTablet: false,
+            isTabletPortrait: false,
+            isMobileOrTabletLandscape: false,
+        });
+        store = mockStore({
+            ...mock,
+            common: {
+                ...mock.common,
+                current_language: 'AR',
+            },
+        });
+        const history = createMemoryHistory();
+        history.push(route1);
+        renderReports(store, history);
+
+        expect(mockVerticalTab).toHaveBeenCalledWith(
+            expect.objectContaining({
+                dir: 'rtl',
+            })
+        );
+    });
+
     test('renders correctly for different routes', () => {
         (useDevice as jest.Mock).mockReturnValue({
             isDesktop: true,
