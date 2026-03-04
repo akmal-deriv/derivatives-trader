@@ -1,13 +1,12 @@
-import React from 'react';
 import clsx from 'clsx';
 
 import { Money, Skeleton } from '@deriv/components';
 import { observer } from '@deriv/stores';
-import { Localize } from '@deriv-com/translations';
 import { Text } from '@deriv-com/quill-ui';
+import { Localize } from '@deriv-com/translations';
 
-import { useTraderStore } from 'Stores/useTraderStores';
 import { getProposalInfoKey } from 'AppV2/Utils/trade-params-utils';
+import { useTraderStore } from 'Stores/useTraderStores';
 
 const PayoutInfo = observer(() => {
     const { currency, is_market_closed, proposal_info, trade_type_tab, contract_type } = useTraderStore();
@@ -21,13 +20,11 @@ const PayoutInfo = observer(() => {
                 <Localize i18n_default_text='Payout' />
             </Text>
             {payout ? (
-                <Text size='sm' bold className={clsx(is_market_closed && 'trade-params__text--disabled')}>
+                <Text size='sm' className={clsx(is_market_closed && 'trade-params__text--disabled')}>
                     <Money amount={payout} show_currency currency={currency} />
                 </Text>
             ) : has_error ? (
-                <Text size='sm' bold>
-                    - {currency}
-                </Text>
+                <Text size='sm'>- {currency}</Text>
             ) : (
                 <Skeleton width={60} height={14} />
             )}

@@ -3,9 +3,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import classNames from 'classnames';
+import debounce from 'lodash.debounce';
 
 // Tooltip positioning constants
-const TOOLTIP_OFFSET = 12; // Distance between tooltip and trigger in pixels
+const TOOLTIP_OFFSET = 4; // Distance between tooltip and trigger in pixels
 const VIEWPORT_PADDING = 8; // Minimum padding from viewport edges in pixels
 
 type TTooltipPortalProps = {
@@ -21,6 +22,8 @@ type TTooltipPortalProps = {
     className?: string;
     /** Position of the tooltip relative to the trigger element */
     position?: 'top' | 'bottom' | 'left' | 'right';
+    /** Optional ref to an external element to position the tooltip relative to (instead of the trigger) */
+    anchorRef?: React.RefObject<HTMLElement>;
 };
 
 /**
@@ -37,7 +40,7 @@ type TTooltipPortalProps = {
  * - All current usage sites use <Localize> component which handles sanitization
  * - If adding new usage, ensure user input is properly sanitized
  */
-const TooltipPortal = ({ message, children, className, position = 'top' }: TTooltipPortalProps) => {
+const TooltipPortal = ({ message, children, className, position = 'top', anchorRef }: TTooltipPortalProps) => {
     const [isVisible, setIsVisible] = useState(false);
     const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
     const [arrowPosition, setArrowPosition] = useState({ top: 0, left: 0 });
@@ -45,9 +48,11 @@ const TooltipPortal = ({ message, children, className, position = 'top' }: TTool
     const tooltipRef = useRef<HTMLDivElement>(null);
 
     const calculatePosition = React.useCallback(() => {
-        if (!triggerRef.current || !tooltipRef.current) return;
+        // Use anchorRef if provided, otherwise use triggerRef
+        const positioningElement = anchorRef?.current || triggerRef.current;
+        if (!positioningElement || !tooltipRef.current) return;
 
-        const triggerRect = triggerRef.current.getBoundingClientRect();
+        const triggerRect = positioningElement.getBoundingClientRect();
         const tooltipRect = tooltipRef.current.getBoundingClientRect();
         const scrollX = window.pageXOffset || document.documentElement.scrollLeft;
         const scrollY = window.pageYOffset || document.documentElement.scrollTop;
@@ -68,8 +73,10 @@ const TooltipPortal = ({ message, children, className, position = 'top' }: TTool
                 arrowLeft = 16; // 1.6rem = 16px
                 break;
             case 'bottom':
-                top = triggerRect.bottom + scrollY + VIEWPORT_PADDING;
-                left = triggerRect.left + scrollX + triggerRect.width / 2 - tooltipRect.width / 2;
+                top = triggerRect.bottom + scrollY + TOOLTIP_OFFSET;
+                left = triggerRect.left + scrollX;
+                arrowTop = -6;
+                arrowLeft = 16;
                 break;
             case 'left':
                 top = triggerRect.top + scrollY + triggerRect.height / 2 - tooltipRect.height / 2;
@@ -102,23 +109,26 @@ const TooltipPortal = ({ message, children, className, position = 'top' }: TTool
         }
 
         setTooltipPosition({ top, left });
-        if (position === 'top') {
+        if (position === 'top' || position === 'bottom') {
             setArrowPosition({ top: arrowTop, left: arrowLeft });
         }
-    }, [position]);
+    }, [position, anchorRef]);
+
+    const debouncedCalculatePosition = React.useMemo(() => debounce(calculatePosition, 100), [calculatePosition]);
 
     useEffect(() => {
         if (isVisible) {
             calculatePosition();
-            window.addEventListener('scroll', calculatePosition);
-            window.addEventListener('resize', calculatePosition);
+            window.addEventListener('scroll', debouncedCalculatePosition);
+            window.addEventListener('resize', debouncedCalculatePosition);
 
             return () => {
-                window.removeEventListener('scroll', calculatePosition);
-                window.removeEventListener('resize', calculatePosition);
+                window.removeEventListener('scroll', debouncedCalculatePosition);
+                window.removeEventListener('resize', debouncedCalculatePosition);
+                debouncedCalculatePosition.cancel();
             };
         }
-    }, [isVisible, calculatePosition]);
+    }, [isVisible, calculatePosition, debouncedCalculatePosition]);
 
     const handleMouseEnter = React.useCallback(() => {
         setIsVisible(true);
@@ -158,7 +168,7 @@ const TooltipPortal = ({ message, children, className, position = 'top' }: TTool
                 tabIndex={0}
                 role='button'
                 aria-describedby={isVisible ? tooltipId : undefined}
-                style={{ display: 'inline-block', width: 'fit-content' }}
+                style={{ display: 'inline-block' }}
             >
                 {children}
             </span>
@@ -183,7 +193,7 @@ const TooltipPortal = ({ message, children, className, position = 'top' }: TTool
                             className={`dc-tooltip-portal__arrow dc-tooltip-portal__arrow--${position}`}
                             data-testid={`arrow-${position}`}
                             style={
-                                position === 'top'
+                                position === 'top' || position === 'bottom'
                                     ? {
                                           position: 'absolute',
                                           top: `${arrowPosition.top}px`,

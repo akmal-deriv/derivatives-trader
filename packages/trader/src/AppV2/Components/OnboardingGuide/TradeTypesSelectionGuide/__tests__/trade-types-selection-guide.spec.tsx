@@ -10,6 +10,10 @@ const localStorage_key = 'guide_dtrader_v2';
 const video = 'Video';
 
 jest.mock('../../../StreamIframe', () => jest.fn(() => <div>{video}</div>));
+jest.mock('@deriv-com/ui', () => ({
+    ...jest.requireActual('@deriv-com/ui'),
+    useDevice: jest.fn(() => ({ isMobile: true, isDesktop: false, isTablet: false })),
+}));
 
 describe('TradeTypesSelectionGuide', () => {
     beforeEach(() => {

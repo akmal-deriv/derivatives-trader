@@ -1,10 +1,9 @@
-import React from 'react';
 import clsx from 'clsx';
 
 import { Skeleton } from '@deriv/components';
 import { observer } from '@deriv/stores';
-import { Localize } from '@deriv-com/translations';
 import { Text } from '@deriv-com/quill-ui';
+import { Localize } from '@deriv-com/translations';
 
 import { useTraderStore } from 'Stores/useTraderStores';
 
@@ -20,7 +19,7 @@ const BarrierInfo = observer(() => {
                 <Localize i18n_default_text='Barrier' />
             </Text>
             {barrier_1 ? (
-                <Text size='sm' bold className={clsx(is_market_closed && 'trade-params__text--disabled')}>
+                <Text size='sm' className={clsx(is_market_closed && 'trade-params__text--disabled')}>
                     {barrier_1}
                 </Text>
             ) : (

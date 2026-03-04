@@ -359,13 +359,7 @@ export const getTickStreamMarkers = (contract_info, barrier_price) => {
 };
 
 // eslint-disable-next-line no-unused-vars
-export function calculateMarker(
-    contract_info,
-    is_dark_theme,
-    is_last_contract,
-    is_mobile = false,
-    is_resize_desktop = false
-) {
+export function calculateMarker(contract_info, is_dark_theme, is_last_contract, is_mobile = false) {
     if (!contract_info) {
         return null;
     }
@@ -558,11 +552,7 @@ export function calculateMarker(
         }
     }
 
-    let contractMarkerLeftPadding = is_mobile ? 10 : 100;
-
-    if (is_resize_desktop && !is_mobile) {
-        contractMarkerLeftPadding = 404;
-    }
+    const contractMarkerLeftPadding = is_mobile ? 10 : 100;
 
     // Helper to normalize profit value to a number or null
     const getNumericProfit = profit => {

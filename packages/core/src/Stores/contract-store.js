@@ -130,8 +130,7 @@ export default class ContractStore extends BaseStore {
             this.contract_info,
             this.root_store.ui.is_dark_mode_on,
             is_last_contract,
-            this.root_store.ui.is_mobile,
-            this.root_store.ui.is_positions_drawer_on
+            this.root_store.ui.is_mobile
         );
         this.contract_config = getChartConfig(this.contract_info);
         this.display_status = getDisplayStatus(this.contract_info);

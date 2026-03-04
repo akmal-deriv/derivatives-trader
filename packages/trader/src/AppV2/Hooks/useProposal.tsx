@@ -11,6 +11,7 @@ type TNewValues = {
     barrier_1?: string | number;
     has_take_profit?: boolean;
     has_stop_loss?: boolean;
+    has_cancellation?: boolean;
     take_profit?: string | number;
     stop_loss?: string | number;
 };

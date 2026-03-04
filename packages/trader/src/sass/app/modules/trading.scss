@@ -1099,6 +1099,20 @@
             }
         }
     }
+
+    // AppV2: swap vh/vw references to account for -90deg body rotation
+    .sidebar {
+        height: 100svw;
+    }
+
+    .trade {
+        height: 100svw;
+        width: calc(100svh - 7.2rem);
+    }
+
+    .trade__grid {
+        height: calc(100svw - 6.5rem);
+    }
 }
 
 @keyframes blink {

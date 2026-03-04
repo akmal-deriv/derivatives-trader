@@ -3,9 +3,9 @@ import clsx from 'clsx';
 import { observer } from 'mobx-react-lite';
 
 import { Skeleton } from '@deriv/components';
-import { getCurrencyDisplayCode } from '@deriv/shared';
-import { Localize } from '@deriv-com/translations';
+import { getCurrencyDisplayCode, isMobile } from '@deriv/shared';
 import { ActionSheet, TextField } from '@deriv-com/quill-ui';
+import { Localize } from '@deriv-com/translations';
 
 import Carousel from 'AppV2/Components/Carousel';
 import CarouselHeader from 'AppV2/Components/Carousel/carousel-header';
@@ -15,12 +15,14 @@ import { useTraderStore } from 'Stores/useTraderStores';
 
 import { TTradeParametersProps } from '../trade-parameters';
 
+import PayoutPerPointDesktop from './payout-per-point-desktop';
 import PayoutPerPointWheel from './payout-per-point-wheel';
 
 const PayoutPerPoint = observer(({ is_minimized }: TTradeParametersProps) => {
     const [is_open, setIsOpen] = React.useState(false);
     const { barrier_1, currency, is_market_closed, payout_choices, payout_per_point, setPayoutPerPoint } =
         useTraderStore();
+    const is_mobile = isMobile();
     const is_small_screen = isSmallScreen();
     const currency_display_code = getCurrencyDisplayCode(currency);
     const payout_per_point_list = [...payout_choices]
@@ -68,6 +70,12 @@ const PayoutPerPoint = observer(({ is_minimized }: TTradeParametersProps) => {
             </div>
         );
 
+    // Render desktop version with InputPopover for non-mobile devices
+    if (!is_mobile) {
+        return <PayoutPerPointDesktop is_minimized={is_minimized} />;
+    }
+
+    // Render mobile version with ActionSheet (unchanged)
     return (
         <React.Fragment>
             <TextField

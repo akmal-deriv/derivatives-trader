@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 
-import { observer } from '@deriv/stores';
 import { trackAnalyticsEvent } from '@deriv/shared';
-import { Localize } from '@deriv-com/translations';
+import { observer } from '@deriv/stores';
 import { ActionSheet } from '@deriv-com/quill-ui';
+import { Localize } from '@deriv-com/translations';
 
 import { DURATION_UNIT } from 'AppV2/Utils/trade-params-utils';
 import { useTraderStore } from 'Stores/useTraderStores';
@@ -62,6 +62,8 @@ const DurationActionSheetContainer = observer(
                 });
                 trackAnalyticsEvent('ce_trade_types_form_v2', {
                     action: 'customizing_trades',
+                    input_method: 'custom',
+                    parameter_type: 'duration',
                 });
             } else if (unit === DURATION_UNIT.DAYS) {
                 onChangeMultiple({
@@ -71,6 +73,8 @@ const DurationActionSheetContainer = observer(
                 });
                 trackAnalyticsEvent('ce_trade_types_form_v2', {
                     action: 'customizing_trades',
+                    input_method: 'custom',
+                    parameter_type: 'duration',
                 });
             } else {
                 // For t, s, m: selected_duration is [duration_value]
@@ -82,6 +86,8 @@ const DurationActionSheetContainer = observer(
                 });
                 trackAnalyticsEvent('ce_trade_types_form_v2', {
                     action: 'customizing_trades',
+                    input_method: 'custom',
+                    parameter_type: 'duration',
                 });
             }
         };

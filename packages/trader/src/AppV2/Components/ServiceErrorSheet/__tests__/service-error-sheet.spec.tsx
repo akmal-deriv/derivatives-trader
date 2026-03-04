@@ -76,12 +76,12 @@ describe('ServiceErrorSheet', () => {
         );
     };
 
-    it('renders the Action Sheet with appropriate message and action for InsufficientBalance error', async () => {
+    it('renders the modal with appropriate message and action for InsufficientBalance error', async () => {
         render(mockTrade());
 
         expect(screen.getByText('Insufficient balance')).toBeInTheDocument();
 
-        await userEvent.click(screen.getByRole('button'));
+        await userEvent.click(screen.getByText(/deposit now/i));
         expect(default_mock_store.common.resetServicesError).toBeCalled();
     });
 

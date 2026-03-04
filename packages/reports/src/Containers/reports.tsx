@@ -23,9 +23,11 @@ const Reports = observer(({ history, location, routes }: TReports) => {
     const { client, common, ui } = useStore();
 
     const { is_logged_in, is_logging_in } = client;
+    const { current_language } = common;
     const { routeBackInApp } = common;
     const { is_reports_visible, setReportsTabIndex, toggleReports } = ui;
     const { isMobile } = useDevice();
+    const is_rtl = current_language?.toLowerCase() === 'ar';
 
     // Store the redirect parameter when component mounts to preserve it across tab navigation
     const redirectUrlRef = React.useRef<string | null>(null);
@@ -176,7 +178,7 @@ const Reports = observer(({ history, location, routes }: TReports) => {
 
     return (
         <FadeWrapper is_visible={is_reports_visible} className='reports-page-wrapper' keyname='reports-page-wrapper'>
-            <div className='reports'>
+            <div className='reports' dir={is_rtl ? 'rtl' : undefined}>
                 <PageOverlay header={localize('Reports')} onClickClose={onClickClose}>
                     {!isMobile ? (
                         <VerticalTab

@@ -7,7 +7,6 @@ import Fieldset from 'App/Components/Form/fieldset';
 import ContractType from '../../Containers/contract-type';
 import Purchase from '../../Containers/purchase';
 import TradeParams from '../../Containers/trade-params';
-import AccountHeader from '../Elements/account-header';
 import TradeParamsFooter from '../Elements/trade-params-footer';
 
 type TScreenLarge = {
@@ -27,7 +26,6 @@ const ScreenLarge = ({ is_market_closed = false, is_trade_enabled, is_single_log
             </div>
         ) : (
             <React.Fragment>
-                <AccountHeader />
                 <div className='trade-params-v1__items-content'>
                     <Fieldset className='trade-container__fieldset trade-types'>
                         <ContractType />

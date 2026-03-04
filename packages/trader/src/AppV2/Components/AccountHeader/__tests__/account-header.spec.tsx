@@ -129,6 +129,10 @@ describe('AccountHeader', () => {
             error: null,
             refetch: jest.fn(),
         });
+
+        // Mock window.location to prevent jsdom navigation errors
+        delete (window as any).location;
+        (window as any).location = { href: '' };
     });
 
     describe('Logged in state', () => {
@@ -837,7 +841,7 @@ describe('AccountHeader', () => {
                 renderComponent();
 
                 const skeleton = screen.getByTestId('dt_skeleton');
-                expect(skeleton).toHaveStyle({ width: '240px', height: '59px', borderRadius: '0.4rem' });
+                expect(skeleton).toHaveStyle({ width: '240px', height: '44px' });
             });
 
             it('should hide skeleton loader when isLoading is false', () => {

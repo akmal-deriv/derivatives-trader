@@ -1,7 +1,7 @@
 $tooltip-arrow-size: 0.6rem;
 $tooltip-padding-vertical: 0.8rem;
 $tooltip-padding-horizontal: 1.6rem;
-$tooltip-border-radius: 0.4rem;
+$tooltip-border-radius: 0.8rem;
 $tooltip-max-width: 28rem;
 
 .dc-tooltip-portal {
@@ -44,8 +44,8 @@ $tooltip-max-width: 28rem;
 
         &--bottom {
             top: -$tooltip-arrow-size;
-            left: 50%;
-            transform: translateX(-50%);
+            left: $tooltip-padding-horizontal;
+            right: auto;
             border-width: 0 $tooltip-arrow-size $tooltip-arrow-size;
             border-color: transparent transparent var(--color-surface-inverse) transparent;
         }

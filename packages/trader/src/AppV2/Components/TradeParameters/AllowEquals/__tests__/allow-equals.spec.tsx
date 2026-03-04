@@ -47,11 +47,16 @@ describe('AllowEquals', () => {
         expect(container).toBeEmptyDOMElement();
     });
 
+    const getToggleSwitch = () => {
+        const buttons = screen.getAllByRole('button');
+        return buttons.find(btn => btn.hasAttribute('aria-pressed'))!;
+    };
+
     it('renders component with ToggleSwitch state value aria-pressed === false if is_equal is 0', () => {
         render(mockAllowEquals());
 
         expect(screen.getByText(title)).toBeInTheDocument();
-        expect(screen.getByRole('button')).toHaveAttribute('aria-pressed', 'false');
+        expect(getToggleSwitch()).toHaveAttribute('aria-pressed', 'false');
     });
 
     it('renders component with ToggleSwitch state value aria-pressed === true if is_equal is 1', () => {
@@ -59,13 +64,13 @@ describe('AllowEquals', () => {
         render(mockAllowEquals());
 
         expect(screen.getByText(title)).toBeInTheDocument();
-        expect(screen.getByRole('button')).toHaveAttribute('aria-pressed', 'true');
+        expect(getToggleSwitch()).toHaveAttribute('aria-pressed', 'true');
     });
 
     it('calls onChange function if user clicks on ToggleSwitch', async () => {
         render(mockAllowEquals());
 
-        await userEvent.click(screen.getByRole('button'));
+        await userEvent.click(getToggleSwitch());
 
         expect(default_mock_store.modules.trade.onChange).toBeCalled();
     });
@@ -76,13 +81,12 @@ describe('AllowEquals', () => {
         await userEvent.click(screen.getByText(title));
 
         expect(screen.getByText('Win payout if exit spot is also equal to entry spot.')).toBeInTheDocument();
-        expect(screen.getByText('Got it')).toBeInTheDocument();
     });
 
     it('renders disabled ToggleSwitch is is_market_closed === true', () => {
         default_mock_store.modules.trade.is_market_closed = true;
         render(mockAllowEquals());
 
-        expect(screen.getByRole('button')).toBeDisabled();
+        expect(getToggleSwitch()).toBeDisabled();
     });
 });

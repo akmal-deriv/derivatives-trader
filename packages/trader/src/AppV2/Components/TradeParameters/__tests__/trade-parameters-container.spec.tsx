@@ -33,6 +33,15 @@ jest.mock('AppV2/Utils/trade-types-utils', () => ({
         return false;
     }),
 }));
+jest.mock('../../Guide', () => jest.fn(() => 'Guide'));
+jest.mock('@deriv-com/ui', () => ({
+    ...jest.requireActual('@deriv-com/ui'),
+    useDevice: jest.fn(() => ({ isMobile: false, isDesktop: true })),
+}));
+jest.mock('@deriv/shared', () => ({
+    ...jest.requireActual('@deriv/shared'),
+    isMobile: jest.fn(() => true),
+}));
 
 describe('TradeParametersContainer', () => {
     beforeEach(() => {
@@ -61,20 +70,6 @@ describe('TradeParametersContainer', () => {
             const containerElement = screen.getByTestId('trade-params-container');
             expect(containerElement).toHaveClass('trade-params__container--collapsed');
             expect(containerElement).not.toHaveClass('trade-params__container--expanded');
-        });
-
-        it('should apply logged-in class when user is logged in', () => {
-            render(<TradeParametersContainer is_logged_in />);
-
-            const containerElement = screen.getByTestId('trade-params-container');
-            expect(containerElement).toHaveClass('trade-params__container--logged-in');
-        });
-
-        it('should not apply logged-in class when user is not logged in', () => {
-            render(<TradeParametersContainer is_logged_in={false} />);
-
-            const containerElement = screen.getByTestId('trade-params-container');
-            expect(containerElement).not.toHaveClass('trade-params__container--logged-in');
         });
     });
 

@@ -14,6 +14,10 @@ jest.mock('../guide-container', () =>
     jest.fn(({ should_run }: { should_run?: boolean }) => <div>{should_run && guide_container}</div>)
 );
 jest.mock('../onboarding-video', () => jest.fn(() => <div>OnboardingVideo</div>));
+jest.mock('@deriv-com/ui', () => ({
+    ...jest.requireActual('@deriv-com/ui'),
+    useDevice: jest.fn(() => ({ isMobile: true, isDesktop: false, isTablet: false })),
+}));
 
 describe('OnboardingGuide', () => {
     beforeEach(() => {

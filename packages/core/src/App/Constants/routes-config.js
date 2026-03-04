@@ -52,7 +52,7 @@ const getModules = () => {
             path: routes.menu,
             component: MenuPage,
             getTitle: () => localize('Menu'),
-            protected: true,
+            protected: false,
         },
         {
             path: routes.index,

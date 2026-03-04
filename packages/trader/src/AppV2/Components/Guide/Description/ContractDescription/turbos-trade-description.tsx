@@ -4,38 +4,21 @@ import { Localize } from '@deriv-com/translations';
 
 import { getContractDescription, getTerm } from 'AppV2/Utils/contract-description-utils';
 
-const TurbosTradeDescription = ({ onTermClick }: { onTermClick: (term: string) => void }) => {
-    const { PAYOUT, EXPIRY, BARRIER, PAYOUT_PER_POINT, FINAL_PRICE, CONTRACT_VALUE } = getTerm();
+import TermButton from '../term-button';
+
+const TurbosTradeDescription = ({
+    contract_type,
+    onTermClick,
+}: {
+    contract_type: string;
+    onTermClick: (term: string) => void;
+}) => {
+    const { SPOT_PRICE, BARRIER, PAYOUT, PAYOUT_PER_POINT, EXIT_SPOT, STAKE, CONTRACT_VALUE, EXPIRY } = getTerm();
     const content = [
-        {
-            type: 'general',
-            text: (
-                <Localize i18n_default_text='Turbo options allow you to predict the direction of the underlying asset’s movements.' />
-            ),
-        },
         {
             type: 'paragraph',
             text: (
-                <Localize
-                    i18n_default_text='You receive a <0>payout</0> at <1>expiry</1> if the spot price never touches or breaches the <2>barrier</2> during the contract period. If it does, your contract will be terminated early.'
-                    components={[
-                        <button
-                            className='description__content--definition'
-                            key={0}
-                            onClick={() => onTermClick(PAYOUT)}
-                        />,
-                        <button
-                            className='description__content--definition'
-                            key={1}
-                            onClick={() => onTermClick(EXPIRY)}
-                        />,
-                        <button
-                            className='description__content--definition'
-                            key={2}
-                            onClick={() => onTermClick(BARRIER)}
-                        />,
-                    ]}
-                />
+                <Localize i18n_default_text="Turbos allow you to predict the direction of the underlying asset's movements." />
             ),
         },
         {
@@ -46,8 +29,18 @@ const TurbosTradeDescription = ({ onTermClick }: { onTermClick: (term: string) =
             type: 'paragraph',
             text: (
                 <Localize
-                    i18n_default_text='If you select “<0>Up</0>”, you’ll earn a payout if the spot price never drops below the barrier.'
-                    components={[<span className='description__content--bold' key={0} />]}
+                    i18n_default_text='Earn a <0>payout</0> if the <1>spot price</1> never falls below the <2>barrier</2> during the contract period.'
+                    components={[
+                        <TermButton key={0} term={PAYOUT} contract_type={contract_type} onTermClick={onTermClick}>
+                            {PAYOUT}
+                        </TermButton>,
+                        <TermButton key={1} term={SPOT_PRICE} contract_type={contract_type} onTermClick={onTermClick}>
+                            {SPOT_PRICE}
+                        </TermButton>,
+                        <TermButton key={2} term={BARRIER} contract_type={contract_type} onTermClick={onTermClick}>
+                            {BARRIER}
+                        </TermButton>,
+                    ]}
                 />
             ),
         },
@@ -62,10 +55,7 @@ const TurbosTradeDescription = ({ onTermClick }: { onTermClick: (term: string) =
         {
             type: 'paragraph',
             text: (
-                <Localize
-                    i18n_default_text='If you select “<0>Down</0>”, you’ll earn a payout if the spot price never rises above the barrier.'
-                    components={[<span className='description__content--bold' key={0} />]}
-                />
+                <Localize i18n_default_text='Earn a payout if the spot price never rises above the barrier during the contract period.' />
             ),
         },
         {
@@ -73,25 +63,60 @@ const TurbosTradeDescription = ({ onTermClick }: { onTermClick: (term: string) =
             text: 'turbos_down',
         },
         {
-            type: 'heading',
-            text: <Localize i18n_default_text='Additional Information' />,
+            type: 'paragraph',
+            text: <Localize i18n_default_text='If the barrier is breached at any time, your contract ends early.' />,
         },
         {
             type: 'paragraph',
             text: (
                 <Localize
-                    i18n_default_text='Your payout is equal to the <0>payout per point</0> multiplied by the difference between the <1>final price</1> and the barrier. You will only earn a profit if your payout is higher than your initial stake.'
+                    i18n_default_text='Payout = <0>Payout per point</0> × Distance between <1>exit spot</1> and barrier'
                     components={[
-                        <button
-                            className='description__content--definition'
+                        <TermButton
                             key={0}
-                            onClick={() => onTermClick(PAYOUT_PER_POINT)}
-                        />,
-                        <button
-                            className='description__content--definition'
+                            term={PAYOUT_PER_POINT}
+                            contract_type={contract_type}
+                            onTermClick={onTermClick}
+                        >
+                            {PAYOUT_PER_POINT}
+                        </TermButton>,
+                        <TermButton key={1} term={EXIT_SPOT} contract_type={contract_type} onTermClick={onTermClick}>
+                            {EXIT_SPOT}
+                        </TermButton>,
+                    ]}
+                />
+            ),
+        },
+        {
+            type: 'paragraph',
+            text: (
+                <Localize
+                    i18n_default_text='You make a profit only if your payout is more than your <0>stake</0>.'
+                    components={[
+                        <TermButton key={0} term={STAKE} contract_type={contract_type} onTermClick={onTermClick}>
+                            {STAKE}
+                        </TermButton>,
+                    ]}
+                />
+            ),
+        },
+        {
+            type: 'paragraph',
+            text: (
+                <Localize
+                    i18n_default_text="You may sell your contract up to 15 seconds before <0>expiry</0>. If you do, we'll pay you the <1>contract value</1>."
+                    components={[
+                        <TermButton key={0} term={EXPIRY} contract_type={contract_type} onTermClick={onTermClick}>
+                            {EXPIRY}
+                        </TermButton>,
+                        <TermButton
                             key={1}
-                            onClick={() => onTermClick(FINAL_PRICE)}
-                        />,
+                            term={CONTRACT_VALUE}
+                            contract_type={contract_type}
+                            onTermClick={onTermClick}
+                        >
+                            {CONTRACT_VALUE}
+                        </TermButton>,
                     ]}
                 />
             ),
@@ -99,33 +124,12 @@ const TurbosTradeDescription = ({ onTermClick }: { onTermClick: (term: string) =
         {
             type: 'paragraph',
             text: (
-                <Localize
-                    i18n_default_text='You may sell the contract up to 15 seconds before expiry. If you do, we’ll pay you the <0>contract value</0>.'
-                    components={[
-                        <button
-                            className='description__content--definition'
-                            key={0}
-                            onClick={() => onTermClick(CONTRACT_VALUE)}
-                        />,
-                    ]}
-                />
-            ),
-        },
-        {
-            type: 'paragraph',
-            text: (
-                <Localize i18n_default_text='If you choose your duration in number of ticks, you won’t be able to terminate your contract early.' />
-            ),
-        },
-        {
-            type: 'paragraph',
-            text: (
-                <Localize i18n_default_text='If you select the take profit feature, your trade will be closed automatically at the nearest available asset price when your profit reaches or exceeds the take profit amount throughout the contract duration. Your profit may be more than the amount you entered depending on the market price at closing. You may change your take profit amount up to 15 seconds before expiry.' />
+                <Localize i18n_default_text='If you set your duration in ticks, you cannot close the contract early.' />
             ),
         },
     ];
 
-    return <React.Fragment>{getContractDescription(content)}</React.Fragment>;
+    return <>{getContractDescription(content)}</>;
 };
 
 export default TurbosTradeDescription;

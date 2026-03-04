@@ -14,6 +14,11 @@ const multiplier_carousel_testid = 'dt_carousel';
 const skeleton_testid = 'square-skeleton';
 const mocked_definition = 'Multiplier is...';
 
+jest.mock('@deriv/shared', () => ({
+    ...jest.requireActual('@deriv/shared'),
+    isMobile: jest.fn(() => true),
+}));
+
 jest.mock('@deriv-com/quill-ui', () => ({
     ...jest.requireActual('@deriv-com/quill-ui'),
     WheelPicker: jest.fn(({ data, setSelectedValue }) => (
@@ -54,6 +59,9 @@ describe('<Multiplier />', () => {
                         is_purchase_enabled: true,
                         commission: 0.01,
                     },
+                },
+                ui: {
+                    is_mobile: true,
                 },
             }))
     );

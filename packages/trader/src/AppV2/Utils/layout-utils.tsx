@@ -36,25 +36,22 @@ export const getChartHeight = ({
     contract_type,
     has_cancellation,
     is_accumulator,
-    is_logged_in,
     symbol,
 }: {
     contract_type: string;
     has_cancellation: boolean;
     is_accumulator: boolean;
-    is_logged_in?: boolean;
     symbol: string;
 }) => {
-    const base_height =
-        window.innerHeight - HEIGHT.HEADER - HEIGHT.TRADE_TYPE - HEIGHT.MARKET_SELECTOR - HEIGHT.TRADE_PARAM_SHEET;
+    let height =
+        window.innerHeight -
+        HEIGHT.HEADER -
+        HEIGHT.TRADE_TYPE -
+        HEIGHT.MARKET_SELECTOR -
+        HEIGHT.TRADE_PARAM_SHEET -
+        HEIGHT.BOTTOM_NAV;
     const isVisible = (component_key: string) =>
         isTradeParamVisible({ component_key, symbol, has_cancellation, contract_type });
-
-    let height = base_height;
-
-    if (is_logged_in) {
-        height -= HEIGHT.BOTTOM_NAV;
-    }
 
     if (is_accumulator) {
         height -= HEIGHT.CHART_STATS;
@@ -70,7 +67,8 @@ export const getChartHeight = ({
         isVisible('payout_per_point_info') ||
         isVisible('allow_equals') ||
         isVisible('payout') ||
-        isVisible('barrier_info')
+        isVisible('barrier_info') ||
+        isVisible('multipliers_info')
     ) {
         height -= HEIGHT.ADDITIONAL_INFO;
     }

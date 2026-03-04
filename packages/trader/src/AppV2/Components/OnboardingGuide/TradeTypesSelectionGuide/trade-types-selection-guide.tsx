@@ -3,6 +3,7 @@ import React from 'react';
 import { useLocalStorageData } from '@deriv/api';
 import { Localize } from '@deriv-com/translations';
 import { Modal } from '@deriv-com/quill-ui';
+import { useDevice } from '@deriv-com/ui';
 
 import { DESCRIPTION_VIDEO_ID } from 'Modules/Trading/Helpers/video-config';
 
@@ -13,6 +14,7 @@ type TTradeTypeSelectionGuideProps = {
 };
 
 const TradeTypesSelectionGuide: React.FC<TTradeTypeSelectionGuideProps> = ({ is_dark_mode_on }) => {
+    const { isDesktop } = useDevice();
     const [is_modal_open, setIsModalOpen] = React.useState(false);
     const guide_timeout_ref = React.useRef<ReturnType<typeof setTimeout>>();
 
@@ -33,12 +35,16 @@ const TradeTypesSelectionGuide: React.FC<TTradeTypeSelectionGuideProps> = ({ is_
     };
 
     React.useEffect(() => {
+        // Only show onboarding for mobile users
+        if (isDesktop) return;
+
         if (!trade_types_selection) guide_timeout_ref.current = setTimeout(() => setIsModalOpen(true), 800);
 
         return () => clearTimeout(guide_timeout_ref.current);
-    }, [trade_types_selection]);
+    }, [trade_types_selection, isDesktop]);
 
-    if (trade_types_selection) return null;
+    // Only show onboarding for mobile users or if already seen
+    if (isDesktop || trade_types_selection) return null;
 
     return (
         <Modal

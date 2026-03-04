@@ -4,6 +4,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import { getTerm } from 'AppV2/Utils/contract-description-utils';
+import { CONTRACT_LIST } from 'AppV2/Utils/trade-types-utils';
 
 import TurbosTradeDescription from '../turbos-trade-description';
 
@@ -13,61 +14,62 @@ jest.mock('@lottiefiles/dotlottie-react', () => ({
 
 describe('TurbosTradeDescription', () => {
     it('should render a proper content', () => {
-        render(<TurbosTradeDescription onTermClick={jest.fn()} />);
+        render(<TurbosTradeDescription contract_type={CONTRACT_LIST.TURBOS} onTermClick={jest.fn()} />);
 
-        expect(screen.getByText(/You may sell the contract up to 15 seconds before expiry/i)).toBeInTheDocument();
+        expect(screen.getByText(/Turbos allow you to predict the direction/i)).toBeInTheDocument();
     });
 
     it('should call onTermClick if user clicks on term "payout"', async () => {
         const onTermClick = jest.fn();
-        render(<TurbosTradeDescription onTermClick={onTermClick} />);
+        render(<TurbosTradeDescription contract_type={CONTRACT_LIST.TURBOS} onTermClick={onTermClick} />);
 
-        await userEvent.click(screen.getByRole('button', { name: getTerm().PAYOUT.toLowerCase() }));
+        await userEvent.click(screen.getByRole('button', { name: getTerm().PAYOUT }));
 
         expect(onTermClick).toHaveBeenCalled();
     });
 
     it('should call onTermClick if user clicks on term "expiry"', async () => {
         const onTermClick = jest.fn();
-        render(<TurbosTradeDescription onTermClick={onTermClick} />);
+        render(<TurbosTradeDescription contract_type={CONTRACT_LIST.TURBOS} onTermClick={onTermClick} />);
 
-        await userEvent.click(screen.getByRole('button', { name: getTerm().EXPIRY.toLowerCase() }));
+        await userEvent.click(screen.getByRole('button', { name: getTerm().EXPIRY }));
 
         expect(onTermClick).toHaveBeenCalled();
     });
 
     it('should call onTermClick if user clicks on term "barrier"', async () => {
         const onTermClick = jest.fn();
-        render(<TurbosTradeDescription onTermClick={onTermClick} />);
+        render(<TurbosTradeDescription contract_type={CONTRACT_LIST.TURBOS} onTermClick={onTermClick} />);
 
-        await userEvent.click(screen.getByRole('button', { name: getTerm().BARRIER.toLowerCase() }));
+        await userEvent.click(screen.getByRole('button', { name: getTerm().BARRIER }));
 
         expect(onTermClick).toHaveBeenCalled();
     });
 
     it('should call onTermClick if user clicks on term "payout per point"', async () => {
         const onTermClick = jest.fn();
-        render(<TurbosTradeDescription onTermClick={onTermClick} />);
+        render(<TurbosTradeDescription contract_type={CONTRACT_LIST.TURBOS} onTermClick={onTermClick} />);
 
-        await userEvent.click(screen.getByRole('button', { name: getTerm().PAYOUT_PER_POINT.toLowerCase() }));
+        const buttons = screen.getAllByRole('button', { name: getTerm().PAYOUT_PER_POINT });
+        await userEvent.click(buttons[buttons.length - 1]);
 
         expect(onTermClick).toHaveBeenCalled();
     });
 
-    it('should call onTermClick if user clicks on term "final price"', async () => {
+    it('should call onTermClick if user clicks on term "exit spot"', async () => {
         const onTermClick = jest.fn();
-        render(<TurbosTradeDescription onTermClick={onTermClick} />);
+        render(<TurbosTradeDescription contract_type={CONTRACT_LIST.TURBOS} onTermClick={onTermClick} />);
 
-        await userEvent.click(screen.getByRole('button', { name: getTerm().FINAL_PRICE.toLowerCase() }));
+        await userEvent.click(screen.getByRole('button', { name: getTerm().EXIT_SPOT }));
 
         expect(onTermClick).toHaveBeenCalled();
     });
 
     it('should call onTermClick if user clicks on term "contract value"', async () => {
         const onTermClick = jest.fn();
-        render(<TurbosTradeDescription onTermClick={onTermClick} />);
+        render(<TurbosTradeDescription contract_type={CONTRACT_LIST.TURBOS} onTermClick={onTermClick} />);
 
-        await userEvent.click(screen.getByRole('button', { name: getTerm().CONTRACT_VALUE.toLowerCase() }));
+        await userEvent.click(screen.getByRole('button', { name: getTerm().CONTRACT_VALUE }));
 
         expect(onTermClick).toHaveBeenCalled();
     });

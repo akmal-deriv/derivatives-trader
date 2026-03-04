@@ -5,6 +5,7 @@ import { observer } from 'mobx-react-lite';
 import { mapErrorMessage } from '@deriv/shared';
 import { ActionSheet, TextField, useSnackbar } from '@deriv-com/quill-ui';
 import { Localize } from '@deriv-com/translations';
+import { useDevice } from '@deriv-com/ui';
 
 import Carousel from 'AppV2/Components/Carousel';
 import CarouselHeader from 'AppV2/Components/Carousel/carousel-header';
@@ -13,6 +14,7 @@ import { useTraderStore } from 'Stores/useTraderStores';
 import { TTradeParametersProps } from '../trade-parameters';
 
 import BarrierDescription from './barrier-description';
+import BarrierDesktop from './barrier-desktop';
 import BarrierInput from './barrier-input';
 
 const Barrier = observer(({ is_minimized }: TTradeParametersProps) => {
@@ -25,12 +27,13 @@ const Barrier = observer(({ is_minimized }: TTradeParametersProps) => {
         proposal_info,
         trade_type_tab,
     } = useTraderStore();
+    const { isDesktop } = useDevice();
     const [is_open, setIsOpen] = React.useState(false);
     // Barriers should be absolute when using end time (expiry_type === 'endtime') or days duration
     const isDays = duration_unit === 'd' || expiry_type === 'endtime';
 
     const has_error =
-        validation_errors.barrier_1.length > 0 ||
+        (validation_errors.barrier_1?.length ?? 0) > 0 ||
         (proposal_info?.[trade_type_tab]?.has_error && proposal_info?.[trade_type_tab]?.error_field === 'barrier');
 
     const { addSnackbar } = useSnackbar();
@@ -77,6 +80,10 @@ const Barrier = observer(({ is_minimized }: TTradeParametersProps) => {
         ],
         [isDays, onClose, is_open]
     );
+
+    if (isDesktop) {
+        return <BarrierDesktop is_minimized={is_minimized} isDays={isDays} />;
+    }
 
     return (
         <>

@@ -27,7 +27,7 @@ const BottomNav = observer(({ className }: BottomNavProps) => {
     const location = useLocation();
     const { client, portfolio, common } = useStore();
     const { active_positions_count } = portfolio;
-    const { currency } = client;
+    const { currency, is_logged_in } = client;
     const { current_language } = common;
     const { sendBridgeEvent } = useMobileBridge();
 
@@ -46,47 +46,51 @@ const BottomNav = observer(({ className }: BottomNavProps) => {
                 label: <Localize i18n_default_text='Trade' />,
                 path: routes.index,
             },
-            {
-                icon:
-                    active_positions_count > 0 ? (
-                        <Badge
-                            variant='notification'
-                            position='top-right'
-                            label={active_positions_count.toString()}
-                            color='danger'
-                            size='sm'
-                            contentSize='sm'
-                            className='bottom-nav-item__position-badge'
-                        >
-                            <StandaloneClockThreeRegularIcon iconSize='sm' fill='var(--color-text-primary)' />
-                        </Badge>
-                    ) : (
-                        <StandaloneClockThreeRegularIcon iconSize='sm' fill='var(--color-text-primary)' />
-                    ),
-                activeIcon:
-                    active_positions_count > 0 ? (
-                        <Badge
-                            variant='notification'
-                            position='top-right'
-                            label={active_positions_count.toString()}
-                            color='danger'
-                            size='sm'
-                            contentSize='sm'
-                            className='bottom-nav-item__position-badge'
-                        >
-                            <StandaloneClockThreeFillIcon iconSize='sm' fill='var(--color-text-primary)' />
-                        </Badge>
-                    ) : (
-                        <StandaloneClockThreeFillIcon iconSize='sm' />
-                    ),
-                label: (
-                    <React.Fragment>
-                        <span className='user-guide__anchor' />
-                        <Localize i18n_default_text='Positions' />
-                    </React.Fragment>
-                ),
-                path: routes.trader_positions,
-            },
+            ...(is_logged_in
+                ? [
+                      {
+                          icon:
+                              active_positions_count > 0 ? (
+                                  <Badge
+                                      variant='notification'
+                                      position='top-right'
+                                      label={active_positions_count.toString()}
+                                      color='danger'
+                                      size='sm'
+                                      contentSize='sm'
+                                      className='bottom-nav-item__position-badge'
+                                  >
+                                      <StandaloneClockThreeRegularIcon iconSize='sm' fill='var(--color-text-primary)' />
+                                  </Badge>
+                              ) : (
+                                  <StandaloneClockThreeRegularIcon iconSize='sm' fill='var(--color-text-primary)' />
+                              ),
+                          activeIcon:
+                              active_positions_count > 0 ? (
+                                  <Badge
+                                      variant='notification'
+                                      position='top-right'
+                                      label={active_positions_count.toString()}
+                                      color='danger'
+                                      size='sm'
+                                      contentSize='sm'
+                                      className='bottom-nav-item__position-badge'
+                                  >
+                                      <StandaloneClockThreeFillIcon iconSize='sm' fill='var(--color-text-primary)' />
+                                  </Badge>
+                              ) : (
+                                  <StandaloneClockThreeFillIcon iconSize='sm' />
+                              ),
+                          label: (
+                              <React.Fragment>
+                                  <span className='user-guide__anchor' />
+                                  <Localize i18n_default_text='Positions' />
+                              </React.Fragment>
+                          ),
+                          path: routes.trader_positions,
+                      },
+                  ]
+                : []),
             {
                 icon: <StandaloneBarsRegularIcon iconSize='sm' fill='var(--color-text-primary)' />,
                 activeIcon: <StandaloneBarsRegularIcon iconSize='sm' />,
@@ -94,7 +98,8 @@ const BottomNav = observer(({ className }: BottomNavProps) => {
                 path: routes.menu,
             },
         ],
-        [active_positions_count]
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [active_positions_count, is_logged_in]
     );
 
     const selectedIndex = React.useMemo(() => {

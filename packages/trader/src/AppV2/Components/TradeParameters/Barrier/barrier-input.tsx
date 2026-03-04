@@ -306,6 +306,15 @@ const BarrierInput = observer(
             }
         };
 
+        const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+            if (e.key === 'Enter') {
+                const isSaveDisabled = show_validation_error || isLoadingProposal;
+                if (!isSaveDisabled) {
+                    handleSave();
+                }
+            }
+        };
+
         return (
             <>
                 <ActionSheet.Content>
@@ -339,6 +348,7 @@ const BarrierInput = observer(
                                     regex={/[^0-9.,]/g}
                                     textAlignment='center'
                                     onChange={handleOnChange}
+                                    onKeyDown={handleKeyDown}
                                     placeholder={localize('Price')}
                                     variant='fill'
                                     message={show_validation_error ? displayError : ''}
@@ -358,6 +368,7 @@ const BarrierInput = observer(
                                     allowSign={false}
                                     status={show_validation_error ? 'error' : 'neutral'}
                                     onChange={handleOnChange}
+                                    onKeyDown={handleKeyDown}
                                     placeholder={localize('Distance to spot')}
                                     regex={/[^0-9.,]/g}
                                     variant='fill'

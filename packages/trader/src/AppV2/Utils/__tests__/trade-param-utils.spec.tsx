@@ -26,6 +26,7 @@ import {
 describe('getTradeParams', () => {
     it('should return correct object with keys for Rise/Fall', () => {
         expect(getTradeParams()[TRADE_TYPES.RISE_FALL]).toEqual({
+            trade_type_tabs: true,
             duration: true,
             stake: true,
             allow_equals: true,
@@ -34,17 +35,21 @@ describe('getTradeParams', () => {
 
     it('should return correct object with keys for Multipliers if symbol does not start with "cry"', () => {
         expect(getTradeParams()[TRADE_TYPES.MULTIPLIER]).toEqual({
+            trade_type_tabs: true,
             multiplier: true,
             stake: true,
             risk_management: true,
+            multipliers_info: true,
         });
     });
 
     it('should return correct object with keys for Multipliers if symbol starts with "cry"', () => {
         expect(getTradeParams('crypto')[TRADE_TYPES.MULTIPLIER]).toEqual({
+            trade_type_tabs: true,
             multiplier: true,
             stake: true,
             risk_management: true,
+            multipliers_info: true,
             expiration: true,
         });
     });

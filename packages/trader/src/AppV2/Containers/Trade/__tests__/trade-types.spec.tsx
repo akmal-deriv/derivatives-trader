@@ -21,6 +21,11 @@ jest.mock('@deriv/api', () => ({
     })),
 }));
 
+jest.mock('@deriv-com/ui', () => ({
+    ...jest.requireActual('@deriv-com/ui'),
+    useDevice: jest.fn(() => ({ isMobile: true })),
+}));
+
 const mockGetTradeTypesList = getTradeTypesList as jest.MockedFunction<typeof getTradeTypesList>;
 const mockSortCategoriesInTradeTypeOrder = sortCategoriesInTradeTypeOrder as jest.Mock;
 
@@ -78,6 +83,12 @@ describe('TradeTypes', () => {
         // Reset useMobileBridge mock to default (bridge not available)
         (useMobileBridge as jest.Mock).mockReturnValue({
             isBridgeAvailable: false,
+        });
+
+        // Reset useDevice mock to default (mobile)
+        const { useDevice } = jest.requireMock('@deriv-com/ui');
+        (useDevice as jest.Mock).mockReturnValue({
+            isMobile: true,
         });
     });
     beforeAll(() => {

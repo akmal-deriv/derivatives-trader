@@ -13,7 +13,6 @@ jest.mock('App/Components/Elements/ContentLoader', () => ({
 jest.mock('../../../Containers/contract-type', () => jest.fn(() => 'MockedContractType'));
 jest.mock('../../../Containers/purchase', () => jest.fn(() => 'MockedPurchase'));
 jest.mock('../../../Containers/trade-params', () => jest.fn(() => 'MockedTradeParams'));
-jest.mock('../../Elements/account-header', () => jest.fn(() => 'MockedAccountHeader'));
 jest.mock('../../Elements/trade-params-footer', () => jest.fn(() => 'MockedTradeParamsFooter'));
 
 const mock_props = {

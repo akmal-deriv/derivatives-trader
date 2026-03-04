@@ -30,7 +30,7 @@
     &__header {
         position: sticky;
         top: 0;
-        z-index: 2;
+        z-index: 100;
         background-color: var(--color-surface-primary);
         padding: 0.8rem 2.4rem;
         border-bottom: 1px solid var(--color-surface-border);
@@ -53,11 +53,29 @@
             position: absolute;
             right: 0;
 
+            @include rtl {
+                left: 0;
+
+                right: unset;
+            }
+
             @include mobile-screen {
                 right: 1.6rem;
+
+                @include rtl {
+                    left: 1.6rem;
+
+                    right: unset;
+                }
             }
             @include tablet-screen {
                 right: 2.4rem;
+
+                @include rtl {
+                    left: 2.4rem;
+
+                    right: unset;
+                }
             }
         }
         &-wrapper {
@@ -84,10 +102,21 @@
         padding: 2.4rem 2.4rem 0;
         display: flex;
         background-color: var(--color-surface-primary);
+        z-index: 100;
+
+        @include rtl {
+            direction: rtl;
+        }
 
         &-side-note {
             min-width: 256px;
             margin-left: 2.4rem;
+
+            @include rtl {
+                margin-right: 2.4rem;
+
+                margin-left: 0;
+            }
         }
         @include mobile-screen {
             flex: 1;
@@ -108,5 +137,11 @@
         display: flex;
         flex-direction: column;
         height: 100%;
+    }
+
+    @include rtl {
+        .table__row {
+            direction: rtl;
+        }
     }
 }

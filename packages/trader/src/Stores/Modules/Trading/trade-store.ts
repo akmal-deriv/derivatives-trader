@@ -704,6 +704,10 @@ export default class TradeStore extends BaseStore {
             () => {
                 // Clear existing validation errors to prevent stale messages
                 this.validation_errors = {};
+                // Reinitialize barrier keys so observer components don't crash
+                // accessing undefined before validation rules are reprocessed
+                this.validation_errors.barrier_1 = [];
+                this.validation_errors.barrier_2 = [];
 
                 // Regenerate all validation rules with new language
                 this.setValidationRules(getValidationRules());
@@ -1266,7 +1270,7 @@ export default class TradeStore extends BaseStore {
                             // and then set the chart view to the start_time
                             // draw the start time line and show longcode then mount contract
                             // this.root_store.modules.contract_trade.drawContractStartTime(start_time, longcode, contract_id);
-                            if (!is_dtrader_v2) {
+                            if (!is_dtrader_v2 || !isMobile) {
                                 // Convert raw technical values to user-friendly display names
                                 // For trade_type_name, use the title from getContractTypesConfig which has human-friendly names
                                 const contract_types_config = getContractTypesConfig(this.symbol);
@@ -1488,8 +1492,8 @@ export default class TradeStore extends BaseStore {
             if (symbol_to_check && symbol_to_check.trim() !== '') {
                 this.setMarketStatus(isMarketClosed(this.active_symbols, symbol_to_check));
 
-                // Handle trade parameters reset when switching between symbols with different support (V2 only)
-                if (this.is_dtrader_v2 && this.symbol && this.symbol !== symbol_to_check) {
+                // Handle trade parameters reset when switching between symbols with different duration/barrier support
+                if (this.symbol && this.symbol !== symbol_to_check) {
                     const trade_params_reset_values = this.handleTradeParamsResetOnSymbolChange(
                         this.symbol,
                         symbol_to_check
@@ -2452,7 +2456,7 @@ export default class TradeStore extends BaseStore {
 
     /**
      * Handles trade parameters reset when switching between symbols with different support
-     * This includes both barrier and duration resets for V2 only
+     * This includes both barrier and duration resets for all platforms (desktop and mobile)
      * @param old_symbol - The previous symbol
      * @param new_symbol - The new symbol being switched to
      * @returns Object with trade parameters to reset, or null if no reset needed

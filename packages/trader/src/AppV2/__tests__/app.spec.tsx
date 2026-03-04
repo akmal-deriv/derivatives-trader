@@ -34,8 +34,11 @@ jest.mock('Stores/Providers/modules-providers', () => {
 });
 
 jest.mock('../../trader-providers', () => {
-    const MockTraderProviders = ({ children }: { children: React.ReactNode }) => (
-        <div data-testid='trader-providers'>{children}</div>
+    const { StoreProvider } = jest.requireActual('@deriv/stores');
+    const MockTraderProviders = ({ children, store }: { children: React.ReactNode; store: any }) => (
+        <StoreProvider store={store}>
+            <div data-testid='trader-providers'>{children}</div>
+        </StoreProvider>
     );
     MockTraderProviders.displayName = 'MockTraderProviders';
     return MockTraderProviders;

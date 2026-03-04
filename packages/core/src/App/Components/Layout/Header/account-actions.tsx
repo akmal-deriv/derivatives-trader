@@ -119,8 +119,8 @@ const AccountActionsComponent = observer(() => {
         >
             {shouldShowLoader ? (
                 <React.Fragment>
-                    <Skeleton height={32} width={120} />
-                    <Skeleton height={32} width={80} />
+                    <Skeleton height={32} width={120} borderRadius={16} />
+                    <Skeleton height={32} width={80} borderRadius={16} />
                 </React.Fragment>
             ) : (
                 renderAccountInfo()

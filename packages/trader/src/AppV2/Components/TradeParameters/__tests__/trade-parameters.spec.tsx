@@ -1,5 +1,3 @@
-import React from 'react';
-
 import { ReportsStoreProvider } from '@deriv/reports/src/Stores/useReportsStores';
 import { TRADE_TYPES } from '@deriv/shared';
 import { mockStore } from '@deriv/stores';
@@ -106,11 +104,12 @@ describe('TradeParameters', () => {
         default_mock_store.modules.trade.contract_type = TRADE_TYPES.MULTIPLIER;
         render(mockTradeParameters());
 
+        expect(screen.getByText(TRADE_PARAMS.TRADE_TYPE_TABS)).toBeInTheDocument();
         expect(screen.getByText(TRADE_PARAMS.MULTIPLIER)).toBeInTheDocument();
         expect(screen.getByText(TRADE_PARAMS.STAKE)).toBeInTheDocument();
         expect(screen.getByText(TRADE_PARAMS.RISK_MANAGEMENT)).toBeInTheDocument();
         expect(screen.queryByText(TRADE_PARAMS.MULTIPLIERS_CANCELLATION_INFO)).not.toBeInTheDocument();
-        expect(screen.getAllByTestId(data_test)).toHaveLength(3);
+        expect(screen.getAllByTestId(data_test)).toHaveLength(4);
     });
 
     it('renders correct trade params for Multipliers if has_cancellation === true', () => {
@@ -118,21 +117,23 @@ describe('TradeParameters', () => {
         default_mock_store.modules.trade.has_cancellation = true;
         render(mockTradeParameters());
 
+        expect(screen.getByText(TRADE_PARAMS.TRADE_TYPE_TABS)).toBeInTheDocument();
         expect(screen.getByText(TRADE_PARAMS.MULTIPLIER)).toBeInTheDocument();
         expect(screen.getByText(TRADE_PARAMS.STAKE)).toBeInTheDocument();
         expect(screen.getByText(TRADE_PARAMS.RISK_MANAGEMENT)).toBeInTheDocument();
         expect(screen.getByText(TRADE_PARAMS.MULTIPLIERS_CANCELLATION_INFO)).toBeInTheDocument();
-        expect(screen.getAllByTestId(data_test)).toHaveLength(4);
+        expect(screen.getAllByTestId(data_test)).toHaveLength(5);
     });
 
     it('renders correct trade params for Rise/Fall', () => {
         default_mock_store.modules.trade.contract_type = TRADE_TYPES.RISE_FALL;
         render(mockTradeParameters());
 
+        expect(screen.getByText(TRADE_PARAMS.TRADE_TYPE_TABS)).toBeInTheDocument();
         expect(screen.getByText(TRADE_PARAMS.DURATION)).toBeInTheDocument();
         expect(screen.getByText(TRADE_PARAMS.STAKE)).toBeInTheDocument();
         expect(screen.getByText(TRADE_PARAMS.ALLOW_EQUALS)).toBeInTheDocument();
-        expect(screen.getAllByTestId(data_test)).toHaveLength(3);
+        expect(screen.getAllByTestId(data_test)).toHaveLength(4);
     });
 
     it('renders correct trade params for Rise/Fall if is_minimized and is_market_closed  === true', () => {
@@ -140,10 +141,11 @@ describe('TradeParameters', () => {
         default_mock_store.modules.trade.is_market_closed = true;
         render(mockTradeParameters());
 
+        expect(screen.getByText(TRADE_PARAMS.TRADE_TYPE_TABS)).toBeInTheDocument();
         expect(screen.getByText(TRADE_PARAMS.DURATION)).toBeInTheDocument();
         expect(screen.getByText(TRADE_PARAMS.STAKE)).toBeInTheDocument();
         expect(screen.getByText(TRADE_PARAMS.ALLOW_EQUALS)).toBeInTheDocument();
-        expect(screen.getAllByTestId(data_test)).toHaveLength(3);
+        expect(screen.getAllByTestId(data_test)).toHaveLength(4);
     });
 
     it('renders correct trade params for Higher/Lower', () => {
@@ -154,8 +156,7 @@ describe('TradeParameters', () => {
         expect(screen.getByText(TRADE_PARAMS.DURATION)).toBeInTheDocument();
         expect(screen.getByText(TRADE_PARAMS.BARRIER)).toBeInTheDocument();
         expect(screen.getByText(TRADE_PARAMS.STAKE)).toBeInTheDocument();
-        expect(screen.getByText(TRADE_PARAMS.PAYOUT)).toBeInTheDocument();
-        expect(screen.getAllByTestId(data_test)).toHaveLength(5);
+        expect(screen.getAllByTestId(data_test)).toHaveLength(4);
     });
 
     it('renders correct trade params for Touch/No Touch', () => {
@@ -166,37 +167,39 @@ describe('TradeParameters', () => {
         expect(screen.getByText(TRADE_PARAMS.DURATION)).toBeInTheDocument();
         expect(screen.getByText(TRADE_PARAMS.BARRIER)).toBeInTheDocument();
         expect(screen.getByText(TRADE_PARAMS.STAKE)).toBeInTheDocument();
-        expect(screen.getByText(TRADE_PARAMS.PAYOUT)).toBeInTheDocument();
-        expect(screen.getAllByTestId(data_test)).toHaveLength(5);
+        expect(screen.getAllByTestId(data_test)).toHaveLength(4);
     });
 
     it('renders correct trade params for Matches/Differs', () => {
         default_mock_store.modules.trade.contract_type = TRADE_TYPES.MATCH_DIFF;
         render(mockTradeParameters());
 
+        expect(screen.getByText(TRADE_PARAMS.TRADE_TYPE_TABS)).toBeInTheDocument();
         expect(screen.getByText(TRADE_PARAMS.LAST_DIGIT_PREDICTION)).toBeInTheDocument();
         expect(screen.getByText(TRADE_PARAMS.DURATION)).toBeInTheDocument();
         expect(screen.getByText(TRADE_PARAMS.STAKE)).toBeInTheDocument();
-        expect(screen.getAllByTestId(data_test)).toHaveLength(3);
+        expect(screen.getAllByTestId(data_test)).toHaveLength(4);
     });
 
     it('renders correct trade params for Even/Odd', () => {
         default_mock_store.modules.trade.contract_type = TRADE_TYPES.EVEN_ODD;
         render(mockTradeParameters());
 
+        expect(screen.getByText(TRADE_PARAMS.TRADE_TYPE_TABS)).toBeInTheDocument();
         expect(screen.getByText(TRADE_PARAMS.DURATION)).toBeInTheDocument();
         expect(screen.getByText(TRADE_PARAMS.STAKE)).toBeInTheDocument();
-        expect(screen.getAllByTestId(data_test)).toHaveLength(2);
+        expect(screen.getAllByTestId(data_test)).toHaveLength(3);
     });
 
     it('renders correct trade params for Over/Under', () => {
         default_mock_store.modules.trade.contract_type = TRADE_TYPES.OVER_UNDER;
         render(mockTradeParameters());
 
+        expect(screen.getByText(TRADE_PARAMS.TRADE_TYPE_TABS)).toBeInTheDocument();
         expect(screen.getByText(TRADE_PARAMS.LAST_DIGIT_PREDICTION)).toBeInTheDocument();
         expect(screen.getByText(TRADE_PARAMS.DURATION)).toBeInTheDocument();
         expect(screen.getByText(TRADE_PARAMS.STAKE)).toBeInTheDocument();
-        expect(screen.getAllByTestId(data_test)).toHaveLength(3);
+        expect(screen.getAllByTestId(data_test)).toHaveLength(4);
     });
 
     it('should reset scroll position to start when contract type changes in minimized mode', () => {

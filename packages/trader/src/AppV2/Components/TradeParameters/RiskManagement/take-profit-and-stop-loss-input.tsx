@@ -2,7 +2,7 @@ import React from 'react';
 import clsx from 'clsx';
 import { observer } from 'mobx-react-lite';
 
-import { getCurrencyDisplayCode, getDecimalPlaces, mapErrorMessage } from '@deriv/shared';
+import { getCurrencyDisplayCode, getDecimalPlaces, mapErrorMessage, trackAnalyticsEvent } from '@deriv/shared';
 import { ActionSheet, CaptionText, Text, TextFieldWithSteppers, ToggleSwitch } from '@deriv-com/quill-ui';
 import { Localize, useTranslations } from '@deriv-com/translations';
 
@@ -31,7 +31,6 @@ type TTakeProfitAndStopLossInputProps = {
     parent_is_api_response_received_ref?: React.MutableRefObject<boolean>;
     type?: 'take_profit' | 'stop_loss';
 };
-type TOnProposalResponse = TTradeStore['onProposalResponse'];
 
 const TakeProfitAndStopLossInput = ({
     classname,
@@ -215,9 +214,23 @@ const TakeProfitAndStopLossInput = ({
                   }),
             ...(is_tp_enabled ? { has_cancellation: false } : {}),
         });
+        trackAnalyticsEvent('ce_trade_types_form_v2', {
+            action: 'customizing_trades',
+            input_method: 'custom',
+            parameter_type: type,
+        });
         onActionSheetClose();
     };
 
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+            const isSaveDisabled =
+                (!is_api_response_received_ref.current && is_enabled) || (error_text && is_enabled) || fe_error_text;
+            if (!isSaveDisabled) {
+                onSave();
+            }
+        }
+    };
     React.useEffect(() => {
         setFEErrorText(initial_error_text ?? '');
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -260,6 +273,7 @@ const TakeProfitAndStopLossInput = ({
                     name={type}
                     noStatusIcon
                     onChange={onInputChange}
+                    onKeyDown={handleKeyDown}
                     placeholder={localize('Amount')}
                     ref={input_ref}
                     regex={/[^0-9.,]/g}

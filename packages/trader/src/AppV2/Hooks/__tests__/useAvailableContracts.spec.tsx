@@ -136,9 +136,9 @@ describe('useAvailableContracts', () => {
             expect(result.current).toHaveLength(4);
             expect(result.current.map(c => c.id)).toEqual([
                 CONTRACT_LIST.ACCUMULATORS,
-                CONTRACT_LIST.VANILLAS,
-                CONTRACT_LIST.TURBOS,
                 CONTRACT_LIST.MULTIPLIERS,
+                CONTRACT_LIST.TURBOS,
+                CONTRACT_LIST.VANILLAS,
             ]);
         });
 
@@ -149,8 +149,8 @@ describe('useAvailableContracts', () => {
 
             // Should maintain order from AVAILABLE_CONTRACTS, not from allowed types
             expect(result.current[0].id).toBe(CONTRACT_LIST.ACCUMULATORS);
-            expect(result.current[1].id).toBe(CONTRACT_LIST.VANILLAS);
-            expect(result.current[2].id).toBe(CONTRACT_LIST.MULTIPLIERS);
+            expect(result.current[1].id).toBe(CONTRACT_LIST.MULTIPLIERS);
+            expect(result.current[2].id).toBe(CONTRACT_LIST.VANILLAS);
         });
 
         it('should ignore non-existent trade types in allowed list', () => {

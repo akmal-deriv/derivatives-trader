@@ -21,7 +21,7 @@ export const isProduction = (): boolean => {
     if (typeof window === 'undefined') return false;
     const hostname = window.location.hostname;
     return (config_data.brand_domains as string[]).some(domain => {
-        const pattern = new RegExp(`^(www\\.)?dtrader\\.${domain.replaceAll('.', '\\.')}$`, 'i');
+        const pattern = new RegExp(`^(www\\.)?(beta-)?dtrader\\.${domain.replaceAll('.', '\\.')}$`, 'i');
         return pattern.test(hostname);
     });
 };

@@ -1,24 +1,29 @@
 import React from 'react';
 
+import { LabelPairedChevronRightSmRegularIcon } from '@deriv/quill-icons';
 import { trackAnalyticsEvent } from '@deriv/shared';
 import { observer, useStore } from '@deriv/stores';
-import { Button } from '@deriv-com/quill-ui';
-
-import ImageGuide from 'Assets/SvgComponents/trade_explanations/img-guide.svg';
+import { Button, Text } from '@deriv-com/quill-ui';
+import { Localize } from '@deriv-com/translations';
+import { useDevice } from '@deriv-com/ui';
 
 import useAvailableContracts from 'AppV2/Hooks/useAvailableContracts';
 import useGuideContractTypes from 'AppV2/Hooks/useGuideContractTypes';
 import { CONTRACT_LIST } from 'AppV2/Utils/trade-types-utils';
+import ImageGuide from 'Assets/SvgComponents/trade_explanations/img-guide.svg';
 import { useTraderStore } from 'Stores/useTraderStores';
 
 import GuideDefinitionModal from './guide-definition-modal';
 import GuideDescriptionModal from './guide-description-modal';
+
+import './guide.scss';
 
 type TGuide = {
     is_open_by_default?: boolean;
     show_guide_for_selected_contract?: boolean;
     show_trigger_button?: boolean;
     show_description_in_a_modal?: boolean;
+    show_all_trade_types_in_guide?: boolean;
 };
 
 const Guide = observer(
@@ -27,12 +32,14 @@ const Guide = observer(
         show_guide_for_selected_contract,
         show_trigger_button = true,
         show_description_in_a_modal = true,
+        show_all_trade_types_in_guide,
     }: TGuide) => {
         const {
             ui: { is_dark_mode_on },
             common: { current_language },
         } = useStore();
         const { contract_type } = useTraderStore();
+        const { isMobile } = useDevice();
         const available_contracts = useAvailableContracts();
         const contract_type_title = available_contracts.find(item => item.for.includes(contract_type))?.id ?? '';
         const { trade_types } = useGuideContractTypes();
@@ -76,23 +83,45 @@ const Guide = observer(
 
         return (
             <React.Fragment>
-                {show_trigger_button && (
-                    <Button
-                        color={is_dark_mode_on ? 'white' : 'black'}
-                        className='trade__guide'
-                        onClick={() => {
-                            trackAnalyticsEvent('ce_trade_types_form_v2', {
-                                action: 'info_open',
-                                trade_type_name: contract_type_title || contract_type,
-                            });
-                            setIsDescriptionOpened(true);
-                        }}
-                        variant='tertiary'
-                        key={current_language}
-                    >
-                        <ImageGuide />
-                    </Button>
-                )}
+                {show_trigger_button &&
+                    (isMobile ? (
+                        <Button
+                            color={is_dark_mode_on ? 'white' : 'black'}
+                            className='trade__guide'
+                            onClick={() => {
+                                trackAnalyticsEvent('ce_trade_types_form_v2', {
+                                    action: 'info_open',
+                                    trade_type_name: contract_type_title || contract_type,
+                                    source: 'trade_page',
+                                });
+                                setIsDescriptionOpened(true);
+                            }}
+                            variant='tertiary'
+                            key={current_language}
+                        >
+                            <ImageGuide />
+                        </Button>
+                    ) : (
+                        <div
+                            className='guide-link'
+                            onClick={() => {
+                                trackAnalyticsEvent('ce_trade_types_form_v2', {
+                                    action: 'info_open',
+                                    trade_type_name: contract_type_title || contract_type,
+                                    source: 'trade_page',
+                                });
+                                setIsDescriptionOpened(true);
+                            }}
+                        >
+                            <Text size='sm' color='quill-typography__color--prominent'>
+                                <Localize
+                                    i18n_default_text='How to trade {{trade_type}}?'
+                                    values={{ trade_type: contract_type_title || 'this' }}
+                                />
+                            </Text>
+                            <LabelPairedChevronRightSmRegularIcon />
+                        </div>
+                    ))}
                 <GuideDescriptionModal
                     contract_list={ordered_contract_list}
                     is_dark_mode_on={is_dark_mode_on}
@@ -110,12 +139,15 @@ const Guide = observer(
                     selected_contract_type={selected_contract_type}
                     show_guide_for_selected_contract={show_guide_for_selected_contract}
                     show_description_in_a_modal={show_description_in_a_modal}
+                    show_all_trade_types_in_guide={show_all_trade_types_in_guide}
                 />
-                <GuideDefinitionModal
-                    contract_type={selected_contract_type}
-                    term={selected_term}
-                    onClose={() => setSelectedTerm('')}
-                />
+                {isMobile && (
+                    <GuideDefinitionModal
+                        contract_type={selected_contract_type}
+                        term={selected_term}
+                        onClose={() => setSelectedTerm('')}
+                    />
+                )}
             </React.Fragment>
         );
     }

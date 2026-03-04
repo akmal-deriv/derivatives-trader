@@ -11,6 +11,11 @@ import PayoutPerPoint from '../payout-per-point';
 
 const payout_per_point_label = 'Payout per point';
 
+jest.mock('@deriv/shared', () => ({
+    ...jest.requireActual('@deriv/shared'),
+    isMobile: jest.fn(() => true),
+}));
+
 jest.mock('@deriv-com/quill-ui', () => ({
     ...jest.requireActual('@deriv-com/quill-ui'),
     WheelPicker: jest.fn(({ data, setSelectedValue }) => (
@@ -65,6 +70,9 @@ describe('PayoutPerPoint', () => {
                             TURBOSSHORT: 'Turbos Short',
                         },
                     },
+                },
+                ui: {
+                    is_mobile: true,
                 },
             }))
     );

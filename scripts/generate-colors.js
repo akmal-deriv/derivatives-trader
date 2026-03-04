@@ -368,6 +368,7 @@ function generateComponentTokens() {
     // Modal/Dialog Colors
     --color-modal-bg: var(--color-surface-primary);
     --color-modal-bg-secondary: var(--color-surface-section);
+    --color-modal-popover-bg: #ffffff;
     --color-modal-backdrop: #{transparentize($color-black, 0.72)};
     --color-modal-border: var(--color-interactive-default);
 
@@ -463,6 +464,7 @@ function generateComponentTokens() {
     // Modal/Dialog Colors
     --color-modal-bg: var(--core-color-solid-slate-1100);
     --color-modal-bg-secondary: var(--core-color-solid-slate-1000);
+    --color-modal-popover-bg: #20242F;
     --color-modal-backdrop: #{transparentize($color-black, 0.4)};
     --color-modal-border: var(--color-interactive-default);
 

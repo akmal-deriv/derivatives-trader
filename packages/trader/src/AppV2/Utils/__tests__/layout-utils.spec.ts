@@ -76,74 +76,11 @@ describe('getChartHeight', () => {
     beforeAll(() => (window.innerHeight = 740));
     afterAll(() => (window.innerHeight = original_height));
 
-    it('should return correct chart height when user is not logged in', () => {
+    it('should return correct chart height', () => {
         const common_args = {
             contract_type: TRADE_TYPES.MATCH_DIFF,
             has_cancellation: false,
             is_accumulator: false,
-            is_logged_in: false,
-            symbol: '1HZ100V',
-        };
-        // window.innerHeight (740) - HEADER (56) - TRADE_TYPE (48) - MARKET_SELECTOR (58) - TRADE_PARAM_SHEET (170) = 408
-        // MATCH_DIFF is a digit type, so subtract DIGIT_INFO (56): 408 - 56 = 352
-        const default_chart_height = 352;
-        // base (408) - CHART_STATS (82) = 326
-        const accumulators_chart_height = 326;
-        // base (408) - ADDITIONAL_INFO (30) = 378
-        const chart_height_with_additional_info = 378;
-
-        expect(
-            getChartHeight({
-                ...common_args,
-            })
-        ).toEqual(default_chart_height);
-        expect(
-            getChartHeight({
-                ...common_args,
-                contract_type: TRADE_TYPES.ACCUMULATOR,
-                is_accumulator: true,
-            })
-        ).toEqual(accumulators_chart_height);
-        expect(
-            getChartHeight({
-                ...common_args,
-                contract_type: TRADE_TYPES.MULTIPLIER,
-                has_cancellation: true,
-            })
-        ).toEqual(chart_height_with_additional_info);
-        expect(
-            getChartHeight({
-                ...common_args,
-                contract_type: TRADE_TYPES.MULTIPLIER,
-                symbol: 'cryBTCUSD',
-            })
-        ).toEqual(chart_height_with_additional_info);
-        expect(
-            getChartHeight({
-                ...common_args,
-                contract_type: TRADE_TYPES.VANILLA.CALL,
-            })
-        ).toEqual(chart_height_with_additional_info);
-        expect(
-            getChartHeight({
-                ...common_args,
-                contract_type: TRADE_TYPES.RISE_FALL,
-            })
-        ).toEqual(chart_height_with_additional_info);
-        expect(
-            getChartHeight({
-                ...common_args,
-                contract_type: TRADE_TYPES.HIGH_LOW,
-            })
-        ).toEqual(chart_height_with_additional_info);
-    });
-
-    it('should return correct chart height when user is logged in', () => {
-        const common_args = {
-            contract_type: TRADE_TYPES.MATCH_DIFF,
-            has_cancellation: false,
-            is_accumulator: false,
-            is_logged_in: true,
             symbol: '1HZ100V',
         };
         // window.innerHeight (740) - HEADER (56) - TRADE_TYPE (48) - MARKET_SELECTOR (58) - TRADE_PARAM_SHEET (170) - BOTTOM_NAV (56) = 352
@@ -153,6 +90,8 @@ describe('getChartHeight', () => {
         const accumulators_chart_height = 270;
         // base (352) - ADDITIONAL_INFO (30) = 322
         const chart_height_with_additional_info = 322;
+        // HIGH_LOW has no additional info components (barrier vs barrier_info)
+        const high_low_chart_height = 352;
 
         expect(
             getChartHeight({
@@ -197,7 +136,7 @@ describe('getChartHeight', () => {
                 ...common_args,
                 contract_type: TRADE_TYPES.HIGH_LOW,
             })
-        ).toEqual(chart_height_with_additional_info);
+        ).toEqual(high_low_chart_height);
     });
 });
 

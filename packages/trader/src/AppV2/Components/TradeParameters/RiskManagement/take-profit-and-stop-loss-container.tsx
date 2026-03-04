@@ -1,6 +1,7 @@
 import React from 'react';
 import { observer } from 'mobx-react-lite';
 
+import { trackAnalyticsEvent } from '@deriv/shared';
 import { Button, useSnackbar } from '@deriv-com/quill-ui';
 import { Localize } from '@deriv-com/translations';
 
@@ -165,6 +166,12 @@ const TakeProfitAndStopLossContainer = observer(({ closeActionSheet }: TTakeProf
             has_stop_loss: has_stop_loss_current,
             stop_loss: sl_error_text_current || stop_loss_current === '0' ? '' : stop_loss_current,
             ...(is_tp_enabled || is_sl_enabled ? { has_cancellation: false } : {}),
+        });
+
+        trackAnalyticsEvent('ce_trade_types_form_v2', {
+            action: 'customizing_trades',
+            input_method: 'custom',
+            parameter_type: 'take_profit_stop_loss',
         });
 
         closeActionSheet();

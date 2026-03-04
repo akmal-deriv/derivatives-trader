@@ -1,5 +1,3 @@
-import React from 'react';
-
 import { mockStore } from '@deriv/stores';
 import { render, screen } from '@testing-library/react';
 
@@ -53,7 +51,7 @@ describe('AccumulatorsInformation', () => {
         mockAccumulatorsInformation();
 
         expect(screen.getByText(payout_text)).toBeInTheDocument();
-        expect(screen.getByTestId('dt_skeleton')).toBeInTheDocument();
+        expect(screen.getAllByTestId('dt_skeleton')).toHaveLength(3);
         expect(screen.queryByText(payout_value)).not.toBeInTheDocument();
     });
 

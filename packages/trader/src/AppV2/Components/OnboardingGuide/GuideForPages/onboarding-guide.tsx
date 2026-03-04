@@ -3,6 +3,7 @@ import React from 'react';
 import { useLocalStorageData } from '@deriv/api';
 import { Modal } from '@deriv-com/quill-ui';
 import { Localize } from '@deriv-com/translations';
+import { useDevice } from '@deriv-com/ui';
 
 import GuideContainer from './guide-container';
 import OnboardingVideo from './onboarding-video';
@@ -29,6 +30,7 @@ const PARTIAL_GUIDE_CONFIGS: Record<string, TPartialGuideConfig> = {
 };
 
 const OnboardingGuide = ({ type = 'trade_page', is_dark_mode_on, callback }: TOnboardingGuideProps) => {
+    const { isMobile } = useDevice();
     const [is_modal_open, setIsModalOpen] = React.useState(false);
     const [should_run_guide, setShouldRunGuide] = React.useState(false);
     const guide_timeout_ref = React.useRef<ReturnType<typeof setTimeout>>();
@@ -95,6 +97,11 @@ const OnboardingGuide = ({ type = 'trade_page', is_dark_mode_on, callback }: TOn
     };
 
     React.useEffect(() => {
+        // Only show onboarding for mobile users
+        if (!isMobile) return;
+
+        clearTimeout(guide_timeout_ref.current);
+
         // For new users: show modal to start full onboarding
         if (!guide_dtrader_v2?.[type]) {
             guide_timeout_ref.current = setTimeout(() => setIsModalOpen(true), 800);
@@ -106,7 +113,10 @@ const OnboardingGuide = ({ type = 'trade_page', is_dark_mode_on, callback }: TOn
 
         return () => clearTimeout(guide_timeout_ref.current);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [guide_dtrader_v2?.[type], should_show_partial_guide]);
+    }, [guide_dtrader_v2?.[type], should_show_partial_guide, isMobile]);
+
+    // Only show onboarding for mobile users
+    if (!isMobile) return null;
 
     return (
         <React.Fragment>

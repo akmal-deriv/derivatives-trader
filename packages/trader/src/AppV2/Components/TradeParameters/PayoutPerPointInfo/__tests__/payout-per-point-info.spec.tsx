@@ -1,12 +1,20 @@
 import React from 'react';
 
 import { mockStore } from '@deriv/stores';
+import { useDevice } from '@deriv-com/ui';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 
 import TraderProviders from '../../../../../trader-providers';
 import PayoutPerPointInfo from '../payout-per-point-info';
 
 const label = 'Payout per point';
+const description = "The money you earn or lose for every one-point change in an asset's price.";
+
+jest.mock('@deriv-com/ui', () => ({
+    ...jest.requireActual('@deriv-com/ui'),
+    useDevice: jest.fn(() => ({ isDesktop: false })),
+}));
 
 describe('<PayoutPerPointInfo />', () => {
     let default_mock_store: ReturnType<typeof mockStore>;
@@ -31,6 +39,9 @@ describe('<PayoutPerPointInfo />', () => {
                 },
             }))
     );
+
+    afterEach(() => jest.clearAllMocks());
+
     const mockedPayoutPerPointInfo = () =>
         render(
             <TraderProviders store={default_mock_store}>
@@ -69,5 +80,31 @@ describe('<PayoutPerPointInfo />', () => {
         mockedPayoutPerPointInfo();
 
         expect(screen.getByText(label)).toHaveClass('trade-params__text--disabled');
+    });
+
+    it('opens ActionSheet with description when user clicks on label (mobile)', async () => {
+        mockedPayoutPerPointInfo();
+
+        await userEvent.click(screen.getByText(label));
+
+        expect(screen.getByText(description)).toBeInTheDocument();
+        expect(screen.getByText('Got it')).toBeInTheDocument();
+    });
+
+    it('does not open ActionSheet when market is closed (mobile)', async () => {
+        default_mock_store.modules.trade.is_market_closed = true;
+        mockedPayoutPerPointInfo();
+
+        await userEvent.click(screen.getByText(label));
+
+        expect(screen.queryByText('Got it')).not.toBeInTheDocument();
+    });
+
+    it('renders TooltipPortal on desktop without ActionSheet', () => {
+        (useDevice as jest.Mock).mockReturnValue({ isDesktop: true });
+        mockedPayoutPerPointInfo();
+
+        expect(screen.getByText(label)).toBeInTheDocument();
+        expect(screen.getByText('123 USD')).toBeInTheDocument();
     });
 });

@@ -82,7 +82,6 @@ const AccountHeader = observer(
             balance !== undefined &&
             balance !== null &&
             balance !== '' &&
-            // (typeof balance === 'number' || !isNaN(Number(String(balance).replace(/,/g, ''))));
             !isNaN(Number(String(balance).replace(/,/g, '')));
 
         const accountTypeHeader = is_virtual ? localize('Demo account') : localize('Real account');
@@ -211,7 +210,7 @@ const AccountHeader = observer(
                 <div className='account-header' ref={dropdown_ref}>
                     {shouldShowLoader ? (
                         <div className='account-header--loading'>
-                            <Skeleton height={59} width={240} borderRadius='0.4rem' />
+                            <Skeleton height={44} width={240} borderRadius={22} />
                         </div>
                     ) : (
                         renderAccountInfo()

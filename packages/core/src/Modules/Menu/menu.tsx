@@ -62,35 +62,37 @@ const MenuPage = observer(() => {
                 })}
             >
                 <div className='header__menu-mobile-body-wrapper'>
-                    {/* Reports Section */}
-                    <div className='header__menu-section'>
-                        <div className='header__menu-section-header'>
-                            <Text className='header__menu-section-title' size='xsm' weight='bold'>
-                                {localize('Reports')}
-                            </Text>
+                    {/* Reports Section — only for logged-in users */}
+                    {is_logged_in && (
+                        <div className='header__menu-section'>
+                            <div className='header__menu-section-header'>
+                                <Text className='header__menu-section-title' size='xsm' weight='bold'>
+                                    {localize('Reports')}
+                                </Text>
+                            </div>
+                            <div className='menu-page__item' onClick={() => history.push(routes.positions)}>
+                                <MenuLink
+                                    icon={<StandaloneClockThreeRegularIcon iconSize='sm' />}
+                                    text={localize('Open positions')}
+                                    suffix_icon={<StandaloneChevronRightRegularIcon iconSize='sm' />}
+                                />
+                            </div>
+                            <div className='menu-page__item' onClick={() => history.push(routes.profit)}>
+                                <MenuLink
+                                    icon={<StandaloneFileChartColumnRegularIcon iconSize='sm' />}
+                                    text={localize('Trade table')}
+                                    suffix_icon={<StandaloneChevronRightRegularIcon iconSize='sm' />}
+                                />
+                            </div>
+                            <div className='menu-page__item' onClick={() => history.push(routes.statement)}>
+                                <MenuLink
+                                    icon={<StandaloneFileLinesRegularIcon iconSize='sm' />}
+                                    text={localize('Statement')}
+                                    suffix_icon={<StandaloneChevronRightRegularIcon iconSize='sm' />}
+                                />
+                            </div>
                         </div>
-                        <div className='menu-page__item' onClick={() => history.push(routes.positions)}>
-                            <MenuLink
-                                icon={<StandaloneClockThreeRegularIcon iconSize='sm' />}
-                                text={localize('Open positions')}
-                                suffix_icon={<StandaloneChevronRightRegularIcon iconSize='sm' />}
-                            />
-                        </div>
-                        <div className='menu-page__item' onClick={() => history.push(routes.profit)}>
-                            <MenuLink
-                                icon={<StandaloneFileChartColumnRegularIcon iconSize='sm' />}
-                                text={localize('Trade table')}
-                                suffix_icon={<StandaloneChevronRightRegularIcon iconSize='sm' />}
-                            />
-                        </div>
-                        <div className='menu-page__item' onClick={() => history.push(routes.statement)}>
-                            <MenuLink
-                                icon={<StandaloneFileLinesRegularIcon iconSize='sm' />}
-                                text={localize('Statement')}
-                                suffix_icon={<StandaloneChevronRightRegularIcon iconSize='sm' />}
-                            />
-                        </div>
-                    </div>
+                    )}
 
                     {/* Settings Section */}
                     <div className='header__menu-section'>

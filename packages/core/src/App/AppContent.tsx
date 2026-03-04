@@ -20,7 +20,7 @@ const AppContent: React.FC<{ passthrough: any }> = observer(({ passthrough }) =>
     const { initTrackJS } = useTrackJS();
 
     const store = useStore();
-    const { current_account, is_logged_in } = store.client;
+    const { current_account } = store.client;
     const { current_language } = store.common;
     const { is_dark_mode_on } = store.ui;
 
@@ -47,7 +47,14 @@ const AppContent: React.FC<{ passthrough: any }> = observer(({ passthrough }) =>
         switchLanguage(current_language);
         html?.setAttribute('lang', current_language.toLowerCase());
         html?.setAttribute('dir', current_language.toLowerCase() === 'ar' ? 'rtl' : 'ltr');
-    }, [current_language, switchLanguage, html]);
+        // On desktop, keep body LTR to prevent the main layout from flipping.
+        // html retains dir="rtl" so [dir='rtl'] CSS selectors still match for text-level RTL.
+        if (!isMobile && current_language.toLowerCase() === 'ar') {
+            document.body.setAttribute('dir', 'ltr');
+        } else {
+            document.body.removeAttribute('dir');
+        }
+    }, [current_language, switchLanguage, html, isMobile]);
 
     // Send trading:config event when language or theme changes
     React.useEffect(() => {
@@ -69,7 +76,7 @@ const AppContent: React.FC<{ passthrough: any }> = observer(({ passthrough }) =>
                     <Routes {...({ passthrough } as any)} />
                 </AppContents>
             </ErrorBoundary>
-            {isMobile && is_logged_in && <BottomNav />}
+            {isMobile && <BottomNav />}
             <ErrorBoundary root_store={store}>
                 <AppModals />
             </ErrorBoundary>

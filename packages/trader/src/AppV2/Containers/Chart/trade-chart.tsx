@@ -18,6 +18,7 @@ import useDefaultSymbol from 'AppV2/Hooks/useDefaultSymbol';
 import { SmartChart } from 'Modules/SmartChart';
 import AccumulatorsChartElements from 'Modules/SmartChart/Components/Markers/accumulators-chart-elements';
 import ToolbarWidgets from 'Modules/SmartChart/Components/toolbar-widgets';
+import TopWidgets from 'Modules/SmartChart/Components/top-widgets';
 import { useSmartChartsAdapter } from 'Modules/SmartChart/Hooks/useSmartChartsAdapter';
 import { CHART_CONSTANTS, getMarketsOrder } from 'Modules/SmartChart/Utils/chart-utils';
 import { useTraderStore } from 'Stores/useTraderStores';
@@ -103,6 +104,11 @@ const TradeChart = observer(() => {
     };
 
     const { current_spot, current_spot_time } = accumulator_barriers_data || {};
+
+    const topWidgets = React.useCallback(
+        () => <TopWidgets onSymbolChange={symbol => onChange({ target: { name: 'symbol', value: symbol } })} />,
+        [onChange]
+    );
 
     // Use centralized SmartCharts adapter hook
     const { chartData, isLoading, error, getQuotes, subscribeQuotes, unsubscribeQuotes, retryFetchChartData } =
@@ -241,14 +247,15 @@ const TradeChart = observer(() => {
                 enabledChartFooter={false}
                 id='trade'
                 isMobile={isMobile}
-                isVerticalScrollEnabled={false}
+                isVerticalScrollEnabled={!isMobile}
                 maxTick={isMobile ? max_ticks : undefined}
                 granularity={show_digits_stats || is_accumulator ? 0 : granularity}
                 settings={settings}
                 allowTickChartTypeOnly={show_digits_stats || is_accumulator}
                 stateChangeListener={chartStateChange}
                 symbol={symbol}
-                topWidgets={() => <div /> /* to hide the original chart market dropdown */}
+                // Enable chart native TopWidgets for desktop, keep hidden for mobile
+                topWidgets={isMobile ? () => <div /> : topWidgets}
                 isConnectionOpened={is_socket_opened}
                 clearChart={false}
                 toolbarWidget={() => {

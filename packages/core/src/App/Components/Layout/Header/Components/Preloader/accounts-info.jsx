@@ -7,14 +7,14 @@ const AccountsInfoLoader = ({ is_logged_in }) => (is_logged_in ? <LoggedInPreloa
 const LoggedOutPreloader = () => (
     <React.Fragment>
         <div />
-        <Skeleton height={32} width={80} />
+        <Skeleton height={32} width={80} borderRadius={16} />
     </React.Fragment>
 );
 
 const LoggedInPreloader = () => (
     <React.Fragment>
-        <Skeleton height={40} width={140} />
-        <Skeleton height={32} width={80} />
+        <Skeleton height={40} width={140} borderRadius={20} />
+        <Skeleton height={32} width={80} borderRadius={16} />
     </React.Fragment>
 );
 

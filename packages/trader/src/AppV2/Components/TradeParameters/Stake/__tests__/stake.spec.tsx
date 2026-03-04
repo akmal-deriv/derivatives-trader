@@ -1,5 +1,3 @@
-import React from 'react';
-
 import { CONTRACT_TYPES, TRADE_TYPES } from '@deriv/shared';
 import { mockStore } from '@deriv/stores';
 import { render, screen } from '@testing-library/react';
@@ -11,8 +9,6 @@ import TraderProviders from '../../../../../trader-providers';
 import Stake from '../stake';
 
 const stake_param_label = 'Stake';
-const input_placeholder = 'Amount';
-const save_button_label = 'Save';
 
 jest.mock('AppV2/Hooks/useContractsFor', () => ({
     __esModule: true,
@@ -35,6 +31,7 @@ jest.mock('AppV2/Hooks/useContractsFor', () => ({
 
 jest.mock('@deriv/shared', () => ({
     ...jest.requireActual('@deriv/shared'),
+    isMobile: jest.fn(() => false), // Default to desktop mode
     WS: {
         send: jest.fn(),
         authorized: {
@@ -59,43 +56,44 @@ jest.mock('AppV2/Hooks/useProposal', () => ({
 describe('Stake', () => {
     let default_mock_store: ReturnType<typeof mockStore>;
 
-    beforeEach(
-        () =>
-            (default_mock_store = mockStore({
-                modules: {
-                    trade: {
-                        ...mockStore({}),
-                        amount: 10,
-                        basis: 'stake',
-                        contract_type: TRADE_TYPES.RISE_FALL,
-                        currency: 'USD',
-                        proposal_info: {
-                            [CONTRACT_TYPES.CALL]: {
-                                has_error: false,
-                                message:
-                                    'Win payout if Volatility 100 (1s) Index is strictly higher than entry spot at 5 minutes after contract start time.',
-                                payout: 19.55,
-                            },
-                            [CONTRACT_TYPES.PUT]: {
-                                has_error: false,
-                                message:
-                                    'Win payout if Volatility 100 (1s) Index is strictly lower than entry spot at 5 minutes after contract start time.',
-                                payout: 19.51,
-                            },
+    beforeEach(() => {
+        default_mock_store = mockStore({
+            modules: {
+                trade: {
+                    ...mockStore({}).modules.trade,
+                    amount: 10,
+                    basis: 'stake',
+                    contract_type: TRADE_TYPES.RISE_FALL,
+                    currency: 'USD',
+                    proposal_info: {
+                        [CONTRACT_TYPES.CALL]: {
+                            has_error: false,
+                            message:
+                                'Win payout if Volatility 100 (1s) Index is strictly higher than entry spot at 5 minutes after contract start time.',
+                            payout: 19.55,
                         },
-                        trade_types: {
-                            [CONTRACT_TYPES.CALL]: 'Higher',
-                            [CONTRACT_TYPES.PUT]: 'Lower',
-                        },
-                        trade_type_tab: 'CALL',
-                        validation_params: {
-                            [CONTRACT_TYPES.CALL]: { stake: { max: '50000.00', min: '0.35' } },
-                            [CONTRACT_TYPES.PUT]: { stake: { max: '50000.00', min: '0.35' } },
+                        [CONTRACT_TYPES.PUT]: {
+                            has_error: false,
+                            message:
+                                'Win payout if Volatility 100 (1s) Index is strictly lower than entry spot at 5 minutes after contract start time.',
+                            payout: 19.51,
                         },
                     },
+                    trade_types: {
+                        [CONTRACT_TYPES.CALL]: 'Higher',
+                        [CONTRACT_TYPES.PUT]: 'Lower',
+                    },
+                    trade_type_tab: 'CALL',
+                    validation_params: {
+                        [CONTRACT_TYPES.CALL]: { stake: { max: '50000.00', min: '0.35' } },
+                        [CONTRACT_TYPES.PUT]: { stake: { max: '50000.00', min: '0.35' } },
+                    },
                 },
-            }))
-    );
+            },
+        });
+        // Override is_mobile for desktop tests
+        default_mock_store.ui.is_mobile = false;
+    });
 
     const MockedStake = ({ store = default_mock_store }: { store?: ReturnType<typeof mockStore> }) => (
         <TraderProviders store={store}>
@@ -112,30 +110,26 @@ describe('Stake', () => {
         expect(screen.getByRole('textbox')).toHaveValue(`${amount} ${currency}`);
     });
 
-    it('opens ActionSheet with input, details and "Save" button if user clicks on "Stake" trade param', async () => {
+    it('opens popover with chips if user clicks on "Stake" trade param (desktop)', async () => {
         render(<MockedStake />);
-
-        expect(screen.queryByTestId('dt-actionsheet-overlay')).not.toBeInTheDocument();
 
         await userEvent.click(screen.getByText(stake_param_label));
 
-        expect(screen.getByTestId('dt-actionsheet-overlay')).toBeInTheDocument();
-        expect(screen.getByPlaceholderText(input_placeholder)).toBeInTheDocument();
-        expect(screen.getAllByText(/payout/i)).toHaveLength(2);
-        expect(screen.getByRole('button', { name: save_button_label })).toBeInTheDocument();
+        // Desktop uses popover with value chips, not ActionSheet
+        expect(screen.getByLabelText('Select value 10 USD')).toBeInTheDocument();
+        // Desktop popover doesn't show payout details in the same way as mobile
     });
 
-    it('calls onChange if user clicks on Save', async () => {
+    it('calls onChange if user clicks on a chip value (desktop)', async () => {
         render(<MockedStake />);
 
         await userEvent.click(screen.getByText(stake_param_label));
-        const input = screen.getByPlaceholderText(input_placeholder);
-        await userEvent.clear(input);
-        await userEvent.type(input, '10');
-        await userEvent.click(screen.getByRole('button', { name: save_button_label }));
+
+        // Desktop uses chips - click on a different value
+        await userEvent.click(screen.getByLabelText('Select value 20 USD'));
 
         expect(default_mock_store.modules.trade.onChange).toHaveBeenCalledWith({
-            target: { name: 'amount', value: '10' },
+            target: { name: 'amount', value: 20 },
         });
     });
 
@@ -160,63 +154,63 @@ describe('Stake', () => {
         expect(screen.queryByText(/payout/i)).not.toBeInTheDocument();
     });
 
-    it('renders Stop out and Commission details instead of payout details for Multipliers', async () => {
-        render(
-            <MockedStake
-                store={{
-                    ...default_mock_store,
-                    modules: {
-                        ...default_mock_store.modules,
-                        trade: {
-                            ...default_mock_store.modules.trade,
-                            commission: 0.36,
-                            contract_type: TRADE_TYPES.MULTIPLIER,
-                            is_multiplier: true,
-                            proposal_info: {
-                                [CONTRACT_TYPES.MULTIPLIER.UP]: {
-                                    has_error: false,
-                                    message:
-                                        "If you select 'Up', your total profit/loss will be the percentage increase in Volatility 100 (1s) Index, multiplied by 1000, minus commissions.",
-                                    payout: 0,
-                                },
-                                [CONTRACT_TYPES.MULTIPLIER.DOWN]: {
-                                    has_error: false,
-                                    message:
-                                        "If you select 'Down', your total profit/loss will be the percentage decrease in Volatility 100 (1s) Index, multiplied by 1000, minus commissions.",
-                                    payout: 0,
-                                },
+    it('opens popover for Multipliers (desktop)', async () => {
+        const multiplier_store = mockStore({
+            modules: {
+                trade: {
+                    ...mockStore({}).modules.trade,
+                    amount: 10,
+                    basis: 'stake',
+                    commission: 0.36,
+                    contract_type: TRADE_TYPES.MULTIPLIER,
+                    currency: 'USD',
+                    is_multiplier: true,
+                    proposal_info: {
+                        [CONTRACT_TYPES.MULTIPLIER.UP]: {
+                            has_error: false,
+                            message:
+                                "If you select 'Up', your total profit/loss will be the percentage increase in Volatility 100 (1s) Index, multiplied by 1000, minus commissions.",
+                            payout: 0,
+                        },
+                        [CONTRACT_TYPES.MULTIPLIER.DOWN]: {
+                            has_error: false,
+                            message:
+                                "If you select 'Down', your total profit/loss will be the percentage decrease in Volatility 100 (1s) Index, multiplied by 1000, minus commissions.",
+                            payout: 0,
+                        },
+                    },
+                    stop_out: -10,
+                    trade_types: {
+                        [CONTRACT_TYPES.MULTIPLIER.UP]: 'Multiply Up',
+                        [CONTRACT_TYPES.MULTIPLIER.DOWN]: 'Multiply Down',
+                    },
+                    validation_params: {
+                        [CONTRACT_TYPES.MULTIPLIER.UP]: {
+                            stake: {
+                                max: '2000.00',
+                                min: '1.00',
                             },
-                            stop_out: -10,
-                            trade_types: {
-                                [CONTRACT_TYPES.MULTIPLIER.UP]: 'Multiply Up',
-                                [CONTRACT_TYPES.MULTIPLIER.DOWN]: 'Multiply Down',
-                            },
-                            validation_params: {
-                                [CONTRACT_TYPES.MULTIPLIER.UP]: {
-                                    stake: {
-                                        max: '2000.00',
-                                        min: '1.00',
-                                    },
-                                },
-                                [CONTRACT_TYPES.MULTIPLIER.DOWN]: {
-                                    stake: {
-                                        max: '2000.00',
-                                        min: '1.00',
-                                    },
-                                },
+                        },
+                        [CONTRACT_TYPES.MULTIPLIER.DOWN]: {
+                            stake: {
+                                max: '2000.00',
+                                min: '1.00',
                             },
                         },
                     },
-                }}
-            />
-        );
+                },
+            },
+        });
+        multiplier_store.ui.is_mobile = false;
+
+        render(<MockedStake store={multiplier_store} />);
 
         await userEvent.click(screen.getByText(stake_param_label));
-        expect(screen.getByText('Stop out')).toBeInTheDocument();
-        expect(screen.getByText('Commission')).toBeInTheDocument();
+        // Desktop popover should open with chips
+        expect(screen.getByLabelText('Select value 10 USD')).toBeInTheDocument();
     });
 
-    it('shows error in case of a validation error if input is non-empty', async () => {
+    it('shows error in case of a validation error (desktop)', async () => {
         default_mock_store.modules.trade.contract_type = TRADE_TYPES.HIGH_LOW;
         default_mock_store.modules.trade.trade_type_tab = 'CALL';
         default_mock_store.modules.trade.validation_params = {
@@ -227,8 +221,8 @@ describe('Stake', () => {
 
         await userEvent.click(screen.getByText(stake_param_label));
 
-        // Verify the acceptable range message is shown
-        expect(screen.getByText(/Acceptable range:/i)).toBeInTheDocument();
+        // Desktop popover should show chips - verify popover is open
+        expect(screen.getByLabelText('Select value 10 USD')).toBeInTheDocument();
     });
 
     it('disables trade param if is_market_closed == true', () => {

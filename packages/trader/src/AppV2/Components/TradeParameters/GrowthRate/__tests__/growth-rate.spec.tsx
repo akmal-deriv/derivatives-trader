@@ -15,6 +15,11 @@ const growth_rate_carousel_testid = 'dt_carousel';
 const skeleton_testid = 'dt_skeleton';
 const mocked_definition = 'A growth rate is...';
 
+jest.mock('@deriv/shared', () => ({
+    ...jest.requireActual('@deriv/shared'),
+    isMobile: jest.fn(() => true),
+}));
+
 jest.mock('@deriv-com/quill-ui', () => ({
     ...jest.requireActual('@deriv-com/quill-ui'),
     WheelPicker: jest.fn(({ data, setSelectedValue }) => (

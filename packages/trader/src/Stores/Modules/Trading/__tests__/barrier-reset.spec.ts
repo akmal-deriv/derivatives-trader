@@ -273,7 +273,7 @@ describe('TradeStore - Barrier Reset on Symbol Change', () => {
     });
 
     describe('processNewValuesAsync integration', () => {
-        it('should apply barrier reset when symbol changes in processNewValuesAsync', async () => {
+        it('should apply barrier reset when symbol changes in processNewValuesAsync (mobile)', async () => {
             // Set up initial state with synthetic symbol and relative barrier using actions
             trade_store.updateStore({ symbol: '1HZ100V', barrier_1: '+1.17' });
 
@@ -290,6 +290,35 @@ describe('TradeStore - Barrier Reset on Symbol Change', () => {
             expect(handleTradeParamsResetSpy).toHaveBeenCalledWith('1HZ100V', 'EURUSD');
 
             // Should have cleared localStorage
+            expect(localStorageMock.removeItem).toHaveBeenCalledWith('deriv_spot_barrier_value');
+            expect(localStorageMock.removeItem).toHaveBeenCalledWith('deriv_fixed_barrier_value');
+            expect(localStorageMock.removeItem).toHaveBeenCalledWith('deriv_barrier_type_selection');
+        });
+
+        it('should apply barrier and duration reset when symbol changes on desktop (non-V2)', async () => {
+            // Set up initial state with synthetic symbol and tick-based duration
+            trade_store.updateStore({
+                symbol: '1HZ100V',
+                barrier_1: '+1.17',
+                duration: 25,
+                duration_unit: 's',
+            });
+
+            // Set is_mobile to false to simulate desktop
+            mockRootStore.ui.is_mobile = false;
+
+            // Spy on the reset method
+            const handleTradeParamsResetSpy = jest.spyOn(trade_store, 'handleTradeParamsResetOnSymbolChange');
+
+            // Process symbol change to forex
+            await trade_store.processNewValuesAsync({ symbol: 'EURUSD' }, true);
+
+            // Should have called the reset method even on desktop
+            expect(handleTradeParamsResetSpy).toHaveBeenCalledWith('1HZ100V', 'EURUSD');
+
+            // Should have cleared localStorage for both duration and barrier keys
+            expect(localStorageMock.removeItem).toHaveBeenCalledWith('deriv_duration');
+            expect(localStorageMock.removeItem).toHaveBeenCalledWith('deriv_duration_unit');
             expect(localStorageMock.removeItem).toHaveBeenCalledWith('deriv_spot_barrier_value');
             expect(localStorageMock.removeItem).toHaveBeenCalledWith('deriv_fixed_barrier_value');
             expect(localStorageMock.removeItem).toHaveBeenCalledWith('deriv_barrier_type_selection');

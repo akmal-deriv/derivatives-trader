@@ -38,7 +38,7 @@ const ServicesErrorSnackbar = observer(() => {
     const checkShouldShowErrorSnackBar = () => {
         if (!has_services_error && !contract_error) return false;
         if (pathname === routes.index) return (has_services_error && !is_modal_error) || contract_error;
-        if (pathname === routes.trader_positions || location.pathname.startsWith('/contract/'))
+        if (pathname === routes.trader_positions || pathname.startsWith(routes.contract.replace('/:contract_id', '')))
             return has_services_error;
         return false;
     };
@@ -46,7 +46,9 @@ const ServicesErrorSnackbar = observer(() => {
     const should_show_error_snackbar = checkShouldShowErrorSnackBar();
     const should_contain_action = should_show_error_snackbar && code === SERVICE_ERROR.COMPANY_WIDE_LIMIT_EXCEEDED;
     const bottom_position =
-        location.pathname.startsWith('/contract/') && is_multiplier && isValidToCancel(contract_info)
+        pathname.startsWith(routes.contract.replace('/:contract_id', '')) &&
+        is_multiplier &&
+        isValidToCancel(contract_info)
             ? '104px'
             : '48px';
     const action_props = {

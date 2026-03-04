@@ -12,12 +12,11 @@ import TradeParameters from './trade-parameters';
 
 type TTradeParametersContainer = {
     is_market_closed?: boolean;
-    is_logged_in?: boolean;
 };
 
 const SWIPE_THRESHOLD_PX = 50; // Minimum distance (px) to recognize as swipe vs tap
 
-const TradeParametersContainer = ({ is_market_closed, is_logged_in }: TTradeParametersContainer) => {
+const TradeParametersContainer = ({ is_market_closed }: TTradeParametersContainer) => {
     const { contract_type } = useTraderStore();
     const [is_sheet_expanded, setIsSheetExpanded] = React.useState(false);
     const handle_touch_start_y = React.useRef<number>(0);
@@ -54,7 +53,6 @@ const TradeParametersContainer = ({ is_market_closed, is_logged_in }: TTradePara
             className={clsx('trade-params__container', {
                 'trade-params__container--expanded': is_sheet_expanded,
                 'trade-params__container--collapsed': !is_sheet_expanded,
-                'trade-params__container--logged-in': is_logged_in,
             })}
             data-testid='trade-params-container'
             onTouchStart={e => {

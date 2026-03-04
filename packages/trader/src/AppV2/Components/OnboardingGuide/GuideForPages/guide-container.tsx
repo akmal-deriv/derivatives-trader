@@ -1,5 +1,5 @@
 import React from 'react';
-import Joyride, { CallBackProps, STATUS } from 'react-joyride';
+import Joyride, { CallBackProps, STATUS, Step } from 'react-joyride';
 
 import { Localize } from '@deriv-com/translations';
 
@@ -10,12 +10,14 @@ type TGuideContainerProps = {
     should_run: boolean;
     onFinishGuide: () => void;
     step_indices?: number[]; // If provided, show only these steps (e.g., [3] for single, [3, 4] for multiple)
+    custom_steps?: Step[]; // If provided, use these steps instead of the default mobile STEPS
 };
 
 type TFinishedStatuses = CallBackProps['status'][];
 
-const GuideContainer = ({ should_run, onFinishGuide, step_indices }: TGuideContainerProps) => {
+const GuideContainer = ({ should_run, onFinishGuide, step_indices, custom_steps }: TGuideContainerProps) => {
     const [step_index, setStepIndex] = React.useState(0);
+    const base_steps = custom_steps ?? STEPS;
     const is_partial_guide = step_indices !== undefined && step_indices.length > 0;
     const is_single_step = is_partial_guide && step_indices.length === 1;
 
@@ -23,7 +25,7 @@ const GuideContainer = ({ should_run, onFinishGuide, step_indices }: TGuideConta
     const steps = React.useMemo(() => {
         if (is_partial_guide) {
             const partial_steps = step_indices.map(index => {
-                const step = { ...STEPS[index] };
+                const step = { ...base_steps[index] };
                 // Customize title for single-step trade params tooltip
                 if (is_single_step && index === 3) {
                     step.title = <Localize i18n_default_text='Trade Parameters' />;
@@ -32,8 +34,8 @@ const GuideContainer = ({ should_run, onFinishGuide, step_indices }: TGuideConta
             });
             return partial_steps;
         }
-        return STEPS;
-    }, [is_partial_guide, is_single_step, step_indices]);
+        return base_steps;
+    }, [is_partial_guide, is_single_step, step_indices, base_steps]);
 
     const callbackHandle = (data: CallBackProps) => {
         const { status, step, index } = data;

@@ -10,6 +10,11 @@ import ModulesProvider from 'Stores/Providers/modules-providers';
 import TraderProviders from '../../../../../trader-providers';
 import Strike from '../strike';
 
+jest.mock('@deriv/shared', () => ({
+    ...jest.requireActual('@deriv/shared'),
+    isMobile: jest.fn(() => true),
+}));
+
 const strike_trade_param_label = 'Strike price';
 
 jest.mock('@deriv-com/quill-ui', () => ({

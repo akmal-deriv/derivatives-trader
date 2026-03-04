@@ -3,9 +3,9 @@ import clsx from 'clsx';
 import { observer } from 'mobx-react-lite';
 
 import { Skeleton } from '@deriv/components';
-import { getCurrencyDisplayCode, isEmptyObject } from '@deriv/shared';
-import { Localize } from '@deriv-com/translations';
+import { getCurrencyDisplayCode, isEmptyObject, isMobile } from '@deriv/shared';
 import { ActionSheet, TextField } from '@deriv-com/quill-ui';
+import { Localize } from '@deriv-com/translations';
 
 import Carousel from 'AppV2/Components/Carousel';
 import CarouselHeader from 'AppV2/Components/Carousel/carousel-header';
@@ -15,6 +15,7 @@ import { useTraderStore } from 'Stores/useTraderStores';
 
 import { TTradeParametersProps } from '../trade-parameters';
 
+import StrikeDesktop from './strike-desktop';
 import StrikeWheel from './strike-wheel';
 
 const Strike = observer(({ is_minimized }: TTradeParametersProps) => {
@@ -94,6 +95,10 @@ const Strike = observer(({ is_minimized }: TTradeParametersProps) => {
                 <Skeleton />
             </div>
         );
+
+    if (!isMobile()) {
+        return <StrikeDesktop is_minimized={is_minimized} />;
+    }
 
     return (
         <React.Fragment>
