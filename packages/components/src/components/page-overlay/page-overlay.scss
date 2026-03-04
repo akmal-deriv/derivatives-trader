@@ -54,7 +54,9 @@
             right: 0;
 
             @include rtl {
+                /*rtl:ignore*/
                 left: 0;
+                /*rtl:ignore*/
                 right: unset;
             }
 
@@ -62,7 +64,9 @@
                 right: 1.6rem;
 
                 @include rtl {
+                    /*rtl:ignore*/
                     left: 1.6rem;
+                    /*rtl:ignore*/
                     right: unset;
                 }
             }
@@ -70,7 +74,9 @@
                 right: 2.4rem;
 
                 @include rtl {
+                    /*rtl:ignore*/
                     left: 2.4rem;
+                    /*rtl:ignore*/
                     right: unset;
                 }
             }
@@ -102,6 +108,7 @@
         z-index: 100;
 
         @include rtl {
+            /*rtl:ignore*/
             direction: rtl;
         }
 
@@ -110,7 +117,9 @@
             margin-left: 2.4rem;
 
             @include rtl {
+                /*rtl:ignore*/
                 margin-right: 2.4rem;
+                /*rtl:ignore*/
                 margin-left: 0;
             }
         }
@@ -137,6 +146,7 @@
 
     @include rtl {
         .table__row {
+            /*rtl:ignore*/
             direction: rtl;
         }
     }
