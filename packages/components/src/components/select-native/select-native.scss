@@ -6,6 +6,11 @@
         margin-left: 10px;
         width: 40px;
 
+        @include rtl {
+            margin-left: 0;
+            margin-right: 10px;
+        }
+
         .dc-select-native__wrapper {
             width: 40px;
         }
@@ -44,6 +49,11 @@
         position: absolute;
         right: 1.3rem;
         top: 1.3rem;
+
+        @include rtl {
+            right: unset;
+            left: 1.3rem;
+        }
         --fill-color1: var(--color-text-secondary);
     }
     &__display {
@@ -54,6 +64,11 @@
         align-items: center;
         justify-content: flex-start;
         padding-left: 1.2rem;
+
+        @include rtl {
+            padding-left: 0;
+            padding-right: 1.2rem;
+        }
 
         @include tablet-screen {
             max-width: 56.8rem;

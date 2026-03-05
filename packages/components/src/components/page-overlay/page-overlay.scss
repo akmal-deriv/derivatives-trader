@@ -102,7 +102,6 @@
         padding: 2.4rem 2.4rem 0;
         display: flex;
         background-color: var(--color-surface-primary);
-        z-index: 100;
 
         @include rtl {
             direction: rtl;

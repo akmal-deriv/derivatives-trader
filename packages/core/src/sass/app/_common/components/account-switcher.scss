@@ -156,6 +156,11 @@
         transition: opacity 0.2s ease;
         margin-right: 1.6rem;
 
+        @include rtl {
+            margin-right: 0;
+            margin-left: 1.6rem;
+        }
+
         &:hover {
             opacity: 0.8;
         }
