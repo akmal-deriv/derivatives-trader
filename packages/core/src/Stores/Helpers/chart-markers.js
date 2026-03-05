@@ -462,12 +462,17 @@ export function calculateMarker(contract_info, is_dark_theme, is_last_contract, 
         //Add profit and loss label marker when contract is finished (sold or expired)
         // Don't show profitAndLossLabel marker for accumulator contracts
         // TODO: bring this back when crash issue on iOS is resolved due to profitAndLossLabel marker
-        if (!is_accumulator_contract) {
+        if (!is_accumulator_contract && exit_spot_time && exit_spot) {
+            // Offset the label away from the exitSpot connector line to prevent overlap.
+            // If exit_spot is at or above the barrier (price), the connector goes down so push the label up (-24).
+            // If exit_spot is below the barrier, the connector goes up so push the label down (+24).
+            const _displayOffsetY = +exit_spot >= +price ? -24 : 24;
             markers.push({
                 epoch: exit_spot_time,
-                quote: price,
+                quote: exit_spot,
                 type: 'profitAndLossLabel',
                 direction: getMarkerDirection(contract_type),
+                displayOffsetY: _displayOffsetY,
             });
         }
     } else {
