@@ -8,6 +8,7 @@ import Endpoint from 'Modules/Endpoint';
 
 // Error Routes
 const Page404 = React.lazy(() => import(/* webpackChunkName: "404" */ 'Modules/Page404'));
+const PageUnavailable = React.lazy(() => import(/* webpackChunkName: "unavailable" */ 'Modules/PageUnavailable'));
 
 const MenuPage = React.lazy(() => import(/* webpackChunkName: "menu" */ 'Modules/Menu'));
 
@@ -75,6 +76,12 @@ const getModules = () => {
 // TODO: search tag: test-route-parent-info -> Enable test for getting route parent info when there are nested routes
 const initRoutesConfig = () => [
     { path: routes.endpoint, component: Endpoint, getTitle: () => 'Endpoint' }, // doesn't need localization as it's for internal use
+    {
+        path: routes.unavailable,
+        component: PageUnavailable,
+        getTitle: () => localize('Platform Unavailable'),
+        protected: false,
+    },
     ...getModules(),
 ];
 
