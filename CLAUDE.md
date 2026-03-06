@@ -610,6 +610,7 @@ export type {
 - Analytics (`trackAnalyticsEvent()`)
 - Money formatting
 - URL parameter handling
+- Brand configuration utilities (domain-aware for deriv.be, deriv.me)
 
 ### **@deriv/utils** - General Utilities
 
@@ -1328,7 +1329,30 @@ import type { TActiveSymbolsRequest, TPriceProposalResponse, TBuyContractRespons
 
 ---
 
-## 11. Deployment & Production
+## 11. Multi-Brand Domain Support
+
+The platform supports multiple brand domains with domain-aware configuration:
+
+### Supported Domains
+
+- **deriv.com** - Primary domain
+- **deriv.be** - Belgium-specific domain
+- **deriv.me** - Alternative domain
+
+### Brand Configuration
+
+Brand URLs and environment checks are handled through centralized utilities in `@deriv/shared`.
+
+### Implementation Details
+
+- All brand-related URLs adapt to the current domain
+- Environment detection works across all supported domains
+- Configuration stored in `brand.config.json`
+- No hardcoded domain assumptions in codebase
+
+---
+
+## 12. Deployment & Production
 
 ### Environment Configuration
 
@@ -1372,7 +1396,7 @@ trackAnalyticsEvent('buy_contract', { symbol: 'EURUSD', amount: 10 });
 
 ---
 
-## 12. Troubleshooting Guide
+## 13. Troubleshooting Guide
 
 ### Common Issues
 
@@ -1419,8 +1443,10 @@ trackAnalyticsEvent('buy_contract', { symbol: 'EURUSD', amount: 10 });
 | `packages/shared/src/utils/contract/contract-types.ts`      | Contract type utilities          |
 | `packages/core/src/App/Constants/routes-config.js`          | Main route configuration         |
 | `packages/trader/src/Modules/Trading/Components/Form/`      | Trade form components            |
+| `packages/shared/src/utils/brand/brand.ts`                  | Multi-domain brand configuration |
 | `jest.config.js`                                            | Jest configuration               |
 | `packages/core/build/webpack.config.js`                     | Main webpack config              |
+| `brand.config.json`                                         | Brand-specific configuration     |
 
 ---
 
@@ -1499,5 +1525,5 @@ React.useEffect(() => {
 
 ---
 
-_Last updated: 2025-12-12_
+_Last updated: 2025-01-16_
 _Monorepo with 9 packages, ~210K LOC, React 18 + MobX 6 + TypeScript 5_
