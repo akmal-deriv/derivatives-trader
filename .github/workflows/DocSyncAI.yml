@@ -24,6 +24,9 @@ jobs:
       DOCSYNC_SLACK_TOKEN: ${{ secrets.DOCSYNC_SLACK_TOKEN }}
       DOCSYNC_SLACK_CHANNEL_ID: ${{ secrets.DOCSYNC_SLACK_CHANNEL_ID }}
       DOCSYNC_SLACK_MENTION_USER_IDS: ${{ secrets.DOCSYNC_SLACK_MENTION_USER_IDS }}
+      AGENT_METRICS_API_URL: ${{ secrets.AGENT_METRICS_API_URL }}
+      AGENT_METRICS_API_KEY: ${{ secrets.AGENT_METRICS_API_KEY }}
+
   docsync-comment:
     if: |
       github.event_name == 'issue_comment' &&
@@ -45,3 +48,5 @@ jobs:
       DOCSYNC_SLACK_TOKEN: ${{ secrets.DOCSYNC_SLACK_TOKEN }}
       DOCSYNC_SLACK_CHANNEL_ID: ${{ secrets.DOCSYNC_SLACK_CHANNEL_ID }}
       DOCSYNC_SLACK_MENTION_USER_IDS: ${{ secrets.DOCSYNC_SLACK_MENTION_USER_IDS }}
+      AGENT_METRICS_API_URL: ${{ secrets.AGENT_METRICS_API_URL }}
+      AGENT_METRICS_API_KEY: ${{ secrets.AGENT_METRICS_API_KEY }}
