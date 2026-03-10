@@ -101,13 +101,15 @@ const MenuPage = observer(() => {
                                 {localize('Settings')}
                             </Text>
                         </div>
-                        <div className='menu-page__item' onClick={() => setShowLanguageSelector(true)}>
-                            <MenuLink
-                                icon={<StandaloneGlobeRegularIcon iconSize='sm' />}
-                                text={localize('Language')}
-                                suffix_icon={<StandaloneChevronRightRegularIcon iconSize='sm' />}
-                            />
-                        </div>
+                        {!isBridgeAvailable && (
+                            <div className='menu-page__item' onClick={() => setShowLanguageSelector(true)}>
+                                <MenuLink
+                                    icon={<StandaloneGlobeRegularIcon iconSize='sm' />}
+                                    text={localize('Language')}
+                                    suffix_icon={<StandaloneChevronRightRegularIcon iconSize='sm' />}
+                                />
+                            </div>
+                        )}
                         <div className='menu-page__item' onClick={() => toggleTheme(!is_dark_mode)}>
                             <div className={classNames('header__menu-mobile-link')}>
                                 {is_dark_mode ? (
@@ -177,26 +179,28 @@ const MenuPage = observer(() => {
             </div>
 
             {/* Language selector — slides in from the right as a full-screen drawer */}
-            <div
-                className={classNames('menu-page__language-drawer', {
-                    'menu-page__language-drawer--open': show_language_selector,
-                })}
-                data-testid='dt_menu_language_drawer'
-            >
-                <div className='menu-page__header'>
-                    <div
-                        className='menu-page__header-close'
-                        data-testid='dt_menu_language_close'
-                        onClick={() => setShowLanguageSelector(false)}
-                    >
-                        <StandaloneChevronLeftRegularIcon iconSize='sm' fill='var(--color-text-primary)' />
+            {!isBridgeAvailable && (
+                <div
+                    className={classNames('menu-page__language-drawer', {
+                        'menu-page__language-drawer--open': show_language_selector,
+                    })}
+                    data-testid='dt_menu_language_drawer'
+                >
+                    <div className='menu-page__header'>
+                        <div
+                            className='menu-page__header-close'
+                            data-testid='dt_menu_language_close'
+                            onClick={() => setShowLanguageSelector(false)}
+                        >
+                            <StandaloneChevronLeftRegularIcon iconSize='sm' fill='var(--color-text-primary)' />
+                        </div>
+                        <Text weight='bold' size='s'>
+                            {localize('Language')}
+                        </Text>
                     </div>
-                    <Text weight='bold' size='s'>
-                        {localize('Language')}
-                    </Text>
+                    <MobileLanguageMenu toggleDrawer={() => setShowLanguageSelector(false)} />
                 </div>
-                <MobileLanguageMenu toggleDrawer={() => setShowLanguageSelector(false)} />
-            </div>
+            )}
         </div>
     );
 });
