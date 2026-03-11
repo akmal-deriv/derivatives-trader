@@ -47,18 +47,8 @@ jobs:
             exit 0
           fi
 
-          # Check if user is repository collaborator
-          COLLABORATOR_STATUS=$(curl -s -H "Authorization: token ${GH_TOKEN}" \
-            "https://api.github.com/repos/${{ github.repository }}/collaborators/$ACTOR" \
-            -w "%{http_code}" -o /dev/null)
-
-          if [[ "$COLLABORATOR_STATUS" == "204" ]]; then
-            echo "✅ User $ACTOR is a verified repository collaborator"
-            exit 0
-          fi
-
           echo "❌ Access denied for user: $ACTOR"
-          echo "Only organization members and repository collaborators can trigger Claude actions."
+          echo "Only organization members can trigger Claude actions."
           exit 1
 
       - name: Get PR Details
@@ -107,7 +97,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: ${{ steps.pr.outputs.repo }}
-          ref: ${{ steps.pr.outputs.ref }}
+          ref: ${{ steps.pr.outputs.sha }}
           fetch-depth: 20
           token: ${{ secrets.GITHUB_TOKEN }}
 
