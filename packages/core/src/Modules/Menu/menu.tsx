@@ -27,7 +27,7 @@ import MenuLink from 'App/Components/Layout/Header/menu-link';
 const MenuPage = observer(() => {
     const history = useHistory();
     const { isMobile } = useDevice();
-    const { sendBridgeEvent, isBridgeAvailable } = useMobileBridge();
+    const { sendBridgeEvent, isMobileApp } = useMobileBridge();
     const { ui, client } = useStore();
     const { is_dark_mode_on: is_dark_mode, setDarkMode: toggleTheme } = ui;
     const { is_logged_in, logout: logoutClient } = client;
@@ -101,7 +101,7 @@ const MenuPage = observer(() => {
                                 {localize('Settings')}
                             </Text>
                         </div>
-                        {!isBridgeAvailable && (
+                        {!isMobileApp && (
                             <div className='menu-page__item' onClick={() => setShowLanguageSelector(true)}>
                                 <MenuLink
                                     icon={<StandaloneGlobeRegularIcon iconSize='sm' />}
@@ -143,7 +143,7 @@ const MenuPage = observer(() => {
 
                     {/* Support Section */}
                     <div className='header__menu-section'>
-                        {!isBridgeAvailable && (
+                        {!isMobileApp && (
                             <>
                                 <div className='header__menu-section-header'>
                                     <Text className='header__menu-section-title' size='xsm' weight='bold'>
@@ -162,7 +162,7 @@ const MenuPage = observer(() => {
                     </div>
 
                     {/* Log out */}
-                    {is_logged_in && !isBridgeAvailable && (
+                    {is_logged_in && !isMobileApp && (
                         <div className='menu-page__item header__menu-logout' onClick={handleLogout}>
                             <MenuLink
                                 icon={
@@ -179,7 +179,7 @@ const MenuPage = observer(() => {
             </div>
 
             {/* Language selector — slides in from the right as a full-screen drawer */}
-            {!isBridgeAvailable && (
+            {!isMobileApp && (
                 <div
                     className={classNames('menu-page__language-drawer', {
                         'menu-page__language-drawer--open': show_language_selector,
