@@ -1,4 +1,5 @@
 import React from 'react';
+import { when } from 'mobx';
 
 import { ReportsStoreProvider } from '@deriv/reports/src/Stores/useReportsStores';
 import { trackAnalyticsEvent } from '@deriv/shared';
@@ -38,11 +39,20 @@ const App = ({ passthrough }: Apptypes) => {
             return;
         }
 
-        analyticsCalledRef.current = true;
+        // Wait for auth to resolve before firing the event so account_type is correct.
+        // For non-logged-in users, is_logging_in is already false so when() fires immediately.
+        // For logged-in users, is_logging_in is true until auth completes.
+        const dispose = when(
+            () => !root_store.client.is_logging_in,
+            () => {
+                analyticsCalledRef.current = true;
+                trackAnalyticsEvent('ce_dtrader_app_v2', {
+                    action: 'open',
+                });
+            }
+        );
 
-        trackAnalyticsEvent('ce_dtrader_app_v2', {
-            action: 'open',
-        });
+        return dispose;
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 

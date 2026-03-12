@@ -1,10 +1,18 @@
 import React from 'react';
 import moment from 'moment';
 
+import { trackAnalyticsEvent } from '@deriv/shared';
 import { mockStore } from '@deriv/stores';
 import { render } from '@testing-library/react';
 
 import App from '../app';
+
+jest.mock('@deriv/shared', () => ({
+    ...jest.requireActual('@deriv/shared'),
+    trackAnalyticsEvent: jest.fn(),
+}));
+
+const mockTrackAnalyticsEvent = trackAnalyticsEvent as jest.MockedFunction<typeof trackAnalyticsEvent>;
 
 const rootStore = mockStore({
     common: {
@@ -42,8 +50,13 @@ const mockWs = {
 };
 
 jest.mock('App/Containers/Routes/routes', () => jest.fn(() => <div>Router</div>));
+jest.mock('App/init-store', () => jest.fn(rootStore => rootStore));
 
 describe('App', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+    });
+
     it('should render the app component', () => {
         const { container } = render(
             <App
@@ -69,5 +82,23 @@ describe('App', () => {
         );
         unmount();
         expect(setPromptHandler).toHaveBeenCalledWith(false);
+    });
+
+    it('should fire analytics event when not logging in', () => {
+        const store = mockStore({
+            common: { server_time: moment(new Date()).utc() },
+            client: { is_logged_in: false, is_logging_in: false },
+        });
+        render(<App passthrough={{ root_store: store, WS: mockWs }} />);
+        expect(mockTrackAnalyticsEvent).toHaveBeenCalledWith('ce_dtrader_app_v2', { action: 'open' });
+    });
+
+    it('should not fire analytics event while login is in progress', () => {
+        const store = mockStore({
+            common: { server_time: moment(new Date()).utc() },
+            client: { is_logged_in: false, is_logging_in: true },
+        });
+        render(<App passthrough={{ root_store: store, WS: mockWs }} />);
+        expect(mockTrackAnalyticsEvent).not.toHaveBeenCalled();
     });
 });
