@@ -21,7 +21,7 @@ import { useTranslations } from '@deriv-com/translations';
 import { useDevice } from '@deriv-com/ui';
 
 import useContractsFor from 'AppV2/Hooks/useContractsFor';
-import { checkIsServiceModalError } from 'AppV2/Utils/layout-utils';
+import { checkIsServiceModalError, SERVICE_ERROR } from 'AppV2/Utils/layout-utils';
 import { getTradeTypeTabsList } from 'AppV2/Utils/trade-params-utils';
 import { getDisplayedContractTypes } from 'AppV2/Utils/trade-types-utils';
 import { useTraderStore } from 'Stores/useTraderStores';
@@ -47,7 +47,7 @@ const PurchaseButton = observer(({ onPurchaseSuccess }: TPurchaseButtonProps = {
     const {
         portfolio: { all_positions, onClickSell },
         client,
-        common: { services_error },
+        common: { services_error, setServicesError },
         ui: { is_switching_account },
     } = useStore();
     const { is_logged_in } = client;
@@ -227,10 +227,13 @@ const PurchaseButton = observer(({ onPurchaseSuccess }: TPurchaseButtonProps = {
                         const info = proposal_info?.[trade_type] || {};
                         const is_single_button = contract_types.length === 1;
                         const is_loading = loading_button_index === index;
+                        const is_insufficient_balance =
+                            (info.has_error && info.error_code === SERVICE_ERROR.INSUFFICIENT_BALANCE) ||
+                            (purchase_info as Record<string, any>)?.error?.code === SERVICE_ERROR.INSUFFICIENT_BALANCE;
                         const is_disabled =
                             !is_trade_enabled_v2 ||
-                            info.has_error ||
-                            (!!purchase_info.error && !is_modal_error) ||
+                            (info.has_error && !is_insufficient_balance) ||
+                            (!!purchase_info.error && !is_modal_error && !is_insufficient_balance) ||
                             is_switching_account;
 
                         return (
@@ -256,6 +259,19 @@ const PurchaseButton = observer(({ onPurchaseSuccess }: TPurchaseButtonProps = {
                                     isOpaque
                                     disabled={is_disabled && !is_loading}
                                     onClick={() => {
+                                        if (is_insufficient_balance) {
+                                            const error =
+                                                (purchase_info as Record<string, any>)?.error ||
+                                                (info.has_error && {
+                                                    code: SERVICE_ERROR.INSUFFICIENT_BALANCE,
+                                                    message: info.message,
+                                                    type: 'buy',
+                                                });
+                                            if (error) {
+                                                setServicesError(error, true);
+                                                return;
+                                            }
+                                        }
                                         setLoadingButtonIndex(index);
                                         onPurchaseV2(trade_type, isMobile, (params, contract_id) => {
                                             addNotificationBannerCallback(params, contract_id, trade_type);
