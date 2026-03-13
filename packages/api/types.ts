@@ -624,7 +624,7 @@ export type TDerivativesAccount = {
     balance: string;
     currency: string;
     group: string;
-    status: 'active' | 'inactive';
+    status: 'active' | 'inactive' | 'trading_disabled';
     account_type: 'real' | 'demo';
     timestamp: string;
 };

@@ -1,6 +1,6 @@
 import { configure } from 'mobx';
 
-import { clearAccountId, getAccountId, getBrandDomains } from '@deriv/shared';
+import { clearAccountId, getAccountId, getAccountType, getApiCoreBaseUrl, getBrandDomains } from '@deriv/shared';
 
 import { checkWhoAmI } from 'Services';
 import NetworkMonitor from 'Services/network-monitor';
@@ -87,6 +87,8 @@ const initStore = async notification_messages => {
     // Check whoami BEFORE initializing NetworkMonitor to prevent connecting with stale credentials
     let external_id;
     const account_id = getAccountId();
+    getAccountType();
+
     if (account_id) {
         const whoami_result = await checkWhoAmI();
 
@@ -98,8 +100,39 @@ const initStore = async notification_messages => {
             localStorage.removeItem('active_loginid');
             sessionStorage.removeItem('active_loginid');
             localStorage.removeItem('current_account');
-        } else if (whoami_result.data?.identity?.external_id) {
-            external_id = whoami_result.data.identity.external_id;
+        } else {
+            if (whoami_result.data?.identity?.external_id) {
+                external_id = whoami_result.data.identity.external_id;
+            }
+
+            // Check if the target account is trading_disabled — fall back to demo if so
+            try {
+                const response = await fetch(`${getApiCoreBaseUrl()}/v1/derivatives/account`, {
+                    credentials: 'include',
+                });
+                if (response.ok) {
+                    const { data: accounts } = await response.json();
+                    const target_account = accounts?.find(acc => acc.account_id === account_id);
+
+                    if (target_account?.status === 'trading_disabled') {
+                        const demo_account = accounts?.find(
+                            acc => acc.account_type === 'demo' && acc.status !== 'trading_disabled'
+                        );
+                        if (demo_account) {
+                            localStorage.setItem('account_id', demo_account.account_id);
+                            localStorage.setItem('account_type', 'demo');
+                        } else {
+                            // No valid account to fall back to — connect as public
+                            clearAccountId();
+                            localStorage.removeItem('account_type');
+                        }
+                    }
+                }
+            } catch (e) {
+                // eslint-disable-next-line no-console
+                console.error('Failed to check account status:', e);
+                // Continue with original account_id — WebSocket retry will handle failures
+            }
         }
     }
 

@@ -277,8 +277,13 @@
             background: var(--color-interactive-hover);
         }
 
-        &:not(.acc-switcher__account--selected):hover {
+        &:not(.acc-switcher__account--selected):not(.acc-switcher__account--disabled):hover {
             background-color: var(--color-interactive-hover) !important;
+        }
+
+        &--disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
     }
     &__loader {

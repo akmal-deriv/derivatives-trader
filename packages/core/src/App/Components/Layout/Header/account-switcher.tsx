@@ -114,6 +114,7 @@ const AccountSwitcher = observer(
                             })
                             .map(account => {
                                 const is_selected = account.account_id === current_loginid;
+                                const is_disabled = account.status === 'trading_disabled';
                                 const formatted_balance = addComma(account.balance, 2);
                                 const currency_display = getCurrencyDisplayCode(account.currency);
                                 const account_type_label =
@@ -122,34 +123,42 @@ const AccountSwitcher = observer(
                                     ) : (
                                         <Localize i18n_default_text='Demo account' />
                                     );
+                                let account_type_color: 'disabled' | 'tertiary' | 'secondary-alternate' =
+                                    'secondary-alternate';
+                                if (is_disabled) {
+                                    account_type_color = 'disabled';
+                                } else if (account.account_type === 'demo') {
+                                    account_type_color = 'tertiary';
+                                }
 
                                 return (
                                     <button
                                         key={account.account_id}
                                         className={classNames('acc-switcher__account', {
                                             'acc-switcher__account--selected': is_selected,
+                                            'acc-switcher__account--disabled': is_disabled,
                                         })}
                                         onClick={() => handleAccountClick(account)}
-                                        disabled={is_selected}
+                                        disabled={is_selected || is_disabled}
                                         aria-label={`${account.account_type === 'real' ? 'Real' : 'Demo'} account ${
                                             account.account_id
-                                        } with balance ${formatted_balance} ${currency_display}`}
+                                        } with balance ${formatted_balance} ${currency_display}${is_disabled ? ' - Trading disabled' : ''}`}
                                         aria-current={is_selected ? 'true' : undefined}
                                         data-testid={`dt_account_item_${account.account_id}`}
                                         type='button'
                                     >
                                         <div className='acc-switcher__account-details'>
-                                            <Text
-                                                size='xs'
-                                                color={
-                                                    account.account_type === 'demo' ? 'tertiary' : 'secondary-alternate'
-                                                }
-                                            >
+                                            <Text size='xs' color={account_type_color}>
                                                 {account_type_label}
                                             </Text>
-                                            <Text size='s' color='primary' weight='bold'>
+                                            <Text size='s' color={is_disabled ? 'disabled' : 'primary'} weight='bold'>
                                                 {formatted_balance} {currency_display}
                                             </Text>
+                                            {is_disabled && (
+                                                <Text size='xxxs' color='disabled'>
+                                                    <Localize i18n_default_text='Trading disabled' />
+                                                </Text>
+                                            )}
                                         </div>
                                     </button>
                                 );
