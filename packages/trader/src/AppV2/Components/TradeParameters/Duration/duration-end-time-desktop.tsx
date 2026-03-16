@@ -13,6 +13,8 @@ import { ContractType } from 'Stores/Modules/Trading/Helpers/contract-type';
 import { getBoundaries } from 'Stores/Modules/Trading/Helpers/end-time';
 import { useTraderStore } from 'Stores/useTraderStores';
 
+import { getEarlyCloseTileContent, type TMarketEvent } from './early-close-dot';
+
 import TimeGridPicker from './time-grid-picker';
 
 import './time-grid-picker.scss';
@@ -109,9 +111,13 @@ const DurationEndTimeDesktop: React.FC<DurationEndTimeDesktopProps> = observer((
     const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
     const [isTimePickerOpen, setIsTimePickerOpen] = useState(false);
     const [disabled_days, setDisabledDays] = useState<number[]>([]);
+    const [market_events, setMarketEvents] = useState<TMarketEvent[]>([]);
+
+    const tileContent = useMemo(() => getEarlyCloseTileContent(market_events), [market_events]);
 
     const dateFieldRef = useRef<HTMLDivElement>(null);
     const timeFieldRef = useRef<HTMLDivElement>(null);
+    const lastSelectedDateRef = useRef<string>('');
 
     // Calculate if time picker should be enabled (like mobile's is_24_hours_contract)
     const is_24_hours_contract = useMemo(() => {
@@ -135,35 +141,42 @@ const DurationEndTimeDesktop: React.FC<DurationEndTimeDesktopProps> = observer((
         return selectedTime;
     }, [selectedTime]);
 
-    // Update time when date changes
+    // Update time when adjusted_start_time changes (for today's date)
     useEffect(() => {
-        const is_today = isToday(selectedDate);
-        if (is_today) {
-            // For today, keep the selected time or use adjusted_start_time
-            // Only reset if the time hasn't been set yet or was 23:59
-            if (selectedTime === '23:59') {
-                setSelectedTime(adjusted_start_time);
-            }
-        } else {
-            // For future dates, use stored expiry_time if available (e.g. market close time)
-            const storedTime = expiry_time ? expiry_time.substring(0, 5) : '23:59';
-            setSelectedTime(storedTime);
+        if (isToday(selectedDate) && selectedTime === '23:59') {
+            setSelectedTime(adjusted_start_time);
         }
-    }, [selectedDate, isToday, adjusted_start_time, expiry_time]);
+    }, [adjusted_start_time, isToday, selectedDate, selectedTime]);
 
-    // Fetch trading days for calendar disabled days
+    // Fetch trading days and events for calendar
     const onChangeCalendarMonth = useCallback(
         async (e = toMoment().format('YYYY-MM-DD')) => {
+            const new_market_events: TMarketEvent[] = [];
             let new_disabled_days: number[] = [];
-            const trading_days = await ContractType.getTradingDays(e, symbol);
+
+            const [events, trading_days] = await Promise.all([
+                ContractType.getTradingEvents(e, symbol),
+                ContractType.getTradingDays(e, symbol),
+            ]);
+
             if (trading_days) {
                 const all_days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
                 new_disabled_days = all_days
                     .map((day, index) => (!trading_days.includes(day) ? index : -1))
                     .filter(index => index !== -1);
             }
+
+            events?.forEach((evt: { dates: string; descrip: string }) => {
+                const dates = evt.dates.split(', ');
+                new_market_events.push({
+                    dates,
+                    descrip: evt.descrip,
+                });
+            });
+
             if (isMounted()) {
                 setDisabledDays(new_disabled_days);
+                setMarketEvents(new_market_events);
             }
         },
         [isMounted, symbol]
@@ -172,6 +185,15 @@ const DurationEndTimeDesktop: React.FC<DurationEndTimeDesktopProps> = observer((
     useEffect(() => {
         onChangeCalendarMonth();
     }, [onChangeCalendarMonth]);
+
+    const handleActiveStartDateChange = useCallback(
+        ({ activeStartDate }: { activeStartDate: Date | null }) => {
+            if (activeStartDate) {
+                onChangeCalendarMonth(moment(activeStartDate).format('YYYY-MM-DD'));
+            }
+        },
+        [onChangeCalendarMonth]
+    );
 
     // Market times for time picker (only used when is_24_hours_contract is true)
     const start_times = useMemo(() => {
@@ -200,7 +222,7 @@ const DurationEndTimeDesktop: React.FC<DurationEndTimeDesktopProps> = observer((
     }, [is_date_disabled]);
 
     const handleDateChange = useCallback(
-        (value: Date | Date[] | null | [Date | null, Date | null]) => {
+        async (value: Date | Date[] | null | [Date | null, Date | null]) => {
             let newDate: Date | null = null;
 
             if (value && value instanceof Date) {
@@ -210,22 +232,36 @@ const DurationEndTimeDesktop: React.FC<DurationEndTimeDesktopProps> = observer((
             }
 
             if (newDate) {
+                const formattedDate = moment(newDate).format('YYYY-MM-DD');
+                lastSelectedDateRef.current = formattedDate;
                 setSelectedDate(newDate);
+                setIsDatePickerOpen(false);
 
-                // Auto-set time based on whether it's today or future
                 const is_today = isToday(newDate);
                 if (is_today) {
                     setSelectedTime(adjusted_start_time);
                 } else {
-                    // For future dates, use stored expiry_time if available (e.g. market close time)
-                    const storedTime = expiry_time ? expiry_time.substring(0, 5) : '23:59';
-                    setSelectedTime(storedTime);
-                }
+                    // Fetch trading times for the selected date to get actual market close time
+                    const trading_times = await ContractType.getTradingTimes(formattedDate, symbol);
 
-                setIsDatePickerOpen(false); // Auto-close on selection
+                    if (lastSelectedDateRef.current !== formattedDate) return;
+
+                    if (
+                        trading_times &&
+                        'close' in trading_times &&
+                        Array.isArray(trading_times.close) &&
+                        trading_times.close.length &&
+                        trading_times.close[0] !== '--'
+                    ) {
+                        const market_close_time = trading_times.close.slice(-1)[0];
+                        setSelectedTime(market_close_time.substring(0, 5));
+                    } else {
+                        setSelectedTime('23:59');
+                    }
+                }
             }
         },
-        [isToday, adjusted_start_time, expiry_time]
+        [isToday, adjusted_start_time, symbol]
     );
 
     const handleDatePickerClose = useCallback(() => {
@@ -355,6 +391,8 @@ const DurationEndTimeDesktop: React.FC<DurationEndTimeDesktopProps> = observer((
                         value={selectedDate}
                         onChange={handleDateChange}
                         tileDisabled={getDisabledDays}
+                        tileContent={tileContent}
+                        onActiveStartDateChange={handleActiveStartDateChange}
                     />
                     {/* NO save button here - auto-closes on date selection */}
                 </div>

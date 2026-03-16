@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 import { useInvalidateQuery } from '@deriv/api';
 import { LabelPairedCalendarSmRegularIcon, LabelPairedClockThreeSmRegularIcon } from '@deriv/quill-icons';
@@ -9,6 +9,7 @@ import { Localize } from '@deriv-com/translations';
 
 import { useProposal } from 'AppV2/Hooks/useProposal';
 import { getClosestTimeToCurrentGMT, getDatePickerStartDate } from 'AppV2/Utils/trade-params-utils';
+import { ContractType } from 'Stores/Modules/Trading/Helpers/contract-type';
 import { getBoundaries } from 'Stores/Modules/Trading/Helpers/end-time';
 import { useTraderStore } from 'Stores/useTraderStores';
 
@@ -36,6 +37,7 @@ const DayInput = ({
     // Local browsing state for time - this is the "unsaved" state while user browses time picker
     const [browsing_expiry_time, setBrowsingExpiryTime] = useState<string>('');
     const [payout_per_point, setPayoutPerPoint] = useState<number | undefined>();
+    const lastSelectedDateRef = useRef<string>('');
     const [barrier_value, setBarrierValue] = useState<string | undefined>();
     const { common } = useStore();
     const [day, setDay] = useState<number | null>(null);
@@ -185,7 +187,7 @@ const DayInput = ({
 
     is_24_hours_contract = (!!start_date || isSameDate) && has_intraday_duration_unit;
 
-    const handleDate = (date: Date) => {
+    const handleDate = async (date: Date) => {
         const difference_in_time = date.getTime() - new Date().getTime();
         const difference_in_days = Math.ceil(difference_in_time / (1000 * 3600 * 24));
         const duration_days = difference_in_days <= 0 ? 1 : difference_in_days;
@@ -194,6 +196,7 @@ const DayInput = ({
         // Keep browsing_expiry_date and selected_expiry_date in sync
         setBrowsingExpiryDate(date);
         const selected_date_string = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        lastSelectedDateRef.current = selected_date_string;
         setSelectedExpiryDate(selected_date_string);
 
         // Set browsing time based on whether it's today or future
@@ -202,10 +205,26 @@ const DayInput = ({
             setBrowsingExpiryTime(adjusted_start_time);
             setSelectedExpiryTime(adjusted_start_time);
         } else {
-            // For future dates, use stored expiry_time if available (e.g. market close time)
-            const futureTime = selected_expiry_time || '23:59:59';
-            setBrowsingExpiryTime(futureTime);
-            setSelectedExpiryTime(futureTime);
+            // Fetch trading times for the selected date to get actual market close time
+            const trading_times = await ContractType.getTradingTimes(selected_date_string, symbol);
+
+            if (lastSelectedDateRef.current !== selected_date_string) return;
+
+            if (
+                trading_times &&
+                'close' in trading_times &&
+                Array.isArray(trading_times.close) &&
+                trading_times.close.length &&
+                trading_times.close[0] !== '--'
+            ) {
+                const market_close_time = trading_times.close.slice(-1)[0];
+                setBrowsingExpiryTime(market_close_time);
+                setSelectedExpiryTime(market_close_time);
+            } else {
+                const futureTime = selected_expiry_time || '23:59:59';
+                setBrowsingExpiryTime(futureTime);
+                setSelectedExpiryTime(futureTime);
+            }
         }
     };
 

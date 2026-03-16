@@ -43,6 +43,10 @@
             * {
                 font-size: 1.4rem;
             }
+
+            &__tile {
+                position: relative;
+            }
         }
 
         .quill-date-picker {
