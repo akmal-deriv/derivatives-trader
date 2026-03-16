@@ -125,11 +125,6 @@ const useContractsFor = () => {
         is_fetching_ref.current = true;
     }, [loginid]);
 
-    // Reset trade types when symbol changes to prevent showing stale data during API refetch
-    useEffect(() => {
-        setTradeTypes([]);
-    }, [symbol]);
-
     useEffect(() => {
         // Skip processing stale response data during loading
         if (isLoading) {

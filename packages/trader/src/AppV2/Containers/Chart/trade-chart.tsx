@@ -111,7 +111,7 @@ const TradeChart = observer(() => {
     );
 
     // Use centralized SmartCharts adapter hook
-    const { chartData, isLoading, error, getQuotes, subscribeQuotes, unsubscribeQuotes, retryFetchChartData } =
+    const { chartData, error, getQuotes, subscribeQuotes, unsubscribeQuotes, retryFetchChartData } =
         useSmartChartsAdapter({
             debug: false,
             activeSymbols: active_symbols,
@@ -192,14 +192,6 @@ const TradeChart = observer(() => {
 
     if (!symbol || !active_symbols.length) return null;
 
-    if (isLoading) {
-        return (
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '400px' }}>
-                <div>Loading chart data...</div>
-            </div>
-        );
-    }
-
     if (error) {
         return (
             <div
@@ -225,7 +217,7 @@ const TradeChart = observer(() => {
     return (
         <>
             <SmartChart
-                key={show_digits_stats ? symbol : 'trade-chart'}
+                key='trade-chart'
                 drawingToolFloatingMenuPosition={
                     isMobile
                         ? CHART_CONSTANTS.MOBILE_DRAWING_TOOL_POSITION

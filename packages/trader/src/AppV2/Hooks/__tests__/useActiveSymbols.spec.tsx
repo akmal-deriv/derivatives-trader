@@ -150,6 +150,7 @@ describe('useActiveSymbols', () => {
                 },
                 options: {
                     cacheTime: 10 * 60 * 1000,
+                    keepPreviousData: true,
                 },
             });
         });
@@ -168,6 +169,7 @@ describe('useActiveSymbols', () => {
                 },
                 options: {
                     cacheTime: 10 * 60 * 1000,
+                    keepPreviousData: true,
                 },
             });
         });

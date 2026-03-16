@@ -142,8 +142,7 @@ const TradeChart = observer((props: TTradeChartProps) => {
     return (
         <>
             <SmartChart
-                // Force remount when toggling digit stats to properly initialize chart state
-                key={show_digits_stats ? symbol : 'trade-chart'}
+                key='trade-chart'
                 drawingToolFloatingMenuPosition={
                     isMobile
                         ? CHART_CONSTANTS.MOBILE_DRAWING_TOOL_POSITION
