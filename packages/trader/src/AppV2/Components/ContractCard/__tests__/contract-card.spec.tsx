@@ -2,9 +2,9 @@ import React from 'react';
 import { Router } from 'react-router-dom';
 import { createBrowserHistory } from 'history';
 
-import { getCardLabels, getContractPath, getStartTime, toMoment } from '@deriv/shared';
+import { getCardLabels, getContractPath, toMoment } from '@deriv/shared';
 import { TPortfolioPosition } from '@deriv/stores/types';
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import { TClosedPosition } from 'AppV2/Containers/Positions/positions-content';
@@ -14,6 +14,22 @@ import ContractCard from '../contract-card';
 jest.mock('@deriv/shared', () => ({
     ...jest.requireActual('@deriv/shared'),
     getStartTime: jest.fn(),
+}));
+
+let mockCurrentLang = 'EN';
+jest.mock('@deriv-com/translations', () => ({
+    ...jest.requireActual('@deriv-com/translations'),
+    useTranslations: () => ({
+        currentLang: mockCurrentLang,
+    }),
+}));
+
+let swipeableConfig: Record<string, () => void> = {};
+jest.mock('react-swipeable', () => ({
+    useSwipeable: jest.fn(config => {
+        swipeableConfig = config;
+        return {};
+    }),
 }));
 
 const mockedNow = Math.floor(Date.now() / 1000);
@@ -315,7 +331,8 @@ describe('ContractCard', () => {
     );
     beforeEach(() => {
         history.push('/');
-    });
+                mockCurrentLang = 'EN';
+            });
     it('should not render component if contractInfo prop is empty/missing contract_type', () => {
         const { container } = render(mockedContractCard({ ...mockProps, contractInfo: {} }));
 
@@ -452,4 +469,41 @@ describe('ContractCard', () => {
         expect(mockedOnClick).toHaveBeenCalledTimes(1);
         expect(history.location.pathname).not.toBe(redirectTo);
     });
-});
+        it('should show buttons on swipe left in LTR mode', () => {
+        render(mockedContractCard());
+        act(() => swipeableConfig.onSwipedLeft());
+        expect(screen.getByTestId('dt_contract_card')).toHaveClass('show-buttons');
+    });
+    it('should hide buttons on swipe right in LTR mode', () => {
+        render(mockedContractCard());
+        act(() => swipeableConfig.onSwipedLeft());
+        expect(screen.getByTestId('dt_contract_card')).toHaveClass('show-buttons');
+        act(() => swipeableConfig.onSwipedRight());
+        expect(screen.getByTestId('dt_contract_card')).not.toHaveClass('show-buttons');
+    });
+    it('should show buttons on swipe right in RTL mode', () => {
+        mockCurrentLang = 'AR';
+        render(mockedContractCard());
+        act(() => swipeableConfig.onSwipedRight());
+        expect(screen.getByTestId('dt_contract_card')).toHaveClass('show-buttons');
+    });
+    it('should hide buttons on swipe left in RTL mode', () => {
+        mockCurrentLang = 'AR';
+        render(mockedContractCard());
+        act(() => swipeableConfig.onSwipedRight());
+        expect(screen.getByTestId('dt_contract_card')).toHaveClass('show-buttons');
+        act(() => swipeableConfig.onSwipedLeft());
+        expect(screen.getByTestId('dt_contract_card')).not.toHaveClass('show-buttons');
+    });
+    it('should not show buttons on swipe right in LTR mode', () => {
+        render(mockedContractCard());
+        act(() => swipeableConfig.onSwipedRight());
+        expect(screen.getByTestId('dt_contract_card')).not.toHaveClass('show-buttons');
+    });
+    it('should not show buttons on swipe left in RTL mode', () => {
+        mockCurrentLang = 'AR';
+        render(mockedContractCard());
+        act(() => swipeableConfig.onSwipedLeft());
+        expect(screen.getByTestId('dt_contract_card')).not.toHaveClass('show-buttons');
+    });
+    });

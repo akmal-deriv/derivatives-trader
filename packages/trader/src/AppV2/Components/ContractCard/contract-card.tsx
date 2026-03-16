@@ -18,6 +18,7 @@ import {
 } from '@deriv/shared';
 import { isHigherLowerContractInfo } from '@deriv/shared/src/utils/helpers/market-underlying';
 import { CaptionText, Tag, Text } from '@deriv-com/quill-ui';
+import { useTranslations } from '@deriv-com/translations';
 
 import { TClosedPosition } from 'AppV2/Containers/Positions/positions-content';
 import { getProfit } from 'AppV2/Utils/positions-utils';
@@ -60,15 +61,16 @@ const ContractCard = ({
     redirectTo,
     serverTime,
 }: TContractCardProps) => {
+    const { currentLang } = useTranslations();
+    const is_rtl = currentLang === 'AR';
     const [isDeleted, setIsDeleted] = React.useState(false);
     const [isClosing, setIsClosing] = React.useState(false);
     const [isCanceling, setIsCanceling] = React.useState(false);
     const [shouldShowButtons, setShouldShowButtons] = React.useState(false);
-    const { buy_price, contract_type, purchase_time, sell_time, shortcode, limit_order } =
-        contractInfo as TContractInfo;
+    const { buy_price, contract_type, sell_time, shortcode, limit_order } = contractInfo as TContractInfo;
     const { take_profit, stop_loss } = limit_order ?? { take_profit: {}, stop_loss: {} };
     const is_higher_lower = isHigherLowerContractInfo({
-        contract_category: (contractInfo as any).contract_category,
+        contract_category: (contractInfo as unknown as { contract_category?: string }).contract_category,
         shortcode,
     });
     const contract_main_title = getTradeTypeName(contract_type ?? '', {
@@ -95,8 +97,8 @@ const ContractCard = ({
     const Component = redirectTo ? NavLink : 'div';
 
     const handleSwipe = (direction: string) => {
-        const isLeft = direction === DIRECTION.LEFT;
-        setShouldShowButtons(isLeft);
+        const showDirection = is_rtl ? DIRECTION.RIGHT : DIRECTION.LEFT;
+        setShouldShowButtons(direction === showDirection);
     };
 
     const swipeHandlers = useSwipeable({
@@ -144,6 +146,7 @@ const ContractCard = ({
                     lost: Number(totalProfit) < 0,
                     won: Number(totalProfit) >= 0,
                 })}
+                data-testid='dt_contract_card'
                 onClick={onClick}
                 onDragStart={e => e.preventDefault()}
                 to={redirectTo}
