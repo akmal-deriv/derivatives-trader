@@ -48,11 +48,18 @@ const Sidebar = observer(() => {
     const history = useHistory();
     const sidebar_ref = React.useRef<HTMLElement>(null);
     const { sendBridgeEvent } = useMobileBridge();
+    const is_on_index = location.pathname === routes.index;
 
     React.useEffect(() => {
         onMount();
         return () => onUnmount();
     }, [onMount, onUnmount]);
+
+    React.useEffect(() => {
+        if (active_sidebar_flyout && !is_on_index) {
+            closeSidebarFlyout();
+        }
+    }, [is_on_index, active_sidebar_flyout, closeSidebarFlyout]);
 
     const isActiveRoute = (path: string) => {
         if (path === routes.index) {
@@ -285,15 +292,17 @@ const Sidebar = observer(() => {
                 </nav>
             </aside>
 
-            {/* Single Flyout with conditional content */}
-            <Flyout
-                is_open={active_sidebar_flyout !== null}
-                onClose={closeFlyout}
-                title={flyoutContent?.title}
-                footer_content={flyoutContent?.footer}
-            >
-                {flyoutContent?.content}
-            </Flyout>
+            {/* Single Flyout with conditional content - unmount when navigating away to avoid flash */}
+            {is_on_index && (
+                <Flyout
+                    is_open={active_sidebar_flyout !== null}
+                    onClose={closeFlyout}
+                    title={flyoutContent?.title}
+                    footer_content={flyoutContent?.footer}
+                >
+                    {flyoutContent?.content}
+                </Flyout>
+            )}
         </React.Fragment>
     );
 });

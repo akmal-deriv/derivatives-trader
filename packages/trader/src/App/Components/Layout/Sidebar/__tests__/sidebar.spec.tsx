@@ -475,4 +475,19 @@ describe('<Sidebar />', () => {
         renderSidebar();
         expect(screen.getByText('StandaloneCircleUserRegularIcon')).toBeInTheDocument();
     });
+
+    it('should close sidebar flyout when navigating away from index route', () => {
+        const closeSidebarFlyout = jest.fn();
+        const store = mockStore({
+            ...defaultStoreConfig,
+            ui: {
+                ...defaultStoreConfig.ui,
+                active_sidebar_flyout: 'positions',
+                closeSidebarFlyout,
+            },
+        });
+        // Render at /contract/123 directly with flyout still open
+        renderSidebar(store, '/contract/123');
+        expect(closeSidebarFlyout).toHaveBeenCalled();
+    });
 });
