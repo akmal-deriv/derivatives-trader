@@ -432,12 +432,6 @@ export const getDurationPresets = (
     const marketPresets = tradeTypePresets[marketCategory];
     if (marketPresets) return marketPresets[durationUnit];
 
-    // Fallback: if the exact market category isn't configured, use the first available market
-    const availableMarkets = Object.keys(tradeTypePresets) as MarketCategory[];
-    if (availableMarkets.length > 0) {
-        return tradeTypePresets[availableMarkets[0]]?.[durationUnit];
-    }
-
     return undefined;
 };
 

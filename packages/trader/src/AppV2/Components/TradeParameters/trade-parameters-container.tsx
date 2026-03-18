@@ -5,10 +5,12 @@ import { observer } from 'mobx-react-lite';
 import { LegacyHandleLessIcon } from '@deriv/quill-icons';
 
 import PurchaseButton from 'AppV2/Components/PurchaseButton';
+import { isTradeParamVisible } from 'AppV2/Utils/layout-utils';
 import { isSameTradeTypeCategory } from 'AppV2/Utils/trade-types-utils';
 import { useTraderStore } from 'Stores/useTraderStores';
 
 import TradeParameters from './trade-parameters';
+import TradeTypeTabs from './TradeTypeTabs';
 
 type TTradeParametersContainer = {
     is_market_closed?: boolean;
@@ -17,7 +19,7 @@ type TTradeParametersContainer = {
 const SWIPE_THRESHOLD_PX = 50; // Minimum distance (px) to recognize as swipe vs tap
 
 const TradeParametersContainer = ({ is_market_closed }: TTradeParametersContainer) => {
-    const { contract_type } = useTraderStore();
+    const { contract_type, has_cancellation, symbol } = useTraderStore();
     const [is_sheet_expanded, setIsSheetExpanded] = React.useState(false);
     const handle_touch_start_y = React.useRef<number>(0);
     const prev_contract_type_ref = React.useRef(contract_type);
@@ -86,6 +88,11 @@ const TradeParametersContainer = ({ is_market_closed }: TTradeParametersContaine
                     <LegacyHandleLessIcon fill='var(--component-textIcon-normal-disabled)' iconSize='md' />
                 </div>
             </div>
+            {isTradeParamVisible({ component_key: 'trade_type_tabs', contract_type, has_cancellation, symbol }) && (
+                <div className='trade-params__container-tabs'>
+                    <TradeTypeTabs />
+                </div>
+            )}
             <div className='trade-params__container-content'>
                 <section
                     className={clsx('', {

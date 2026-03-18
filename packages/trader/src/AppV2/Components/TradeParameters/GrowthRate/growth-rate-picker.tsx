@@ -12,6 +12,7 @@ type TGrowthRatePickerProps = {
     accumulator_range_list?: number[];
     growth_rate: number;
     maximum_ticks: number;
+    onDetailClick?: (page_index: number) => void;
     setGrowthRate: (growth_rate: number) => void;
     setV2ParamsInitialValues: ({ value, name }: { value: number | string; name: keyof TV2ParamsInitialValues }) => void;
     should_show_details?: boolean;
@@ -26,6 +27,7 @@ const GrowthRatePicker = ({
     accumulator_range_list = [],
     growth_rate,
     maximum_ticks,
+    onDetailClick,
     setGrowthRate,
     setV2ParamsInitialValues,
     should_show_details,
@@ -40,11 +42,13 @@ const GrowthRatePicker = ({
             key: 'barrier',
             label: <Localize i18n_default_text='Barrier' />,
             value: `±${tick_size_barrier_percentage}`,
+            page_index: 2,
         },
         {
             key: 'max_duration',
             label: <Localize i18n_default_text='Max duration' />,
             value: `${maximum_ticks || 0} ${maximum_ticks === 1 ? localize('tick') : localize('ticks')}`,
+            page_index: 3,
         },
     ];
 
@@ -89,9 +93,25 @@ const GrowthRatePicker = ({
                     )}
                 </div>
                 <div className='growth-rate__details'>
-                    {details_content.map(({ key, label, value }) => (
-                        <span key={key} className='growth-rate__details-item'>
-                            <Text color='quill-typography__color--subtle' size='sm'>
+                    {details_content.map(({ key, label, value, page_index }) => (
+                        <span
+                            key={key}
+                            className='growth-rate__details-item'
+                            role='button'
+                            tabIndex={0}
+                            onClick={() => onDetailClick?.(page_index)}
+                            onKeyDown={(e: React.KeyboardEvent) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault();
+                                    onDetailClick?.(page_index);
+                                }
+                            }}
+                        >
+                            <Text
+                                color='quill-typography__color--subtle'
+                                size='sm'
+                                className='growth-rate__details-item-label'
+                            >
                                 {label}
                             </Text>
                             <div className='growth-rate__details-item-value'>

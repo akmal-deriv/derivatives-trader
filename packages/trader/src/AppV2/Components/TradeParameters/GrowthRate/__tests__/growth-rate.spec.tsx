@@ -119,7 +119,7 @@ describe('GrowthRate', () => {
         expect(screen.getByText('Max duration')).toBeInTheDocument();
         expect(screen.getByText(`${default_mock_store.modules.trade.maximum_ticks} ticks`)).toBeInTheDocument();
         expect(screen.getByText('Save')).toBeInTheDocument();
-        expect(screen.getByText(mocked_definition)).toBeInTheDocument();
+        expect(screen.getAllByText(mocked_definition).length).toBeGreaterThan(0);
     });
     it('renders skeleton instead of WheelPicker if accumulator_range_list is empty', async () => {
         const user = userEvent.setup();

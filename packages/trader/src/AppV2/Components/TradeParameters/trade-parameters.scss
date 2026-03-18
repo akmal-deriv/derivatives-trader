@@ -51,6 +51,15 @@
             }
         }
 
+        &-tabs {
+            padding: 0;
+            margin-bottom: 0.6rem;
+
+            .trade-params__option.segmented-control-single--sm {
+                background-color: var(--semantic-color-monochrome-surface-normal-lowest);
+            }
+        }
+
         &-content {
             transition: all 0.3s ease-in-out;
             position: relative;
@@ -150,10 +159,13 @@
         // Custom styling for trade type segmented control (Rise/Fall, Higher/Lower, etc.)
         &.segmented-control-single {
             border-radius: 2rem !important; // Pill-shaped wrapper
+            height: 3.2rem;
+            padding: 0.3rem;
 
             button {
                 border-radius: 2rem !important; // Pill-shaped rounded corners
                 transition: all 0.2s ease; // Smooth transitions
+                height: 3.2rem;
 
                 // Selected state - target the actual button with .selected class
                 &.selected {

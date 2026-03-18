@@ -1,6 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 
+import { isTurbosContract } from '@deriv/shared';
 import { Localize } from '@deriv-com/translations';
 
 import { TradeParameterPopover, useTradeParameterPopover } from 'AppV2/Components/TradeParameters/Shared';
@@ -48,7 +49,8 @@ const BarrierPopoverContent: React.FC<{
 };
 
 const BarrierDesktop: React.FC<BarrierDesktopProps> = observer(({ is_minimized, isDays }) => {
-    const { barrier_1, is_market_closed, symbol, active_symbols } = useTraderStore();
+    const { barrier_1, contract_type, is_market_closed, symbol, active_symbols } = useTraderStore();
+    const is_turbos = isTurbosContract(contract_type);
 
     const barrierSupport = useMemo(() => {
         if (!symbol || !active_symbols?.length) return 'relative';
@@ -89,6 +91,11 @@ const BarrierDesktop: React.FC<BarrierDesktopProps> = observer(({ is_minimized, 
             is_minimized={is_minimized}
             disabled={is_market_closed}
             popover_classname='barrier-popover'
+            description={
+                is_turbos ? (
+                    <Localize i18n_default_text="This is the corresponding price level based on the payout per point you've selected. If this barrier is ever breached, your contract would be terminated." />
+                ) : undefined
+            }
         >
             <BarrierPopoverContent
                 selectedType={selectedType}
@@ -98,6 +105,5 @@ const BarrierDesktop: React.FC<BarrierDesktopProps> = observer(({ is_minimized, 
         </TradeParameterPopover>
     );
 });
-// [/AI]
 
 export default BarrierDesktop;

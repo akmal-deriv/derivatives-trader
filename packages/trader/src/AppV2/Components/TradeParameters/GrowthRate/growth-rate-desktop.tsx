@@ -54,4 +54,3 @@ const GrowthRateDesktop = observer(({ is_minimized }: TTradeParametersProps) => 
 });
 
 export default GrowthRateDesktop;
-// [/AI]

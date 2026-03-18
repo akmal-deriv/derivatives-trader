@@ -64,8 +64,8 @@ const DurationInputDesktop: React.FC<TDurationInputDesktopProps> = observer(({ u
 
     const handleInputChange = useCallback(
         (e: React.ChangeEvent<HTMLInputElement>) => {
-            const value = e.target.value;
-            if (value !== '' && !/^\d+$/.test(value)) return;
+            const value = e.target.value.replace(/[^\d]/g, '');
+            e.target.value = value;
 
             setInputValue(value);
 

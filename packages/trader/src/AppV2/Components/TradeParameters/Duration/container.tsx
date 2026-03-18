@@ -1,21 +1,38 @@
-import React, { useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 
 import { trackAnalyticsEvent } from '@deriv/shared';
 import { observer } from '@deriv/stores';
 import { ActionSheet } from '@deriv-com/quill-ui';
-import { Localize } from '@deriv-com/translations';
+import { Localize, localize } from '@deriv-com/translations';
 
+import { TabSelector } from 'AppV2/Components/InputPopover';
+import { getDurationPresets } from 'AppV2/Config/trade-parameter-presets';
+import {
+    getSymbolMarketData,
+    mapContractTypeToDurationPresetKey,
+    mapSymbolToMarketCategory,
+} from 'AppV2/Utils/trade-params-preset-utils';
 import { DURATION_UNIT } from 'AppV2/Utils/trade-params-utils';
 import { useTraderStore } from 'Stores/useTraderStores';
 
+import { ChipsWithInputToggle } from '../Shared';
+
 import DurationChips from './chips';
 import DayInput from './day';
-import DurationWheelPicker from './duration-wheel-picker';
+import DurationHoursInputDesktop from './duration-hours-input-desktop';
+import DurationInputDesktop from './duration-input-desktop';
+import DurationTicksInputDesktop from './duration-ticks-input-desktop';
+
+const FALLBACK_TICKS = [1, 2, 3, 5, 7, 10];
+const FALLBACK_SECONDS = [15, 30, 45, 60, 90, 120];
+const FALLBACK_MINUTES = [1, 2, 3, 5, 10, 15];
+const FALLBACK_HOURS = [1, 2, 4, 8, 12, 24];
 
 const DurationActionSheetContainer = observer(
     ({
         unit,
         setUnit,
+        onClose,
         selected_expiry_time,
         selected_expiry_date,
         setSelectedExpiryTime,
@@ -25,6 +42,7 @@ const DurationActionSheetContainer = observer(
     }: {
         unit: string;
         setUnit: (arg: string) => void;
+        onClose: () => void;
         selected_expiry_time: string;
         selected_expiry_date: string;
         setSelectedExpiryTime: (arg: string) => void;
@@ -32,103 +50,173 @@ const DurationActionSheetContainer = observer(
         setSelectedExpiryDate: (arg: string) => void;
         setSavedExpiryDate: (arg: string) => void;
     }) => {
-        const { duration, duration_units_list, duration_min_max, onChangeMultiple } = useTraderStore();
-        // Consolidated state for all duration units (t, s, m, h)
-        // For t, s, m: [duration_value]
-        // For h: [hours, minutes]
-        const [selected_duration, setSelectedDuration] = useState<number[]>(() => {
-            if (unit === DURATION_UNIT.HOURS) {
-                // Initialize hours unit with [hours, minutes] format
-                const hours = Math.floor(duration / 60);
-                const minutes = duration % 60;
-                return [hours, minutes];
-            }
-            return [duration];
-        });
+        const { duration, duration_units_list, onChangeMultiple, contract_type, symbol, active_symbols } =
+            useTraderStore();
+
+        const [activeTab, setActiveTab] = useState<'chips' | 'input'>('chips');
 
         const onAction = () => {
-            // Save the selected values
+            // Save action only used for End Time (days) unit
             setSavedExpiryDate(selected_expiry_date);
             setSavedExpiryTime(selected_expiry_time);
 
-            if (unit === DURATION_UNIT.HOURS) {
-                // For hours: selected_duration is [hours, minutes]
-                const minutes = selected_duration[0] * 60 + selected_duration[1];
-                setSelectedExpiryTime('');
-                onChangeMultiple({
-                    duration_unit: DURATION_UNIT.MINUTES,
-                    duration: Number(minutes),
-                    expiry_type: 'duration',
-                });
-                trackAnalyticsEvent('ce_trade_types_form_v2', {
-                    action: 'customizing_trades',
-                    input_method: 'custom',
-                    parameter_type: 'duration',
-                });
-            } else if (unit === DURATION_UNIT.DAYS) {
-                onChangeMultiple({
-                    expiry_date: `${selected_expiry_date}T${selected_expiry_time}Z`,
-                    expiry_time: selected_expiry_time,
-                    expiry_type: 'endtime',
-                });
-                trackAnalyticsEvent('ce_trade_types_form_v2', {
-                    action: 'customizing_trades',
-                    input_method: 'custom',
-                    parameter_type: 'duration',
-                });
-            } else {
-                // For t, s, m: selected_duration is [duration_value]
-                setSelectedExpiryTime('');
-                onChangeMultiple({
-                    duration_unit: unit,
-                    duration: Number(selected_duration[0]),
-                    expiry_type: 'duration',
-                });
-                trackAnalyticsEvent('ce_trade_types_form_v2', {
-                    action: 'customizing_trades',
-                    input_method: 'custom',
-                    parameter_type: 'duration',
-                });
-            }
+            onChangeMultiple({
+                expiry_date: `${selected_expiry_date}T${selected_expiry_time}Z`,
+                expiry_time: selected_expiry_time,
+                expiry_type: 'endtime',
+            });
+            trackAnalyticsEvent('ce_trade_types_form_v2', {
+                action: 'customizing_trades',
+                input_method: 'custom',
+                parameter_type: 'duration',
+            });
         };
 
         const onChangeUnit = React.useCallback(
             (value: string) => {
                 setUnit(value);
-                if (value === DURATION_UNIT.HOURS) {
-                    // Initialize with 1 hour 0 minutes when switching to hours
-                    const min_seconds = Math.max(duration_min_max?.intraday?.min || 3600, 3600);
-                    const min_hours = Math.max(1, Math.ceil(min_seconds / 3600));
-                    setSelectedDuration([min_hours, 0]);
-                } else {
-                    setSelectedDuration([]);
-                }
+                setActiveTab('chips');
             },
-            [setUnit, duration_min_max]
+            [setUnit]
         );
 
-        const setWheelPickerValue = (index: number, value: string | number) => {
-            const num_value = Number(value);
-            if (unit === DURATION_UNIT.HOURS) {
-                // For hours: update the specific index (0 for hours, 1 for minutes)
-                const arr = [...selected_duration];
-                arr[index] = num_value;
-                setSelectedDuration(arr);
-            } else {
-                // For t, s, m: set single value
-                setSelectedDuration([num_value]);
-            }
-        };
+        const formatTickValue = useCallback((value: number) => {
+            return localize('{{count}} {{tick_label}}', {
+                count: value,
+                tick_label: value === 1 ? localize('tick') : localize('ticks'),
+            });
+        }, []);
+
+        const formatSecondsValue = useCallback((value: number) => {
+            return localize('{{count}} {{second_label}}', {
+                count: value,
+                second_label: localize('sec'),
+            });
+        }, []);
+
+        const formatMinutesValue = useCallback((value: number) => {
+            return localize('{{count}} {{minute_label}}', {
+                count: value,
+                minute_label: localize('min'),
+            });
+        }, []);
+
+        const formatHoursValue = useCallback((value: number) => {
+            return localize('{{count}} hr', { count: value });
+        }, []);
+
+        const chipConfig = useMemo(() => {
+            const symbolData = getSymbolMarketData(symbol, active_symbols);
+            const marketCategory = mapSymbolToMarketCategory(
+                symbolData?.market,
+                symbolData?.submarket,
+                symbolData?.symbol
+            );
+            const tradeTypeKey = mapContractTypeToDurationPresetKey(contract_type);
+
+            const tickPresets = tradeTypeKey ? getDurationPresets(tradeTypeKey, marketCategory, 't') : undefined;
+            const secondPresets = tradeTypeKey ? getDurationPresets(tradeTypeKey, marketCategory, 's') : undefined;
+            const minutePresets = tradeTypeKey ? getDurationPresets(tradeTypeKey, marketCategory, 'm') : undefined;
+            const hourPresets = tradeTypeKey ? getDurationPresets(tradeTypeKey, marketCategory, 'h') : undefined;
+
+            const configs: Record<
+                string,
+                { chipValues: number[]; formatValue: (v: number) => string; inputComponent: React.ReactNode } | null
+            > = {
+                [DURATION_UNIT.TICKS]: {
+                    chipValues: (tickPresets as number[]) || FALLBACK_TICKS,
+                    formatValue: formatTickValue,
+                    inputComponent: <DurationTicksInputDesktop onClose={onClose} />,
+                },
+                [DURATION_UNIT.SECONDS]: {
+                    chipValues: (secondPresets as number[]) || FALLBACK_SECONDS,
+                    formatValue: formatSecondsValue,
+                    inputComponent: <DurationInputDesktop unit='s' onClose={onClose} />,
+                },
+                [DURATION_UNIT.MINUTES]: {
+                    chipValues: (minutePresets as number[]) || FALLBACK_MINUTES,
+                    formatValue: formatMinutesValue,
+                    inputComponent: <DurationInputDesktop unit='m' onClose={onClose} />,
+                },
+                [DURATION_UNIT.HOURS]: {
+                    chipValues: (hourPresets as number[]) || FALLBACK_HOURS,
+                    formatValue: formatHoursValue,
+                    inputComponent: <DurationHoursInputDesktop onClose={onClose} />,
+                },
+            };
+
+            return configs[unit] || null;
+        }, [
+            unit,
+            symbol,
+            active_symbols,
+            contract_type,
+            formatTickValue,
+            formatSecondsValue,
+            formatMinutesValue,
+            formatHoursValue,
+            onClose,
+        ]);
+
+        const onChipSelect = useCallback(
+            (value: number) => {
+                setSavedExpiryDate(selected_expiry_date);
+                setSavedExpiryTime(selected_expiry_time);
+                setSelectedExpiryTime('');
+
+                if (unit === DURATION_UNIT.HOURS) {
+                    onChangeMultiple({
+                        duration_unit: DURATION_UNIT.MINUTES,
+                        duration: value * 60,
+                        expiry_type: 'duration',
+                    });
+                } else {
+                    onChangeMultiple({
+                        duration_unit: unit,
+                        duration: value,
+                        expiry_type: 'duration',
+                    });
+                }
+
+                trackAnalyticsEvent('ce_trade_types_form_v2', {
+                    action: 'customizing_trades',
+                    input_method: 'preset',
+                    parameter_type: 'duration',
+                    preset_value: value,
+                });
+
+                onClose();
+            },
+            [
+                unit,
+                onChangeMultiple,
+                onClose,
+                setSavedExpiryDate,
+                setSavedExpiryTime,
+                setSelectedExpiryTime,
+                selected_expiry_date,
+                selected_expiry_time,
+            ]
+        );
+
+        const is_non_day_unit = unit !== DURATION_UNIT.DAYS;
 
         return (
             <div className='duration-container'>
-                <ActionSheet.Header title={<Localize i18n_default_text='Duration' />} />
                 <DurationChips duration_units_list={duration_units_list} onChangeUnit={onChangeUnit} unit={unit} />
-                {unit !== DURATION_UNIT.DAYS && (
-                    <DurationWheelPicker
-                        unit={unit}
-                        setWheelPickerValue={setWheelPickerValue}
-                        selected_duration={selected_duration}
+                {is_non_day_unit && chipConfig && (
+                    <div className='duration-container__tab-selector'>
+                        <TabSelector activeTab={activeTab} onTabChange={setActiveTab} />
+                    </div>
+                )}
+                {is_non_day_unit && chipConfig && (
+                    <ChipsWithInputToggle
+                        activeTab={activeTab}
+                        chipValues={chipConfig.chipValues}
+                        selectedValue={duration}
+                        onSelect={onChipSelect}
+                        formatValue={chipConfig.formatValue}
+                        inputComponent={chipConfig.inputComponent}
                     />
                 )}
 
@@ -140,13 +228,15 @@ const DurationActionSheetContainer = observer(
                         setSelectedExpiryDate={setSelectedExpiryDate}
                     />
                 )}
-                <ActionSheet.Footer
-                    alignment='vertical'
-                    primaryAction={{
-                        content: <Localize i18n_default_text='Save' />,
-                        onAction,
-                    }}
-                />
+                {unit === DURATION_UNIT.DAYS && (
+                    <ActionSheet.Footer
+                        alignment='vertical'
+                        primaryAction={{
+                            content: <Localize i18n_default_text='Save' />,
+                            onAction,
+                        }}
+                    />
+                )}
             </div>
         );
     }

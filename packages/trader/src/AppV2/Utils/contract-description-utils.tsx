@@ -103,7 +103,7 @@ const getDefinition = () => {
         ),
         [FINAL_PRICE]: <Localize i18n_default_text='This is the spot price of the last tick at expiry.' />,
         [GROWTH_RATE]: (
-            <Localize i18n_default_text='You can choose a growth rate with values of 1%, 2%, 3%, 4%, and 5%.' />
+            <Localize i18n_default_text='The growth rate determines the rate at which your stake will grow with each successful tick.' />
         ),
         [INDEX]: (
             <Localize i18n_default_text='An index represents a group of assets or markets, such as volatility indices or basket indices.' />

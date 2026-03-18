@@ -4,11 +4,18 @@ import TradeParametersContainer from '../trade-parameters-container';
 
 const mockUseTraderStore = jest.fn(() => ({
     contract_type: 'rise_fall',
+    has_cancellation: false,
+    symbol: 'frxEURUSD',
 }));
 
 jest.mock('../trade-parameters', () => ({
     __esModule: true,
     default: jest.fn(({ is_minimized }) => <div>TradeParameters-{is_minimized ? 'minimized' : 'expanded'}</div>),
+}));
+
+jest.mock('../TradeTypeTabs', () => ({
+    __esModule: true,
+    default: jest.fn(() => <div data-testid='mock-trade-type-tabs'>TradeTypeTabs</div>),
 }));
 
 jest.mock('AppV2/Components/PurchaseButton', () => ({
@@ -22,6 +29,10 @@ jest.mock('AppV2/Components/PurchaseButton', () => ({
 
 jest.mock('Stores/useTraderStores', () => ({
     useTraderStore: () => mockUseTraderStore(),
+}));
+
+jest.mock('AppV2/Utils/layout-utils', () => ({
+    isTradeParamVisible: jest.fn(({ component_key }: { component_key: string }) => component_key === 'trade_type_tabs'),
 }));
 
 jest.mock('AppV2/Utils/trade-types-utils', () => ({
@@ -45,7 +56,11 @@ jest.mock('@deriv/shared', () => ({
 
 describe('TradeParametersContainer', () => {
     beforeEach(() => {
-        mockUseTraderStore.mockReturnValue({ contract_type: 'rise_fall' });
+        mockUseTraderStore.mockReturnValue({
+            contract_type: 'rise_fall',
+            has_cancellation: false,
+            symbol: 'frxEURUSD',
+        });
     });
 
     describe('Basic rendering', () => {
@@ -263,6 +278,8 @@ describe('TradeParametersContainer', () => {
             // Mock that returns current value
             mockUseTraderStore.mockImplementation(() => ({
                 contract_type: contractTypeValue,
+                has_cancellation: false,
+                symbol: 'frxEURUSD',
             }));
 
             const { unmount } = render(<TradeParametersContainer />);
@@ -300,6 +317,8 @@ describe('TradeParametersContainer', () => {
 
             mockUseTraderStore.mockImplementation(() => ({
                 contract_type: contractTypeValue,
+                has_cancellation: false,
+                symbol: 'frxEURUSD',
             }));
 
             const { unmount } = render(<TradeParametersContainer />);

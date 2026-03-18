@@ -1,3 +1,7 @@
+$HANDLEBAR_HEIGHT: var(--core-size-1000);
+$HEADER_TITLE_HEIGHT: var(--core-size-3200);
+$FOOTER_BUTTON_HEIGHT: var(--core-size-4000);
+
 .allow-equals {
     &__wrapper {
         width: 100%;
@@ -33,6 +37,27 @@
             color: var(--component-textIcon-normal-disabled);
             border-bottom: var(--core-borderWidth-75) dotted var(--component-textIcon-normal-disabled);
         }
+    }
+
+    &__carousel {
+        & > .carousel__item {
+            height: 100%;
+        }
+
+        .trade-param-definition {
+            height: calc(480px - $HANDLEBAR_HEIGHT - $HEADER_TITLE_HEIGHT);
+        }
+    }
+
+    &__sheet-content {
+        height: calc(480px - $HANDLEBAR_HEIGHT - $HEADER_TITLE_HEIGHT - $FOOTER_BUTTON_HEIGHT);
+        padding: var(--component-actionSheet-spacing-padding-lg);
+    }
+
+    &__toggle-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
     }
 
     &__definition {

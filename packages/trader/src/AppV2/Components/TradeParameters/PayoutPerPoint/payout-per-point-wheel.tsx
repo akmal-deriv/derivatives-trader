@@ -12,6 +12,7 @@ type TPayoutPerPointWheelProps = {
     barrier?: string | number;
     is_open?: boolean;
     current_payout_per_point: string;
+    onDetailClick?: (page_index: number) => void;
     onPayoutPerPointSelect: (new_value: string | number) => void;
     onClose: () => void;
     payout_per_point_list: {
@@ -24,6 +25,7 @@ const PayoutPerPointWheel = observer(
         barrier,
         current_payout_per_point,
         is_open,
+        onDetailClick,
         onPayoutPerPointSelect,
         onClose,
         payout_per_point_list,
@@ -84,8 +86,23 @@ const PayoutPerPointWheel = observer(
                     <div className='payout-per-point__wheel-picker'>
                         <WheelPicker data={payout_per_point_list} selectedValue={value} setSelectedValue={onChange} />
                     </div>
-                    <div className='payout-per-point__barrier'>
-                        <Text color='quill-typography__color--subtle' size='sm'>
+                    <div
+                        className='payout-per-point__barrier'
+                        role='button'
+                        tabIndex={0}
+                        onClick={() => onDetailClick?.(2)}
+                        onKeyDown={(e: React.KeyboardEvent) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                onDetailClick?.(2);
+                            }
+                        }}
+                    >
+                        <Text
+                            color='quill-typography__color--subtle'
+                            size='sm'
+                            className='payout-per-point__barrier__label'
+                        >
                             <Localize i18n_default_text='Barrier' />
                         </Text>
                         <Text size='sm' as='div' className='payout-per-point__barrier__content'>

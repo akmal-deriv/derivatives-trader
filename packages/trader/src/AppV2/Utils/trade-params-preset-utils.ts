@@ -293,17 +293,21 @@ export const mapSymbolToMarketCategory = (market?: string, submarket?: string, s
  * // Returns: { market: 'synthetic_index', submarket: 'random_index', symbol: '1HZ100V' }
  * ```
  */
+type TActiveSymbolEntry = {
+    underlying_symbol?: string;
+    market?: string;
+    submarket?: string;
+};
+
 export const getSymbolMarketData = (
     symbol: string,
-    active_symbols?: any[]
+    active_symbols?: TActiveSymbolEntry[]
 ): { market?: string; submarket?: string; symbol?: string } | undefined => {
     if (!active_symbols || !symbol) {
         return undefined;
     }
 
-    // FIX: The active_symbols array uses 'underlying_symbol' property, not 'symbol'
-    // This matches the pattern used in barrier-input.tsx and other components
-    const symbol_data = active_symbols.find((s: any) => s.underlying_symbol === symbol);
+    const symbol_data = active_symbols.find(s => s.underlying_symbol === symbol);
 
     if (!symbol_data) {
         return undefined;

@@ -47,6 +47,9 @@ const TradeTypeTabs = observer(({ is_minimized }: TTradeParametersProps) => {
     }, [tab_list, initial_tab_index]);
 
     if (!tab_list.length) return null;
+
+    const segmented_control_size = 'sm';
+
     return (
         <SegmentedControlSingleChoice
             className={clsx('trade-params__option', is_minimized && 'trade-params__option--minimized')}
@@ -54,7 +57,7 @@ const TradeTypeTabs = observer(({ is_minimized }: TTradeParametersProps) => {
             onChange={handleTabChange}
             options={tab_list.map(({ label }) => ({ disabled: is_market_closed, label }))}
             selectedItemIndex={tab_index}
-            size={isMobile ? 'md' : 'sm'}
+            size={segmented_control_size}
             key={`${tab_index}${is_market_closed}`}
         />
     );

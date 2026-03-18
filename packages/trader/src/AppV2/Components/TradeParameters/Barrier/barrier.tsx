@@ -2,7 +2,7 @@ import React, { useEffect, useMemo } from 'react';
 import clsx from 'clsx';
 import { observer } from 'mobx-react-lite';
 
-import { mapErrorMessage } from '@deriv/shared';
+import { isTurbosContract, mapErrorMessage } from '@deriv/shared';
 import { ActionSheet, TextField, useSnackbar } from '@deriv-com/quill-ui';
 import { Localize } from '@deriv-com/translations';
 import { useDevice } from '@deriv-com/ui';
@@ -20,6 +20,7 @@ import BarrierInput from './barrier-input';
 const Barrier = observer(({ is_minimized }: TTradeParametersProps) => {
     const {
         barrier_1,
+        contract_type,
         duration_unit,
         expiry_type,
         is_market_closed,
@@ -27,6 +28,7 @@ const Barrier = observer(({ is_minimized }: TTradeParametersProps) => {
         proposal_info,
         trade_type_tab,
     } = useTraderStore();
+    const is_turbos = isTurbosContract(contract_type);
     const { isDesktop } = useDevice();
     const [is_open, setIsOpen] = React.useState(false);
     // Barriers should be absolute when using end time (expiry_type === 'endtime') or days duration
@@ -75,7 +77,7 @@ const Barrier = observer(({ is_minimized }: TTradeParametersProps) => {
             },
             {
                 id: 2,
-                component: <BarrierDescription isDays={isDays} />,
+                component: <BarrierDescription isDays={isDays} is_turbos={is_turbos} />,
             },
         ],
         [isDays, onClose, is_open]

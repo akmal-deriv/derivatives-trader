@@ -60,8 +60,8 @@ const DurationTicksInputDesktop: React.FC<TDurationTicksInputDesktopProps> = obs
 
     const handleInputChange = useCallback(
         (e: React.ChangeEvent<HTMLInputElement>) => {
-            const value = e.target.value;
-            if (value !== '' && !/^\d+$/.test(value)) return;
+            const value = e.target.value.replace(/[^\d]/g, '');
+            e.target.value = value;
 
             setInputValue(value);
 

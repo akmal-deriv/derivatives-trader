@@ -20,6 +20,7 @@ import PayoutPerPointWheel from './payout-per-point-wheel';
 
 const PayoutPerPoint = observer(({ is_minimized }: TTradeParametersProps) => {
     const [is_open, setIsOpen] = React.useState(false);
+    const [carousel_index, setCarouselIndex] = React.useState(0);
     const { barrier_1, currency, is_market_closed, payout_choices, payout_per_point, setPayoutPerPoint } =
         useTraderStore();
     const is_mobile = isMobile();
@@ -32,7 +33,10 @@ const PayoutPerPoint = observer(({ is_minimized }: TTradeParametersProps) => {
             label: `${payout_per_point} ${currency_display_code}`,
         }));
 
-    const onClose = React.useCallback(() => setIsOpen(false), []);
+    const onClose = React.useCallback(() => {
+        setIsOpen(false);
+        setCarouselIndex(0);
+    }, []);
 
     const action_sheet_content = [
         {
@@ -42,6 +46,7 @@ const PayoutPerPoint = observer(({ is_minimized }: TTradeParametersProps) => {
                     barrier={barrier_1}
                     current_payout_per_point={payout_per_point}
                     is_open={is_open}
+                    onDetailClick={setCarouselIndex}
                     onPayoutPerPointSelect={
                         setPayoutPerPoint as React.ComponentProps<typeof PayoutPerPointWheel>['onPayoutPerPointSelect']
                     }
@@ -56,6 +61,16 @@ const PayoutPerPoint = observer(({ is_minimized }: TTradeParametersProps) => {
                 <TradeParamDefinition
                     description={
                         <Localize i18n_default_text='The amount you choose to receive at expiry for every point of change between the final price and the barrier.' />
+                    }
+                />
+            ),
+        },
+        {
+            id: 3,
+            component: (
+                <TradeParamDefinition
+                    description={
+                        <Localize i18n_default_text="This is the corresponding price level based on the payout per point you've selected. If this barrier is ever breached, your contract would be terminated." />
                     }
                 />
             ),
@@ -106,6 +121,9 @@ const PayoutPerPoint = observer(({ is_minimized }: TTradeParametersProps) => {
                             is_small_screen && 'payout-per-point__carousel--small'
                         )}
                         header={CarouselHeader}
+                        current_index={carousel_index}
+                        setCurrentIndex={setCarouselIndex}
+                        onPreviousButtonClick={() => setCarouselIndex(0)}
                         pages={action_sheet_content}
                         title={<Localize i18n_default_text='Payout per point' />}
                     />

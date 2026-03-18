@@ -42,9 +42,7 @@ describe('StopLoss component', () => {
         expect(screen.getByText('Risk Management Item Mock')).toBeInTheDocument();
         expect(screen.getByText('Stop loss')).toBeInTheDocument();
         expect(
-            screen.getByText(
-                'When your loss reaches or exceeds the set amount, your trade will be closed automatically.'
-            )
+            screen.getByText('When your loss reaches or exceeds this amount, your trade will be closed automatically.')
         ).toBeInTheDocument();
     });
 });

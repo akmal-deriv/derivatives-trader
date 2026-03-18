@@ -238,6 +238,7 @@ const Duration = observer(({ is_minimized }: TTradeParametersProps) => {
                     <DurationActionSheetContainer
                         unit={unit}
                         setUnit={setUnit}
+                        onClose={onClose}
                         selected_expiry_time={selected_expiry_time}
                         selected_expiry_date={selected_expiry_date}
                         setSelectedExpiryTime={setSelectedExpiryTime}

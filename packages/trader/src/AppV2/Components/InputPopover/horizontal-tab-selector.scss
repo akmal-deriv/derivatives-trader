@@ -1,0 +1,52 @@
+.horizontal-tab-selector {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    padding: 0;
+    border-bottom: 1px solid var(--semantic-color-monochrome-border-normal-mid);
+    overflow-x: auto;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+        display: none;
+    }
+
+    &__item {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: var(--core-spacing-400) var(--core-spacing-800);
+        background: transparent;
+        border: none;
+        color: var(--component-textIcon-normal-default);
+        font-size: 1.4rem;
+        line-height: 2rem;
+        font-weight: 400;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        white-space: nowrap;
+        flex-shrink: 0;
+
+        &:hover {
+            font-weight: bold;
+        }
+
+        &--selected {
+            color: var(--component-textIcon-normal-prominent);
+            font-weight: 700;
+
+            &:after {
+                content: '';
+                position: absolute;
+                bottom: 0;
+                left: 50%;
+                transform: translateX(-50%);
+                width: 2.4rem;
+                height: 0.4rem;
+                background-color: var(--custom-indicator-red);
+                border-radius: 50px;
+            }
+        }
+    }
+}

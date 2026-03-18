@@ -58,7 +58,7 @@ const TradeParameters = observer(({ is_minimized }: TTradeParametersProps) => {
                     is_minimized && 'trade-params__options-wrapper--horizontal'
                 )}
             >
-                {isVisible('trade_type_tabs') && <TradeTypeTabs is_minimized={is_minimized} />}
+                {is_minimized === undefined && isVisible('trade_type_tabs') && <TradeTypeTabs />}
                 {isVisible('last_digit') && <LastDigitPrediction is_minimized={is_minimized} />}
                 {isVisible('duration') && <Duration is_minimized={is_minimized} />}
                 {isVisible('strike') && <Strike is_minimized={is_minimized} />}
@@ -69,6 +69,7 @@ const TradeParameters = observer(({ is_minimized }: TTradeParametersProps) => {
                 {isVisible('payout_per_point') && <PayoutPerPoint is_minimized={is_minimized} />}
                 {isVisible('take_profit') && <TakeProfit is_minimized={is_minimized} />}
                 {isVisible('risk_management') && <RiskManagement is_minimized={is_minimized} />}
+                {isVisible('allow_equals') && <AllowEquals is_minimized={is_minimized} />}
             </div>
             {isVisible('accu_info_display') && <AccumulatorsInformation />}
             {isVisible('barrier_info') && <BarrierInfo />}
@@ -77,7 +78,6 @@ const TradeParameters = observer(({ is_minimized }: TTradeParametersProps) => {
             {isVisible('expiration') && <MultipliersExpirationInfo />}
             {isVisible('mult_info_display') && <MultipliersDealCancellationInfo />}
             {isVisible('multipliers_info') && <MultipliersInformation />}
-            {isVisible('allow_equals') && <AllowEquals />}
         </div>
     );
 });

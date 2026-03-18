@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from 'react';
 import { observer } from 'mobx-react-lite';
 
+import { TRADE_TYPES } from '@deriv/shared';
 import { Localize } from '@deriv-com/translations';
 
 import { SelectionListPopover, TradeParameterPopover } from 'AppV2/Components/TradeParameters/Shared';
@@ -11,7 +12,8 @@ import { TTradeParametersProps } from '../trade-parameters';
 import '../Shared/selection-list-popover.scss';
 
 const StrikeDesktop = observer(({ is_minimized }: TTradeParametersProps) => {
-    const { barrier_1, barrier_choices, is_market_closed, onChange } = useTraderStore();
+    const { barrier_1, barrier_choices, contract_type, is_market_closed, onChange } = useTraderStore();
+    const is_call = contract_type === TRADE_TYPES.VANILLA.CALL;
 
     const strike_options = useMemo(
         () => barrier_choices.map(strike => ({ value: strike, label: strike })),
@@ -34,7 +36,11 @@ const StrikeDesktop = observer(({ is_minimized }: TTradeParametersProps) => {
             disabled={is_market_closed}
             popover_classname='selection-list-popover'
             description={
-                <Localize i18n_default_text='The strike price is the price at which the contract is settled at expiry.' />
+                is_call ? (
+                    <Localize i18n_default_text='If you buy a "Call" option, you receive a payout at expiry if the final price is above the strike price. Otherwise, your "Call" option will expire worthless.' />
+                ) : (
+                    <Localize i18n_default_text='If you buy a "Put" option, you receive a payout at expiry if the final price is below the strike price. Otherwise, your "Put" option will expire worthless.' />
+                )
             }
         >
             <SelectionListPopover
@@ -48,4 +54,3 @@ const StrikeDesktop = observer(({ is_minimized }: TTradeParametersProps) => {
 });
 
 export default StrikeDesktop;
-// [/AI]

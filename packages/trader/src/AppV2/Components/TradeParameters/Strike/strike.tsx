@@ -3,7 +3,7 @@ import clsx from 'clsx';
 import { observer } from 'mobx-react-lite';
 
 import { Skeleton } from '@deriv/components';
-import { getCurrencyDisplayCode, isEmptyObject, isMobile } from '@deriv/shared';
+import { getCurrencyDisplayCode, isEmptyObject, isMobile, TRADE_TYPES } from '@deriv/shared';
 import { ActionSheet, TextField } from '@deriv-com/quill-ui';
 import { Localize } from '@deriv-com/translations';
 
@@ -61,19 +61,11 @@ const Strike = observer(({ is_minimized }: TTradeParametersProps) => {
             component: (
                 <TradeParamDefinition
                     description={
-                        <>
-                            <p>
-                                <Localize i18n_default_text='It is the price where you can start receiving a payout from an option.' />
-                            </p>
-                            <br />
-                            <p>
-                                <Localize i18n_default_text='For a Call option, you receive a payout if the final price is higher than the strike price.' />
-                            </p>
-                            <br />
-                            <p>
-                                <Localize i18n_default_text='For a Put option, you receive a payout if the final price is lower than the strike price.' />
-                            </p>
-                        </>
+                        contract_type === TRADE_TYPES.VANILLA.CALL ? (
+                            <Localize i18n_default_text='If you buy a "Call" option, you receive a payout at expiry if the final price is above the strike price. Otherwise, your "Call" option will expire worthless.' />
+                        ) : (
+                            <Localize i18n_default_text='If you buy a "Put" option, you receive a payout at expiry if the final price is below the strike price. Otherwise, your "Put" option will expire worthless.' />
+                        )
                     }
                 />
             ),

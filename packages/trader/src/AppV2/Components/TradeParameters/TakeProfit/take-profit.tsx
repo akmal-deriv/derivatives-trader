@@ -37,7 +37,7 @@ const TakeProfit = observer(({ is_minimized }: TTradeParametersProps) => {
             component: (
                 <TradeParamDefinition
                     description={
-                        <Localize i18n_default_text='When your profit reaches or exceeds the set amount, your trade will be closed automatically.' />
+                        <Localize i18n_default_text='When your profit reaches or exceeds this amount, your trade will be closed automatically.' />
                     }
                 />
             ),

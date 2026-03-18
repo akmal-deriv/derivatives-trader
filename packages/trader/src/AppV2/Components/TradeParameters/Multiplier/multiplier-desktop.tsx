@@ -56,4 +56,3 @@ const MultiplierDesktop = observer(({ is_minimized }: TTradeParametersProps) => 
 });
 
 export default MultiplierDesktop;
-// [/AI]

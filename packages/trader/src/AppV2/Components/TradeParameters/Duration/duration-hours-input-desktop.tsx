@@ -115,7 +115,6 @@ const validationReducer = (state: ValidationState, action: ValidationAction): Va
             return state;
     }
 };
-// [/AI]
 
 const DurationHoursInputDesktop: React.FC<DurationHoursInputDesktopProps> = observer(({ onClose }) => {
     const { duration, duration_unit, onChangeMultiple } = useTraderStore();
@@ -134,19 +133,15 @@ const DurationHoursInputDesktop: React.FC<DurationHoursInputDesktopProps> = obse
     });
 
     const handleHoursChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-        const value = e.target.value;
-        // Allow only numbers
-        if (value === '' || /^\d+$/.test(value)) {
-            dispatch({ type: 'SET_HOURS', payload: value });
-        }
+        const value = e.target.value.replace(/[^\d]/g, '');
+        e.target.value = value;
+        dispatch({ type: 'SET_HOURS', payload: value });
     }, []);
 
     const handleMinutesChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-        const value = e.target.value;
-        // Allow only numbers
-        if (value === '' || /^\d+$/.test(value)) {
-            dispatch({ type: 'SET_MINUTES', payload: value });
-        }
+        const value = e.target.value.replace(/[^\d]/g, '');
+        e.target.value = value;
+        dispatch({ type: 'SET_MINUTES', payload: value });
     }, []);
 
     const handleSave = useCallback(() => {

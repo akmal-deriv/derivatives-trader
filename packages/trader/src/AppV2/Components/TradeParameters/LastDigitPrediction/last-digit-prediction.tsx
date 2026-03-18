@@ -110,7 +110,6 @@ const LastDigitPrediction = observer(({ is_minimized }: TTradeParametersProps) =
                     shouldBlurOnClose={is_open}
                 >
                     <ActionSheet.Portal shouldCloseOnDrag>
-                        <ActionSheet.Header title={<Localize i18n_default_text='Last digit prediction' />} />
                         <ActionSheet.Content>
                             <LastDigitSelector
                                 digits={displayed_digits}

@@ -30,7 +30,7 @@ describe('<AllowEquals />', () => {
         const mock_root_store = mockStore(default_mock_store);
         render(mockAllowEquals(mock_root_store));
 
-        expect(screen.getByText(/Win payout/i)).toBeInTheDocument();
+        expect(screen.getByText(/Win a payout/i)).toBeInTheDocument();
     });
     it('should call onChange function if checkbox was clicked', async () => {
         const mock_root_store = mockStore(default_mock_store);

@@ -229,7 +229,7 @@ describe('Guide', () => {
 
         renderGuide();
 
-        const term_definition = 'You can choose a growth rate with values of 1%, 2%, 3%, 4%, and 5%.';
+        const term_definition = 'The growth rate determines the rate at which your stake will grow with each successful tick.';
         expect(screen.queryByText(term_definition)).not.toBeInTheDocument();
 
         // On mobile, the guide trigger is a button instead of text link
@@ -245,5 +245,4 @@ describe('Guide', () => {
         // On mobile, clicking a term opens GuideDefinitionModal with the definition
         expect(await screen.findByText(term_definition)).toBeInTheDocument();
     });
-    // [/AI]
 });

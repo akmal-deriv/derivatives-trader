@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 
-import { Localize } from '@deriv-com/translations';
-import { Chip, Text } from '@deriv-com/quill-ui';
+import { localize } from '@deriv-com/translations';
+
+import { HorizontalTabSelector } from 'AppV2/Components/InputPopover';
+import type { HorizontalTabItem } from 'AppV2/Components/InputPopover/horizontal-tab-selector';
 
 const DurationChips = ({
     duration_units_list,
@@ -14,39 +16,26 @@ const DurationChips = ({
 }) => {
     const show_end_time = duration_units_list.length > 1;
 
+    const items: HorizontalTabItem[] = useMemo(() => {
+        const tabs = duration_units_list
+            .filter(item => item.value !== 'd')
+            .map(item => ({
+                value: item.value,
+                label: item.text,
+            }));
+
+        if (show_end_time) {
+            tabs.push({ value: 'd', label: localize('End Time') });
+        }
+
+        return tabs;
+    }, [duration_units_list, show_end_time]);
+
     if (!show_end_time) {
         return <></>;
     }
 
-    return (
-        <div className='duration-container__chips'>
-            {duration_units_list.map(
-                (item, index) =>
-                    item.value !== 'd' && (
-                        <Chip.Selectable
-                            key={`${item.text}-${index}`}
-                            selected={unit == item.value}
-                            className='duration-container__chips__chip'
-                            onClick={() => unit !== item.value && onChangeUnit(item.value)}
-                        >
-                            <Text size='sm'>{item.text}</Text>
-                        </Chip.Selectable>
-                    )
-            )}
-            {show_end_time && (
-                <Chip.Selectable
-                    key='end-time'
-                    selected={unit === 'd'}
-                    className='duration-container__chips__chip'
-                    onClick={() => onChangeUnit('d')}
-                >
-                    <Text size='sm'>
-                        <Localize i18n_default_text='End Time' />
-                    </Text>
-                </Chip.Selectable>
-            )}
-        </div>
-    );
+    return <HorizontalTabSelector items={items} selectedValue={unit} onSelect={onChangeUnit} />;
 };
 
 export default DurationChips;

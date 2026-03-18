@@ -14,7 +14,7 @@ const HigherLowerTradeDescription = ({
     contract_type: string;
     onTermClick: (term: string) => void;
 }) => {
-    const { BARRIER, EXPIRY, EXIT_SPOT, PAYOUT } = getTerm();
+    const { EXPIRY, EXIT_SPOT, PAYOUT } = getTerm();
     const [higher, lower] = CONTRACT_LIST.HIGHER_LOWER.split('/');
     const content = [
         {
@@ -23,9 +23,7 @@ const HigherLowerTradeDescription = ({
                 <Localize
                     i18n_default_text='Higher/Lower lets you predict if the market price will end higher or lower than a set <0>barrier</0> at contract <1>expiry</1> (<2>exit spot</2>).'
                     components={[
-                        <TermButton key={0} term={BARRIER} contract_type={contract_type} onTermClick={onTermClick}>
-                            {BARRIER}
-                        </TermButton>,
+                        <strong key={0} />,
                         <TermButton key={1} term={EXPIRY} contract_type={contract_type} onTermClick={onTermClick}>
                             {EXPIRY}
                         </TermButton>,

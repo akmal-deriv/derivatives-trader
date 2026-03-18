@@ -37,19 +37,9 @@ const OnboardingGuideDesktop = ({ type = 'trade_page', callback }: TOnboardingGu
         positions_page: false,
     });
 
-    // Read the returning-user desktop key to avoid showing both onboardings
-    const [guide_dtrader_v2_desktop_returning] = useLocalStorageData<Record<string, boolean>>(
-        'guide_dtrader_v2_desktop_returning',
-        {
-            trade_page: false,
-            positions_page: false,
-        }
-    );
-
     // Only show desktop onboarding to truly new users who haven't seen any onboarding
     const has_seen_mobile_onboarding = !!guide_dtrader_v2?.[type];
     const has_seen_desktop_onboarding = !!guide_dtrader_v2_desktop?.[type];
-    const has_seen_returning_desktop_onboarding = !!guide_dtrader_v2_desktop_returning?.[type];
 
     const onGuideStart = React.useCallback(() => {
         setShouldRunGuide(true);
@@ -71,14 +61,14 @@ const OnboardingGuideDesktop = ({ type = 'trade_page', callback }: TOnboardingGu
     React.useEffect(() => {
         if (!isDesktop) return;
 
-        // Show only for new users who haven't seen any onboarding (mobile, desktop, or returning)
-        if (!has_seen_mobile_onboarding && !has_seen_desktop_onboarding && !has_seen_returning_desktop_onboarding) {
+        // Show only for new users who haven't seen any onboarding (mobile or desktop)
+        if (!has_seen_mobile_onboarding && !has_seen_desktop_onboarding) {
             guide_timeout_ref.current = setTimeout(() => setIsModalOpen(true), 800);
         }
 
         return () => clearTimeout(guide_timeout_ref.current);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [has_seen_mobile_onboarding, has_seen_desktop_onboarding, has_seen_returning_desktop_onboarding, isDesktop]);
+    }, [has_seen_mobile_onboarding, has_seen_desktop_onboarding, isDesktop]);
 
     if (!isDesktop) return null;
 
