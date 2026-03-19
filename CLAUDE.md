@@ -396,6 +396,14 @@ const initApp = async () => {
 };
 ```
 
+**Account Status Handling:**
+
+The platform handles trading-disabled accounts during initialization:
+
+- Checks account status before connecting WebSocket
+- Falls back to demo account if target account has `trading_disabled` status
+- Connects as public user if no valid account available
+
 ### **@deriv/trader** - Trading Engine & UI
 
 **Purpose:** Main trader interface, contract trading, chart integration  
@@ -512,6 +520,34 @@ const validation_rules = getValidationRules(trade_store);
 trade_store.validateProperty('amount', new_value);
 ```
 
+**SmartCharts Integration:**
+
+- Updated to `@deriv-com/smartcharts-champion` version 1.9.6
+- Chart data persists during symbol/trade type switches using `keepPreviousData` strategy
+- Uses centralized `useSmartChartsAdapter` hook for data management
+
+**Duration Picker Features:**
+
+- Calendar shows early close/late open indicators (red dots) for markets with restricted trading hours
+- Market event descriptions displayed on hover (desktop only)
+- Auto-selects market close time when choosing future dates
+- Trading times fetched dynamically per symbol and date
+
+**Purchase Button:**
+
+- Allows purchase attempts even with insufficient balance (shows error modal instead of disabling button)
+- Handles `INSUFFICIENT_BALANCE` error code by triggering service error modal
+
+**Analytics:**
+
+- Fires `ce_dtrader_app_v2` event with `action: 'open'` on app mount
+- Waits for authentication to complete before firing to ensure correct `account_type` is tracked
+
+**Mobile RTL Support:**
+
+- Contract card swipe gestures respect RTL mode (Arabic language)
+- Button animations and transforms adjust for RTL layout
+
 ### **@deriv/reports** - Portfolio & Analytics
 
 **Purpose:** Trade history, positions, statements, analytics  
@@ -599,6 +635,13 @@ export type {
 };
 ```
 
+**Account Status Types:**
+
+Derivatives accounts now support three status values:
+- `active` - Normal trading account
+- `inactive` - Deactivated account
+- `trading_disabled` - Account with trading restrictions
+
 ### **@deriv/shared** - Utilities & Helpers
 
 **Purpose:** Cross-package utilities  
@@ -681,6 +724,13 @@ const initRoutesConfig = () => [
     { path: routes.index, component: Trade, getTitle: () => localize('Trader'), exact: true },
 ];
 ```
+
+**Mobile Positions Route:**
+
+The `/positions` route uses `PositionsSwitch` component that:
+- Renders positions page on mobile
+- Redirects to index and opens positions flyout on desktop
+- Prevents scaling issues by handling routing logic separately
 
 ### Route Rendering
 
@@ -1396,7 +1446,44 @@ trackAnalyticsEvent('buy_contract', { symbol: 'EURUSD', amount: 10 });
 
 ---
 
-## 13. Troubleshooting Guide
+## 13. Mobile App Integration
+
+### Mobile Bridge
+
+The platform integrates with native mobile apps via `useMobileBridge` hook from `@deriv/api`:
+
+**Detection:**
+
+```typescript
+const { isMobileApp, sendBridgeEvent } = useMobileBridge();
+
+// Use isMobileApp to conditionally render UI elements
+if (!isMobileApp) {
+    // Show web-only features (e.g., language selector, logout button)
+}
+```
+
+**Features hidden in mobile app:**
+
+- Language selector (controlled by native app)
+- Logout button (handled by native app)
+- Support section (native app provides own support)
+- Settings menu items managed by native app
+
+### Account Switcher
+
+**Trading Disabled Accounts:**
+
+The account switcher displays accounts with restricted trading access:
+
+- Visual indicator: reduced opacity + disabled cursor
+- Label: "Trading disabled" shown below account type
+- Interaction: accounts cannot be selected
+- Color: disabled text color applied to account details
+
+---
+
+## 14. Troubleshooting Guide
 
 ### Common Issues
 
@@ -1444,6 +1531,8 @@ trackAnalyticsEvent('buy_contract', { symbol: 'EURUSD', amount: 10 });
 | `packages/core/src/App/Constants/routes-config.js`          | Main route configuration         |
 | `packages/trader/src/Modules/Trading/Components/Form/`      | Trade form components            |
 | `packages/shared/src/utils/brand/brand.ts`                  | Multi-domain brand configuration |
+| `packages/trader/src/AppV2/Routes/PositionsSwitch.tsx`      | Mobile/desktop positions routing |
+| `packages/trader/src/AppV2/Components/TradeParameters/Duration/early-close-dot.tsx` | Market event indicators |
 | `jest.config.js`                                            | Jest configuration               |
 | `packages/core/build/webpack.config.js`                     | Main webpack config              |
 | `brand.config.json`                                         | Brand-specific configuration     |
