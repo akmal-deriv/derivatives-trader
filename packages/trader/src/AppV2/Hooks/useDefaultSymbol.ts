@@ -16,19 +16,13 @@ const useDefaultSymbol = () => {
 
     const isSymbolAvailable = useCallback(
         (active_symbols: NonNullable<TActiveSymbolsResponse['active_symbols']>) => {
-            const has_initialized = has_initialized_ref.current;
-
-            return active_symbols.some(symbol_info => {
-                const exchange_open_check = has_initialized ? true : symbol_info.exchange_is_open === 1;
-                return symbol_info.underlying_symbol === symbol_from_store && exchange_open_check;
-            });
+            return active_symbols.some(symbol_info => symbol_info.underlying_symbol === symbol_from_store);
         },
         [symbol_from_store]
     );
 
     const processNewSymbol = useCallback(
         async (new_symbol: string) => {
-            // To call contracts_for during initialization
             const has_initialized = has_initialized_ref.current;
             const is_initailization = !has_initialized && new_symbol;
             const has_symbol_changed = symbol_from_store != new_symbol && new_symbol;
@@ -51,10 +45,17 @@ const useDefaultSymbol = () => {
             }
 
             const is_symbol_available = isSymbolAvailable(active_symbols);
+            const has_initialized = has_initialized_ref.current;
 
-            const new_symbol = is_symbol_available
-                ? symbol_from_store
-                : (await pickDefaultSymbol(active_symbols)) || '1HZ100V';
+            // After initialization, don't override the current symbol just because
+            // active_symbols changed (e.g., due to contract_type filter change in useActiveSymbols).
+            // Only pick a default during initialization or when no symbol is set.
+            // useContractsFor will handle updating the contract type for the selected symbol.
+            const should_pick_default = !is_symbol_available && (!has_initialized || !symbol_from_store);
+
+            const new_symbol = should_pick_default
+                ? (await pickDefaultSymbol(active_symbols)) || '1HZ100V'
+                : symbol_from_store;
 
             processNewSymbol(new_symbol);
             has_initialized_ref.current = true;

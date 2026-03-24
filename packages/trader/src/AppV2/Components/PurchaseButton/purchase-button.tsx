@@ -170,7 +170,8 @@ const PurchaseButton = observer(({ onPurchaseSuccess }: TPurchaseButtonProps = {
             let message = '';
             const has_error = contract_types.some(type => {
                 const info = proposal_info[type];
-                if (info?.has_error && info?.message) {
+                // Exclude MarketIsClosed errors - already handled by ClosedMarketMessage component
+                if (info?.has_error && info?.message && info?.error_code !== 'MarketIsClosed') {
                     message = info.message || '';
                     return true;
                 }

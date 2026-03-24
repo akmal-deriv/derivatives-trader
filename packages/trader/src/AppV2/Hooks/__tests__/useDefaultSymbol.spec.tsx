@@ -9,14 +9,14 @@ import TraderProviders from '../../../trader-providers';
 import useDefaultSymbol from '../useDefaultSymbol';
 
 const not_logged_in_active_symbols = [
-    { symbol: 'EURUSD', display_name: 'EUR/USD', exchange_is_open: 1 },
-    { symbol: 'GBPUSD', display_name: 'GBP/USD', exchange_is_open: 0 },
-    { symbol: 'CADAUD', display_name: 'CAD/AUD', exchange_is_open: 0 },
+    { symbol: 'EURUSD', underlying_symbol: 'EURUSD', display_name: 'EUR/USD', exchange_is_open: 1 },
+    { symbol: 'GBPUSD', underlying_symbol: 'GBPUSD', display_name: 'GBP/USD', exchange_is_open: 0 },
+    { symbol: 'CADAUD', underlying_symbol: 'CADAUD', display_name: 'CAD/AUD', exchange_is_open: 0 },
 ];
 const logged_in_active_symbols = [
-    { symbol: '1HZ100', display_name: 'Volatility 100', exchange_is_open: 1 },
-    { symbol: '1HZ200', display_name: 'Volatility 200', exchange_is_open: 0 },
-    { symbol: '1HZ300', display_name: 'Volatility 300', exchange_is_open: 0 },
+    { symbol: '1HZ100', underlying_symbol: '1HZ100', display_name: 'Volatility 100', exchange_is_open: 1 },
+    { symbol: '1HZ200', underlying_symbol: '1HZ200', display_name: 'Volatility 200', exchange_is_open: 0 },
+    { symbol: '1HZ300', underlying_symbol: '1HZ300', display_name: 'Volatility 300', exchange_is_open: 0 },
 ];
 
 jest.mock('@deriv/shared', () => ({
@@ -85,6 +85,19 @@ describe('useActiveSymbols', () => {
 
         await waitFor(() => {
             expect(result.current.symbol).toEqual('EURUSD');
+        });
+    });
+    it('should keep closed market symbol when it exists in active_symbols', async () => {
+        mocked_store.modules.trade.symbol = 'GBPUSD';
+        const { result } = renderHook(() => useDefaultSymbol(), {
+            wrapper,
+        });
+
+        await waitFor(() => {
+            expect(result.current.symbol).toEqual('GBPUSD');
+            expect(mocked_store.modules.trade.onChange).toHaveBeenCalledWith({
+                target: { name: 'symbol', value: 'GBPUSD' },
+            });
         });
     });
 });

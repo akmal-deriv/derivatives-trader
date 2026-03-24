@@ -1648,6 +1648,16 @@ export default class TradeStore extends BaseStore {
     }
 
     requestProposal() {
+        // Don't request proposals for closed markets - the server would return MarketIsClosed errors
+        // which trigger error snackbars. The closed market state is handled by ClosedMarketMessage.
+        if (this.is_market_closed) {
+            runInAction(() => {
+                this.proposal_info = {};
+                this.purchase_info = {};
+            });
+            this.forgetAllProposal();
+            return;
+        }
         const requests = createProposalRequests(this);
         if (Object.values(this.validation_errors).some(e => e.length)) {
             runInAction(() => {
@@ -1688,7 +1698,19 @@ export default class TradeStore extends BaseStore {
     }
 
     onProposalResponse(response: TResponse<TPriceProposalRequest, TProposalResponse, 'proposal'>) {
-        const { contract_type } = response.echo_req;
+        const { contract_type, underlying_symbol } = response.echo_req;
+
+        // Ignore stale proposal responses from a previously selected symbol.
+        // underlying_symbol is always present in proposal echo_req (set in createProposalRequests).
+        // The falsy check is intentional: if absent for any reason, fall through and process normally.
+        if (underlying_symbol && underlying_symbol !== this.symbol) {
+            return;
+        }
+        // Ignore MarketIsClosed errors - the closed market state is already handled by
+        // is_market_closed flag and the ClosedMarketMessage component in the UI.
+        if (response.error?.code === 'MarketIsClosed') {
+            return;
+        }
 
         // add/update expiration or date_expiry for crypto indices from proposal
         const date_expiry = response.proposal?.date_expiry;

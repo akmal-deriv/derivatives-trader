@@ -14,7 +14,6 @@ import { useDevice } from '@deriv-com/ui';
 
 import { filterByContractType } from 'App/Components/Elements/PositionsDrawer/helpers';
 import useActiveSymbols from 'AppV2/Hooks/useActiveSymbols';
-import useDefaultSymbol from 'AppV2/Hooks/useDefaultSymbol';
 import { SmartChart } from 'Modules/SmartChart';
 import AccumulatorsChartElements from 'Modules/SmartChart/Components/Markers/accumulators-chart-elements';
 import ToolbarWidgets from 'Modules/SmartChart/Components/toolbar-widgets';
@@ -70,7 +69,6 @@ const TradeChart = observer(() => {
     const { is_chart_countdown_visible, is_chart_layout_default, is_dark_mode_on, active_sidebar_flyout } = ui;
     const { current_language, is_socket_opened } = common;
     const { activeSymbols: active_symbols } = useActiveSymbols();
-    const { symbol } = useDefaultSymbol();
     const {
         barriers_flattened: extra_barriers,
         chartStateChange,
@@ -82,6 +80,7 @@ const TradeChart = observer(() => {
         main_barrier_flattened: main_barrier,
         setChartStatus,
         show_digits_stats,
+        symbol,
         onChange,
         setTickData,
         prev_contract_type,
