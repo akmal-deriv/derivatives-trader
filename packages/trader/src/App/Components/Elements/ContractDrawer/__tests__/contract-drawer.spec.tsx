@@ -1,11 +1,13 @@
 import React from 'react';
 import { Router } from 'react-router';
 import { createBrowserHistory } from 'history';
+
 import { toMoment } from '@deriv/shared';
 import { mockStore } from '@deriv/stores';
 import { useDevice } from '@deriv-com/ui';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+
 import TraderProviders from '../../../../../trader-providers';
 import ContractDrawer from '../contract-drawer';
 
@@ -90,8 +92,8 @@ describe('<ContractDrawer />', () => {
 
         expect(container).toBeEmptyDOMElement();
     });
-    it('should render PositionsCardLoader component if  contract_info.status || contract_info.is_expired are falsy', () => {
-        mocked_props.contract_info = { status: null, is_expired: 0 };
+    it('should render PositionsCardLoader component if contract is not ended and has no status', () => {
+        mocked_props.contract_info = { status: null, is_expired: 0, is_settleable: 0 };
         render(mockContractDrawer(mocked_props));
 
         expect(screen.getByText('Position Card Loader')).toBeInTheDocument();
@@ -110,6 +112,29 @@ describe('<ContractDrawer />', () => {
 
         expect(screen.getByText(contract_drawer_card)).toBeInTheDocument();
         expect(screen.getByText(contract_audit)).toBeInTheDocument();
+    });
+    it('should render Contract Drawer card for expired Multiplier with status=null and is_expired=0 but exit_spot_time set', () => {
+        mocked_props.contract_info = {
+            currency: 'USD',
+            exit_spot: '2021.56',
+            status: null,
+            is_expired: 0,
+            exit_spot_time: 1234567890,
+        };
+        render(mockContractDrawer(mocked_props));
+
+        expect(screen.getByText(contract_drawer_card)).toBeInTheDocument();
+    });
+    it('should render Contract Drawer card for sold Multiplier with status=null and is_sold=1', () => {
+        mocked_props.contract_info = {
+            currency: 'USD',
+            status: null,
+            is_expired: 0,
+            is_sold: 1,
+        };
+        render(mockContractDrawer(mocked_props));
+
+        expect(screen.getByText(contract_drawer_card)).toBeInTheDocument();
     });
     it('should render only Contract Drawer card by default on mobile', () => {
         (useDevice as jest.Mock).mockReturnValue({ isMobile: true });

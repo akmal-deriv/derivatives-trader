@@ -10,6 +10,7 @@ import {
     getDurationUnitText,
     getEndTime,
     isEmptyObject,
+    isEnded,
     mobileOSDetect,
     TContractInfo,
     TContractStore,
@@ -94,8 +95,10 @@ const ContractDrawer = observer(
 
         if (isEmptyObject(contract_info)) return null;
 
-        // For non-binary contract, the status is always null, so we check for is_expired in contract_info
-        const fallback_result = contract_info.status || contract_info.is_expired;
+        // For non-binary contracts (e.g. Multipliers), status can be null even when expired.
+        // Use isEnded() which checks status, is_expired, is_settleable, and exit_spot_time,
+        // to reliably determine if contract data is available for display.
+        const fallback_result = contract_info.status || isEnded(contract_info) || contract_info.is_sold;
 
         const body_content = fallback_result ? (
             <React.Fragment>
