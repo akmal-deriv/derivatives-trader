@@ -9,8 +9,8 @@ const data_list = 'DataList';
 const future_time = Math.floor(Date.now() / 1000) + 5000;
 const options_position = {
     contract_info: mockContractInfo({
-        bid_price: 9.52,
-        buy_price: 10,
+        bid_price: '9.52',
+        buy_price: '10',
         shortcode: `CALL_R_100_19.73_1718630564_${future_time}_S0P_0`,
     }),
     details:
@@ -30,7 +30,7 @@ const options_position = {
 } as TPortfolioPosition;
 
 jest.mock('@deriv-com/ui', () => ({
-    useDevice: jest.fn(() => ({ isDesktop: true })),
+    useDevice: jest.fn(() => ({ isMobile: false })),
 }));
 
 jest.mock('@deriv/components', () => ({
@@ -109,13 +109,13 @@ describe('OpenPositionsTable', () => {
         expect(screen.queryByTestId(data_table_test_id)).not.toBeInTheDocument();
         expect(screen.queryByTestId(loading_test_id)).not.toBeInTheDocument();
     });
-    it('should render DataList if active_positions and currency are passed on desktop on mobile', () => {
-        (useDevice as jest.Mock).mockImplementation(() => ({ isDesktop: false }));
+    it('should render DataList if active_positions and currency are passed on mobile', () => {
+        (useDevice as jest.Mock).mockImplementation(() => ({ isMobile: true }));
         render(<OpenPositionsTable {...mocked_props} />);
         expect(screen.getByText(data_list)).toBeInTheDocument();
     });
     it('should not render DataList or Loading on mobile if currency is missing', () => {
-        (useDevice as jest.Mock).mockImplementation(() => ({ isDesktop: false }));
+        (useDevice as jest.Mock).mockImplementation(() => ({ isMobile: true }));
         render(<OpenPositionsTable {...mocked_props} currency='' />);
         expect(screen.queryByText(data_list)).not.toBeInTheDocument();
         expect(screen.queryByTestId(loading_test_id)).not.toBeInTheDocument();

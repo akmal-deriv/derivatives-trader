@@ -1,6 +1,6 @@
-import classNames from 'classnames';
 import React from 'react';
 import { CSSTransition } from 'react-transition-group';
+import classNames from 'classnames';
 
 type TToast = {
     className?: string;
@@ -21,6 +21,7 @@ const Toast = ({
     timeout = 0,
 }: React.PropsWithChildren<TToast>) => {
     const [is_visible, setVisible] = React.useState(false);
+    const nodeRef = React.useRef(null);
 
     React.useEffect(() => {
         setVisible(is_open);
@@ -52,8 +53,10 @@ const Toast = ({
                 enterDone: 'dc-toast--enter-done',
                 exit: 'dc-toast--exit',
             }}
+            nodeRef={nodeRef}
         >
             <div
+                ref={nodeRef}
                 className={classNames('dc-toast', className, {
                     [`dc-toast__${type}`]: type,
                 })}

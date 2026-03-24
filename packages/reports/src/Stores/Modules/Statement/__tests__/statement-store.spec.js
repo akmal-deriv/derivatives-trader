@@ -7,7 +7,8 @@ jest.mock('@deriv/shared', () => ({
     WS: {
         statement: jest.fn(),
         forgetAll: jest.fn(),
-        wait: jest.fn().mockResolvedValue(true),
+        setOnReconnect: jest.fn(),
+        removeOnReconnect: jest.fn(),
     },
 }));
 
@@ -18,6 +19,7 @@ describe('StatementStore', () => {
     const root_store = mockStore({
         client: {
             loginid: 'test_loginid',
+            is_logged_in: true,
         },
     });
     const response = {
@@ -187,7 +189,7 @@ describe('StatementStore', () => {
         expect(statement_store.is_loading).toBe(true);
     });
 
-    it('should initalize the statements on mount', () => {
+    it('should initialize the statements on mount and wait for authentication', async () => {
         WS.statement.mockResolvedValue(response);
         statement_store.shouldFetchNextBatch = jest.fn().mockReturnValue(true);
 
@@ -195,7 +197,9 @@ describe('StatementStore', () => {
 
         expect(WS.forgetAll).toHaveBeenCalled();
         expect(statement_store.client_loginid).toBe(root_store.client.loginid);
-        expect(WS.wait).toHaveBeenCalledWith('authorize');
+        // Verify fetchNextBatch is eventually called after authentication
+        await new Promise(resolve => setTimeout(resolve, 0));
+        expect(WS.statement).toHaveBeenCalled();
     });
 
     it('should forget proposal calls on Unmount', () => {

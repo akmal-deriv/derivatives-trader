@@ -5,6 +5,19 @@ import userEvent from '@testing-library/user-event';
 
 import ContractTypeFilter from '../contract-type-filter';
 
+jest.mock('AppV2/Hooks/useAvailableContracts', () => ({
+    __esModule: true,
+    default: jest.fn(() => [
+        { id: 'Accumulators', tradeType: 'Accumulators' },
+        { id: 'Rise/Fall', tradeType: 'Rise/Fall' },
+        { id: 'Higher/Lower', tradeType: 'Higher/Lower' },
+        { id: 'Touch/No Touch', tradeType: 'Touch/No Touch' },
+        { id: 'Vanillas', tradeType: 'Vanillas' },
+        { id: 'Turbos', tradeType: 'Turbos' },
+        { id: 'Multipliers', tradeType: 'Multipliers' },
+    ]),
+}));
+
 const defaultFilterName = 'Trade types';
 const mockProps = {
     onApplyContractTypeFilter: jest.fn(),

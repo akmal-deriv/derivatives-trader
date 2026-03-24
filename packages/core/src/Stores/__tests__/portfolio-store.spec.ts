@@ -55,7 +55,7 @@ beforeEach(() => {
                     subgroup: 'synthetics',
                     subgroup_display_name: 'Synthetics',
                     submarket: 'random_index',
-                    submarket_display_name: 'Continuous Indices',
+                    submarket_display_name: 'Volatility Indices',
                     symbol,
                     symbol_type: 'stockindex',
                 },

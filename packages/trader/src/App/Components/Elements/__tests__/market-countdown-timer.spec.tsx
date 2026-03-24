@@ -40,25 +40,30 @@ const default_mock_store = {
 jest.mock('@deriv/shared', () => ({
     ...jest.requireActual('@deriv/shared'),
     WS: {
-        tradingTimes: () => ({
-            api_initial_load_error: false,
-            trading_times: {
-                markets: [
-                    {
-                        submarkets: [
-                            {
-                                symbols: [
-                                    {
-                                        underlying_symbol: 'WLDAUD',
-                                        times: { open: ['08:00:00.153'], close: ['22:00:00.123'] },
-                                    },
-                                ],
-                            },
-                        ],
-                    },
-                ],
-            } as unknown as NonNullable<DeepRequired<TradingTimesResponse['trading_times']>>,
-        }),
+        tradingTimes: jest.fn(() =>
+            Promise.resolve({
+                api_initial_load_error: false,
+                trading_times: {
+                    markets: [
+                        {
+                            submarkets: [
+                                {
+                                    symbols: [
+                                        {
+                                            underlying_symbol: 'WLDAUD',
+                                            times: {
+                                                open: [new Date(Date.now() + 10000).toISOString().substring(11, 19)],
+                                                close: ['22:00:00.123'],
+                                            },
+                                        },
+                                    ],
+                                },
+                            ],
+                        },
+                    ],
+                } as unknown as NonNullable<DeepRequired<TradingTimesResponse['trading_times']>>,
+            })
+        ),
     },
 }));
 
@@ -82,17 +87,26 @@ describe('<MarketCountdownTimer />', () => {
     });
     it('should render component with children if is_main_page is false', async () => {
         jest.useFakeTimers();
-        const { rerender } = render(mockMarketCountdownTimer(mockStore(default_mock_store), mock_default_props));
-        await waitFor(() => {
-            rerender(mockMarketCountdownTimer(mockStore(default_mock_store), mock_default_props));
-        });
+        render(mockMarketCountdownTimer(mockStore(default_mock_store), mock_default_props));
+
+        // Wait for the async trading times call to complete
         await act(async () => {
-            jest.runOnlyPendingTimers();
+            await Promise.resolve();
         });
-        await waitFor(() => {
-            expect(screen.getByText('It will reopen at')).toBeInTheDocument();
-            expect(screen.getByText('Please come back in')).toBeInTheDocument();
+
+        // Advance timers to trigger the countdown
+        await act(async () => {
+            jest.advanceTimersByTime(1000);
         });
+
+        await waitFor(
+            () => {
+                expect(screen.getByText('It will reopen at')).toBeInTheDocument();
+                expect(screen.getByText('Please come back in')).toBeInTheDocument();
+            },
+            { timeout: 3000 }
+        );
+
         jest.useRealTimers();
     });
 });

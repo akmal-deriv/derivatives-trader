@@ -43,7 +43,8 @@ describe('BinaryLink component', () => {
         expect(screen.getByTestId('dt_link')).toBeInTheDocument();
     });
 
-    it('should call "setError" property when "has_error" property is "true"', () => {
+    it('should call "setError" property when "has_error" property is "true"', async () => {
+        const user = userEvent.setup();
         store = mockStore({
             common: {
                 error: {
@@ -53,7 +54,7 @@ describe('BinaryLink component', () => {
             },
         });
         render(<MockBinaryLink to='/' />);
-        userEvent.click(screen.getByTestId('dt_span'));
+        await user.click(screen.getByTestId('dt_span'));
         expect(store.common.error.setError).toHaveBeenCalledTimes(1);
     });
 });

@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import clsx from 'clsx';
 import { observer } from 'mobx-react-lite';
 
-import { getUnitMap, mapErrorMessage } from '@deriv/shared';
+import { getUnitMap, isMobile, mapErrorMessage } from '@deriv/shared';
 import { useStore } from '@deriv/stores';
 import { ActionSheet, TextField, useSnackbar } from '@deriv-com/quill-ui';
 import { Localize, useTranslations } from '@deriv-com/translations';
@@ -14,8 +14,10 @@ import { useTraderStore } from 'Stores/useTraderStores';
 import { TTradeParametersProps } from '../trade-parameters';
 
 import DurationActionSheetContainer from './container';
+import DurationDesktop from './duration-desktop';
 
 const Duration = observer(({ is_minimized }: TTradeParametersProps) => {
+    const is_mobile = isMobile();
     const {
         contract_type,
         duration_min_max,
@@ -48,8 +50,9 @@ const Duration = observer(({ is_minimized }: TTradeParametersProps) => {
     const has_error =
         (proposal_info[contract_type_object[0]]?.has_error &&
             proposal_info[contract_type_object[0]]?.error_field === 'duration') ||
-        validation_errors.duration.length > 0;
+        (validation_errors.duration?.length ?? 0) > 0;
     const isInitialMount = useRef(true);
+    const prevExpiryEpoch = useRef<string | number | null>(null);
     const { client } = useStore();
     const { is_logged_in } = client;
     const { localize } = useTranslations();
@@ -58,15 +61,21 @@ const Duration = observer(({ is_minimized }: TTradeParametersProps) => {
     useEffect(() => {
         if (!expiry_epoch) return;
 
+        // Only sync from expiry_epoch if it actually changed (not from our own update)
+        if (prevExpiryEpoch.current === expiry_epoch) return;
+
+        prevExpiryEpoch.current = expiry_epoch;
+
         const epoch_date = new Date((expiry_epoch as number) * 1000);
         const date_string = epoch_date.toISOString().split('T')[0];
         const time_string = epoch_date.toISOString().split('T')[1].substring(0, 8);
 
+        // Only update if the date actually changed
         if (saved_expiry_date !== date_string) {
             setSavedExpiryDate(date_string);
             setSavedExpiryTime(time_string || '23:59:59');
         }
-    }, [expiry_epoch, saved_expiry_date]);
+    }, [expiry_epoch]);
 
     // When switching to days unit, set tomorrow as default
     useEffect(() => {
@@ -159,7 +168,7 @@ const Duration = observer(({ is_minimized }: TTradeParametersProps) => {
             const time_display = is_today
                 ? expiry_time.substring(0, 5) // HH:mm
                 : `${expiry_time}`; // HH:mm:ss
-            return `${localize('Ends on')} ${formatted_date} ${time_display} GMT`;
+            return `${localize('Ends on')} ${formatted_date}, ${time_display} GMT`;
         }
     };
 
@@ -198,6 +207,12 @@ const Duration = observer(({ is_minimized }: TTradeParametersProps) => {
         }
     }, [is_open, saved_expiry_date, saved_expiry_time]);
 
+    // Render desktop version for desktop devices
+    if (!is_mobile) {
+        return <DurationDesktop is_minimized={is_minimized} />;
+    }
+
+    // Render mobile version (ActionSheet) for mobile devices
     return (
         <>
             <TextField
@@ -223,6 +238,7 @@ const Duration = observer(({ is_minimized }: TTradeParametersProps) => {
                     <DurationActionSheetContainer
                         unit={unit}
                         setUnit={setUnit}
+                        onClose={onClose}
                         selected_expiry_time={selected_expiry_time}
                         selected_expiry_date={selected_expiry_date}
                         setSelectedExpiryTime={setSelectedExpiryTime}

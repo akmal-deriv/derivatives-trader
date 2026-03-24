@@ -1,8 +1,11 @@
-import moment from 'moment';
 import React from 'react';
+import moment from 'moment';
+
 import { Localize } from '@deriv-com/translations';
+
 import { unique } from '../object';
 import { capitalizeFirstLetter } from '../string/string_util';
+
 import { TContractInfo, TContractStore, TDigitsInfo, TLimitOrder, TTickItem } from './contract-types';
 
 type TGetAccuBarriersDTraderTimeout = (params: {
@@ -143,12 +146,13 @@ export const isEnded = (contract_info?: TContractInfo) =>
     !!(
         (contract_info?.status && contract_info.status !== 'open') ||
         contract_info?.is_expired ||
-        contract_info?.is_settleable
+        contract_info?.is_settleable ||
+        contract_info?.exit_spot_time
     );
 
 export const isOpen = (contract_info: TContractInfo) => {
     const contract_status = getContractStatus(contract_info);
-    const result = contract_status === 'open';
+    const result = contract_status === 'open' && !isEnded(contract_info);
 
     return result;
 };

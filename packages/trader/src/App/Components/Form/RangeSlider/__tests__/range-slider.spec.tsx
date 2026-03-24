@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import RangeSlider from '../range-slider';
@@ -26,11 +26,11 @@ describe('RangeSlider', () => {
         expect(screen.getByText('2 Ticks')).toBeInTheDocument();
     });
 
-    it('should call onChange if user changed input value', async () => {
+    it('should call onChange if user changed input value', () => {
         render(<RangeSlider {...mocked_default_props} />);
 
-        const input = screen.getByLabelText('range-input');
-        await userEvent.type(input, '5');
+        const input = screen.getByLabelText('range-input') as HTMLInputElement;
+        fireEvent.change(input, { target: { value: '5' } });
         expect(mocked_default_props.onChange).toBeCalled();
     });
 });

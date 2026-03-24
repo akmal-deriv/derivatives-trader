@@ -1,4 +1,5 @@
 import { TPriceProposalResponse } from '@deriv/api';
+import { localize } from '@deriv-com/translations';
 
 import { BARRIER_COLORS, BARRIER_LINE_STYLES } from '../constants';
 import { isMultiplierContract, TContractStore } from '../contract';
@@ -81,20 +82,23 @@ export const setLimitOrderBarriers = ({
             if (barrier) {
                 if (
                     barrier.high !== +obj_limit_order.value ||
-                    barrier.title !== obj_limit_order.display_name ||
+                    barrier.title !== localize(`${obj_limit_order.display_name}`) ||
                     barrier.hidePriceLines !== shouldHidePriceLines
                 ) {
                     barrier.onChange({
                         high: obj_limit_order.value,
-                        title: obj_limit_order.display_name,
+                        title: localize(`${obj_limit_order.display_name}`),
                         hidePriceLines: shouldHidePriceLines,
                     });
                 }
             } else {
                 const obj_barrier = {
                     key,
-                    title: obj_limit_order.display_name,
+                    title: localize(`${obj_limit_order.display_name}`),
                     color: key === LIMIT_ORDER_TYPES.TAKE_PROFIT ? BARRIER_COLORS.GREEN : BARRIER_COLORS.ORANGE,
+                    foregroundColor:
+                        key === LIMIT_ORDER_TYPES.TAKE_PROFIT ? BARRIER_COLORS.GREEN : BARRIER_COLORS.ORANGE,
+                    backgroundColor: 'transparent',
                     draggable: false,
                     lineStyle:
                         key === LIMIT_ORDER_TYPES.STOP_OUT ? BARRIER_LINE_STYLES.DOTTED : BARRIER_LINE_STYLES.SOLID,

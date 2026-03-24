@@ -134,7 +134,7 @@ const DurationNumbersWidgetMobile = observer(
         const duration_unit_text = name_plural ?? name;
 
         return (
-            <div className='trade-params__amount-keypad'>
+            <div className='trade-params-v1__amount-keypad'>
                 <div className='text-container'>
                     <DurationRangeText min={min} max={max} duration_unit_text={duration_unit_text} />
                     {show_expiry && <ExpiryText fixed_date={fixed_date} />}

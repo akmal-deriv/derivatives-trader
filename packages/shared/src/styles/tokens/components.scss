@@ -1,9 +1,9 @@
 /**
  * Component Color Tokens (Auto-Generated)
- * 
+ *
  * This file is auto-generated from brand.config.json
  * Do not edit manually - run 'npm run generate:colors' instead
- * 
+ *
  * These variables define colors for specific UI components.
  * SCSS functions use actual color constants, not CSS variables.
  */
@@ -32,6 +32,7 @@
         --color-trade-buy-bg: #{darken($color-success, 10%)}; // Buy background (derived from brand-secondary to get #3d9494)
         --color-trade-sell: #{$color-danger}; // Sell/Lower/Fall trades
         --color-trade-sell-bg: #{darken($color-danger, 10%)}; // Sell background (derived from brand-danger)
+        --color-trade-sell-text: #ff4d6e; // Brighter red/pink for sell button text in segmented controls
         --color-trade-disabled: var(--color-interactive-disabled);
 
         // Form Colors
@@ -54,12 +55,14 @@
 
         // Navigation Colors
         --color-nav-bg: var(--color-surface-primary);
-        --color-nav-border: var(--color-interactive-default);
-        --color-nav-item-active: var(--brand-primary);
+        --color-nav-border: var(--color-surface-border);
+        --color-nav-item-active: var(--brand-danger);
         --color-nav-item-hover: var(--color-interactive-hover);
 
         // Modal/Dialog Colors
         --color-modal-bg: var(--color-surface-primary);
+        --color-modal-bg-secondary: var(--color-surface-section);
+        --color-modal-popover-bg: #ffffff;
         --color-modal-backdrop: #{transparentize($color-black, 0.72)};
         --color-modal-border: var(--color-interactive-default);
 
@@ -126,6 +129,7 @@
         --color-trade-buy-bg: #{darken($color-success, 10%)}; // Buy background (derived from brand-secondary to get #3d9494)
         --color-trade-sell: #{$color-danger}; // Sell/Lower/Fall trades (dark)
         --color-trade-sell-bg: #{darken($color-danger, 10%)}; // Sell background (derived from brand-danger)
+        --color-trade-sell-text: #ff4d6e; // Brighter red/pink for sell button text in segmented controls
         --color-trade-disabled: var(--color-interactive-disabled);
 
         // Form Colors
@@ -147,13 +151,15 @@
         --color-card-shadow: var(--color-shadow-subtle);
 
         // Navigation Colors
-        --color-nav-bg: #{lighten($color-black, 8%)};
-        --color-nav-border: var(--color-interactive-default);
-        --color-nav-item-active: var(--brand-primary);
+        --color-nav-bg: var(--color-surface-primary);
+        --color-nav-border: var(--color-surface-border);
+        --color-nav-item-active: var(--brand-danger);
         --color-nav-item-hover: var(--color-interactive-hover);
 
         // Modal/Dialog Colors
-        --color-modal-bg: var(--color-surface-primary);
+        --color-modal-bg: var(--core-color-solid-slate-1100);
+        --color-modal-bg-secondary: var(--core-color-solid-slate-1000);
+        --color-modal-popover-bg: #20242f;
         --color-modal-backdrop: #{transparentize($color-black, 0.4)};
         --color-modal-border: var(--color-interactive-default);
 

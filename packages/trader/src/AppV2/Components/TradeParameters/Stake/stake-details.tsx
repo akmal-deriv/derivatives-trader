@@ -2,9 +2,10 @@ import React from 'react';
 import clsx from 'clsx';
 
 import { formatMoney, getCurrencyDisplayCode, getTradeTypeName, TRADE_TYPES } from '@deriv/shared';
-import { Localize } from '@deriv-com/translations';
 import { Text } from '@deriv-com/quill-ui';
+import { Localize } from '@deriv-com/translations';
 
+import { useTraderStore } from 'Stores/useTraderStores';
 import { TTradeStore } from 'Types';
 
 type TStakeDetailsProps = Pick<TTradeStore, 'contract_type' | 'currency' | 'has_stop_loss' | 'is_multiplier'> & {
@@ -38,6 +39,8 @@ const StakeDetails = ({
     is_empty,
     should_show_payout_details,
 }: TStakeDetailsProps) => {
+    const { root_store } = useTraderStore();
+    const is_mobile = root_store?.ui?.is_mobile;
     const [displayed_values, setDisplayedValues] = React.useState({
         is_first_payout_exceeded: false,
         is_second_payout_exceeded: false,
@@ -139,7 +142,7 @@ const StakeDetails = ({
                         >
                             <Text size='sm'>
                                 {label}
-                                {contract_type && ` (${contract_type})`}
+                                {is_mobile && contract_type && ` (${contract_type})`}
                             </Text>
                             <Text size='sm'>
                                 {value} {getCurrencyDisplayCode(currency)}

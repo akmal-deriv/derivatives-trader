@@ -1,6 +1,7 @@
 import React from 'react';
 import { Redirect, RedirectProps, Route, RouteComponentProps, RouteProps } from 'react-router-dom';
-import { redirectToLogin, removeBranchName, routes as shared_routes, getBrandName } from '@deriv/shared';
+
+import { getBrandName, redirectToLogin, removeBranchName, routes as shared_routes } from '@deriv/shared';
 
 type TRoute = RouteProps & { default: boolean };
 
@@ -29,6 +30,7 @@ const RouteWithSubRoutes = ({
     path,
     routes,
     to,
+    language,
     Component404,
     should_redirect_login,
 }: TRoutesWithSubRoutesProps) => {
@@ -59,7 +61,7 @@ const RouteWithSubRoutes = ({
             result = <Redirect to={redirect_to} />;
         } else if (is_authenticated && !is_logged_in && !is_logging_in) {
             if (should_redirect_login) {
-                redirectToLogin();
+                redirectToLogin(language);
             } else {
                 result = <Redirect to={shared_routes.index} />;
             }

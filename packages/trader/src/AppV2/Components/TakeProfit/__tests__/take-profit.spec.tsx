@@ -43,7 +43,7 @@ describe('TakeProfit component', () => {
         expect(screen.getByText('Take profit')).toBeInTheDocument();
         expect(
             screen.getByText(
-                'When your profit reaches or exceeds the set amount, your trade will be closed automatically.'
+                'When your profit reaches or exceeds this amount, your trade will be closed automatically.'
             )
         ).toBeInTheDocument();
     });

@@ -19,7 +19,7 @@ $solid-blue-700: #2c9aff;
         font-weight: bold;
         color: var(--color-text-primary);
         background-color: var(--color-surface-primary);
-        border: 2px solid var(--color-text-secondary);
+        border: 1px solid var(--color-text-secondary);
 
         &--lost {
             border-color: $solid-red-700;
@@ -33,6 +33,10 @@ $solid-blue-700: #2c9aff;
         &--lost {
             color: var(--brand-white);
         }
+        &--last {
+            background-color: var(--color-text-primary);
+            color: var(--component-textIcon-inverse-prominent, #fff);
+        }
         @include mobile {
             bottom: -9.5px;
             margin-left: -8px;
@@ -42,7 +46,7 @@ $solid-blue-700: #2c9aff;
     &__entry {
         align-items: center;
         background-color: var(--color-surface-primary);
-        border: 5px solid $solid-red-700;
+        border: 2px solid var(--color-text-primary);
         display: flex;
         justify-content: center;
         left: -12px;
@@ -216,17 +220,22 @@ $solid-blue-700: #2c9aff;
     }
     &__time-icon {
         margin-right: 2px;
+        height: 16px;
+        width: 16px;
+        fill: var(--color-text-primary);
     }
     &__value-container {
-        background: var(--color-text-secondary);
+        background: color-mix(in srgb, var(--color-surface-inverse) 24%, transparent);
+        text-align: center;
+        backdrop-filter: blur(10px);
         font-size: 1.4rem;
         padding: 4px 8px;
         border-radius: 11px;
+        font-weight: var(--semantic-typography-caption-bold-default-fontWeight, 700);
+        color: var(--component-textIcon-inverse-prominent);
 
         /* postcss-bem-linter: ignore */
         p {
-            font-weight: bold;
-            color: var(--brand-white);
             margin-top: 2px;
         }
         &--lost {
@@ -237,7 +246,7 @@ $solid-blue-700: #2c9aff;
         }
         &--won,
         &--lost {
-            color: var(--color-surface-primary);
+            color: var(--component-textIcon-static-prominentDark, #fff);
         }
         @include mobile {
             font-size: 1rem;
@@ -255,7 +264,7 @@ $solid-blue-700: #2c9aff;
         &__icon {
             position: absolute;
             bottom: 0;
-            left: -11px;
+            left: -7px;
             white-space: nowrap;
             background-color: var(--color-surface-primary);
             border-radius: 50%;
@@ -350,6 +359,13 @@ $solid-blue-700: #2c9aff;
 
 /** @define smartcharts-mobile; weak */
 .smartcharts-mobile {
+    .ciq-chart {
+        padding: unset;
+
+        .barrier-area {
+            right: -16px;
+        }
+    }
     .cq-modal-dropdown {
         left: 0px;
         top: 0px;
@@ -368,6 +384,12 @@ $solid-blue-700: #2c9aff;
     }
     .cq-menu-dropdown .title .title-text {
         display: inline;
+    }
+}
+
+.smartcharts {
+    .cq-chart-title {
+        top: unset;
     }
 }
 

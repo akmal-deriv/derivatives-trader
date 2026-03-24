@@ -11,6 +11,11 @@ import PayoutPerPoint from '../payout-per-point';
 
 const payout_per_point_label = 'Payout per point';
 
+jest.mock('@deriv/shared', () => ({
+    ...jest.requireActual('@deriv/shared'),
+    isMobile: jest.fn(() => true),
+}));
+
 jest.mock('@deriv-com/quill-ui', () => ({
     ...jest.requireActual('@deriv-com/quill-ui'),
     WheelPicker: jest.fn(({ data, setSelectedValue }) => (
@@ -27,24 +32,25 @@ jest.mock('@deriv-com/quill-ui', () => ({
     )),
 }));
 
-jest.mock('@deriv/shared', () => ({
-    ...jest.requireActual('@deriv/shared'),
-    WS: {
-        send: jest.fn(),
-        authorized: {
-            send: jest.fn(),
-        },
-    },
-}));
-jest.mock('AppV2/Hooks/useDtraderQuery', () => ({
-    ...jest.requireActual('AppV2/Hooks/useDtraderQuery'),
-    useDtraderQuery: jest.fn(() => ({
-        data: {
-            proposal: { barrier_spot_distance: '+5.37' },
-            echo_req: { contract_type: 'TURBOSSHORT' },
-            error: {},
-        },
-    })),
+jest.mock('../payout-per-point-wheel', () => ({
+    __esModule: true,
+    default: jest.fn(({ barrier, onPayoutPerPointSelect, onClose, payout_per_point_list }) => (
+        <div>
+            <p>WheelPicker</p>
+            <ul>
+                {payout_per_point_list.map(({ value }: { value: string }) => (
+                    <li key={value}>
+                        <button onClick={() => onPayoutPerPointSelect(value)}>{value}</button>
+                    </li>
+                ))}
+            </ul>
+            <div>
+                <p>Barrier</p>
+                {barrier && <p>{barrier}</p>}
+            </div>
+            <button onClick={onClose}>Save</button>
+        </div>
+    )),
 }));
 
 describe('PayoutPerPoint', () => {
@@ -64,6 +70,9 @@ describe('PayoutPerPoint', () => {
                             TURBOSSHORT: 'Turbos Short',
                         },
                     },
+                },
+                ui: {
+                    is_mobile: true,
                 },
             }))
     );

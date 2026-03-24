@@ -51,7 +51,7 @@ const RadioGroupWithInfoMobile = ({
     return (
         <>
             {should_show_tooltip && (
-                <div className={`trade-params__${contract_name}-ic-info-wrapper`}>
+                <div className={`trade-params-v1__${contract_name}-ic-info-wrapper`}>
                     <Popover
                         alignment={popover_alignment}
                         classNameBubble='dc-popover__trade-params'
@@ -65,8 +65,8 @@ const RadioGroupWithInfoMobile = ({
                 </div>
             )}
             <RadioGroup
-                className={`trade-params__${contract_name}-radio-group`}
-                name={`trade-params__${contract_name}-radio`}
+                className={`trade-params-v1__${contract_name}-radio-group`}
+                name={`trade-params-v1__${contract_name}-radio`}
                 selected={!Number.isNaN(current_value_object.value) ? current_value_object.value?.toString() : ''}
                 onToggle={onValueChange}
             >

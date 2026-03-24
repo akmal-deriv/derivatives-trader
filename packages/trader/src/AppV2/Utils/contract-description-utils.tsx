@@ -1,7 +1,7 @@
 import React from 'react';
 
-import { Localize, localize } from '@deriv-com/translations';
 import { Text } from '@deriv-com/quill-ui';
+import { Localize, localize } from '@deriv-com/translations';
 
 import VideoFragment from 'AppV2/Components/Guide/Description/video-fragment';
 import { DESCRIPTION_VIDEO_ID } from 'Modules/Trading/Helpers/video-config';
@@ -26,11 +26,14 @@ export const getTerm = () => ({
     EXPIRY: localize('Expiry'),
     FINAL_PRICE: localize('Final price'),
     GROWTH_RATE: localize('Growth rate'),
+    INDEX: localize('Index'),
     PAYOUT: localize('Payout'),
     PAYOUT_PER_POINT: localize('Payout per point'),
     PREVIOUS_SPOT_PRICE: localize('Previous spot price'),
     RANGE: localize('Range'),
     SLIPPAGE_RISK: localize('Slippage risk'),
+    SPOT_PRICE: localize('Spot price'),
+    STAKE: localize('Stake'),
     STOP_OUT_LEVEL: localize('Stop out level'),
     STOP_LOSS: localize('Stop loss'),
     STRIKE_PRICE: localize('Strike price'),
@@ -47,11 +50,14 @@ const getDefinition = () => {
         EXPIRY,
         FINAL_PRICE,
         GROWTH_RATE,
+        INDEX,
         PAYOUT,
         PAYOUT_PER_POINT,
         PREVIOUS_SPOT_PRICE,
         RANGE,
         SLIPPAGE_RISK,
+        SPOT_PRICE,
+        STAKE,
         STOP_OUT_LEVEL,
         STOP_LOSS,
         STRIKE_PRICE,
@@ -78,26 +84,29 @@ const getDefinition = () => {
         ),
         [EXPIRY]: (
             <React.Fragment>
-                <Text className='definition__paragraph'>
-                    <Localize i18n_default_text='This is when your contract will expire based on the duration or end time you’ve selected. If the duration is more than 24 hours, the cut-off time and expiry date will apply instead.' />
-                </Text>
-                <Text>
+                <div className='definition__paragraph'>
+                    <Localize i18n_default_text="This is when your contract will expire based on the duration or end time you've selected. If the duration is more than 24 hours, the cut-off time and expiry date will apply instead." />
+                </div>
+                <div>
                     <Localize i18n_default_text='Cut off time:' />
-                </Text>
-                <Text className='definition__paragraph'>
+                </div>
+                <div className='definition__paragraph'>
                     <Localize i18n_default_text='Contracts will expire at exactly 23:59:59 GMT on your selected expiry date.' />
-                </Text>
-                <Text>
+                </div>
+                <div>
                     <Localize i18n_default_text='Expiry date:' />
-                </Text>
-                <Text>
-                    <Localize i18n_default_text='Your contract will expire on this date (in GMT), based on the end time you’ve selected.' />
-                </Text>
+                </div>
+                <div>
+                    <Localize i18n_default_text="Your contract will expire on this date (in GMT), based on the end time you've selected." />
+                </div>
             </React.Fragment>
         ),
         [FINAL_PRICE]: <Localize i18n_default_text='This is the spot price of the last tick at expiry.' />,
         [GROWTH_RATE]: (
-            <Localize i18n_default_text='You can choose a growth rate with values of 1%, 2%, 3%, 4%, and 5%.' />
+            <Localize i18n_default_text='The growth rate determines the rate at which your stake will grow with each successful tick.' />
+        ),
+        [INDEX]: (
+            <Localize i18n_default_text='An index represents a group of assets or markets, such as volatility indices or basket indices.' />
         ),
         [PAYOUT]: (contract_type: string) => {
             if (contract_type === CONTRACT_LIST.VANILLAS) {
@@ -128,6 +137,8 @@ const getDefinition = () => {
             ) : (
                 <Localize i18n_default_text='Slippage happens when the asset price changes by the time it reaches our servers.' />
             ),
+        [SPOT_PRICE]: <Localize i18n_default_text='The current market price of the underlying asset.' />,
+        [STAKE]: <Localize i18n_default_text='The amount you choose to invest in a trade.' />,
         [STOP_OUT_LEVEL]: (
             <Localize i18n_default_text='Your trade will be closed automatically at the nearest available asset price when your loss reaches a certain percentage of your stake, but your loss never exceeds your stake. This percentage depends on the chosen underlying asset and the Multiplier.' />
         ),
@@ -136,15 +147,15 @@ const getDefinition = () => {
         ),
         [STRIKE_PRICE]: (
             <React.Fragment>
-                <Text className='definition__paragraph'>
+                <div className='definition__paragraph'>
                     <Localize i18n_default_text='You must select the strike price before entering the contract.' />
-                </Text>
-                <Text className='definition__paragraph'>
-                    <Localize i18n_default_text='If you select “Call”, you’ll earn a payout if the final price is above the strike price at expiry. Otherwise, you won’t receive a payout.' />
-                </Text>
-                <Text>
-                    <Localize i18n_default_text='If you select ‘Put”, you’ll earn a payout if the final price is below the strike price at expiry. Otherwise, you won’t receive a payout.' />
-                </Text>
+                </div>
+                <div className='definition__paragraph'>
+                    <Localize i18n_default_text="If you select 'Call', you'll earn a payout if the final price is above the strike price at expiry. Otherwise, you won't receive a payout." />
+                </div>
+                <div>
+                    <Localize i18n_default_text="If you select 'Put', you'll earn a payout if the final price is below the strike price at expiry. Otherwise, you won't receive a payout." />
+                </div>
             </React.Fragment>
         ),
         [TAKE_PROFIT]: (

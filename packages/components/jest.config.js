@@ -5,6 +5,7 @@ module.exports = {
     moduleNameMapper: {
         ...baseConfigForPackages.moduleNameMapper,
         '@deriv-com/ui': '<rootDir>/../../__mocks__/deriv-com.ui.mock.js',
+        '\\.(webp|jpg|jpeg|png|gif|svg)$': '<rootDir>/../../__mocks__/fileMock.js',
     },
     modulePathIgnorePatterns: ['/.out/'],
 };

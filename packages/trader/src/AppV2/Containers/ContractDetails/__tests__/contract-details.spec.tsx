@@ -105,19 +105,38 @@ jest.mock('@deriv/shared', () => ({
     hasContractEntered: jest.fn(),
     isForwardStarting: jest.fn(),
     isAccumulatorContract: jest.fn(),
+    trackAnalyticsEvent: jest.fn(),
     WS: {
-        contractUpdateHistory: jest.fn(),
+        contractUpdateHistory: jest.fn(() => Promise.resolve({ contract_update_history: [] })),
     },
 }));
 jest.mock('AppV2/Utils/contract-details-config', () => ({ getContractDetailsConfig: jest.fn() }));
+
+// Create stable mock objects to prevent infinite loops
+// The key issue: limit_order and its nested objects must be stable references
+const mockLimitOrder = {
+    take_profit: { order_amount: 100 },
+    stop_loss: { order_amount: 50 },
+};
 
 const mockContractInfo = {
     contract_id: 1,
     currency: 'USD',
     contract_type: 'multiplier',
-    limit_order: {},
+    limit_order: mockLimitOrder,
     purchase_time: Date.now(),
     shortcode: 'mock_shortcode',
+};
+
+const mockContractUpdateHistory = {
+    contract_update_history: [],
+};
+
+const mockContractDetailsConfig = {
+    isTakeProfitVisible: true,
+    isStopLossVisible: true,
+    isDealCancellationVisible: true,
+    isTpHistoryVisible: true,
 };
 
 const default_mock_store = {
@@ -143,8 +162,10 @@ const default_mock_store = {
     },
 };
 
+// Todo: Enable tests after fixing infinite loop issues
 describe('ContractDetails', () => {
     beforeEach(() => {
+        // Use stable mock references to prevent infinite loops
         (useContractDetails as jest.Mock).mockReturnValue({
             contract_info: mockContractInfo,
             is_loading: false,
@@ -163,15 +184,10 @@ describe('ContractDetails', () => {
             subscribe: jest.fn(),
             unsubscribe: jest.fn(),
         });
-        (WS.contractUpdateHistory as jest.Mock).mockResolvedValue({
-            contract_update_history: [],
-        });
-        (getContractDetailsConfig as jest.Mock).mockReturnValue({
-            isTakeProfitVisible: true,
-            isStopLossVisible: true,
-            isDealCancellationVisible: true,
-            isTpHistoryVisible: true,
-        });
+        // Use stable mock reference
+        (WS.contractUpdateHistory as jest.Mock).mockResolvedValue(mockContractUpdateHistory);
+        // Use stable mock reference
+        (getContractDetailsConfig as jest.Mock).mockReturnValue(mockContractDetailsConfig);
     });
 
     afterEach(() => {
@@ -187,39 +203,53 @@ describe('ContractDetails', () => {
     };
 
     it('should render the ContractCard component', async () => {
-        await waitFor(() => renderContractDetails());
-        expect(screen.getByText('ContractCard')).toBeInTheDocument();
+        renderContractDetails();
+        await waitFor(() => {
+            expect(screen.getByText('ContractCard')).toBeInTheDocument();
+        });
     });
 
     it('should render the Chart component', async () => {
-        await waitFor(() => renderContractDetails());
-        expect(screen.getByText('Chart Placeholder')).toBeInTheDocument();
+        renderContractDetails();
+        await waitFor(() => {
+            expect(screen.getByText('Chart Placeholder')).toBeInTheDocument();
+        });
     });
 
     it('should render the DealCancellation component', async () => {
-        await waitFor(() => renderContractDetails());
-        expect(screen.getByText('Deal Cancellation')).toBeInTheDocument();
+        renderContractDetails();
+        await waitFor(() => {
+            expect(screen.getByText('Deal Cancellation')).toBeInTheDocument();
+        });
     });
 
     it('should render the TakeProfit and StopLoss components if conditions are met', async () => {
-        await waitFor(() => renderContractDetails());
-        expect(screen.getByTestId('take-profit')).toBeInTheDocument();
-        expect(screen.getByTestId('stop-loss')).toBeInTheDocument();
+        renderContractDetails();
+        await waitFor(() => {
+            expect(screen.getByTestId('take-profit')).toBeInTheDocument();
+            expect(screen.getByTestId('stop-loss')).toBeInTheDocument();
+        });
     });
 
     it('should render the OrderDetails component', async () => {
-        await waitFor(() => renderContractDetails());
-        expect(screen.getByText('Order Details Placeholder')).toBeInTheDocument();
+        renderContractDetails();
+        await waitFor(() => {
+            expect(screen.getByText('Order Details Placeholder')).toBeInTheDocument();
+        });
     });
 
     // it('should render the PayoutInfo component', async () => {
-    //     await waitFor(() => renderContractDetails());
-    //     expect(screen.getByText('Payout Info Placeholder')).toBeInTheDocument();
+    //     renderContractDetails();
+    //     await waitFor(() => {
+    //         expect(screen.getByText('Payout Info Placeholder')).toBeInTheDocument();
+    //     });
     // });
 
     it('should render the EntryExitDetails component', async () => {
-        await waitFor(() => renderContractDetails());
-        expect(screen.getByText('Entry Exit Details Placeholder')).toBeInTheDocument();
+        renderContractDetails();
+        await waitFor(() => {
+            expect(screen.getByText('Entry Exit Details Placeholder')).toBeInTheDocument();
+        });
     });
 
     it('should render the TakeProfitHistory component if history is available', async () => {
@@ -230,21 +260,25 @@ describe('ContractDetails', () => {
                 },
             ],
         });
+        renderContractDetails();
         await waitFor(() => {
-            renderContractDetails();
             expect(screen.getByText('Take Profit History Placeholder')).toBeInTheDocument();
         });
     });
 
     it('should render the ContractDetailsFooter component if conditions are met', async () => {
-        await waitFor(() => renderContractDetails());
-        expect(screen.getByText('Contract Details Footer Placeholder')).toBeInTheDocument();
+        renderContractDetails();
+        await waitFor(() => {
+            expect(screen.getByText('Contract Details Footer Placeholder')).toBeInTheDocument();
+        });
     });
 
     it('should not render the ContractDetailsFooter component if conditions are not met', async () => {
         (hasContractEntered as jest.Mock).mockReturnValue(false);
-        await waitFor(() => renderContractDetails());
-        expect(screen.queryByText('Contract Details Footer Placeholder')).not.toBeInTheDocument();
+        renderContractDetails();
+        await waitFor(() => {
+            expect(screen.queryByText('Contract Details Footer Placeholder')).not.toBeInTheDocument();
+        });
     });
 
     it('should render loader if is_loading === true', async () => {
@@ -252,7 +286,9 @@ describe('ContractDetails', () => {
             contract_info: mockContractInfo,
             is_loading: true,
         });
-        await waitFor(() => renderContractDetails());
-        expect(screen.getByTestId('dt_contract_details_loader')).toBeInTheDocument();
+        renderContractDetails();
+        await waitFor(() => {
+            expect(screen.getByTestId('dt_contract_details_loader')).toBeInTheDocument();
+        });
     });
 });

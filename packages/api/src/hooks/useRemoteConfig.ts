@@ -5,9 +5,9 @@ import { ObjectUtils } from '@deriv-com/utils';
 import initData from '../remote_config.json';
 
 const remoteConfigQuery = async function () {
-    const REMOTE_CONFIG_URL = process.env.REMOTE_CONFIG_URL || '';
+    const REMOTE_CONFIG_URL = (typeof process !== 'undefined' && process.env?.REMOTE_CONFIG_URL) || '';
     if (REMOTE_CONFIG_URL === '') {
-        throw new Error('Remote Config URL is not set!');
+        return null;
     }
     const response = await fetch(REMOTE_CONFIG_URL);
     if (!response.ok) {
@@ -17,7 +17,10 @@ const remoteConfigQuery = async function () {
 };
 
 function useRemoteConfig(enabled = false) {
-    const [data, setData] = useState(initData);
+    // Start with empty object if enabled to ensure we wait for remote fetch
+    // This prevents destructuring errors while maintaining loading state
+    const [data, setData] = useState<typeof initData>(enabled ? ({} as typeof initData) : initData);
+    const [isLoading, setIsLoading] = useState(enabled);
     const isMounted = useRef(false);
 
     useEffect(() => {
@@ -30,22 +33,44 @@ function useRemoteConfig(enabled = false) {
 
     useEffect(() => {
         if (enabled) {
+            setIsLoading(true);
             remoteConfigQuery()
                 .then(async res => {
-                    const resHash = await ObjectUtils.hashObject(res);
-                    const dataHash = await ObjectUtils.hashObject(data);
-                    if (resHash !== dataHash && isMounted.current) {
-                        setData(res);
+                    if (isMounted.current) {
+                        // Use remote config if available, otherwise fallback to initData
+                        if (res) {
+                            // Only update if data is different or this is first fetch (data is empty object)
+                            const isFirstFetch = Object.keys(data || {}).length === 0;
+                            if (isFirstFetch) {
+                                setData(res);
+                            } else {
+                                const resHash = await ObjectUtils.hashObject(res);
+                                const dataHash = await ObjectUtils.hashObject(data);
+                                if (resHash !== dataHash) {
+                                    setData(res);
+                                }
+                            }
+                        } else {
+                            // No response from remote, fallback to initData
+                            setData(initData);
+                        }
+                        setIsLoading(false);
                     }
                 })
                 .catch(error => {
                     // eslint-disable-next-line no-console
                     console.log('Remote Config error: ', error);
+                    // Fallback to initData if remote fetch fails
+                    if (isMounted.current) {
+                        setData(initData);
+                        setIsLoading(false);
+                    }
                 });
         }
-    }, [enabled, data]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [enabled]);
 
-    return { data };
+    return { data, isLoading };
 }
 
 export default useRemoteConfig;

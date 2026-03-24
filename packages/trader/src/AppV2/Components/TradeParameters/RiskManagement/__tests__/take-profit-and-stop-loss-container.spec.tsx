@@ -1,9 +1,9 @@
-import React from 'react';
-
 import { mockStore } from '@deriv/stores';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
+// Import the hook mock to manipulate it in tests
+import useIsVirtualKeyboardOpen from 'AppV2/Hooks/useIsVirtualKeyboardOpen';
 import ModulesProvider from 'Stores/Providers/modules-providers';
 
 import TraderProviders from '../../../../../trader-providers';
@@ -13,7 +13,26 @@ jest.mock('@deriv/shared', () => ({
     ...jest.requireActual('@deriv/shared'),
     WS: {
         forget: jest.fn(),
+        send: jest.fn(),
+        authorized: {
+            send: jest.fn(),
+        },
     },
+}));
+
+jest.mock('AppV2/Hooks/useProposal', () => ({
+    useProposal: jest.fn(() => ({
+        data: {
+            proposal: {},
+        },
+        error: null,
+        isFetching: false,
+    })),
+}));
+
+jest.mock('AppV2/Hooks/useIsVirtualKeyboardOpen', () => ({
+    __esModule: true,
+    default: jest.fn(() => ({ is_key_board_visible: false })),
 }));
 
 describe('TakeProfitAndStopLossContainer', () => {
@@ -35,6 +54,7 @@ describe('TakeProfitAndStopLossContainer', () => {
                 },
             },
         });
+        Element.prototype.scrollIntoView = jest.fn();
     });
 
     afterEach(() => jest.clearAllMocks());
@@ -63,5 +83,25 @@ describe('TakeProfitAndStopLossContainer', () => {
         expect(default_mock_store.modules.trade.onChangeMultiple).not.toBeCalled();
         await userEvent.click(screen.getByText('Save'));
         expect(default_mock_store.modules.trade.onChangeMultiple).toBeCalled();
+    });
+
+    it('should render correctly when keyboard is visible', () => {
+        (useIsVirtualKeyboardOpen as jest.Mock).mockReturnValue({ is_key_board_visible: true });
+
+        mockTakeProfitAndStopLossContainer();
+
+        expect(screen.getByText('Take profit')).toBeInTheDocument();
+        expect(screen.getByText('Stop loss')).toBeInTheDocument();
+        expect(screen.getByText('Save')).toBeInTheDocument();
+    });
+
+    it('should render correctly when keyboard is hidden', () => {
+        (useIsVirtualKeyboardOpen as jest.Mock).mockReturnValue({ is_key_board_visible: false });
+
+        mockTakeProfitAndStopLossContainer();
+
+        expect(screen.getByText('Take profit')).toBeInTheDocument();
+        expect(screen.getByText('Stop loss')).toBeInTheDocument();
+        expect(screen.getByText('Save')).toBeInTheDocument();
     });
 });

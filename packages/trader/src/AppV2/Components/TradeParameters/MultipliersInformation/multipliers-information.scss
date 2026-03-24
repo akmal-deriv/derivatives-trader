@@ -1,0 +1,42 @@
+.multipliers-information {
+    &__container {
+        display: flex;
+        flex-direction: column;
+        gap: var(--core-spacing-400);
+        padding: 0 var(--core-spacing-400);
+    }
+
+    &__row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+
+        &--collapsible {
+            @media (max-width: 768px) {
+                .trade-params__options-wrapper:not(.trade-params__options-wrapper--expanded) & {
+                    display: none;
+                }
+            }
+        }
+    }
+
+    &__label--underlined {
+        text-decoration: underline;
+        text-decoration-style: dotted;
+        text-underline-offset: 0.4rem;
+        cursor: pointer;
+    }
+
+    &__definition {
+        &__wrapper {
+            padding: var(--core-spacing-800) var(--core-spacing-1200);
+            display: flex;
+            flex-direction: column;
+            gap: var(--core-spacing-800);
+        }
+
+        &__title {
+            text-align: center;
+        }
+    }
+}

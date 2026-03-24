@@ -1,4 +1,7 @@
 .duration-container {
+    min-height: 37rem;
+    display: flex;
+    flex-direction: column;
     &__chips {
         display: flex;
         width: 100vw;
@@ -11,10 +14,34 @@
         min-height: var(--core-spacing-1600);
         white-space: nowrap;
         scrollbar-width: none;
+
+        @include rtl {
+            direction: rtl;
+        }
         &::-webkit-scrollbar {
             display: none;
         }
         -ms-overflow-style: none;
+    }
+    &__tab-selector {
+        padding: var(--core-spacing-800);
+    }
+    .value-chips {
+        padding: 0 var(--core-spacing-800);
+
+        &__grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        &__chip {
+            height: 4.8rem;
+        }
+    }
+    .duration-input-desktop__wrapper {
+        padding: 0 var(--core-spacing-800) var(--core-spacing-800);
+        flex: 1;
+        display: flex;
+        flex-direction: column;
     }
     &__wheel-picker-container {
         padding: 0 var(--component-actionSheet-spacing-padding-md);
@@ -33,7 +60,7 @@
         flex-direction: column;
         gap: var(--core-spacing-400);
         &__expiry {
-            margin-top: 102px;
+            margin-top: 8.2rem;
             display: flex;
             justify-content: space-between;
         }
@@ -73,5 +100,8 @@
     }
     .react-calendar__navigation__label {
         pointer-events: none;
+    }
+    .react-calendar__tile {
+        position: relative;
     }
 }

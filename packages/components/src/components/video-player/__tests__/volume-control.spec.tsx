@@ -29,15 +29,16 @@ describe('<VolumeControl />', () => {
         expect(container).not.toBeEmptyDOMElement();
     });
 
-    it('should call toggleMute with proper argument if user clicked on volume button in order to mute/unmute', () => {
+    it('should call toggleMute with proper argument if user clicked on volume button in order to mute/unmute', async () => {
+        const user = userEvent.setup();
         const { rerender } = render(<VolumeControl {...mocked_props} />);
 
         const volume_button = screen.getByRole('button');
-        userEvent.click(volume_button);
+        await user.click(volume_button);
         expect(mocked_props.toggleMute).toBeCalledWith(true);
 
         rerender(<VolumeControl {...mocked_props} />);
-        userEvent.click(volume_button);
+        await user.click(volume_button);
         expect(mocked_props.toggleMute).toBeCalledWith(false);
     });
 
@@ -77,12 +78,13 @@ describe('<VolumeControl />', () => {
         expect(screen.queryByTestId(volume_dot)).not.toBeInTheDocument();
     });
 
-    it('should call onVolumeChange if user clicked (rewind) on volume bar', () => {
+    it('should call onVolumeChange if user clicked (rewind) on volume bar', async () => {
+        const user = userEvent.setup();
         render(<VolumeControl {...mocked_props} />);
         const volume_button = screen.getByRole('button');
 
         fireEvent.mouseOver(volume_button);
-        userEvent.click(screen.getByTestId(volume_bar));
+        await user.click(screen.getByTestId(volume_bar));
 
         expect(mocked_props.onVolumeChange).toBeCalled();
     });

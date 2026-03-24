@@ -17,7 +17,7 @@ const StopLoss = observer(() => {
         <RiskManagementItem
             label={<Localize i18n_default_text='Stop loss' />}
             modal_body_content={
-                <Localize i18n_default_text='When your loss reaches or exceeds the set amount, your trade will be closed automatically.' />
+                <Localize i18n_default_text='When your loss reaches or exceeds this amount, your trade will be closed automatically.' />
             }
             value={limit_order?.stop_loss?.order_amount}
             type='stop_loss'

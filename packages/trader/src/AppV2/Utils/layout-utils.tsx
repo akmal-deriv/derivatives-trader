@@ -1,14 +1,18 @@
 import { TCommonStoreServicesError } from '@deriv/stores/types';
 
+import { isDigitTradeType } from 'Modules/Trading/Helpers/digits';
+
 import { getTradeParams } from './trade-params-utils';
 
 export const HEIGHT = {
-    ADVANCED_FOOTER: 136,
+    HEADER: 56,
+    TRADE_TYPE: 48,
+    MARKET_SELECTOR: 58,
+    CHART_STATS: 82,
+    TRADE_PARAM_SHEET: 170,
     ADDITIONAL_INFO: 30,
+    DIGIT_INFO: 56,
     BOTTOM_NAV: 56,
-    CHART_STATS: 56,
-    HEADER: 40,
-    PADDING: 24,
 };
 
 export const ASPECT_RATIO = 0.5625;
@@ -39,19 +43,36 @@ export const getChartHeight = ({
     is_accumulator: boolean;
     symbol: string;
 }) => {
-    const height = window.innerHeight - HEIGHT.HEADER - HEIGHT.BOTTOM_NAV - HEIGHT.ADVANCED_FOOTER - HEIGHT.PADDING;
+    let height =
+        window.innerHeight -
+        HEIGHT.HEADER -
+        HEIGHT.TRADE_TYPE -
+        HEIGHT.MARKET_SELECTOR -
+        HEIGHT.TRADE_PARAM_SHEET -
+        HEIGHT.BOTTOM_NAV;
     const isVisible = (component_key: string) =>
         isTradeParamVisible({ component_key, symbol, has_cancellation, contract_type });
 
-    if (is_accumulator) return height - HEIGHT.CHART_STATS;
+    if (is_accumulator) {
+        height -= HEIGHT.CHART_STATS;
+    }
+
+    if (isDigitTradeType(contract_type)) {
+        height -= HEIGHT.DIGIT_INFO;
+    }
+
     if (
         isVisible('expiration') ||
         isVisible('mult_info_display') ||
         isVisible('payout_per_point_info') ||
         isVisible('allow_equals') ||
-        isVisible('payout')
-    )
-        return height - HEIGHT.ADDITIONAL_INFO;
+        isVisible('payout') ||
+        isVisible('barrier_info') ||
+        isVisible('multipliers_info')
+    ) {
+        height -= HEIGHT.ADDITIONAL_INFO;
+    }
+
     return height;
 };
 

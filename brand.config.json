@@ -1,7 +1,7 @@
 {
     "brand_name": "Deriv",
     "brand_logo": "BrandDerivLogoCoralIcon",
-    "brand_domain": "deriv.com",
+    "brand_domains": ["deriv.com", "deriv.be", "deriv.me"],
     "brand_hostname": {
         "staging": "staging-home.deriv.com/dashboard",
         "production": "home.deriv.com/dashboard"
@@ -11,18 +11,22 @@
         "logo": "IcRebrandingDerivTrader",
         "hostname": {
             "staging": "staging-dtrader.deriv.com",
+            "beta": "beta-dtrader.deriv.com",
             "production": "dtrader.deriv.com"
         },
-        "websocket": {
-            "staging": {
-                "real": "qa197.deriv.dev",
-                "demo": "qa194.deriv.dev"
-            },
-            "production": {
-                "real": "realv2.derivws.com",
-                "demo": "demov2.derivws.com"
-            }
-        }
+        "help_centre_url": "https://trade.deriv.com/help-centre"
+    },
+    "auth": {
+        "staging": "https://staging-auth.deriv.com",
+        "production": "https://auth.deriv.com"
+    },
+    "api_core": {
+        "staging": "staging-api-core.deriv.com",
+        "production": "api-core.deriv.com"
+    },
+    "api": {
+        "staging": "staging-api.deriv.com",
+        "production": "api.deriv.com"
     },
     "colors": {
         "primary": "#ff444f",
@@ -33,7 +37,7 @@
         "warning": "#ffad3a",
         "info": "#2196f3",
         "neutral": "#999999",
-        "black": "#0e0e0e",
+        "black": "#181c25",
         "white": "#ffffff"
     },
     "color_variants": {

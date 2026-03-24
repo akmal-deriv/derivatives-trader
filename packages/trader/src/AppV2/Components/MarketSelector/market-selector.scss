@@ -4,7 +4,22 @@
     gap: var(--core-spacing-400);
 
     &__container {
-        padding: 0 var(--core-spacing-800);
+        position: absolute;
+        padding: var(--core-spacing-800);
+        background: var(--core-color-solid-slate-50);
+        top: 8rem;
+        left: 8.8rem;
+
+        @include mobile-screen {
+            position: relative;
+            background: unset;
+            padding: 0 var(--core-spacing-800);
+            top: unset;
+            left: unset;
+        }
+    }
+    &__skeleton {
+        padding: 0 var(--semantic-spacing-general-sm);
     }
     &-info {
         display: flex;

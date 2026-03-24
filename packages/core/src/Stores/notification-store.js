@@ -3,9 +3,11 @@ import { action, computed, makeObservable, observable, reaction } from 'mobx';
 import { StaticUrl } from '@deriv/components';
 import {
     extractInfoFromShortcode,
+    getBrandUrl,
     getEndTime,
     getMarketName,
     getPathname,
+    getPlatformName,
     getTotalProfit,
     getTradeTypeName,
     getUrlBase,
@@ -13,10 +15,8 @@ import {
     isMobile,
     isMultiplierContract,
     LocalStore,
-    unique,
-    getPlatformName,
-    getBrandUrl,
     trackAnalyticsEvent,
+    unique,
 } from '@deriv/shared';
 import { Localize, localize } from '@deriv-com/translations';
 
@@ -284,9 +284,9 @@ export default class NotificationStore extends BaseStore {
     }
 
     resetVirtualBalanceNotification(loginid) {
-        const { current_account, is_logged_in } = this.root_store.client;
+        const { current_account, is_logged_in, is_virtual } = this.root_store.client;
         if (!is_logged_in) return;
-        if (!current_account?.is_virtual || current_account?.loginid !== loginid) return;
+        if (!is_virtual || current_account?.loginid !== loginid) return;
         const min_reset_limit = 1000;
         const max_reset_limit = 999000;
         const balance = parseInt(current_account?.balance);

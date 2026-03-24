@@ -1,3 +1,26 @@
+.stake-container {
+    min-height: 37rem;
+    display: flex;
+    flex-direction: column;
+
+    &__tab-selector {
+        padding: 0 var(--core-spacing-800);
+        margin-bottom: var(--core-spacing-600);
+    }
+
+    .value-chips {
+        padding: 0 var(--core-spacing-800);
+
+        &__grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        &__chip {
+            height: 4.8rem;
+        }
+    }
+}
+
 .stake-content {
     height: 23.6rem;
     padding: 0 var(--component-actionSheet-spacing-padding-md);

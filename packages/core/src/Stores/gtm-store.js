@@ -1,6 +1,6 @@
 import { action, computed, makeObservable } from 'mobx';
 
-import { epochToMoment, getPlatformName, getProductionPlatformHostname, toMoment } from '@deriv/shared';
+import { epochToMoment, getPlatformName, isProduction, toMoment } from '@deriv/shared';
 import { getInitialLanguage } from '@deriv-com/translations';
 
 import BaseStore from './base-store';
@@ -8,7 +8,7 @@ import BaseStore from './base-store';
 import BinarySocket from '_common/base/socket_base';
 
 export default class GTMStore extends BaseStore {
-    is_gtm_applicable = window.location.hostname === getProductionPlatformHostname();
+    is_gtm_applicable = isProduction();
 
     constructor(root_store) {
         super({ root_store });
@@ -52,7 +52,7 @@ export default class GTMStore extends BaseStore {
      */
     async pushDataLayer(data) {
         if (this.is_gtm_applicable && this.root_store?.client?.is_logged_in) {
-            BinarySocket?.wait('authorize')?.then(() => {
+            BinarySocket?.wait('balance')?.then(() => {
                 const gtm_object = { ...this.common_variables, ...data };
                 if (!gtm_object.event) return;
 

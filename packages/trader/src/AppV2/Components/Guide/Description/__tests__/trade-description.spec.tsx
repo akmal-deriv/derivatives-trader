@@ -1,7 +1,4 @@
-import React from 'react';
-import Loadable from 'react-loadable';
-
-import { render, screen } from '@testing-library/react';
+import { render, waitFor } from '@testing-library/react';
 
 import { CONTRACT_LIST } from 'AppV2/Utils/trade-types-utils';
 
@@ -26,61 +23,102 @@ jest.mock('../ContractDescription/touch-no-touch-trade-description', () => jest.
 jest.mock('../ContractDescription/turbos-trade-description', () => jest.fn(() => 'mockTurbosTradeDescription'));
 jest.mock('../ContractDescription/vanillas-trade-description', () => jest.fn(() => 'mockVanillasTradeDescription'));
 
-Loadable.preloadAll();
-
 describe('TradeDescription', () => {
-    it('should render mockAccumulatorTradeDescription when trade category is "CONTRACT_LIST.ACCUMULATORS"', () => {
-        render(<TradeDescription contract_type={CONTRACT_LIST.ACCUMULATORS} onTermClick={jest.fn()} />);
-        expect(screen.getByText(/mockAccumulatorTradeDescription/i)).toBeInTheDocument();
+    it('should render mockAccumulatorTradeDescription when trade category is "CONTRACT_LIST.ACCUMULATORS"', async () => {
+        const { container } = render(
+            <TradeDescription contract_type={CONTRACT_LIST.ACCUMULATORS} onTermClick={jest.fn()} />
+        );
+        await waitFor(() => {
+            expect(container).toHaveTextContent('mockAccumulatorTradeDescription');
+        });
     });
 
-    it('should render mockEvenOddTradeDescription when trade category is "CONTRACT_LIST.EVEN_ODD"', () => {
-        render(<TradeDescription contract_type={CONTRACT_LIST.EVEN_ODD} onTermClick={jest.fn()} />);
-        expect(screen.getByText(/mockEvenOddTradeDescription/i)).toBeInTheDocument();
+    it('should render mockEvenOddTradeDescription when trade category is "CONTRACT_LIST.EVEN_ODD"', async () => {
+        const { container } = render(
+            <TradeDescription contract_type={CONTRACT_LIST.EVEN_ODD} onTermClick={jest.fn()} />
+        );
+        await waitFor(() => {
+            expect(container).toHaveTextContent('mockEvenOddTradeDescription');
+        });
     });
 
-    it('should render mockHigherLowerTradeDescription when trade category is "CONTRACT_LIST.HIGHER_LOWER"', () => {
-        render(<TradeDescription contract_type={CONTRACT_LIST.HIGHER_LOWER} onTermClick={jest.fn()} />);
-        expect(screen.getByText(/mockHigherLowerTradeDescription/i)).toBeInTheDocument();
+    it('should render mockHigherLowerTradeDescription when trade category is "CONTRACT_LIST.HIGHER_LOWER"', async () => {
+        const { container } = render(
+            <TradeDescription contract_type={CONTRACT_LIST.HIGHER_LOWER} onTermClick={jest.fn()} />
+        );
+        await waitFor(() => {
+            expect(container).toHaveTextContent('mockHigherLowerTradeDescription');
+        });
     });
 
-    it('should render mockMatchesDiffersTradeDescription when trade category is "CONTRACT_LIST.MATCHES_DIFFERS"', () => {
-        render(<TradeDescription contract_type={CONTRACT_LIST.MATCHES_DIFFERS} onTermClick={jest.fn()} />);
-        expect(screen.getByText(/mockMatchesDiffersTradeDescription/i)).toBeInTheDocument();
+    it('should render mockMatchesDiffersTradeDescription when trade category is "CONTRACT_LIST.MATCHES_DIFFERS"', async () => {
+        const { container } = render(
+            <TradeDescription contract_type={CONTRACT_LIST.MATCHES_DIFFERS} onTermClick={jest.fn()} />
+        );
+        await waitFor(() => {
+            expect(container).toHaveTextContent('mockMatchesDiffersTradeDescription');
+        });
     });
 
-    it('should render mockMultipliersTradeDescription when trade category is "CONTRACT_LIST.MULTIPLIERS"', () => {
-        render(<TradeDescription contract_type={CONTRACT_LIST.MULTIPLIERS} onTermClick={jest.fn()} />);
-        expect(screen.getByText(/mockMultipliersTradeDescription/i)).toBeInTheDocument();
+    it('should render mockMultipliersTradeDescription when trade category is "CONTRACT_LIST.MULTIPLIERS"', async () => {
+        const { container } = render(
+            <TradeDescription contract_type={CONTRACT_LIST.MULTIPLIERS} onTermClick={jest.fn()} />
+        );
+        await waitFor(() => {
+            expect(container).toHaveTextContent('mockMultipliersTradeDescription');
+        });
     });
 
-    it('should render mockOverUnderTradeDescription when trade category is "CONTRACT_LIST.OVER_UNDER"', () => {
-        render(<TradeDescription contract_type={CONTRACT_LIST.OVER_UNDER} onTermClick={jest.fn()} />);
-        expect(screen.getByText(/mockOverUnderTradeDescription/i)).toBeInTheDocument();
+    it('should render mockOverUnderTradeDescription when trade category is "CONTRACT_LIST.OVER_UNDER"', async () => {
+        const { container } = render(
+            <TradeDescription contract_type={CONTRACT_LIST.OVER_UNDER} onTermClick={jest.fn()} />
+        );
+        await waitFor(() => {
+            expect(container).toHaveTextContent('mockOverUnderTradeDescription');
+        });
     });
 
-    it('should render mockRiseFallTradeDescription when trade category is "CONTRACT_LIST.RISE_FALL"', () => {
-        render(<TradeDescription contract_type={CONTRACT_LIST.RISE_FALL} onTermClick={jest.fn()} />);
-        expect(screen.getByText(/mockRiseFallTradeDescription/i)).toBeInTheDocument();
+    it('should render mockRiseFallTradeDescription when trade category is "CONTRACT_LIST.RISE_FALL"', async () => {
+        const { container } = render(
+            <TradeDescription contract_type={CONTRACT_LIST.RISE_FALL} onTermClick={jest.fn()} />
+        );
+        await waitFor(() => {
+            expect(container).toHaveTextContent('mockRiseFallTradeDescription');
+        });
     });
 
-    it('should render mockTouchTradeDescription when trade category is "CONTRACT_LIST.TOUCH_NO_TOUCH"', () => {
-        render(<TradeDescription contract_type={CONTRACT_LIST.TOUCH_NO_TOUCH} onTermClick={jest.fn()} />);
-        expect(screen.getByText(/mockTouchTradeDescription/i)).toBeInTheDocument();
+    it('should render mockTouchTradeDescription when trade category is "CONTRACT_LIST.TOUCH_NO_TOUCH"', async () => {
+        const { container } = render(
+            <TradeDescription contract_type={CONTRACT_LIST.TOUCH_NO_TOUCH} onTermClick={jest.fn()} />
+        );
+        await waitFor(() => {
+            expect(container).toHaveTextContent('mockTouchTradeDescription');
+        });
     });
 
-    it('should render mockTurbosTradeDescription when trade category is "CONTRACT_LIST.TURBOS"', () => {
-        render(<TradeDescription contract_type={CONTRACT_LIST.TURBOS} onTermClick={jest.fn()} />);
-        expect(screen.getByText(/mockTurbosTradeDescription/i)).toBeInTheDocument();
+    it('should render mockTurbosTradeDescription when trade category is "CONTRACT_LIST.TURBOS"', async () => {
+        const { container } = render(<TradeDescription contract_type={CONTRACT_LIST.TURBOS} onTermClick={jest.fn()} />);
+        await waitFor(() => {
+            expect(container).toHaveTextContent('mockTurbosTradeDescription');
+        });
     });
 
-    it('should render mockVanillasTradeDescription when trade category is "CONTRACT_LIST.VANILLAS"', () => {
-        render(<TradeDescription contract_type={CONTRACT_LIST.VANILLAS} onTermClick={jest.fn()} />);
-        expect(screen.getByText(/mockVanillasTradeDescription/i)).toBeInTheDocument();
+    it('should render mockVanillasTradeDescription when trade category is "CONTRACT_LIST.VANILLAS"', async () => {
+        const { container } = render(
+            <TradeDescription contract_type={CONTRACT_LIST.VANILLAS} onTermClick={jest.fn()} />
+        );
+
+        // Wait for the component to be rendered
+        await waitFor(() => {
+            // Check if the text content of the container includes the mock text
+            expect(container).toHaveTextContent('mockVanillasTradeDescription');
+        });
     });
 
-    it('should render "description is not found" when contract_type was not passed', () => {
-        render(<TradeDescription contract_type='some_trade_type' onTermClick={jest.fn()} />);
-        expect(screen.getByText(/Description not found./i)).toBeInTheDocument();
+    it('should render "description is not found" when contract_type was not passed', async () => {
+        const { container } = render(<TradeDescription contract_type='some_trade_type' onTermClick={jest.fn()} />);
+        await waitFor(() => {
+            expect(container).toHaveTextContent('Description not found.');
+        });
     });
 });

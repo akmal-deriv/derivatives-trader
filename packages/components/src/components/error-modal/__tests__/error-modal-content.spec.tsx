@@ -1,5 +1,7 @@
 import React from 'react';
+
 import { render, screen } from '@testing-library/react';
+
 import ErrorModalContent from '../error-modal-content';
 
 describe('<ErrorModalContent />', () => {
@@ -23,12 +25,12 @@ describe('<ErrorModalContent />', () => {
         expect(error_description).toBeInTheDocument();
     });
 
-    it('renders the error message', () => {
+    it('renders the error message with correct class', () => {
         render(<ErrorModalContent error_message={error_message} />);
         const error_description = screen.getByText(
             /You have reached the rate limit of requests per second. Please try later./i
         );
-        expect(error_description).toHaveClass('dc-text', 'da-icon-with-message__text__desc');
+        expect(error_description).toHaveClass('dc-text', 'error-modal__content');
     });
 
     it('should renders the refresh button', () => {

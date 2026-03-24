@@ -33,7 +33,7 @@ const AllowEquals = ({ onChange, is_allow_equal, has_equals_only, className }: T
                 disabled={has_equals_only}
             />
             <Text as='p' size='xxxs'>
-                <Localize i18n_default_text='Win payout if exit spot is also equal to entry spot.' />
+                <Localize i18n_default_text='Win a payout if the exit spot is equal to the entry spot.' />
             </Text>
         </div>
     );

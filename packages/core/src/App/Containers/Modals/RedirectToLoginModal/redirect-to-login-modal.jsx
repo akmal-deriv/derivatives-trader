@@ -20,7 +20,7 @@ const ModalHeader = ({ header }) => {
 };
 
 const RedirectToLoginModal = observer(() => {
-    const { client, ui } = useStore();
+    const { client, common, ui } = useStore();
     const { disableApp, enableApp, is_loading } = ui;
     const { is_logged_in, logout } = client;
     const [is_visible, setVisible] = React.useState(false);
@@ -30,7 +30,7 @@ const RedirectToLoginModal = observer(() => {
     const showModal = () => {
         setVisible(true);
         if (window.localStorage.getItem('is_redirecting') !== 'true') {
-            redirectToLogin();
+            redirectToLogin(common.current_language);
         }
     };
 

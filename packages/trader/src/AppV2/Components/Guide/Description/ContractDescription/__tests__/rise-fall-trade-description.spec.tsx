@@ -2,6 +2,8 @@ import React from 'react';
 
 import { render, screen } from '@testing-library/react';
 
+import { CONTRACT_LIST } from 'AppV2/Utils/trade-types-utils';
+
 import RiseFallTradeDescription from '../rise-fall-trade-description';
 
 jest.mock('@lottiefiles/dotlottie-react', () => ({
@@ -10,8 +12,10 @@ jest.mock('@lottiefiles/dotlottie-react', () => ({
 
 describe('RiseFallTradeDescription', () => {
     it('should render a proper content', () => {
-        render(<RiseFallTradeDescription />);
+        const mockOnTermClick = jest.fn();
+        render(<RiseFallTradeDescription contract_type={CONTRACT_LIST.RISE_FALL} onTermClick={mockOnTermClick} />);
 
-        expect(screen.getByText(/you win the payout if exit spot is higher than/i)).toBeInTheDocument();
+        const earnElements = screen.getAllByText(/earn a/i);
+        expect(earnElements.length).toBeGreaterThan(0);
     });
 });

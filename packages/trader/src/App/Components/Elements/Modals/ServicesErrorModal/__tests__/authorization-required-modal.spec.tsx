@@ -47,6 +47,15 @@ jest.mock('@deriv/shared', () => ({
     redirectToSignUp: jest.fn(),
 }));
 
+jest.mock('@deriv/stores', () => ({
+    ...jest.requireActual('@deriv/stores'),
+    useStore: jest.fn(() => ({
+        common: {
+            current_language: 'EN',
+        },
+    })),
+}));
+
 describe('<AuthorizationRequiredModal />', () => {
     const mocked_props = {
         is_visible: true,
@@ -64,12 +73,12 @@ describe('<AuthorizationRequiredModal />', () => {
     it('redirectToLogin should be called when Log in button is clicked', async () => {
         render(<AuthorizationRequiredModal {...mocked_props} />);
         await userEvent.click(screen.getByText('Log in'));
-        expect(redirectToLogin).toHaveBeenCalled();
+        expect(redirectToLogin).toHaveBeenCalledWith('EN');
     });
     it('redirectToSignUp should be called when Log in button is clicked', async () => {
         render(<AuthorizationRequiredModal {...mocked_props} />);
         await userEvent.click(screen.getByText(/create free account/i));
-        expect(redirectToSignUp).toHaveBeenCalled();
+        expect(redirectToSignUp).toHaveBeenCalledWith('EN');
     });
     it('should return null when is_visible is false', () => {
         mocked_props.is_visible = false;

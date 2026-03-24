@@ -1,6 +1,8 @@
 import React from 'react';
+
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+
 import PlaybackRateControl from '../playback-rate-control';
 
 const mocked_props = {
@@ -18,7 +20,7 @@ describe('<PlaybackRateControl />', () => {
         expect(container).not.toBeEmptyDOMElement();
     });
 
-    it('should render all available options of playback rate if user clicked on default one', () => {
+    it('should render all available options of playback rate if user clicked on default one', async () => {
         render(<PlaybackRateControl {...mocked_props} />);
 
         playback_rate_list.forEach(item =>
@@ -26,7 +28,7 @@ describe('<PlaybackRateControl />', () => {
                 ? expect(screen.getByText(item)).toBeInTheDocument()
                 : expect(screen.queryByText(item)).not.toBeInTheDocument()
         );
-        userEvent.click(screen.getByText(default_selected_item));
+        await userEvent.click(screen.getByText(default_selected_item));
 
         playback_rate_list.forEach(item =>
             item === default_selected_item
@@ -35,12 +37,12 @@ describe('<PlaybackRateControl />', () => {
         );
     });
 
-    it('should call onPlaybackRateChange if user chooses another option', () => {
+    it('should call onPlaybackRateChange if user chooses another option', async () => {
         render(<PlaybackRateControl {...mocked_props} />);
 
         expect(mocked_props.onPlaybackRateChange).not.toBeCalled();
-        userEvent.click(screen.getByText(default_selected_item));
-        userEvent.click(screen.getByText(playback_rate_list[0]));
+        await userEvent.click(screen.getByText(default_selected_item));
+        await userEvent.click(screen.getByText(playback_rate_list[0]));
 
         expect(mocked_props.onPlaybackRateChange).toBeCalled();
     });

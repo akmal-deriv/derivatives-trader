@@ -13,6 +13,11 @@ jest.mock('@deriv/quill-icons', () => ({
     ...jest.requireActual('@deriv/quill-icons'),
 }));
 
+jest.mock('@deriv-com/ui', () => ({
+    ...jest.requireActual('@deriv-com/ui'),
+    useDevice: jest.fn(() => ({ isDesktop: false })),
+}));
+
 describe('Barrier Component', () => {
     let default_mock_store: ReturnType<typeof mockStore>;
 
@@ -116,6 +121,12 @@ describe('Barrier Component', () => {
             default_mock_store.modules.trade.trade_type_tab = 'CALL';
             mockBarriers();
             // Component should still render with errors
+            expect(screen.getByRole('textbox')).toBeInTheDocument();
+        });
+
+        it('should not crash when validation_errors does not contain barrier_1 key', () => {
+            default_mock_store.modules.trade.validation_errors = {};
+            expect(() => mockBarriers()).not.toThrow();
             expect(screen.getByRole('textbox')).toBeInTheDocument();
         });
 

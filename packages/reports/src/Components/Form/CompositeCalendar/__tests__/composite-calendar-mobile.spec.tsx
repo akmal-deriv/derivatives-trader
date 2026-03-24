@@ -1,8 +1,10 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import CompositeCalendarMobile from '../composite-calendar-mobile';
+
 import { toMoment } from '@deriv/shared';
+import { act, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+
+import CompositeCalendarMobile from '../composite-calendar-mobile';
 
 const startDate = 'Start date';
 const endDate = 'End date';
@@ -38,22 +40,30 @@ jest.mock('@deriv/components', () => ({
 }));
 
 describe('CompositeCalendarMobile', () => {
-    const checkModalOpenCloseFunctionality = (buttonName?: string) => {
-        userEvent.click(screen.getByRole('textbox'));
+    const checkModalOpenCloseFunctionality = async (buttonName?: string) => {
+        await act(async () => {
+            await userEvent.click(screen.getByRole('textbox'));
+        });
 
-        radioButtonText.forEach(item => expect(screen.getByText(item)).toBeInTheDocument());
-        expect(screen.getByText(customDateRangeText)).toBeInTheDocument();
-        expect(screen.getByPlaceholderText(startDate)).toBeInTheDocument();
-        expect(screen.getByText(backToTodayButtonText)).toBeInTheDocument();
+        await waitFor(() => {
+            radioButtonText.forEach(item => expect(screen.getByText(item)).toBeInTheDocument());
+            expect(screen.getByText(customDateRangeText)).toBeInTheDocument();
+            expect(screen.getByPlaceholderText(startDate)).toBeInTheDocument();
+            expect(screen.getByText(backToTodayButtonText)).toBeInTheDocument();
+        });
 
         if (!buttonName) return;
 
-        userEvent.click(screen.getByText(buttonName));
+        await act(async () => {
+            await userEvent.click(screen.getByText(buttonName));
+        });
 
-        radioButtonText.forEach(item => expect(screen.queryByText(item)).not.toBeInTheDocument());
-        expect(screen.queryByText(customDateRangeText)).not.toBeInTheDocument();
-        expect(screen.queryByPlaceholderText(startDate)).not.toBeInTheDocument();
-        expect(screen.queryByText(backToTodayButtonText)).not.toBeInTheDocument();
+        await waitFor(() => {
+            radioButtonText.forEach(item => expect(screen.queryByText(item)).not.toBeInTheDocument());
+            expect(screen.queryByText(customDateRangeText)).not.toBeInTheDocument();
+            expect(screen.queryByPlaceholderText(startDate)).not.toBeInTheDocument();
+            expect(screen.queryByText(backToTodayButtonText)).not.toBeInTheDocument();
+        });
     };
 
     it('should render the input field by default and not render MobileDialog with children if the Modal is closed (default state)', () => {
@@ -66,7 +76,7 @@ describe('CompositeCalendarMobile', () => {
         expect(screen.queryByText(backToTodayButtonText)).not.toBeInTheDocument();
     });
 
-    it('should render functioning component if props "from" and "to" are equal to 0: MobileDialog should be opened if user clicks on the calendar field', () => {
+    it('should render functioning component if props "from" and "to" are equal to 0: MobileDialog should be opened if user clicks on the calendar field', async () => {
         render(<CompositeCalendarMobile {...mockDefaultProps} from={0} to={0} />);
 
         radioButtonText.forEach(item => expect(screen.queryByText(item)).not.toBeInTheDocument());
@@ -74,76 +84,130 @@ describe('CompositeCalendarMobile', () => {
         expect(screen.queryByPlaceholderText(startDate)).not.toBeInTheDocument();
         expect(screen.queryByText(backToTodayButtonText)).not.toBeInTheDocument();
 
-        checkModalOpenCloseFunctionality();
+        await checkModalOpenCloseFunctionality();
     });
 
-    it('should close the MobileDialog if user clicks on Cancel button', () => {
+    it('should close the MobileDialog if user clicks on Cancel button', async () => {
         render(<CompositeCalendarMobile {...mockDefaultProps} />);
 
-        checkModalOpenCloseFunctionality('Cancel');
+        await checkModalOpenCloseFunctionality('Cancel');
     });
 
-    it('should close the MobileDialog if user clicks on Close button', () => {
+    it('should close the MobileDialog if user clicks on Close button', async () => {
         render(<CompositeCalendarMobile {...mockDefaultProps} />);
 
-        checkModalOpenCloseFunctionality('Close MobileDialog');
+        await checkModalOpenCloseFunctionality('Close MobileDialog');
     });
 
-    it('should close the MobileDialog if user clicks on "Back to today" button', () => {
+    it('should close the MobileDialog if user clicks on "Back to today" button', async () => {
         render(<CompositeCalendarMobile {...mockDefaultProps} />);
 
-        checkModalOpenCloseFunctionality(backToTodayButtonText);
+        await checkModalOpenCloseFunctionality(backToTodayButtonText);
     });
 
-    it('should apply new value and set it to the input if user chooses some radio button value and clicks on OK button', () => {
-        render(<CompositeCalendarMobile {...mockDefaultProps} />);
-
-        const input = screen.getByRole('textbox');
-
-        expect(input).toHaveValue(radioButtonText[0]);
-        userEvent.click(input);
-        userEvent.click(screen.getByText(radioButtonText[1]));
-
-        userEvent.click(screen.getByText('OK'));
-        expect(input).toHaveValue(radioButtonText[1]);
-    });
-
-    it('should apply custom value and set it to the input if user clicks on Custom radio button value and clicks on OK button', () => {
+    it('should apply new value and set it to the input if user chooses some radio button value and clicks on OK button', async () => {
         render(<CompositeCalendarMobile {...mockDefaultProps} />);
 
         const input = screen.getByRole('textbox');
 
         expect(input).toHaveValue(radioButtonText[0]);
-        userEvent.click(input);
-        userEvent.click(screen.getByText(customDateRangeText));
 
-        userEvent.click(screen.getByText('OK'));
-        expect(input).toHaveValue('03 Oct 2023 - 10 May 2024');
+        await act(async () => {
+            await userEvent.click(input);
+        });
+
+        await waitFor(() => {
+            expect(screen.getByText(radioButtonText[1])).toBeInTheDocument();
+        });
+
+        await act(async () => {
+            await userEvent.click(screen.getByText(radioButtonText[1]));
+        });
+
+        await act(async () => {
+            await userEvent.click(screen.getByText('OK'));
+        });
+
+        await waitFor(() => {
+            expect(input).toHaveValue(radioButtonText[1]);
+        });
     });
 
-    it('should apply date which user has typed in DatePicker for Start date', () => {
+    it('should apply custom value and set it to the input if user clicks on Custom radio button value and clicks on OK button', async () => {
         render(<CompositeCalendarMobile {...mockDefaultProps} />);
 
-        userEvent.click(screen.getByRole('textbox'));
+        const input = screen.getByRole('textbox');
+
+        expect(input).toHaveValue(radioButtonText[0]);
+
+        await act(async () => {
+            await userEvent.click(input);
+        });
+
+        await waitFor(() => {
+            expect(screen.getByText(customDateRangeText)).toBeInTheDocument();
+        });
+
+        await act(async () => {
+            await userEvent.click(screen.getByText(customDateRangeText));
+        });
+
+        await act(async () => {
+            await userEvent.click(screen.getByText('OK'));
+        });
+
+        await waitFor(() => {
+            expect(input).toHaveValue('03 Oct 2023 - 10 May 2024');
+        });
+    });
+
+    it('should apply date which user has typed in DatePicker for Start date', async () => {
+        render(<CompositeCalendarMobile {...mockDefaultProps} />);
+
+        await act(async () => {
+            await userEvent.click(screen.getByRole('textbox'));
+        });
+
+        await waitFor(() => {
+            expect(screen.getByPlaceholderText(startDate)).toBeInTheDocument();
+        });
 
         const inputForStartDate = screen.getByPlaceholderText(startDate);
         expect(inputForStartDate).toHaveValue('03 Oct 2023');
 
         const newDate = toMoment().format('DD MMM YYYY');
-        userEvent.type(inputForStartDate, newDate);
-        expect(inputForStartDate).toHaveValue(newDate);
+
+        await act(async () => {
+            await userEvent.type(inputForStartDate, newDate);
+        });
+
+        await waitFor(() => {
+            expect(inputForStartDate).toHaveValue(newDate);
+        });
     });
 
-    it('should apply date which user has typed in DatePicker for End date', () => {
+    it('should apply date which user has typed in DatePicker for End date', async () => {
         render(<CompositeCalendarMobile {...mockDefaultProps} />);
 
-        userEvent.click(screen.getByRole('textbox'));
+        await act(async () => {
+            await userEvent.click(screen.getByRole('textbox'));
+        });
+
+        await waitFor(() => {
+            expect(screen.getByPlaceholderText(endDate)).toBeInTheDocument();
+        });
 
         const inputForEndDate = screen.getByPlaceholderText(endDate);
         expect(inputForEndDate).toHaveValue('10 May 2024');
 
         const newDate = toMoment().format('DD MMM YYYY');
-        userEvent.type(inputForEndDate, newDate);
-        expect(inputForEndDate).toHaveValue(newDate);
+
+        await act(async () => {
+            await userEvent.type(inputForEndDate, newDate);
+        });
+
+        await waitFor(() => {
+            expect(inputForEndDate).toHaveValue(newDate);
+        });
     });
 });

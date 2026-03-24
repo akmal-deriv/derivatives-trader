@@ -1,9 +1,11 @@
-import classNames from 'classnames';
 import React from 'react';
-import ThemedScrollbars from '../themed-scrollbars';
+import classNames from 'classnames';
+
 import { clickAndKeyEventHandler } from '@deriv/shared';
-import { TTableRowItem } from '../types/common.types';
+
 import { useDebounce } from '../../hooks/use-debounce';
+import ThemedScrollbars from '../themed-scrollbars';
+import { TTableRowItem } from '../types/common.types';
 
 type TTableRowIndex = {
     replace: TTableRowItem | undefined;
@@ -19,7 +21,7 @@ const TableRowInfo = ({ replace, is_footer, cells, className, is_dynamic_height,
     const debouncedHideDetails = useDebounce(() => setShowDetails(false), 5000);
 
     const toggleDetails = () => {
-        if (replace) {
+        if (replace && !(replace as any)?.disabled) {
             setShowDetails(!show_details);
             debouncedHideDetails();
         }
@@ -35,11 +37,14 @@ const TableRowInfo = ({ replace, is_footer, cells, className, is_dynamic_height,
         }
     }, [show_details, is_dynamic_height, measure]);
 
+    const isDisabled = (replace as any)?.disabled;
+    const shouldAddClickHandler = !is_footer && replace && !isDisabled;
+
     if (is_dynamic_height) {
         return (
             <div
-                onClick={is_footer || !replace ? undefined : toggleDetailsDecorator}
-                onKeyDown={is_footer || !replace ? undefined : toggleDetailsDecorator}
+                onClick={shouldAddClickHandler ? toggleDetailsDecorator : undefined}
+                onKeyDown={shouldAddClickHandler ? toggleDetailsDecorator : undefined}
                 className={classNames(className, { 'statement__row--detail': show_details })}
             >
                 {show_details && typeof replace === 'object' ? <div>{replace?.component}</div> : cells}
@@ -48,8 +53,8 @@ const TableRowInfo = ({ replace, is_footer, cells, className, is_dynamic_height,
     }
     return (
         <div
-            onClick={is_footer || !replace ? undefined : toggleDetailsDecorator}
-            onKeyDown={is_footer || !replace ? undefined : toggleDetailsDecorator}
+            onClick={shouldAddClickHandler ? toggleDetailsDecorator : undefined}
+            onKeyDown={shouldAddClickHandler ? toggleDetailsDecorator : undefined}
             className={classNames(className, { 'statement__row--detail': show_details })}
         >
             {show_details && typeof replace === 'object' ? (

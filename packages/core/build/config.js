@@ -8,20 +8,18 @@ const gitRevisionPlugin = new GitRevisionPlugin();
 const copyConfig = base => {
     const patterns = [
         {
-            from: path.resolve(__dirname, '../../../node_modules/@deriv-com/derivatives-charts/dist'),
+            from: path.resolve(__dirname, '../../../node_modules/@deriv-com/smartcharts-champion/dist'),
             to: 'js/smartcharts/',
+            globOptions: {
+                ignore: ['**/NOTICES'],
+            },
         },
         {
-            from: path.resolve(__dirname, '../../../node_modules/@deriv-com/derivatives-charts/dist/chart/assets'),
+            from: path.resolve(__dirname, '../../../node_modules/@deriv-com/smartcharts-champion/dist/assets'),
             to: 'assets',
-        },
-        {
-            from: path.resolve(__dirname, '../../../node_modules/@deriv-com/derivatives-charts/dist/chart/assets'),
-            to: 'contract/assets',
-        },
-        {
-            from: path.resolve(__dirname, '../../../node_modules/@deriv-com/derivatives-charts/dist/chart/assets'),
-            to: 'bot/assets',
+            globOptions: {
+                ignore: ['**/NOTICES'],
+            },
         },
         {
             from: path.resolve(__dirname, '../../../node_modules/@deriv/trader/dist/trader'),
@@ -77,6 +75,9 @@ const copyConfig = base => {
         {
             from: path.resolve(__dirname, '../src/public/videos/'),
             to: 'public/videos',
+            globOptions: {
+                ignore: ['**/*.mp4', '**/*.webm'],
+            },
         },
         {
             from: path.resolve(__dirname, '../src/public/images/common/callback_loader.gif'),
@@ -108,6 +109,45 @@ const generateSWConfig = () => ({
     cleanupOutdatedCaches: true,
     exclude: [/\**/],
     runtimeCaching: [
+        // Google Fonts stylesheets - long cache
+        {
+            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+                cacheName: 'google-fonts-stylesheets',
+                expiration: {
+                    maxEntries: 20,
+                    maxAgeSeconds: 60 * 60 * 24 * 365, // 1 year
+                },
+            },
+        },
+        // Google Fonts webfonts - long cache
+        {
+            urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+                cacheName: 'google-fonts-webfonts',
+                cacheableResponse: {
+                    statuses: [0, 200],
+                },
+                expiration: {
+                    maxEntries: 30,
+                    maxAgeSeconds: 60 * 60 * 24 * 365, // 1 year
+                },
+            },
+        },
+        // CDN resources (GTM, analytics, cookies) - try network first with timeout
+        {
+            urlPattern: /^https:\/\/(www\.googletagmanager\.com|cdn\.jsdelivr\.net)\/.*/i,
+            handler: 'StaleWhileRevalidate',
+            options: {
+                cacheName: 'cdn-resources',
+                expiration: {
+                    maxEntries: 20,
+                    maxAgeSeconds: 60 * 60 * 24, // 1 day
+                },
+            },
+        },
         {
             urlPattern: /public\/images\/(?!.*favicons).*$/,
             handler: 'CacheFirst',

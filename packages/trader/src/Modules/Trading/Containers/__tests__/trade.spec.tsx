@@ -10,27 +10,39 @@ import ChartLoader from 'App/Components/Elements/chart-loader';
 import TraderProviders from '../../../../trader-providers';
 import Trader from '../trade';
 
+jest.mock('App/Components/Layout/Sidebar', () => jest.fn(() => <div>Sidebar</div>));
 jest.mock('App/Components/Elements/PositionsDrawer', () => jest.fn(() => <div>PositionsDrawer</div>));
 jest.mock('../trade-chart', () => jest.fn(() => <div>TradeChart</div>));
 jest.mock('../../Components/Form/form-layout', () => jest.fn(() => <div>FormLayout</div>));
 jest.mock('App/Components/Elements/chart-loader', () =>
     jest.fn(({ is_visible }: ComponentProps<typeof ChartLoader>) => (is_visible ? <div>ChartLoader</div> : null))
 );
+jest.mock('App/Components/Elements/market-countdown-timer', () => jest.fn(() => <div>MarketCountdownTimer</div>));
 
 jest.mock('@deriv-com/ui', () => ({
     ...jest.requireActual('@deriv-com/ui'),
     useDevice: jest.fn(() => ({ isDesktop: true, isMobile: false, isTablet: false })),
 }));
 
+jest.mock('@deriv-com/translations', () => ({
+    ...jest.requireActual('@deriv-com/translations'),
+    Localize: ({ i18n_default_text }: { i18n_default_text: string }) => <span>{i18n_default_text}</span>,
+    useTranslations: () => ({
+        localize: (text: string) => text,
+    }),
+}));
+
 type TMockTrader = {
     rootStore: TCoreStores;
 };
 
-const MockTrader = ({ rootStore }: TMockTrader) => (
-    <TraderProviders store={rootStore}>
-        <Trader />
-    </TraderProviders>
-);
+const MockTrader = ({ rootStore }: TMockTrader) => {
+    return (
+        <TraderProviders store={rootStore}>
+            <Trader />
+        </TraderProviders>
+    );
+};
 
 describe('Trader', () => {
     let rootStore: TCoreStores;
@@ -82,7 +94,7 @@ describe('Trader', () => {
 
     it('renders the trader component in desktop view', () => {
         render(<MockTrader rootStore={rootStore} />);
-        expect(screen.getByText('PositionsDrawer')).toBeInTheDocument();
+        expect(screen.getByText('Sidebar')).toBeInTheDocument();
         expect(screen.queryByTestId('dt_swipeable')).not.toBeInTheDocument();
         expect(screen.getByText('TradeChart')).toBeInTheDocument();
         expect(screen.getByText('FormLayout')).toBeInTheDocument();
@@ -139,13 +151,14 @@ describe('Trader', () => {
 
     it('should be able to click see open markets button in market is closed overlay', async () => {
         rootStore.modules.trade.is_market_closed = true;
+        rootStore.modules.trade.is_synthetics_trading_market_available = false;
         rootStore.modules.trade.getFirstOpenMarket = jest.fn(() => ({
             category: 'category',
             subcategory: 'subcategory',
         }));
-        await act(async () => {
-            render(<MockTrader rootStore={rootStore} />);
+        render(<MockTrader rootStore={rootStore} />);
 
+        await act(async () => {
             const seeOpenMarketsButton = screen.getByText('See open markets');
             expect(seeOpenMarketsButton).toBeInTheDocument();
             seeOpenMarketsButton.click();
@@ -156,9 +169,9 @@ describe('Trader', () => {
         rootStore.modules.trade.is_market_closed = true;
         rootStore.modules.trade.is_synthetics_trading_market_available = true;
         rootStore.modules.trade.is_synthetics_available = true;
-        await act(async () => {
-            render(<MockTrader rootStore={rootStore} />);
+        render(<MockTrader rootStore={rootStore} />);
 
+        await act(async () => {
             const trySyntheticIndicesButton = screen.getByText('Try Synthetic Indices');
             expect(trySyntheticIndicesButton).toBeInTheDocument();
             trySyntheticIndicesButton.click();

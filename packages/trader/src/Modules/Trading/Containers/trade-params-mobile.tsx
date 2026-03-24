@@ -143,7 +143,7 @@ const TradeParamsModal = observer(({ is_open, toggleModal, tab_index }: TTradePa
         <React.Fragment>
             <Modal
                 id='dt_trade_parameters_mobile'
-                className='trade-params'
+                className='trade-params-v1'
                 is_open={is_open}
                 header={<div />}
                 toggleModal={toggleModal}
@@ -294,11 +294,11 @@ const TradeParamsMobile = observer(
             switch (tab_key) {
                 case 'duration':
                     return (
-                        <div className='trade-params__header'>
-                            <div className='trade-params__header-label'>{localize('Duration')}</div>
+                        <div className='trade-params-v1__header'>
+                            <div className='trade-params-v1__header-label'>{localize('Duration')}</div>
                             <div
-                                className={classNames('trade-params__header-value', {
-                                    'trade-params__header-value--has-error': has_duration_error,
+                                className={classNames('trade-params-v1__header-value', {
+                                    'trade-params-v1__header-value--has-error': has_duration_error,
                                 })}
                             >
                                 {has_duration_error ? localize('Error') : getDurationText()}
@@ -307,13 +307,13 @@ const TradeParamsMobile = observer(
                     );
                 case 'amount':
                     return (
-                        <div className='trade-params__header'>
-                            <div className='trade-params__header-label'>
+                        <div className='trade-params-v1__header'>
+                            <div className='trade-params-v1__header-label'>
                                 {is_turbos || is_vanilla ? localize('Stake') : localize('Amount')}
                             </div>
                             <div
-                                className={classNames('trade-params__header-value', {
-                                    'trade-params__header-value--has-error': has_amount_error,
+                                className={classNames('trade-params-v1__header-value', {
+                                    'trade-params-v1__header-value--has-error': has_amount_error,
                                 })}
                             >
                                 {has_amount_error ? localize('Error') : getAmountText()}
@@ -327,7 +327,7 @@ const TradeParamsMobile = observer(
         return (
             <Tabs
                 active_index={trade_param_tab_idx}
-                className='trade-params-duration-amount'
+                className='trade-params-v1-duration-amount'
                 onTabItemClick={setTradeParamTabIdx}
                 top
             >

@@ -11,12 +11,25 @@ import ContractDetailsChart from '../contract-details-chart';
 jest.mock('Modules/SmartChart', () => ({
     SmartChart: () => <div>Mocked Chart</div>,
 }));
+jest.mock('Modules/SmartChart/Hooks/useSmartChartsAdapter', () => ({
+    useSmartChartsAdapter: () => ({
+        chartData: {
+            activeSymbols: [],
+            tradingTimes: {},
+        },
+        isLoading: false,
+        error: null,
+        getQuotes: jest.fn(),
+        subscribeQuotes: jest.fn(),
+        unsubscribeQuotes: jest.fn(),
+        retryFetchChartData: jest.fn(),
+    }),
+}));
 jest.mock('react-router-dom', () => ({
     ...jest.requireActual('react-router-dom'),
     useLocation: jest.fn(() => ({
         pathname: '/contract/12345',
     })),
-    withRouter: jest.fn(children => <div>{children}</div>),
 }));
 jest.mock('AppV2/Hooks/useContractDetails', () => ({
     __esModule: true,

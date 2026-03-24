@@ -7,10 +7,14 @@ const BinarySocket = require('./socket_base');
  * 2. offline: it is offline
  */
 const NetworkMonitorBase = (() => {
-    const status_config = {
-        online: { class: 'online', tooltip: localize('Online') },
-        offline: { class: 'offline', tooltip: localize('Offline') },
-        blinking: { class: 'blinker', tooltip: localize('Connecting to server') },
+    // Use getter functions to ensure localize() is called when needed, not at module init
+    const getStatusConfig = status => {
+        const configs = {
+            online: { class: 'online', tooltip: localize('Online') },
+            offline: { class: 'offline', tooltip: localize('Offline') },
+            blinking: { class: 'blinker', tooltip: localize('Connecting to server') },
+        };
+        return configs[status];
     };
 
     let setNetworkStatus;
@@ -22,7 +26,7 @@ const NetworkMonitorBase = (() => {
             if (status !== last_status || is_online !== last_is_online) {
                 last_status = status;
                 last_is_online = is_online;
-                fncUpdateUI(status_config[status], is_online);
+                fncUpdateUI(getStatusConfig(status), is_online);
             }
         };
 

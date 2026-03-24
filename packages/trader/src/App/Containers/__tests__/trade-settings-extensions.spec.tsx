@@ -1,5 +1,4 @@
 import React from 'react';
-import Loadable from 'react-loadable';
 
 import { mockStore } from '@deriv/stores';
 import { render } from '@testing-library/react';
@@ -7,14 +6,16 @@ import { render } from '@testing-library/react';
 import TraderProviders from '../../../trader-providers';
 import TradeSettingsExtensions from '../trade-settings-extensions';
 
-Loadable.preloadAll();
-
 describe('<TradeSettingsExtensions/>', () => {
     const default_mock_store = {
         ...mockStore({}),
         ui: {
             ...mockStore({}).ui,
-            populateSettingsExtensions: jest.fn(menu_items => menu_items[0].value(mockStore({}))),
+            populateSettingsExtensions: jest.fn(menu_items => {
+                if (menu_items && menu_items.length > 0) {
+                    menu_items[0].value(mockStore({}));
+                }
+            }),
         },
     };
 

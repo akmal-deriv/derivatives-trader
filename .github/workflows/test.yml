@@ -75,14 +75,14 @@ jobs:
       matrix:
         include:
           - group: 1
-            packages: "packages/trader packages/core"
-            description: "Trader & Core"
+            packages: "packages/trader"
+            description: "Trader"
           - group: 2
-            packages: "packages/components packages/reports"
-            description: "Components & Reports"
-          - group: 3
-            packages: "packages/api packages/api-v2 packages/shared packages/stores packages/utils"
-            description: "APIs & Utils"
+            packages: "packages/core packages/reports"
+            description: "Core & Reports"
+          - group: 4
+            packages: "packages/api packages/api-v2 packages/shared packages/stores packages/utils packages/components"
+            description: "APIs, Utils & Components"
     steps:
     - name: Checkout
       uses: actions/checkout@v4

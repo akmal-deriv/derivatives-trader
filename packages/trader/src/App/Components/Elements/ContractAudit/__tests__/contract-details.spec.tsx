@@ -196,4 +196,20 @@ describe('<ContractDetails />', () => {
         expect(screen.getByText('High spot')).toBeInTheDocument();
         expect(screen.getByText('Low spot')).toBeInTheDocument();
     });
+
+    it('should render entry spot with tooltip for HIGHER contract type', () => {
+        mock_default_props.contract_info.contract_type = CONTRACT_TYPES.HIGHER;
+        render(<ContractDetails {...mock_default_props} />);
+
+        expect(screen.getByText('Entry spot')).toBeInTheDocument();
+        expect(screen.getByText('1,458.17')).toBeInTheDocument();
+    });
+
+    it('should render entry spot with tooltip for LOWER contract type', () => {
+        mock_default_props.contract_info.contract_type = CONTRACT_TYPES.LOWER;
+        render(<ContractDetails {...mock_default_props} />);
+
+        expect(screen.getByText('Entry spot')).toBeInTheDocument();
+        expect(screen.getByText('1,458.17')).toBeInTheDocument();
+    });
 });

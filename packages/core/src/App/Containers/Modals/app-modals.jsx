@@ -12,13 +12,17 @@ const LogoutSuccessModal = React.lazy(() =>
     moduleLoader(() => import(/* webpackChunkName: "logout-success-modal" */ './LogoutSuccessModal'))
 );
 
+const TryRealModal = React.lazy(() =>
+    moduleLoader(() => import(/* webpackChunkName: "try-real-modal" */ './TryRealModal'))
+);
+
 const RedirectToLoginModal = React.lazy(() =>
     moduleLoader(() => import(/* webpackChunkName: "reset-password-modal" */ './RedirectToLoginModal'))
 );
 
 const AppModals = observer(() => {
     const { ui } = useStore();
-    const { isUrlUnavailableModalVisible, is_logout_success_modal_visible } = ui;
+    const { isUrlUnavailableModalVisible, is_logout_success_modal_visible, is_try_real_modal_visible } = ui;
     const temp_session_signup_params = SessionStore.get('signup_query_param');
     const url_params = new URLSearchParams(useLocation().search || temp_session_signup_params);
     const url_action_param = url_params.get('action');
@@ -36,6 +40,8 @@ const AppModals = observer(() => {
             ComponentToLoad = <UrlUnavailableModal />;
         } else if (is_logout_success_modal_visible) {
             ComponentToLoad = <LogoutSuccessModal />;
+        } else if (is_try_real_modal_visible) {
+            ComponentToLoad = <TryRealModal />;
         }
     }
 

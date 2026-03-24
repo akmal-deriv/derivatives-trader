@@ -30,6 +30,12 @@ inputs:
   RUDDERSTACK_KEY:
     description: 'Rudderstack key'
     required: false
+  POSTHOG_KEY:
+    description: 'PostHog API key'
+    required: false
+  POSTHOG_HOST:
+    description: 'PostHog host URL'
+    required: false
   TRACKJS_TOKEN:
     description: 'TrackJS token'
     required: false
@@ -54,6 +60,8 @@ runs:
       DATADOG_SESSION_SAMPLE_RATE_LOGS: ${{ inputs.DATADOG_SESSION_SAMPLE_RATE_LOGS }}
       TRACKJS_TOKEN: ${{ inputs.TRACKJS_TOKEN }}
       RUDDERSTACK_KEY: ${{ inputs.RUDDERSTACK_KEY }}
+      POSTHOG_KEY: ${{ inputs.POSTHOG_KEY }}
+      POSTHOG_HOST: ${{ inputs.POSTHOG_HOST }}
       REF_NAME: ${{ inputs.REF_NAME }}
       REMOTE_CONFIG_URL: ${{ inputs.REMOTE_CONFIG_URL }}
       # TRUSTPILOT_API_KEY: ${{ inputs.TRUSTPILOT_API_KEY }}

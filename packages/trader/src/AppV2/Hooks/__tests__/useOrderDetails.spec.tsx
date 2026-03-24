@@ -209,6 +209,30 @@ describe('useOrderDetails', () => {
         });
     });
 
+    it('should return correct details for Higher contract', () => {
+        mockData.contract_type = CONTRACT_TYPES.HIGHER;
+        const { result } = renderHook(() => useOrderDetails(mockData));
+        expect(result.current?.details).toEqual({
+            [CARD_LABELS.REFERENCE_ID]: ['12345 (Buy)', '67890 (Sell)'],
+            [CARD_LABELS.DURATION]: '5 Ticks',
+            [CARD_LABELS.BARRIER]: '1000',
+            [CARD_LABELS.STAKE]: '100.00 USD',
+            [CARD_LABELS.POTENTIAL_PAYOUT]: '19.55',
+        });
+    });
+
+    it('should return correct details for Lower contract', () => {
+        mockData.contract_type = CONTRACT_TYPES.LOWER;
+        const { result } = renderHook(() => useOrderDetails(mockData));
+        expect(result.current?.details).toEqual({
+            [CARD_LABELS.REFERENCE_ID]: ['12345 (Buy)', '67890 (Sell)'],
+            [CARD_LABELS.DURATION]: '5 Ticks',
+            [CARD_LABELS.BARRIER]: '1000',
+            [CARD_LABELS.STAKE]: '100.00 USD',
+            [CARD_LABELS.POTENTIAL_PAYOUT]: '19.55',
+        });
+    });
+
     it('should return default details for unknown contract type', () => {
         mockData.contract_type = 'unknown';
         const { result } = renderHook(() => useOrderDetails(mockData));

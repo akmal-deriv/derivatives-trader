@@ -20,6 +20,7 @@ const Contract = observer(({ match, history }: TContract) => {
     const { localize } = useTranslations();
     const { contract_replay } = useStore();
     const { removeErrorMessage, error_message, error_code, has_error, onMount, onUnmount } = contract_replay;
+    const nodeRef = React.useRef(null);
     React.useEffect(() => {
         onMount(+match.params.contract_id);
 
@@ -55,9 +56,12 @@ const Contract = observer(({ match, history }: TContract) => {
                         enterDone: 'contract--enter-done',
                         exit: 'contract--exit',
                     }}
+                    nodeRef={nodeRef}
                     unmountOnExit
                 >
-                    <ContractReplay contract_id={+match.params.contract_id} key={+match.params.contract_id} />
+                    <div ref={nodeRef}>
+                        <ContractReplay contract_id={+match.params.contract_id} key={+match.params.contract_id} />
+                    </div>
                 </CSSTransition>
             )}
         </React.Fragment>

@@ -1,8 +1,9 @@
-import classNames from 'classnames';
 import React, { MouseEventHandler } from 'react';
 import ReactDOM from 'react-dom';
 import { CSSTransition } from 'react-transition-group';
-import { LegacyClose2pxIcon, LegacyArrowLeft2pxIcon } from '@deriv/quill-icons';
+import classNames from 'classnames';
+
+import { LegacyArrowLeft2pxIcon, LegacyClose2pxIcon } from '@deriv/quill-icons';
 
 type TPageOverlay = {
     header?: React.ReactNode;
@@ -30,6 +31,7 @@ const PageOverlay = ({
     onReturn,
 }: React.PropsWithChildren<TPageOverlay>) => {
     const page_overlay_ref = React.useRef<HTMLDivElement>(null);
+    const nodeRef = React.useRef(null);
 
     const RedirectionComponent = () => (
         <div
@@ -87,8 +89,9 @@ const PageOverlay = ({
                     exit: 'dc-page-overlay--exit',
                 }}
                 unmountOnExit
+                nodeRef={nodeRef}
             >
-                {el_page_overlay}
+                <div ref={nodeRef}>{el_page_overlay}</div>
             </CSSTransition>,
             document.getElementById(portal_id) as HTMLElement
         );

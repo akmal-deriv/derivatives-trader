@@ -9,6 +9,7 @@ type TInfo = React.ComponentProps<typeof PurchaseButtonContent>['info'];
 
 const mock_props = {
     currency: 'USD',
+    has_cancellation: false,
     has_open_accu_contract: false,
     info: {
         obj_contract_basis: {
@@ -51,7 +52,7 @@ describe('PurchaseButtonContent', () => {
         expect(screen.getByTestId(wrapper_data_test_id)).toHaveClass('purchase-button__information__wrapper--reverse');
     });
 
-    it('should render correct specific text basis and amount for Multipliers', () => {
+    it('should render Total cost for Multipliers when Deal Cancellation is enabled', () => {
         const multipliers_info = {
             has_error: false,
             has_error_details: false,
@@ -61,11 +62,30 @@ describe('PurchaseButtonContent', () => {
             },
             stake: '10.00',
         };
-        render(<PurchaseButtonContent {...mock_props} is_multiplier info={multipliers_info as TInfo} />);
+        render(
+            <PurchaseButtonContent {...mock_props} is_multiplier has_cancellation info={multipliers_info as TInfo} />
+        );
 
-        expect(screen.getByText(localized_basis.stake)).toBeInTheDocument();
+        expect(screen.getByText('Total cost')).toBeInTheDocument();
         expect(screen.getByText(/10/)).toBeInTheDocument();
         expect(screen.getByText(/USD/i)).toBeInTheDocument();
+    });
+
+    it('should not render Total cost for Multipliers when Deal Cancellation is not set', () => {
+        const multipliers_info = {
+            has_error: false,
+            has_error_details: false,
+            obj_contract_basis: {
+                text: '',
+                value: '',
+            },
+            stake: '10.00',
+        };
+        const { container } = render(
+            <PurchaseButtonContent {...mock_props} is_multiplier info={multipliers_info as TInfo} />
+        );
+
+        expect(container).toBeEmptyDOMElement();
     });
 
     it('should not render button content if has_no_button_content === true and there is no error', () => {

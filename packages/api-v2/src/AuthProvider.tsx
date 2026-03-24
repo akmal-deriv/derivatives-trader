@@ -1,7 +1,11 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+
+import { getAccountType } from '@deriv/shared';
 import { getAccountsFromLocalStorage, getActiveLoginIDFromLocalStorage, getToken } from '@deriv/utils';
 import { AppIDConstants } from '@deriv-com/utils';
+
 import { TSocketRequestPayload, TSocketResponseData, TSocketSubscribableEndpointNames } from '../types';
+
 import { useAPIContext } from './APIProvider';
 import { API_ERROR_CODES } from './constants';
 import useAPI from './useAPI';
@@ -151,7 +155,8 @@ const AuthProvider = ({ loginIDKey, children, cookieTimeout, selectDefaultAccoun
             localStorage.setItem(loginIDKey ?? 'active_loginid', activeLoginID);
             sessionStorage.setItem(loginIDKey ?? 'active_loginid', activeLoginID);
 
-            const isDemo = authorizeResponse.authorize?.is_virtual === 1;
+            const isDemo = getAccountType() === 'demo';
+
             const shouldCreateNewWSConnection =
                 (isDemo && wsClient?.endpoint === AppIDConstants.environments.real) ||
                 (!isDemo && wsClient?.endpoint === AppIDConstants.environments.demo);
@@ -201,7 +206,7 @@ const AuthProvider = ({ loginIDKey, children, cookieTimeout, selectDefaultAccoun
                         setLoginid(res?.authorize?.loginid ?? '');
                     })
                     .catch(async (e: TAuthorizeError) => {
-                        if (e?.error.code === API_ERROR_CODES.DISABLED_ACCOUNT) {
+                        if (e?.code === API_ERROR_CODES.DISABLED_ACCOUNT) {
                             await logout?.();
                         }
                         setIsLoading(false);
@@ -248,7 +253,7 @@ const AuthProvider = ({ loginIDKey, children, cookieTimeout, selectDefaultAccoun
                 setLoginid(newLoginId);
                 processAuthorizeResponse(authorizeResponse);
             } catch (e: unknown) {
-                if (typeof e === 'object' && (e as TAuthorizeError)?.error.code === API_ERROR_CODES.DISABLED_ACCOUNT) {
+                if (typeof e === 'object' && (e as TAuthorizeError)?.code === API_ERROR_CODES.DISABLED_ACCOUNT) {
                     await logout?.();
                 }
             } finally {

@@ -1,4 +1,4 @@
-import { getPropertyValue, getSocketURL, mapErrorMessage, State } from '@deriv/shared';
+import { getPropertyValue, getSocketURL, mapErrorMessage } from '@deriv/shared';
 import { localize } from '@deriv-com/translations';
 
 import WS from './ws-methods';
@@ -17,6 +17,16 @@ const BinarySocketGeneral = (() => {
     const onDisconnect = () => {
         clearTimeout(responseTimeoutErrorTimer);
         common_store.setIsSocketOpened(false);
+    };
+
+    const onConnectionError = () => {
+        localStorage.removeItem('active_loginid');
+        localStorage.removeItem('account_id');
+        localStorage.removeItem('account_type');
+
+        common_store.setError(true, {
+            message: localize('Connection failed. Please refresh this page to continue.'),
+        });
     };
 
     const onOpen = is_ready => {
@@ -45,26 +55,23 @@ const BinarySocketGeneral = (() => {
     const onMessage = response => {
         clearTimeout(responseTimeoutErrorTimer);
         handleError(response);
-        // Header.hideNotification('CONNECTION_ERROR');
+
         switch (response.msg_type) {
-            case 'authorize':
-                if (response.error) {
-                    const is_active_tab = sessionStorage.getItem('active_tab') === '1';
-                    if (getPropertyValue(response, ['error', 'code']) === 'SelfExclusion' && is_active_tab) {
-                        sessionStorage.removeItem('active_tab');
-                    }
+            case 'balance':
+                // Always process authorization on balance response
+                // This handles both initial connection and reconnection
+                if (response.balance && response.balance.loginid) {
+                    const loginid_changed = response.balance.loginid !== client_store.loginid;
+                    const not_yet_authorized = !client_store.is_authorize;
 
-                    const hasSessionToken = !!localStorage.getItem('session_token');
-                    if (hasSessionToken) {
-                        return;
+                    // Only call authorizeAccount when needed
+                    if (loginid_changed || not_yet_authorized) {
+                        // Clear contract markers when account changes to prevent showing previous account's contracts
+                        if (loginid_changed) {
+                            client_store.root_store.contract_trade.clearContracts();
+                        }
+                        authorizeAccount(response);
                     }
-
-                    client_store.logout();
-                } else if (!/authorize/.test(State.get('skip_response'))) {
-                    if (response.authorize.loginid !== client_store.loginid) {
-                        client_store.setLoginId(response.authorize.loginid);
-                    }
-                    authorizeAccount(response);
                 }
                 break;
             case 'transaction':
@@ -124,6 +131,7 @@ const BinarySocketGeneral = (() => {
             onDisconnect,
             onOpen,
             onMessage,
+            onConnectionError,
         };
     };
 
@@ -132,10 +140,30 @@ const BinarySocketGeneral = (() => {
     };
 
     const authorizeAccount = response => {
-        client_store.responseAuthorize(response);
-        subscribeBalance(); // Single account balance
-        client_store.setIsAuthorize(true); // Set auth state
-        BinarySocket.sendBuffered(); // Send queued requests
+        // Balance response now contains authorization data
+        // Transform if needed to match authorize format
+        let authorize_data = response;
+
+        // If response is balance format, transform to authorize format
+        if (response.balance && !response.authorize) {
+            authorize_data = {
+                authorize: {
+                    loginid: response.balance.loginid,
+                    balance: response.balance.balance,
+                    currency: response.balance.currency,
+                    email: response.balance.email || '',
+                    landing_company_name: response.balance.landing_company_name || '',
+                    country: response.balance.country || '',
+                    user_id: response.balance.user_id || '',
+                    preferred_language: response.balance.preferred_language || '',
+                },
+            };
+        }
+
+        client_store.responseAuthorize(authorize_data);
+        client_store.setIsAuthorize(true); // Set BEFORE anything that depends on it
+        subscribeBalance(); // Continue balance subscription
+        BinarySocket.sendBuffered(); // Now buffered calls see is_authorize = true
     };
 
     return {
@@ -150,7 +178,13 @@ export default BinarySocketGeneral;
 const ResponseHandlers = (() => {
     const balanceActiveAccount = response => {
         if (!response.error) {
-            // Optimal balance extraction - only check formats that actually exist
+            // Check if this is the first balance response (contains auth data)
+            if (!client_store.is_authorize && response.balance && response.balance.loginid) {
+                // This is the authorization response - handled in onMessage
+                return;
+            }
+
+            // Regular balance update
             const balance = response.balance?.balance || response.balance;
 
             // Only update if we have a valid balance

@@ -20,6 +20,7 @@
     &--loading {
         align-items: center;
     }
+
     &__information {
         &__wrapper {
             width: 100%;
@@ -40,16 +41,21 @@
             color: var(--component-button-label-color-sell-primary);
         }
     }
+
     &__wrapper {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 0 var(--core-spacing-400) var(--core-spacing-400);
         gap: var(--core-spacing-400);
-        position: fixed;
         width: 100%;
         z-index: 2; // chart has z-index: 1, it should not push purchase buttons down
         bottom: var(--core-spacing-2800);
+        border-radius: 100px;
+
+        @include mobile-screen {
+            padding: var(--core-spacing-400) 0;
+        }
+
         &__un-auth {
             bottom: var(--core-spacing-50);
         }
@@ -68,6 +74,10 @@
                 transform: translateY(100%);
                 transition: transform 150ms ease-in-out 300ms;
             }
+        }
+
+        .quill-button {
+            border-radius: 28px;
         }
     }
 }

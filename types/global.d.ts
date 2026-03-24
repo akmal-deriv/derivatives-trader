@@ -13,13 +13,22 @@ declare global {
         Intercom: any;
         navigator: Navigator;
     }
+    interface TradingConfigData {
+        lang?: string;
+        theme?: 'light' | 'dark';
+    }
     interface DerivAppChannelMessage {
-        event: 'trading:back' | 'trading:home';
-        // Add other event types as needed
+        event:
+            | 'trading:config'
+            | 'trading:ready'
+            | 'trading:back'
+            | 'trading:home'
+            | 'trading:transfer'
+            | 'trading:account_creation';
+        data?: TradingConfigData; // Config data for trading:config event
     }
     interface DerivAppChannel {
         postMessage: (message: string) => void;
-        isReady?: () => boolean;
     }
     interface IntercomConfig {
         token: string | null;

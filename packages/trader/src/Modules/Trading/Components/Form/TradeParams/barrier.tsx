@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useMemo } from 'react';
 import classNames from 'classnames';
 
 import { DesktopWrapper, InputField, MobileWrapper, Modal, Text } from '@deriv/components';
@@ -33,13 +33,24 @@ const Barrier = observer(({ is_minimized, is_absolute_only }: TBarrier) => {
         trade_types,
     } = useTraderStore();
     const [show_modal, setShowModal] = React.useState(false);
-    const type_with_current_spot = Object.keys(trade_types).find(type => proposal_info?.[type]?.spot);
-    let contract_info;
-    if (type_with_current_spot) contract_info = proposal_info?.[type_with_current_spot];
-    const current_spot = contract_info?.spot || '';
-    const current_barrier_price = contract_info?.barrier || '';
+
+    // Memoize contract data to prevent infinite rerendering caused by dynamic object lookups
+    // that trigger MobX observer reactions on every render
+    const contractData = useMemo(() => {
+        const type_with_current_spot = Object.keys(trade_types).find(type => proposal_info?.[type]?.spot);
+        const contract_info = type_with_current_spot ? proposal_info?.[type_with_current_spot] : undefined;
+
+        return {
+            contract_info,
+            current_spot: contract_info?.spot || '',
+            current_barrier_price: contract_info?.barrier || '',
+            has_error_or_not_loaded: contract_info?.has_error || !contract_info?.id,
+        };
+    }, [trade_types, proposal_info]);
+
+    const { current_spot, current_barrier_price, has_error_or_not_loaded } = contractData;
+
     const barrier_title = barrier_count === 1 ? localize('Barrier') : localize('Barriers');
-    const has_error_or_not_loaded = contract_info?.has_error || !contract_info?.id;
 
     if (is_minimized) {
         return barrier_count !== 2 ? (
@@ -68,9 +79,10 @@ const Barrier = observer(({ is_minimized, is_absolute_only }: TBarrier) => {
         return final_value;
     };
 
-    const onClick = () => {
-        setShowModal(!show_modal);
-    };
+    // Memoize onClick handler to prevent unnecessary rerenders
+    const onClick = useCallback(() => {
+        setShowModal(prev => !prev);
+    }, []);
 
     return (
         <React.Fragment>

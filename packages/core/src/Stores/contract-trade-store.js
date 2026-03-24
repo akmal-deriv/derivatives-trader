@@ -8,9 +8,7 @@ import {
     isAccumulatorContractOpen,
     isCallPut,
     isDesktop,
-    isEnded,
     isHighLow,
-    isMultiplierContract,
     isTurbosContract,
     isVanillaContract,
     LocalStore,
@@ -73,6 +71,7 @@ export default class ContractTradeStore extends BaseStore {
             filtered_contracts: computed,
             addContract: action.bound,
             removeContract: action.bound,
+            clearContracts: action.bound,
             onUnmount: override,
             prev_chart_type: observable,
             prev_granularity: observable,
@@ -83,6 +82,7 @@ export default class ContractTradeStore extends BaseStore {
             prev_contract: computed,
             savePreviousChartMode: action.bound,
             setNewAccumulatorBarriersData: action.bound,
+            clearClosedContractMarkers: action.bound,
         });
 
         this.root_store = root_store;
@@ -185,6 +185,13 @@ export default class ContractTradeStore extends BaseStore {
         should_update_contract_barriers,
         underlying,
     }) {
+        const { symbol } = JSON.parse(sessionStorage.getItem('trade_store')) || {};
+
+        // Reject updates from wrong market or missing underlying
+        if (underlying && symbol && underlying !== symbol) {
+            return;
+        }
+
         // If we have new barrier data, update and set loading to false
         if (accumulators_high_barrier || accumulators_low_barrier) {
             this.setBarriersLoadingState(false);
@@ -211,8 +218,17 @@ export default class ContractTradeStore extends BaseStore {
             should_update_contract_barriers,
             proposal_prev_spot_time: current_spot_time,
         };
+        // Check if we have existing barrier data that should be preserved
+        const has_existing_barriers = should_update_contract_barriers
+            ? this.accumulator_contract_barriers_data.accumulators_high_barrier
+            : this.accumulator_barriers_data.accumulators_high_barrier;
+
+        // Skip update for duplicate data, or when waiting for tick synchronization
+        // BUT always accept new barriers when there are no existing barriers
+        // (e.g., after contract is closed and barriers were cleared)
         if (
-            (this.accumulator_barriers_data.current_spot_time &&
+            (has_existing_barriers &&
+                this.accumulator_barriers_data.current_spot_time &&
                 this.accumulator_barriers_data.current_spot_time !== current_spot_time &&
                 !this.accumulator_barriers_data.accumulators_high_barrier) ||
             Object.keys(delayed_barriers_data).every(key =>
@@ -282,7 +298,15 @@ export default class ContractTradeStore extends BaseStore {
         if (!trade_type || !underlying) {
             return [];
         }
-        let { trade_types } = getContractTypesConfig()[trade_type];
+        // Guard against invalid/corrupted trade_type from sessionStorage.
+        // This prevents crashes when:
+        // 1. Race condition: trade_type not initialized yet (empty string)
+        // 2. Stale data: invalid URL params persisted from previous session
+        const contract_config = getContractTypesConfig()[trade_type];
+        if (!contract_config || !contract_config.trade_types) {
+            return [];
+        }
+        let { trade_types } = contract_config;
         const is_call_put = isCallPut(trade_type);
         if (is_call_put) {
             // treat CALLE/PUTE and CALL/PUT the same
@@ -294,33 +318,30 @@ export default class ContractTradeStore extends BaseStore {
             //to show both Call and Put recent contracts on DTrader chart
             trade_types = [CONTRACT_TYPES.VANILLA.CALL, CONTRACT_TYPES.VANILLA.PUT];
         }
-        return this.contracts
-            .filter(c => {
-                const contract_underlying = c.contract_info.underlying_symbol;
-                return contract_underlying === underlying;
-            })
-            .filter(c => {
-                const info = c.contract_info;
-                const has_multiplier_contract_ended =
-                    isMultiplierContract(info.contract_type) && isEnded(c.contract_info);
-                // filter multiplier contract which has ended
-                return !has_multiplier_contract_ended;
-            })
-            .filter(c => {
-                const info = c.contract_info;
+        return (
+            this.contracts
+                .filter(c => {
+                    const contract_underlying = c.contract_info.underlying_symbol;
+                    return contract_underlying === underlying;
+                })
+                .filter(c => {
+                    const info = c.contract_info;
 
-                const trade_type_is_supported = trade_types.indexOf(info.contract_type) !== -1;
-                // both high_low & rise_fall have the same contract_types in POC response
-                // entry_spot=barrier means it is rise_fall contract (blame the api)
-                const entry_value = info.entry_spot;
-                if (trade_type_is_supported && is_call_put && ((info.barrier && entry_value) || info.shortcode)) {
-                    if (`${+entry_value}` === `${+info.barrier}` && !isHighLow(info)) {
-                        return trade_type === TRADE_TYPES.RISE_FALL || trade_type === TRADE_TYPES.RISE_FALL_EQUAL;
+                    const trade_type_is_supported = trade_types.indexOf(info.contract_type) !== -1;
+                    // both high_low & rise_fall have the same contract_types in POC response
+                    // entry_spot=barrier means it is rise_fall contract (blame the api)
+                    const entry_value = info.entry_spot;
+                    if (trade_type_is_supported && is_call_put && ((info.barrier && entry_value) || info.shortcode)) {
+                        if (`${+entry_value}` === `${+info.barrier}` && !isHighLow(info)) {
+                            return trade_type === TRADE_TYPES.RISE_FALL || trade_type === TRADE_TYPES.RISE_FALL_EQUAL;
+                        }
+                        return trade_type === TRADE_TYPES.HIGH_LOW;
                     }
-                    return trade_type === TRADE_TYPES.HIGH_LOW;
-                }
-                return trade_type_is_supported;
-            });
+                    return trade_type_is_supported;
+                })
+                // Sort by date_start to ensure newest contract is always last
+                .sort((a, b) => (a.contract_info.date_start || 0) - (b.contract_info.date_start || 0))
+        );
     };
 
     get has_crossed_accu_barriers() {
@@ -372,20 +393,30 @@ export default class ContractTradeStore extends BaseStore {
         const should_show_poc_barriers =
             (entry_time && entry_time !== current_spot_time) || (exit_time && current_spot_time <= exit_time);
 
+        // Check if there are active accumulator positions - don't trust stale last_contract data
+        const has_active_accu_positions = this.root_store.portfolio?.active_positions?.some(pos =>
+            isAccumulatorContract(pos.contract_info?.contract_type)
+        );
+        // Only consider contract as open if there are actually active positions AND the contract info shows open
+        const is_open_for_barriers =
+            has_active_accu_positions && isAccumulatorContractOpen(this.last_contract.contract_info);
+        const use_contract_barriers =
+            is_open_for_barriers &&
+            should_show_poc_barriers &&
+            this.accumulator_contract_barriers_data?.accumulators_high_barrier;
+
+        const barriers_source = use_contract_barriers
+            ? this.accumulator_contract_barriers_data
+            : this.accumulator_barriers_data;
+
         const { accumulators_high_barrier, accumulators_low_barrier, barrier_spot_distance, proposal_prev_spot_time } =
-            (isAccumulatorContractOpen(this.last_contract.contract_info) &&
-                should_show_poc_barriers &&
-                this.accumulator_contract_barriers_data?.accumulators_high_barrier &&
-                this.accumulator_contract_barriers_data) ||
-            this.accumulator_barriers_data ||
-            {};
+            barriers_source || {};
 
         if (trade_type === TRADE_TYPES.ACCUMULATOR && proposal_prev_spot_time && accumulators_high_barrier) {
             const is_open = isAccumulatorContractOpen(this.last_contract.contract_info);
-            const has_active_positions = this.root_store.portfolio?.active_positions?.length > 0;
 
-            // Force is_accumulator_trade_without_contract to true if there are no active positions
-            const force_without_contract = !has_active_positions;
+            // Force is_accumulator_trade_without_contract to true if there are no active ACCUMULATOR positions
+            const force_without_contract = !has_active_accu_positions;
 
             markers.push(
                 getAccumulatorMarkers({
@@ -451,12 +482,42 @@ export default class ContractTradeStore extends BaseStore {
         delete this.contracts_map[contract_id];
     }
 
+    /**
+     * Clear all contracts and related data
+     * Called when switching accounts to prevent showing markers from previous account
+     */
+    clearContracts() {
+        this.contracts = [];
+        this.contracts_map = {};
+        this.clearAccumulatorBarriersData(false, true);
+        this.clearLastContractOverride();
+    }
+
     setBarriersLoadingState(is_loading) {
         this.is_barriers_loading = is_loading;
     }
 
     onUnmount() {
         // TODO: don't forget the tick history when switching to contract-replay-store
+    }
+
+    // Clear markers for closed contracts
+    clearClosedContractMarkers() {
+        if (this.contracts && this.contracts.length > 0) {
+            // Clear markers for all contracts, not just sold ones
+            // This ensures entry spot markers and other persistent markers are also cleared
+            runInAction(() => {
+                this.contracts.forEach(contract => {
+                    if (contract) {
+                        contract.markers_array = [];
+                        contract.marker = null;
+                    }
+                });
+
+                // Force a refresh of the markers array
+                this.last_contract_override = null;
+            });
+        }
     }
 
     // Called from portfolio
@@ -470,6 +531,10 @@ export default class ContractTradeStore extends BaseStore {
         if (response.proposal_open_contract) {
             const contract_id = +response.proposal_open_contract.contract_id;
             const contract = this.contracts_map[contract_id];
+            if (!contract) return;
+
+            // Update contract_info before calculating is_last_contract
+            contract.contract_info = response.proposal_open_contract;
             const is_last_contract = contract_id === this.last_contract.contract_id;
             contract.populateConfig(response.proposal_open_contract, is_last_contract);
             if (response.proposal_open_contract.is_sold) {

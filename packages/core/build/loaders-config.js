@@ -81,6 +81,15 @@ const css_loaders = [
         loader: 'css-loader',
         options: {
             sourceMap: !IS_RELEASE,
+            // Block external @import statements from being processed by webpack
+            import: url => {
+                // Block external URLs (http://, https://, //)
+                if (/^https?:\/\//.test(url) || url.startsWith('//')) {
+                    return false;
+                }
+                // Allow all relative and webpack module imports
+                return true;
+            },
         },
     },
     {

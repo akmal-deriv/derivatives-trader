@@ -100,6 +100,7 @@ const Native = ({
                 <LegacyCalendar1pxIcon
                     className='dc-datepicker__calendar-icon'
                     fill={disabled ? 'var(--color-text-disabled)' : 'var(--color-text-primary)'}
+                    iconSize='sm'
                 />
 
                 <input

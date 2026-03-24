@@ -31,7 +31,8 @@ const {
 } = require('./loaders-config');
 
 const ALIASES = {
-    'react/jsx-runtime': 'react/jsx-runtime.js',
+    'react/jsx-runtime.js': 'react/jsx-runtime',
+    'react/jsx-runtime': 'react/jsx-runtime',
     _common: path.resolve(__dirname, '../src/_common'),
     App: path.resolve(__dirname, '../src/App'),
     AppV2: path.resolve(__dirname, '../src/AppV2'),
@@ -89,7 +90,7 @@ const rules = (is_test_env = false) => [
         use: html_loaders,
     },
     {
-        test: /\.(png|jpg|gif|woff|woff2|eot|ttf|otf)$/,
+        test: /\.(png|jpg|gif|woff|woff2|eot|ttf|otf|webp)$/,
         exclude: /node_modules/,
         use: file_loaders,
     },

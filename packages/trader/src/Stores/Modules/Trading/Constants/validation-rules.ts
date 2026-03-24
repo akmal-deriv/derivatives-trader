@@ -37,6 +37,7 @@ export const getValidationRules = (): TValidationRules => ({
             [
                 'custom',
                 {
+                    condition: (store: TTradeStore) => store.barrier_count > 1,
                     func: (value: TTradeStore['barrier_1'], options, store, inputs) =>
                         Number(store?.barrier_count) > 1 ? +value > Number(inputs?.barrier_2) : true,
                     message: getDynamicMessage('Higher barrier must be higher than lower barrier.'),
@@ -45,6 +46,7 @@ export const getValidationRules = (): TValidationRules => ({
             [
                 'custom',
                 {
+                    condition: (store: TTradeStore) => store.barrier_count > 1,
                     func: (value: TTradeStore['barrier_1'], options, store, inputs) =>
                         /^[+-]/.test(inputs?.barrier_1 ?? '')
                             ? tradeSpecificBarrierCheck(!!store?.is_vanilla, Number(inputs?.barrier_1))
@@ -68,6 +70,7 @@ export const getValidationRules = (): TValidationRules => ({
             [
                 'custom',
                 {
+                    condition: (store: TTradeStore) => store.barrier_count > 1,
                     func: (value: TTradeStore['barrier_2'], options, store, inputs) =>
                         (/^[+-]/g.test(inputs?.barrier_1 ?? '') && /^[+-]/g.test(value)) ||
                         (/^(?![+-])/g.test(inputs?.barrier_1 ?? '') && /^(?![+-])/g.test(value)),
@@ -77,6 +80,7 @@ export const getValidationRules = (): TValidationRules => ({
             [
                 'custom',
                 {
+                    condition: (store: TTradeStore) => store.barrier_count > 1,
                     func: (value: TTradeStore['barrier_2'], options, store, inputs) =>
                         Number(inputs?.barrier_1) > +value,
                     message: getDynamicMessage('Lower barrier must be lower than higher barrier.'),

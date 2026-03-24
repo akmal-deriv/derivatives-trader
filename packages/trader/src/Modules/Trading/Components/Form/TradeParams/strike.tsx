@@ -86,7 +86,7 @@ const Strike = observer(() => {
     return (
         <React.Fragment>
             <Fieldset
-                className='trade-container__fieldset trade-container__barriers'
+                className='trade-container__barriers'
                 header={<Localize i18n_default_text='Strike price' />}
                 header_tooltip={
                     <Localize

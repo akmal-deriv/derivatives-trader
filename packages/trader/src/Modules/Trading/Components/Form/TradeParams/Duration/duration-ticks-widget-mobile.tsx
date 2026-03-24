@@ -83,7 +83,7 @@ const DurationTicksWidgetMobile = observer(
                 ? Number(min_tick)
                 : selected_duration;
         return (
-            <div className='trade-params__duration-tickpicker'>
+            <div className='trade-params-v1__duration-tickpicker'>
                 <TickPicker
                     default_value={tick_duration}
                     submit_label={localize('OK')}

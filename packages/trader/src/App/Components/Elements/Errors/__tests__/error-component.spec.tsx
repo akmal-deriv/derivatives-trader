@@ -26,14 +26,15 @@ describe('ErrorComponent', () => {
         });
     });
 
-    it('should render ErrorComponent', () => {
+    it('should render ErrorComponent with header and message', () => {
         render(
             <Router history={browser_history}>
-                <ErrorComponent header={test_title} />
+                <ErrorComponent header={test_title} message={test_message} />
             </Router>
         );
 
         expect(screen.getByText(test_title)).toBeInTheDocument();
+        expect(screen.getByText(test_message)).toBeInTheDocument();
     });
     it('should render child component Dialog if ErrorComponent receive is_dialog === true', () => {
         render(<ErrorComponent is_dialog />);
@@ -89,7 +90,7 @@ describe('ErrorComponent', () => {
     it('should call a reload function when user click on redirect button for PageError component', async () => {
         render(
             <Router history={browser_history}>
-                <ErrorComponent header={test_title} should_show_refresh={false} />
+                <ErrorComponent header={test_title} message={test_message} should_show_refresh={false} />
             </Router>
         );
         await userEvent.click(screen.getByText(refresh_button));

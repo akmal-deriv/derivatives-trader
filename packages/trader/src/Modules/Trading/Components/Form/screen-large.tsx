@@ -7,6 +7,7 @@ import Fieldset from 'App/Components/Form/fieldset';
 import ContractType from '../../Containers/contract-type';
 import Purchase from '../../Containers/purchase';
 import TradeParams from '../../Containers/trade-params';
+import TradeParamsFooter from '../Elements/trade-params-footer';
 
 type TScreenLarge = {
     is_market_closed?: boolean;
@@ -15,21 +16,26 @@ type TScreenLarge = {
 };
 const ScreenLarge = ({ is_market_closed = false, is_trade_enabled, is_single_logging_in = false }: TScreenLarge) => (
     <div
-        className={classNames('sidebar__items', {
-            'sidebar__items--market-closed': is_market_closed,
+        className={classNames('trade-params-v1__items', {
+            'trade-params-v1__items--market-closed': is_market_closed,
         })}
     >
         {!is_trade_enabled || is_single_logging_in ? (
-            <TradeParamsLoader speed={2} />
+            <div className='trade-params-v1__items-content'>
+                <TradeParamsLoader speed={2} />
+            </div>
         ) : (
             <React.Fragment>
-                <Fieldset className='trade-container__fieldset trade-types'>
-                    <ContractType />
-                </Fieldset>
-                <TradeParams />
-                <div className='purchase-container'>
-                    <Purchase is_market_closed={is_market_closed} />
+                <div className='trade-params-v1__items-content'>
+                    <Fieldset className='trade-container__fieldset trade-types'>
+                        <ContractType />
+                    </Fieldset>
+                    <TradeParams />
+                    <div className='purchase-container'>
+                        <Purchase is_market_closed={is_market_closed} />
+                    </div>
                 </div>
+                <TradeParamsFooter />
             </React.Fragment>
         )}
     </div>

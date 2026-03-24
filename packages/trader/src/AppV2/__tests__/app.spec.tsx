@@ -2,10 +2,18 @@ import React from 'react';
 import { BrowserRouter } from 'react-router-dom';
 import moment from 'moment';
 
+import { trackAnalyticsEvent } from '@deriv/shared';
 import { mockStore } from '@deriv/stores';
 import { render, screen } from '@testing-library/react';
 
 import App from '../app';
+
+jest.mock('@deriv/shared', () => ({
+    ...jest.requireActual('@deriv/shared'),
+    trackAnalyticsEvent: jest.fn(),
+}));
+
+const mockTrackAnalyticsEvent = trackAnalyticsEvent as jest.MockedFunction<typeof trackAnalyticsEvent>;
 
 // Mock external dependencies
 jest.mock('@deriv/reports/src/Stores/useReportsStores', () => ({
@@ -34,8 +42,11 @@ jest.mock('Stores/Providers/modules-providers', () => {
 });
 
 jest.mock('../../trader-providers', () => {
-    const MockTraderProviders = ({ children }: { children: React.ReactNode }) => (
-        <div data-testid='trader-providers'>{children}</div>
+    const { StoreProvider } = jest.requireActual('@deriv/stores');
+    const MockTraderProviders = ({ children, store }: { children: React.ReactNode; store: any }) => (
+        <StoreProvider store={store}>
+            <div data-testid='trader-providers'>{children}</div>
+        </StoreProvider>
     );
     MockTraderProviders.displayName = 'MockTraderProviders';
     return MockTraderProviders;
@@ -136,5 +147,24 @@ describe('App', () => {
         unmount();
 
         expect(mockRootStore.ui.setPromptHandler).toHaveBeenCalledWith(false);
+    });
+
+    it('should fire analytics event when not logging in', () => {
+        renderApp();
+        expect(mockTrackAnalyticsEvent).toHaveBeenCalledWith('ce_dtrader_app_v2', { action: 'open' });
+    });
+
+    it('should not fire analytics event while login is in progress', () => {
+        const loggingInStore = mockStore({
+            common: { server_time: moment(new Date()).utc() },
+            client: { is_logged_in: false, is_logging_in: true },
+            ui: { setPromptHandler: jest.fn() },
+        });
+        render(
+            <BrowserRouter>
+                <App passthrough={{ root_store: loggingInStore, WS: mockWs }} />
+            </BrowserRouter>
+        );
+        expect(mockTrackAnalyticsEvent).not.toHaveBeenCalled();
     });
 });

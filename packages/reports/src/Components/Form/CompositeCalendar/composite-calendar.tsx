@@ -1,5 +1,4 @@
 import React from 'react';
-import Loadable from 'react-loadable';
 import moment from 'moment';
 
 import { InputField, useOnClickOutside } from '@deriv/components';
@@ -11,7 +10,6 @@ import { useDevice } from '@deriv-com/ui';
 import CalendarIcon from './calendar-icon';
 import CompositeCalendarMobile from './composite-calendar-mobile';
 import SideList from './side-list';
-import TwoMonthPicker from './two-month-picker';
 
 type TCompositeCalendar = {
     onChange: (values: { to?: moment.Moment; from?: moment.Moment; is_batch?: boolean }) => void;
@@ -19,27 +17,28 @@ type TCompositeCalendar = {
     from: number;
 };
 
-type TTwoMonthPickerLoadable = {
+const TwoMonthPickerLazy = React.lazy(() => import(/* webpackChunkName: "two-month-picker" */ './two-month-picker'));
+
+const TwoMonthPickerLoadable = (props: {
     onChange: (date: moment.Moment) => void;
     isPeriodDisabled: (date: moment.Moment) => boolean;
     value: number;
-};
-
-const TwoMonthPickerLoadable = Loadable<TTwoMonthPickerLoadable, typeof TwoMonthPicker>({
-    loader: () => import(/* webpackChunkName: "two-month-picker" */ './two-month-picker'),
-    loading: () => null,
-    render(loaded, props) {
-        const Component = loaded.default;
-        return <Component {...props} />;
-    },
-});
+}) => (
+    <React.Suspense fallback={null}>
+        <TwoMonthPickerLazy
+            onChange={(date: moment.MomentInput) => props.onChange(toMoment(date))}
+            isPeriodDisabled={props.isPeriodDisabled}
+            value={toMoment(props.value)}
+        />
+    </React.Suspense>
+);
 
 const CompositeCalendar = observer((props: TCompositeCalendar) => {
     const { localize } = useTranslations();
     const { ui } = useStore();
     const { current_focus, setCurrentFocus } = ui;
     const { onChange, to, from } = props;
-    const { isDesktop } = useDevice();
+    const { isMobile } = useDevice();
     const [show_to, setShowTo] = React.useState(false);
     const [show_from, setShowFrom] = React.useState(false);
     const [list] = React.useState([
@@ -114,7 +113,7 @@ const CompositeCalendar = observer((props: TCompositeCalendar) => {
 
     useOnClickOutside(
         wrapper_ref,
-        (event: React.MouseEvent) => {
+        event => {
             event?.stopPropagation();
             event?.preventDefault();
             hideCalendar();
@@ -137,7 +136,7 @@ const CompositeCalendar = observer((props: TCompositeCalendar) => {
 
     const isPeriodDisabledFrom = (date: moment.Moment) => date.unix() > to;
 
-    if (isDesktop) {
+    if (!isMobile) {
         return (
             <React.Fragment>
                 <div id='dt_composite_calendar_inputs' className='composite-calendar__input-fields'>

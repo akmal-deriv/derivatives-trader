@@ -3,7 +3,13 @@ import classNames from 'classnames';
 import moment from 'moment';
 
 import { ArrowIndicator, ContractCard, ContractCardSell, Label, Money, Popover } from '@deriv/components';
-import { getCardLabels, getCurrencyDisplayCode, getGrowthRatePercentage, getTotalProfit } from '@deriv/shared';
+import {
+    getCardLabels,
+    getCurrencyDisplayCode,
+    getGrowthRatePercentage,
+    getTotalProfit,
+    formatDate,
+} from '@deriv/shared';
 import { useStore } from '@deriv/stores';
 import { Localize } from '@deriv-com/translations';
 
@@ -30,7 +36,7 @@ const map = {
     transfer: 'transfer',
 } as const;
 
-export type TKeys = string;
+export type TKeys = string | number;
 
 const getModeFromValue = (key: string) => map[key as keyof typeof map] || map.default;
 
@@ -87,9 +93,10 @@ export const getStatementTableColumnsTemplate = (currency: string, isDesktop: bo
     },
     {
         title: <Localize i18n_default_text='Transaction time' />,
-        col_index: 'date',
+        col_index: 'transaction_time',
         renderCellContent: ({ cell_value }: TCellContentProps) => {
-            return <span>{cell_value} GMT</span>;
+            if (!cell_value) return '-';
+            return <span>{formatDate(cell_value, 'DD MMM YYYY HH:mm:ss')} GMT</span>;
         },
     },
     {
@@ -97,7 +104,7 @@ export const getStatementTableColumnsTemplate = (currency: string, isDesktop: bo
         title: <Localize i18n_default_text='Transaction' />,
         col_index: 'action_type',
         renderCellContent: ({ cell_value, passthrough, row_obj }: TCellContentProps) => (
-            <Label mode={getModeFromValue(cell_value)}>
+            <Label mode={getModeFromValue(String(cell_value))}>
                 {(passthrough.isTopUp(row_obj) && <Localize i18n_default_text='Top up' />) || row_obj.action}
             </Label>
         ),
@@ -106,8 +113,8 @@ export const getStatementTableColumnsTemplate = (currency: string, isDesktop: bo
         title: <Localize i18n_default_text='Credit/Debit' />,
         col_index: 'amount',
         renderCellContent: ({ cell_value }: TCellContentProps) => (
-            <div className={`amount--${getProfitOrLoss(cell_value)}`}>
-                <Money has_sign amount={cell_value.replace(/[,]+/g, '')} currency={currency} />
+            <div className={`amount--${getProfitOrLoss(String(cell_value))}`}>
+                <Money has_sign amount={String(cell_value).replace(/[,]+/g, '')} currency={currency} />
             </div>
         ),
     },
@@ -115,7 +122,7 @@ export const getStatementTableColumnsTemplate = (currency: string, isDesktop: bo
         title: <Localize i18n_default_text='Balance' />,
         col_index: 'balance',
         renderCellContent: ({ cell_value }: TCellContentProps) => (
-            <Money amount={cell_value.replace(/[,]+/g, '')} currency={currency} />
+            <Money amount={String(cell_value).replace(/[,]+/g, '')} currency={currency} />
         ),
     },
 ];
@@ -148,10 +155,11 @@ export const getProfitTableColumnsTemplate = (currency: string, items_count: num
     },
     {
         title: <Localize i18n_default_text='Buy time' />,
-        col_index: 'purchase_time',
+        col_index: 'purchase_time_unix',
         renderCellContent: ({ cell_value, is_footer }: TCellContentProps) => {
             if (is_footer) return '';
-            return <span>{cell_value} GMT</span>;
+            if (!cell_value) return '-';
+            return <span>{formatDate(cell_value, 'DD MMM YYYY HH:mm:ss')} GMT</span>;
         },
     },
     {
@@ -165,11 +173,12 @@ export const getProfitTableColumnsTemplate = (currency: string, items_count: num
     },
     {
         title: <Localize i18n_default_text='Sell time' />,
-        col_index: 'sell_time',
+        col_index: 'sell_time_unix',
         renderHeader: ({ title }: THeaderProps) => <span>{title}</span>,
         renderCellContent: ({ cell_value, is_footer }: TCellContentProps) => {
             if (is_footer) return '';
-            return <span>{cell_value} GMT</span>;
+            if (!cell_value) return '-';
+            return <span>{formatDate(cell_value, 'DD MMM YYYY HH:mm:ss')} GMT</span>;
         },
     },
     {
@@ -185,8 +194,8 @@ export const getProfitTableColumnsTemplate = (currency: string, items_count: num
         title: <Localize i18n_default_text='Total profit/loss' />,
         col_index: 'profit_loss',
         renderCellContent: ({ cell_value }: TCellContentProps) => (
-            <ProfitLossCell value={cell_value}>
-                <Money has_sign amount={cell_value.replace(/[,]+/g, '')} currency={currency} />
+            <ProfitLossCell value={String(cell_value)}>
+                <Money has_sign amount={String(cell_value).replace(/[,]+/g, '')} currency={currency} />
             </ProfitLossCell>
         ),
     },

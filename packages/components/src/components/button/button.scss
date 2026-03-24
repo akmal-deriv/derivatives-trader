@@ -31,12 +31,8 @@
     &__text,
     &__icon {
         display: flex;
-        pointer-events: none;
-    }
-    &__icon {
         @include typeface(--paragraph-center-bold-black, unset);
         color: var(--color-text-secondary);
-        padding-right: 0.8rem;
         pointer-events: none;
 
         &--circle {

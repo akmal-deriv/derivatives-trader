@@ -2,7 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router } from 'react-router-dom';
 import PropTypes from 'prop-types';
 
-import { APIProvider } from '@deriv/api';
+import { APIProvider, useMobileBridge } from '@deriv/api';
 import { Loading } from '@deriv/components';
 import { initFormErrorMessages, setUrlLanguage, setWebsocket } from '@deriv/shared';
 import { StoreProvider } from '@deriv/stores';
@@ -29,12 +29,29 @@ const App = ({ root_store }) => {
     const { is_dark_mode_on } = root_store.ui;
     const is_dark_mode = is_dark_mode_on || JSON.parse(localStorage.getItem('ui_store'))?.is_dark_mode_on;
     const language = preferred_language ?? getInitialLanguage();
+    const { isBridgeAvailable, sendBridgeEvent } = useMobileBridge();
+
+    // Send trading:ready event to ensure smooth loader transition
+    React.useEffect(() => {
+        if (isBridgeAvailable) {
+            sendBridgeEvent('trading:ready');
+        }
+    }, [isBridgeAvailable, sendBridgeEvent]);
 
     React.useEffect(() => {
         sessionStorage.removeItem('redirect_url');
         const loadSmartchartsStyles = () => {
-            import('@deriv-com/derivatives-charts/dist/smartcharts.css');
+            import('@deriv-com/smartcharts-champion/dist/smartcharts.css');
         };
+
+        // Check for theme query parameter and set theme accordingly
+        const urlParams = new URLSearchParams(window.location.search);
+        const themeParam = urlParams.get('theme');
+        if (themeParam === 'dark') {
+            root_store.ui.setDarkMode(true);
+        } else if (themeParam === 'light') {
+            root_store.ui.setDarkMode(false);
+        }
 
         // TODO: [translation-to-shared]: add translation implemnentation in shared
         setUrlLanguage(language);

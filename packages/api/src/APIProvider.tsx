@@ -2,7 +2,7 @@ import React, { createContext, PropsWithChildren, useCallback, useContext, useEf
 
 // @ts-expect-error `@deriv/deriv-api` is not in TypeScript, Hence we ignore the TS error.
 import DerivAPIBasic from '@deriv/deriv-api/dist/DerivAPIBasic';
-import { getAccountType, getBrandName, getSocketURL, useWS } from '@deriv/shared';
+import { getAccountType, getApiCoreBaseUrl, getBrandName, getSocketURL, useWS } from '@deriv/shared';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 import {
@@ -27,6 +27,10 @@ type TSubscribeFunction = <T extends TSocketSubscribableEndpointNames>(
 
 type TUnsubscribeFunction = (id: string) => void;
 
+type TRestAPIConfig = {
+    baseUrl: string;
+};
+
 type APIContextData = {
     derivAPI: DerivAPIBasic | null;
     switchEnvironment: (loginid: string | null | undefined) => void;
@@ -34,9 +38,10 @@ type APIContextData = {
     subscribe: TSubscribeFunction;
     unsubscribe: TUnsubscribeFunction;
     queryClient: QueryClient;
+    restAPIConfig: TRestAPIConfig;
 };
 
-const APIContext = createContext<APIContextData | null>(null);
+export const APIContext = createContext<APIContextData | null>(null);
 
 declare global {
     interface Window {
@@ -49,7 +54,19 @@ declare global {
 // This is a temporary workaround to share a single `QueryClient` instance between all the packages.
 const getSharedQueryClientContext = (): QueryClient => {
     if (!window.ReactQueryClient) {
-        window.ReactQueryClient = new QueryClient();
+        window.ReactQueryClient = new QueryClient({
+            defaultOptions: {
+                queries: {
+                    refetchOnWindowFocus: false,
+                    refetchOnReconnect: false,
+                },
+            },
+            logger: {
+                log: () => {},
+                warn: () => {},
+                error: () => {},
+            },
+        });
     }
 
     return window.ReactQueryClient;
@@ -222,6 +239,12 @@ const APIProvider = ({ children, standalone = false }: PropsWithChildren<TAPIPro
         return () => clearTimeout(reconnectTimerId);
     }, [environment, reconnect, standalone]);
 
+    const restAPIConfig: TRestAPIConfig = React.useMemo(() => {
+        return {
+            baseUrl: getApiCoreBaseUrl(),
+        };
+    }, []);
+
     return (
         <APIContext.Provider
             value={{
@@ -231,6 +254,7 @@ const APIProvider = ({ children, standalone = false }: PropsWithChildren<TAPIPro
                 subscribe,
                 unsubscribe,
                 queryClient,
+                restAPIConfig,
             }}
         >
             <QueryClientProvider client={queryClient}>

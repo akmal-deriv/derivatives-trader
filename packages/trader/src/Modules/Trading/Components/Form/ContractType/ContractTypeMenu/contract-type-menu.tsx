@@ -91,6 +91,10 @@ const Dialog = ({
             value={input_value}
         />
     );
+
+    // Create a ref for CSSTransition to fix findDOMNode deprecation warning
+    const node_ref = React.useRef(null);
+
     return (
         <CSSTransition
             in={is_open}
@@ -101,8 +105,9 @@ const Dialog = ({
                 exit: 'contract-type-dialog--exit',
             }}
             unmountOnExit
+            nodeRef={node_ref}
         >
-            <div className='contract-type-dialog' data-testid='dt_contract_wrapper'>
+            <div ref={node_ref} className='contract-type-dialog' data-testid='dt_contract_wrapper'>
                 <div className='contract-type-dialog__wrapper'>
                     {show_loading ? (
                         <Loading is_fullscreen={false} />

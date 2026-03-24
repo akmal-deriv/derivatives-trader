@@ -42,7 +42,7 @@ const DealCancellationWarningDialog = observer(
         const { disableApp, enableApp, should_show_cancellation_warning, toggleCancellationWarning } = ui;
         return (
             <Dialog
-                className='trade-params__multiplier-deal-cancellation-dialog'
+                className='trade-params-v1__multiplier-deal-cancellation-dialog'
                 title={localize('About deal cancellation')}
                 confirm_button_text={localize('Got it')}
                 cancel_button_text={localize('Cancel')}
@@ -119,8 +119,8 @@ const CancelDeal = observer(
                     {has_cancellation && (
                         <React.Fragment>
                             <RadioGroup
-                                className='trade-params__multiplier-radio-group'
-                                name='trade-params__multiplier-radio'
+                                className='trade-params-v1__multiplier-radio-group'
+                                name='trade-params-v1__multiplier-radio'
                                 selected={cancellation_duration}
                                 onToggle={event => onChangeCancellationDuration({ event, onChangeMultiple })}
                             >

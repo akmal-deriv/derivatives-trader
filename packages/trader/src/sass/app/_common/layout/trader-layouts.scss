@@ -2,75 +2,46 @@
 
 /*rtl:begin:ignore*/
 .app-contents {
-    &--show-positions-drawer:not(&--is-mobile) {
-        @include desktop-screen {
-            .trade-container {
-                .chart-container {
-                    width: 100%;
+    &--show-positions-drawer {
+        // @include desktop-screen {
+        .trade-container {
+            .chart-container {
+                width: 100%;
 
-                    .sc-navigation-widget,
-                    .cq-top-ui-widgets,
-                    .sc-toolbar-widget,
-                    .stx-panel-control {
-                        transform: translate3d(248px, 0, 0);
+                .sc-navigation-widget,
+                .cq-top-ui-widgets,
+                .sc-toolbar-widget,
+                .stx-panel-control {
+                    transform: translate3d(#{$POSITIONS_DRAWER_WIDTH}, 0, 0);
+                }
+                .cq-chart-controls {
+                    transform: translate3d(130px, 0, 0) !important;
+                }
+                .cq-bottom-ui-widgets {
+                    .digits__container,
+                    .accumulators-stats {
+                        transform: translate3d(144px, 0, 0) !important;
                     }
+                }
+                .cq-chart-control-left {
                     .cq-chart-controls {
-                        transform: translate3d(130px, 0, 0) !important;
+                        transform: translate3d(#{$POSITIONS_DRAWER_WIDTH}, 0, 0) !important;
                     }
                     .cq-bottom-ui-widgets {
                         .digits__container,
                         .accumulators-stats {
-                            transform: translate3d(130px, 0, 0) !important;
+                            transform: translate3d(170px, 40px, 0) !important;
                         }
                     }
-                    .cq-chart-control-left {
-                        .cq-chart-controls {
-                            transform: translate3d(248px, 0, 0) !important;
-                        }
-                        .cq-bottom-ui-widgets {
-                            .digits__container,
-                            .accumulators-stats {
-                                transform: translate3d(170px, 40px, 0) !important;
-                            }
-                        }
-                    }
-                    &__loader {
-                        .barspinner {
-                            transform: translate3d(130px, 0, 0) !important;
-                        }
+                }
+                &__loader {
+                    .barspinner {
+                        transform: translate3d(130px, 0, 0) !important;
                     }
                 }
             }
         }
-    }
-    &--is-mobile {
-        .top-widgets-portal {
-            position: absolute;
-            top: 0px;
-            display: flex;
-            align-items: center;
-            flex-wrap: wrap;
-            z-index: 1;
-
-            .recent-trade-info {
-                min-width: 8rem;
-                line-height: 2.4rem;
-                margin-left: 1.6rem;
-            }
-        }
-        .cq-chart-title {
-            > .cq-menu-btn {
-                padding: 0.4rem;
-                user-select: none;
-                -webkit-touch-callout: none;
-                -webkit-tap-highlight-color: transparent;
-            }
-        }
-        & .contract-details-wrapper + .smartcharts-undefined {
-            & .cq-symbols-display {
-                display: none;
-            }
-        }
+        // }
     }
 }
 
@@ -79,7 +50,7 @@ $FLOATING_HEADER_HEIGHT: 41px;
 .trade-container {
     position: relative;
     display: flex;
-    min-height: calc(100vh - 84px);
+    height: 100vh;
     overflow: hidden;
 
     &__replay {
@@ -87,17 +58,16 @@ $FLOATING_HEADER_HEIGHT: 41px;
         width: 100%;
         display: flex;
         flex-direction: row;
-        height: calc(100vh - 108px - #{$FLOATING_HEADER_HEIGHT + 12px});
+        height: calc(100svh - 5.4rem - 2.4rem); // 5.4rem for header + 2.4rem padding-bottom
         padding-bottom: 2.4rem;
 
         @include tablet-screen {
-            padding: 2.4rem;
-            height: calc(100vh - 84px - #{$FLOATING_HEADER_HEIGHT + 12px});
+            height: calc(100vh - 4rem - 2.4rem); // 4rem for tablet header + 2.4rem padding-bottom
         }
 
         .contract-drawer {
             /* prettier-ignore */
-            height: calc(100% + 2.4rem);
+            height: 100%;
             border-bottom-right-radius: 0;
             border-top-right-radius: 0;
             z-index: 1;
@@ -445,6 +415,7 @@ $FLOATING_HEADER_HEIGHT: 41px;
 .chart-container {
     width: 100%;
     position: relative;
+    padding: 1.6rem 0;
 
     &__wrapper {
         position: relative;
@@ -663,19 +634,18 @@ $FLOATING_HEADER_HEIGHT: 41px;
 }
 
 /** @define sidebar; weak; */
-.sidebar {
-    &__container {
-        position: relative;
-        margin: 1.6rem;
-        width: $SIDEBAR_WIDTH;
-        z-index: 5;
-    }
+.trade-params-v1 {
+    position: relative;
+    padding: 1.6rem 1.6rem 1.6rem 0;
+
     &__items {
+        display: flex;
+        flex-direction: column;
         opacity: 1;
         transform: none;
         position: relative;
         min-height: 460px;
-        width: $SIDEBAR_WIDTH;
+        width: calc($SIDEBAR_WIDTH + 1.6rem);
         height: 100%;
 
         &:after {
@@ -691,6 +661,12 @@ $FLOATING_HEADER_HEIGHT: 41px;
             content: '';
             background-color: var(--color-modal-backdrop);
         }
+
+        &-content {
+            flex: 1;
+            padding-left: 1.6rem;
+        }
+
         &--market-closed {
             & .dc-tooltip--with-label {
                 display: none;
@@ -698,6 +674,71 @@ $FLOATING_HEADER_HEIGHT: 41px;
             & .dc-tooltip--with-label:before,
             .dc-tooltip--with-label:after {
                 display: none;
+            }
+        }
+    }
+
+    &-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: auto;
+        background-color: var(--color-surface-primary);
+        min-height: 2.4rem;
+
+        &__date,
+        &__time {
+            font-size: 1.4rem;
+            font-weight: 400;
+            color: var(--color-text-primary);
+            white-space: nowrap;
+        }
+
+        .network-status__wrapper {
+            display: flex;
+            align-items: center;
+            align-content: center;
+            flex-shrink: 0;
+        }
+
+        .network-status__circle {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+
+            &--online {
+                background-color: var(--color-status-success);
+            }
+
+            &--offline {
+                background-color: var(--color-status-danger);
+            }
+
+            &--blinker {
+                background-color: var(--color-status-warning);
+                animation: blink 1s infinite;
+            }
+        }
+
+        .footer__link {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            text-decoration: none;
+            flex-shrink: 0;
+
+            &:hover {
+                opacity: 0.8;
+            }
+        }
+
+        .footer__icon {
+            display: flex;
+            align-items: center;
+
+            svg {
+                width: 16px;
+                height: 16px;
             }
         }
     }

@@ -35,4 +35,16 @@ describe('GuideContainer', () => {
 
         expect(mock_props.onFinishGuide).toBeCalled();
     });
+
+    it('should render component with partial guide (single step)', () => {
+        render(<GuideContainer {...mock_props} step_indices={[3]} />);
+
+        expect(screen.getByText('Joyride')).toBeInTheDocument();
+    });
+
+    it('should render component with partial guide (multiple steps)', () => {
+        render(<GuideContainer {...mock_props} step_indices={[2, 3, 4]} />);
+
+        expect(screen.getByText('Joyride')).toBeInTheDocument();
+    });
 });

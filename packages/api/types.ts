@@ -127,7 +127,9 @@ type PriceProposalRequest = Omit<
 };
 
 type PriceProposalResponse = Omit<BasePriceProposalResponse, 'proposal'> & {
-    proposal?: Omit<NonNullable<BasePriceProposalResponse['proposal']>, 'display_value'>;
+    proposal?: Omit<NonNullable<BasePriceProposalResponse['proposal']>, 'display_value'> & {
+        payout_choices?: string[];
+    };
 };
 
 type BuyContractRequest = Omit<BaseBuyContractRequest, 'loginid' | 'parameters'> & {
@@ -213,10 +215,7 @@ type StatementRequest = BaseStatementRequest;
 type StatementResponse = Omit<BaseStatementResponse, 'statement'> & {
     statement?: Omit<NonNullable<BaseStatementResponse['statement']>, 'transactions'> & {
         transactions?: Array<
-            Omit<
-                NonNullable<NonNullable<BaseStatementResponse['statement']>['transactions']>[0],
-                'app_id' | 'withdrawal_details'
-            >
+            Omit<NonNullable<NonNullable<BaseStatementResponse['statement']>['transactions']>[0], 'withdrawal_details'>
         >;
     };
 };
@@ -502,15 +501,15 @@ export type TSocketRequestPayload<
           };
 
 export type TSocketRequestQueryOptions<T extends TSocketEndpointNames> = Parameters<
-    typeof useQuery<TSocketResponseData<T>, TSocketError<T>>
+    typeof useQuery<TSocketResponseData<T>, TSocketError<T>['error']>
 >[2];
 
 export type TSocketRequestInfiniteQueryOptions<T extends TSocketEndpointNames> = Parameters<
-    typeof useInfiniteQuery<TSocketResponseData<T>, TSocketError<T>>
+    typeof useInfiniteQuery<TSocketResponseData<T>, TSocketError<T>['error']>
 >[2];
 
 export type TSocketRequestMutationOptions<T extends TSocketEndpointNames> = Parameters<
-    typeof useMutation<TSocketResponseData<T>, TSocketError<T>, TSocketAcceptableProps<T>>
+    typeof useMutation<TSocketResponseData<T>, TSocketError<T>['error'], TSocketAcceptableProps<T>>
 >[2];
 
 type TSocketRequestWithOptions<
@@ -616,3 +615,25 @@ export type TForgetAllResponse = TSocketResponse<'forget_all'>;
 
 export type TLogOutRequest = TSocketRequest<'logout'>;
 export type TLogOutResponse = TSocketResponse<'logout'>;
+
+/**
+ * REST API Types for Derivatives Account Endpoint
+ */
+export type TDerivativesAccount = {
+    account_id: string;
+    balance: string;
+    currency: string;
+    group: string;
+    status: 'active' | 'inactive' | 'trading_disabled';
+    account_type: 'real' | 'demo';
+    timestamp: string;
+};
+
+export type TDerivativesAccountResponse = {
+    data: TDerivativesAccount[];
+    meta?: {
+        endpoint: string;
+        method: string;
+        timing: number;
+    };
+};

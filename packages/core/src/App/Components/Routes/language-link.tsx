@@ -1,7 +1,7 @@
 import React from 'react';
 import classNames from 'classnames';
 
-import { TranslationFlag, UNSUPPORTED_LANGUAGES } from '@deriv/shared';
+import { UNSUPPORTED_LANGUAGES } from '@deriv/shared';
 import { observer, useStore } from '@deriv/stores';
 import { getAllowedLanguages, useTranslations } from '@deriv-com/translations';
 
@@ -19,7 +19,8 @@ const LanguageLink = observer(({ is_clickable = false, lang, toggleModal }: TLan
 
     const link: React.ReactNode = (
         <React.Fragment>
-            {TranslationFlag[lang](36, 24)}
+            {/* Remove the flag until the new design is implemented */}
+            {/* {TranslationFlag[lang](36, 24)} */}
             <span
                 className={classNames('settings-language__language-name', {
                     'settings-language__language-name--active': is_active,

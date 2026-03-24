@@ -1,18 +1,17 @@
 import React from 'react';
 import { RouteComponentProps, withRouter } from 'react-router-dom';
 
-import { Clipboard, DataList, DataTable, Text, usePrevious } from '@deriv/components';
+import { Clipboard, DataList, DataTable, Text } from '@deriv/components';
 import { TSource } from '@deriv/components/src/components/data-table/table-row';
 import { TRow } from '@deriv/components/src/components/types/common.types';
 import {
     capitalizeFirstLetter,
     extractInfoFromShortcode,
-    formatDate,
     getContractPath,
     getUnsupportedContracts,
+    initMoment,
 } from '@deriv/shared';
 import { observer, useStore } from '@deriv/stores';
-import { Analytics } from '@deriv-com/analytics';
 import { Localize, useTranslations } from '@deriv-com/translations';
 import { useDevice } from '@deriv-com/ui';
 
@@ -27,7 +26,7 @@ import { ReportsMeta } from '../Components/reports-meta';
 import { getStatementTableColumnsTemplate } from '../Constants/data-table-constants';
 
 type TGetStatementTableColumnsTemplate = ReturnType<typeof getStatementTableColumnsTemplate>;
-type TColIndex = 'icon' | 'refid' | 'currency' | 'date' | 'action_type' | 'amount' | 'balance';
+type TColIndex = 'icon' | 'refid' | 'currency' | 'transaction_time' | 'action_type' | 'amount' | 'balance';
 
 type TAction =
     | {
@@ -84,8 +83,7 @@ const DetailsComponent = ({ message = '', action_type = '' }: TDetailsComponent)
 
 export const getRowAction = (row_obj: TSource | TRow): TAction => {
     let action: TAction = {};
-    const { action_type, desc, id, is_sold, longcode, purchase_time, shortcode, transaction_time, withdrawal_details } =
-        row_obj;
+    const { action_type, desc, id, longcode, shortcode, withdrawal_details } = row_obj;
     if (id && ['buy', 'sell'].includes(action_type)) {
         const contract_type = extractInfoFromShortcode(shortcode)?.category?.toUpperCase();
         const unsupportedContractConfig = getUnsupportedContracts()[contract_type as TUnsupportedContractType];
@@ -103,16 +101,26 @@ export const getRowAction = (row_obj: TSource | TRow): TAction => {
               }
             : getContractPath(id);
     } else if (action_type === 'withdrawal') {
-        if (withdrawal_details && longcode) {
+        // For withdrawal: show details only if withdrawal_details or longcode exists
+        if ((withdrawal_details && longcode) || desc) {
             action = {
-                message: `${withdrawal_details} ${longcode}`,
+                message: withdrawal_details && longcode ? `${withdrawal_details} ${longcode}` : desc,
             };
         } else {
-            action = {
-                message: desc,
-            };
+            // No details available, make row non-clickable
+            return { disabled: true } as any;
         }
-    } else if (desc && ['deposit', 'transfer', 'adjustment', 'hold', 'release'].includes(action_type)) {
+    } else if (action_type === 'deposit') {
+        // For deposit: show details only if desc/longcode exists
+        if (desc || longcode) {
+            action = {
+                message: desc || longcode,
+            };
+        } else {
+            // No details available, make row non-clickable
+            return { disabled: true } as any;
+        }
+    } else if (desc && ['transfer', 'adjustment', 'hold', 'release'].includes(action_type)) {
         action = {
             message: desc,
         };
@@ -145,10 +153,11 @@ const Statement = observer(({ component_icon }: TStatement) => {
         onMount,
         onUnmount,
     } = statement;
-    const prev_action_type = usePrevious(action_type);
-    const prev_date_from = usePrevious(date_from);
-    const prev_date_to = usePrevious(date_to);
-    const { isDesktop } = useDevice();
+    const { isMobile } = useDevice();
+
+    React.useEffect(() => {
+        initMoment(current_language);
+    }, [current_language]);
 
     React.useEffect(() => {
         onMount();
@@ -161,7 +170,7 @@ const Statement = observer(({ component_icon }: TStatement) => {
 
     if (error) return <p>{error}</p>;
 
-    const columns: TGetStatementTableColumnsTemplate = getStatementTableColumnsTemplate(currency, isDesktop);
+    const columns: TGetStatementTableColumnsTemplate = getStatementTableColumnsTemplate(currency, !isMobile);
     const columns_map = columns.reduce(
         (map, item) => {
             map[item.col_index as TColIndex] = item;
@@ -196,7 +205,7 @@ const Statement = observer(({ component_icon }: TStatement) => {
                 />
             </div>
             <div className='data-list__row'>
-                <DataList.Cell row={row} column={columns_map.date as TDataListCell['column']} />
+                <DataList.Cell row={row} column={columns_map.transaction_time as TDataListCell['column']} />
                 <DataList.Cell
                     className='data-list__row-cell--amount'
                     row={row}
@@ -233,7 +242,7 @@ const Statement = observer(({ component_icon }: TStatement) => {
                     />
                 ) : (
                     <div className='reports__content'>
-                        {isDesktop ? (
+                        {!isMobile ? (
                             <DataTable
                                 className='statement'
                                 columns={columns}

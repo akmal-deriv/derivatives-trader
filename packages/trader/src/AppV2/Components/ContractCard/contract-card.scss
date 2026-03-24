@@ -64,6 +64,9 @@
         inset-inline-end: 0;
         inset-block-end: 0;
         transform: translateX(100%);
+        [dir='rtl'] & {
+            transform: translateX(-100%);
+        }
         opacity: var(--core-opacity-50);
         transition: opacity var(--core-motion-duration-200) var(--motion-easing-inandout);
 
@@ -156,8 +159,16 @@
     &.show-buttons {
         transform: translateX(calc(var(--core-size-3600) * -1));
 
+        [dir='rtl'] & {
+            transform: translateX(var(--core-size-3600));
+        }
+
         &.has-cancel-button {
             transform: translateX(calc(var(--core-size-3600) * -2));
+
+            [dir='rtl'] & {
+                transform: translateX(calc(var(--core-size-3600) * 2));
+            }
         }
     }
     &-wrapper {
@@ -195,6 +206,13 @@
                     &.has-cancel-button {
                         animation: var(--motion-duration-relax) var(--motion-easing-inandout) bounce-two-buttons;
                     }
+                    [dir='rtl'] & {
+                        animation-name: bounce-one-button-rtl;
+
+                        &.has-cancel-button {
+                            animation-name: bounce-two-buttons-rtl;
+                        }
+                    }
                     @keyframes bounce-one-button {
                         0%,
                         100% {
@@ -213,6 +231,26 @@
                         30%,
                         70% {
                             transform: translateX(calc(var(--core-size-3600) * -2));
+                        }
+                    }
+                    @keyframes bounce-one-button-rtl {
+                        0%,
+                        100% {
+                            transform: translateX(0);
+                        }
+                        30%,
+                        70% {
+                            transform: translateX(var(--core-size-3600));
+                        }
+                    }
+                    @keyframes bounce-two-buttons-rtl {
+                        0%,
+                        100% {
+                            transform: translateX(0);
+                        }
+                        30%,
+                        70% {
+                            transform: translateX(calc(var(--core-size-3600) * 2));
                         }
                     }
                 }

@@ -1,45 +1,35 @@
 import React from 'react';
-import clsx from 'clsx';
 
-import { getUrlBase } from '@deriv/shared';
-import { Localize } from '@deriv-com/translations';
+import { useStore } from '@deriv/stores';
 import { Skeleton } from '@deriv-com/quill-ui';
 
+import StreamIframe from 'AppV2/Components/StreamIframe';
 import { ASPECT_RATIO } from 'AppV2/Utils/layout-utils';
+import { getOnboardingVideoId } from 'Modules/Trading/Helpers/video-config';
 
 type TOnboardingVideoProps = {
     type: 'trade_page' | 'positions_page' | 'trade_page_dark' | 'positions_page_dark';
 };
 
 const OnboardingVideo = ({ type }: TOnboardingVideoProps) => {
-    const [is_loading, setIsLoading] = React.useState(true);
+    const { ui } = useStore();
+    const { is_dark_mode_on } = ui;
 
-    // memoize file paths for videos and open the modal only after we get them
-    const getVideoSource = React.useCallback(
-        (extension: string) =>
-            getUrlBase(`/public/videos/user-onboarding-guide-${type.replaceAll('_', '-')}.${extension}`),
-        [type]
-    );
-    const mp4_src = React.useMemo(() => getVideoSource('mp4'), [getVideoSource]);
+    // Extract page type and determine theme from type prop
+    const page_type = type.replace('_dark', '') as 'trade_page' | 'positions_page';
+    const is_dark = type.includes('_dark') || is_dark_mode_on;
+
+    const video_id = getOnboardingVideoId(page_type, is_dark);
 
     return (
-        <div className={clsx('guide__player__wrapper', is_loading && 'guide__player__wrapper--is-loading')}>
-            {is_loading && <Skeleton.Square height={`calc(100vw * ${ASPECT_RATIO})`} />}
-            <video
-                autoPlay
-                className='guide__player'
-                data-testid='dt_onboarding_guide_video'
-                muted
-                loop
-                onLoadedData={() => setIsLoading(false)}
-                playsInline
-                preload='auto'
-            >
-                {/* a browser will select a source with extension it recognizes */}
-                <source src={mp4_src} type='video/mp4' />
-                <Localize i18n_default_text='Unfortunately, your browser does not support the video.' />
-            </video>
-        </div>
+        <StreamIframe
+            src={video_id}
+            title={`onboarding_${page_type}`}
+            autoplay
+            loop
+            muted
+            data-testid='dt_onboarding_guide_video'
+        />
     );
 };
 

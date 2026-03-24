@@ -55,7 +55,7 @@ const PayoutPerPointMobileInput = ({
 
     const distance_tooltip_text = (
         <div className='trade-container__barriers-tooltip'>
-            <Localize i18n_default_text='You will receive a payout at expiry if the spot price never breaches the barrier throughout the contract duration. Otherwise, your contract will be terminated early.' />
+            <Localize i18n_default_text='The amount you choose to receive at expiry for every point of change between the final price and the barrier.' />
         </div>
     );
     const header_tooltip_text = (

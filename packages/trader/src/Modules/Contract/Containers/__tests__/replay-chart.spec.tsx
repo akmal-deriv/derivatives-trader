@@ -20,6 +20,27 @@ jest.mock('Modules/SmartChart/Components/Markers/reset-contract-chart-elements',
     default: () => <div>Mocked Reset Elements</div>,
 }));
 
+jest.mock('Modules/SmartChart/Hooks/useSmartChartsAdapter', () => ({
+    useSmartChartsAdapter: () => ({
+        chartData: {
+            activeSymbols: [],
+            tradingTimes: {},
+        },
+        isLoading: false,
+        error: null,
+        getQuotes: jest.fn(),
+        subscribeQuotes: jest.fn(),
+        unsubscribeQuotes: jest.fn(),
+        retryFetchChartData: jest.fn(),
+        shouldUseCandlesOverride: false,
+    }),
+}));
+
+jest.mock('@deriv-com/ui', () => ({
+    ...jest.requireActual('@deriv-com/ui'),
+    useDevice: jest.fn(() => ({ isMobile: false, isDesktop: true, isTablet: false })),
+}));
+
 describe('<ReplayChart>', () => {
     const props = {
         is_dark_theme_prop: true,

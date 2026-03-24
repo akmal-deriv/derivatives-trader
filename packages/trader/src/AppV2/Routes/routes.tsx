@@ -2,10 +2,13 @@ import { lazy } from 'react';
 
 import { routes } from '@deriv/shared';
 
-import ContractDetails from 'AppV2/Containers/ContractDetails';
-import Positions from 'AppV2/Containers/Positions';
-import Trade from 'AppV2/Containers/Trade';
 import { TRouteConfig } from 'Types';
+
+import ContractDetailsSwitch from './ContractDetailsSwitch';
+import PositionsSwitch from './PositionsSwitch';
+
+// Lazy load route components for better code splitting
+const Trade = lazy(() => import(/* webpackChunkName: "trader-trade" */ 'AppV2/Containers/Trade'));
 
 type TRouteConfigExtended = Omit<TRouteConfig, 'routes'> & {
     path: string;
@@ -22,13 +25,13 @@ const traderRoutes: TRouteConfigExtended[] = [
     },
     {
         path: routes.trader_positions,
-        component: Positions,
+        component: PositionsSwitch,
         is_authenticated: true,
         default: false,
     },
     {
         path: routes.contract,
-        component: ContractDetails,
+        component: ContractDetailsSwitch,
         is_authenticated: true,
         default: false,
     },

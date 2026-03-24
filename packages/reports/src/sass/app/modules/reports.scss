@@ -19,6 +19,11 @@ $side-padding: 1.2em;
             @include desktop-screen {
                 max-width: 36rem;
                 margin-left: auto;
+
+                @include rtl {
+                    margin-right: auto;
+                    margin-left: 0;
+                }
             }
             &--statement {
                 @include desktop-screen {
@@ -30,6 +35,10 @@ $side-padding: 1.2em;
         @include desktop-screen {
             padding: 0 2.4rem 0 0;
             align-items: center;
+
+            @include rtl {
+                padding: 0 0 0 2.4rem;
+            }
         }
 
         @include tablet-screen {
@@ -50,6 +59,12 @@ $side-padding: 1.2em;
             #dt_calendar_input {
                 text-align: left;
                 padding-left: 3rem;
+
+                @include rtl {
+                    text-align: right;
+                    padding-right: 3rem;
+                    padding-left: 0;
+                }
             }
         }
     }
@@ -69,17 +84,24 @@ $side-padding: 1.2em;
     }
     &__content {
         width: 100%;
+        max-width: 100vw;
         display: flex;
         flex: 1;
         flex-direction: column;
-        @include desktop-screen {
-            overflow: visible;
+        overflow: auto;
+        @include mobile-screen {
+            padding-bottom: 1.6rem;
         }
     }
     .unknown-icon {
         margin-left: 8px;
         fill: var(--color-text-secondary);
         border-radius: $BORDER_RADIUS;
+
+        @include rtl {
+            margin-right: 8px;
+            margin-left: 0;
+        }
     }
     /* postcss-bem-linter: ignore */
     .dc-tabs--open-positions {
@@ -110,6 +132,11 @@ $side-padding: 1.2em;
             .dc-popover__wrapper {
                 display: inline-block;
                 margin-left: 1rem;
+
+                @include rtl {
+                    margin-right: 1rem;
+                    margin-left: 0;
+                }
             }
         }
     }
@@ -195,6 +222,10 @@ $side-padding: 1.2em;
 
         .date {
             text-align: left;
+
+            @include rtl {
+                text-align: right;
+            }
         }
     }
     .amount,
@@ -269,16 +300,29 @@ $side-padding: 1.2em;
         flex-direction: row;
         text-align: left;
 
+        @include rtl {
+            text-align: right;
+        }
+
         &-item {
             flex: 1;
             display: flex;
 
             &:last-child {
                 border-right: unset;
+
+                @include rtl {
+                    border-left: unset;
+                }
             }
             &:first-child {
                 .statement__account-statistics--is-rectangle {
                     padding-left: 0;
+
+                    @include rtl {
+                        padding-right: 0;
+                        padding-left: unset;
+                    }
                 }
             }
             &:not(:first-child) {
@@ -319,6 +363,11 @@ $side-padding: 1.2em;
 
             @include desktop-screen {
                 margin-left: 1rem;
+
+                @include rtl {
+                    margin-right: 1rem;
+                    margin-left: 0;
+                }
             }
             @include mobile-or-tablet-screen {
                 font-size: 1.4rem;
@@ -374,6 +423,11 @@ $side-padding: 1.2em;
         background-size: 1.6em 1.6em;
         vertical-align: middle;
         margin-right: 0.5em;
+
+        @include rtl {
+            margin-left: 0.5em;
+            margin-right: 0;
+        }
     }
 }
 
@@ -484,9 +538,15 @@ $side-padding: 1.2em;
         }
     }
     .sell_time,
-    .purchase_time {
+    .sell_time_unix,
+    .purchase_time,
+    .purchase_time_unix {
         text-align: left;
         min-width: 120px;
+
+        @include rtl {
+            text-align: right;
+        }
     }
     .profit_loss {
         font-weight: bold;
@@ -540,17 +600,17 @@ $side-padding: 1.2em;
             }
         }
         &__seconds {
-            color: var(--brand-secondary)-1;
+            color: var(--brand-secondary);
 
             &__background {
-                background: var(--brand-secondary)-1;
+                background: var(--brand-secondary);
             }
         }
         &__minutes {
-            color: var(--brand-info)-1;
+            color: var(--brand-info);
 
             &__background {
-                background: var(--brand-info)-1;
+                background: var(--brand-info);
             }
         }
         &__hours {
@@ -700,6 +760,10 @@ $side-padding: 1.2em;
             font-weight: bold;
             align-items: flex-start;
             padding: 0.8rem 4rem 0 1rem;
+
+            @include rtl {
+                padding: 0.8rem 1rem 0 4rem;
+            }
 
             @include tablet-screen {
                 display: flex;
@@ -900,6 +964,10 @@ $side-padding: 1.2em;
         grid-auto-rows: 100%;
         padding-left: 0;
 
+        @include rtl {
+            padding-right: 0;
+        }
+
         &_wrapper {
             display: flex;
             flex-direction: row;
@@ -925,6 +993,11 @@ $side-padding: 1.2em;
     }
     .type {
         padding-right: 0;
+
+        @include rtl {
+            padding-left: 0;
+            padding-right: unset;
+        }
     }
     .dc-progress-slider {
         border: none;
@@ -945,6 +1018,11 @@ $side-padding: 1.2em;
                 padding: 0;
                 margin-right: 8px;
                 white-space: nowrap;
+
+                @include rtl {
+                    margin-left: 8px;
+                    margin-right: 0;
+                }
             }
         }
     }
@@ -983,6 +1061,11 @@ $side-padding: 1.2em;
     &-name {
         width: 3.2rem;
         margin-right: 0.8rem;
+
+        @include rtl {
+            margin-left: 0.8rem;
+            margin-right: 0;
+        }
     }
     &__multiplier {
         color: var(--color-text-secondary);
@@ -1012,6 +1095,11 @@ $side-padding: 1.2em;
                 .dc-remaining-time {
                     margin-left: 0.4rem;
                     font-size: inherit;
+
+                    @include rtl {
+                        margin-right: 0.4rem;
+                        margin-left: 0;
+                    }
                 }
                 .dc-btn {
                     height: 2.4rem;

@@ -1,19 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
+import { useInvalidateQuery } from '@deriv/api';
 import { LabelPairedCalendarSmRegularIcon, LabelPairedClockThreeSmRegularIcon } from '@deriv/quill-icons';
-import { hasIntradayDurationUnit, setTime, toMoment, mapErrorMessage } from '@deriv/shared';
+import { hasIntradayDurationUnit, mapErrorMessage, setTime, toMoment } from '@deriv/shared';
 import { useStore } from '@deriv/stores';
-import { Localize } from '@deriv-com/translations';
 import { ActionSheet, Text, TextField, useSnackbar } from '@deriv-com/quill-ui';
+import { Localize } from '@deriv-com/translations';
 
-import { invalidateDTraderCache, useDtraderQuery } from 'AppV2/Hooks/useDtraderQuery';
-import {
-    getClosestTimeToCurrentGMT,
-    getDatePickerStartDate,
-    getProposalRequestObject,
-} from 'AppV2/Utils/trade-params-utils';
+import { useProposal } from 'AppV2/Hooks/useProposal';
+import { getClosestTimeToCurrentGMT, getDatePickerStartDate } from 'AppV2/Utils/trade-params-utils';
+import { ContractType } from 'Stores/Modules/Trading/Helpers/contract-type';
 import { getBoundaries } from 'Stores/Modules/Trading/Helpers/end-time';
-import { TProposalResponse } from 'Stores/Modules/Trading/trade-store';
 import { useTraderStore } from 'Stores/useTraderStores';
 
 import DaysDatepicker from './datepicker';
@@ -40,6 +37,7 @@ const DayInput = ({
     // Local browsing state for time - this is the "unsaved" state while user browses time picker
     const [browsing_expiry_time, setBrowsingExpiryTime] = useState<string>('');
     const [payout_per_point, setPayoutPerPoint] = useState<number | undefined>();
+    const lastSelectedDateRef = useRef<string>('');
     const [barrier_value, setBarrierValue] = useState<string | undefined>();
     const { common } = useStore();
     const [day, setDay] = useState<number | null>(null);
@@ -86,47 +84,40 @@ const DayInput = ({
         symbol,
         ...(payout_per_point && { payout_per_point }),
         ...(barrier_value && { barrier: barrier_value }),
+        ...(barrier_1 && !is_turbos && !barrier_value ? { barrier_1: Math.round(tick_data?.quote as number) } : {}),
     };
 
-    const proposal_req = getProposalRequestObject({
-        new_values,
+    const { data: response, error: queryError } = useProposal({
         trade_store,
-        trade_type: Object.keys(trade_types)[0],
+        proposal_request_values: new_values,
+        contract_type: Object.keys(trade_types)[0],
+        is_enabled: trigger_date,
     });
 
-    const { data: response } = useDtraderQuery<TProposalResponse>(
-        ['proposal', JSON.stringify(day), JSON.stringify(payout_per_point), JSON.stringify(barrier_value)],
-        {
-            ...proposal_req,
-            ...(barrier_1 && !is_turbos && !barrier_value ? { barrier: Math.round(tick_data?.quote as number) } : {}),
-        },
-        {
-            enabled: trigger_date,
-        }
-    );
+    const invalidate = useInvalidateQuery();
 
     useEffect(() => {
-        if (response) {
-            if (response?.error?.code === 'ContractBuyValidationError') {
-                const details = response.error.details;
+        if (queryError) {
+            if (queryError?.code === 'ContractBuyValidationError') {
+                const details = queryError.details;
 
-                if (details?.field === 'payout_per_point' && details?.payout_per_point_choices) {
-                    const suggested_payout = details?.payout_per_point_choices[0];
-                    setPayoutPerPoint(suggested_payout);
+                if (details?.field === 'payout_per_point' && Array.isArray(details?.payout_per_point_choices)) {
+                    const suggested_payout = details.payout_per_point_choices[0];
+                    setPayoutPerPoint(suggested_payout as number);
                     setTriggerDate(true);
                     return;
                 }
 
-                if (details?.field === 'barrier' && details?.barrier_choices) {
-                    const suggested_barrier = details?.barrier_choices[0];
-                    setBarrierValue(suggested_barrier);
+                if (details?.field === 'barrier' && Array.isArray(details?.barrier_choices)) {
+                    const suggested_barrier = details.barrier_choices[0];
+                    setBarrierValue(suggested_barrier as string);
                     setTriggerDate(true);
                     return;
                 }
             }
 
-            if (response?.error?.message && response?.error?.details?.field === 'duration') {
-                const mappedMessage = mapErrorMessage(response.error);
+            if (queryError?.message && queryError?.details?.field === 'duration') {
+                const mappedMessage = mapErrorMessage(queryError);
                 addSnackbar({
                     message: <Localize i18n_default_text={mappedMessage} />,
                     status: 'fail',
@@ -134,19 +125,15 @@ const DayInput = ({
                     style: { marginBottom: '48px' },
                 });
                 setIsDisabled(true);
-            } else {
-                setIsDisabled(false);
             }
+        }
 
-            invalidateDTraderCache([
-                'proposal',
-                JSON.stringify(day),
-                JSON.stringify(payout_per_point),
-                JSON.stringify(barrier_value),
-            ]);
+        if (response) {
+            setIsDisabled(false);
+            invalidate('proposal');
             setTriggerDate(false);
         }
-    }, [response, setSelectedExpiryDate]);
+    }, [response, setSelectedExpiryDate, invalidate]);
 
     // Always calculate adjusted_start_time based on TODAY, not the selected expiry_date
     const today_moment = toMoment(server_time);
@@ -162,12 +149,9 @@ const DayInput = ({
         year: 'numeric',
         timeZone: 'GMT',
     });
-    const formatted_current_date = new Date().toLocaleDateString('en-GB', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-        timeZone: 'GMT',
-    });
+    const today_local = new Date();
+    const today_date_string = `${today_local.getFullYear()}-${String(today_local.getMonth() + 1).padStart(2, '0')}-${String(today_local.getDate()).padStart(2, '0')}`;
+    const is_selected_date_today = selected_expiry_date === today_date_string;
 
     React.useEffect(() => {
         const updateCurrentGmtTime = () => {
@@ -181,9 +165,10 @@ const DayInput = ({
     }, []);
 
     useEffect(() => {
-        // Simple logic: set time based on whether date is today or future
-        const is_today = formatted_date === formatted_current_date;
-        const time_to_set = is_today ? adjusted_start_time : '23:59:59';
+        // Set time based on whether date is today or future
+        const is_today = is_selected_date_today;
+        // For future dates, use stored expiry_time if available (e.g. market close time)
+        const time_to_set = is_today ? adjusted_start_time : selected_expiry_time || '23:59:59';
 
         setBrowsingExpiryTime(time_to_set);
         setSelectedExpiryTime(time_to_set);
@@ -202,7 +187,7 @@ const DayInput = ({
 
     is_24_hours_contract = (!!start_date || isSameDate) && has_intraday_duration_unit;
 
-    const handleDate = (date: Date) => {
+    const handleDate = async (date: Date) => {
         const difference_in_time = date.getTime() - new Date().getTime();
         const difference_in_days = Math.ceil(difference_in_time / (1000 * 3600 * 24));
         const duration_days = difference_in_days <= 0 ? 1 : difference_in_days;
@@ -211,6 +196,7 @@ const DayInput = ({
         // Keep browsing_expiry_date and selected_expiry_date in sync
         setBrowsingExpiryDate(date);
         const selected_date_string = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        lastSelectedDateRef.current = selected_date_string;
         setSelectedExpiryDate(selected_date_string);
 
         // Set browsing time based on whether it's today or future
@@ -219,8 +205,26 @@ const DayInput = ({
             setBrowsingExpiryTime(adjusted_start_time);
             setSelectedExpiryTime(adjusted_start_time);
         } else {
-            setBrowsingExpiryTime('23:59:59');
-            setSelectedExpiryTime('23:59:59');
+            // Fetch trading times for the selected date to get actual market close time
+            const trading_times = await ContractType.getTradingTimes(selected_date_string, symbol);
+
+            if (lastSelectedDateRef.current !== selected_date_string) return;
+
+            if (
+                trading_times &&
+                'close' in trading_times &&
+                Array.isArray(trading_times.close) &&
+                trading_times.close.length &&
+                trading_times.close[0] !== '--'
+            ) {
+                const market_close_time = trading_times.close.slice(-1)[0];
+                setBrowsingExpiryTime(market_close_time);
+                setSelectedExpiryTime(market_close_time);
+            } else {
+                const futureTime = selected_expiry_time || '23:59:59';
+                setBrowsingExpiryTime(futureTime);
+                setSelectedExpiryTime(futureTime);
+            }
         }
     };
 
@@ -237,7 +241,7 @@ const DayInput = ({
                 onClick={() => {
                     setOpen(true);
                 }}
-                leftIcon={<LabelPairedCalendarSmRegularIcon width={24} height={24} />}
+                leftIcon={<LabelPairedCalendarSmRegularIcon width={24} height={24} fill='var(--color-text-primary)' />}
             />
 
             <TextField
@@ -245,12 +249,14 @@ const DayInput = ({
                 readOnly
                 textAlignment='center'
                 name='time'
-                value={`${is_24_hours_contract ? browsing_expiry_time : '23:59:59'} GMT`}
+                value={`${browsing_expiry_time || '23:59:59'} GMT`}
                 disabled={!is_24_hours_contract}
                 onClick={() => {
                     setOpenTimePicker(true);
                 }}
-                leftIcon={<LabelPairedClockThreeSmRegularIcon width={24} height={24} />}
+                leftIcon={
+                    <LabelPairedClockThreeSmRegularIcon width={24} height={24} fill='var(--color-text-primary)' />
+                }
             />
 
             <div className='duration-container__days-input__expiry'>
@@ -258,9 +264,7 @@ const DayInput = ({
                     <Localize i18n_default_text='Expiry' />
                 </Text>
                 <Text size='sm'>{`
-                ${formatted_date} ${
-                    formatted_date === formatted_current_date ? browsing_expiry_time : '23:59:59'
-                } GMT`}</Text>
+                ${formatted_date}, ${browsing_expiry_time || '23:59:59'} GMT`}</Text>
             </div>
             <ActionSheet.Root
                 isOpen={open || open_timepicker}

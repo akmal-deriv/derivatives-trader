@@ -15,6 +15,7 @@ import LastDigitPrediction from './LastDigitPrediction';
 import Multiplier from './Multiplier';
 import MultipliersDealCancellationInfo from './MultipliersDealCancellationInfo';
 import MultipliersExpirationInfo from './MultipliersExpirationInfo';
+import MultipliersInformation from './MultipliersInformation';
 import PayoutInfo from './PayoutInfo';
 import PayoutPerPoint from './PayoutPerPoint';
 import PayoutPerPointInfo from './PayoutPerPointInfo';
@@ -31,28 +32,33 @@ const TradeParameters = observer(({ is_minimized }: TTradeParametersProps) => {
     const isVisible = (component_key: string) =>
         isTradeParamVisible({ component_key, contract_type, has_cancellation, symbol });
 
+    const scroll_container_ref = React.useRef<HTMLDivElement>(null);
+
+    // Reset scroll position when contract type changes with smooth animation
+    React.useEffect(() => {
+        if (is_minimized && scroll_container_ref.current) {
+            scroll_container_ref.current.scrollTo({
+                left: 0,
+                behavior: 'smooth',
+            });
+        }
+    }, [contract_type, is_minimized]);
+
     return (
         <div
             className={clsx(
-                'trade-params__options__wrapper',
-                is_minimized && 'trade-params__options__wrapper--minimized'
+                'trade-params__options-wrapper',
+                is_minimized && 'trade-params__options-wrapper--minimized'
             )}
         >
-            {is_minimized && (
-                <React.Fragment>
-                    {isVisible('expiration') && <MultipliersExpirationInfo />}
-                    {isVisible('payout_per_point_info') && <PayoutPerPointInfo />}
-                    {isVisible('allow_equals') && <AllowEquals />}
-                    {isVisible('payout') && <PayoutInfo />}
-                </React.Fragment>
-            )}
             <div
+                ref={scroll_container_ref}
                 className={clsx(
-                    'trade-params__options__wrapper',
-                    is_minimized && 'trade-params__options__wrapper--horizontal'
+                    'trade-params__options-wrapper',
+                    is_minimized && 'trade-params__options-wrapper--horizontal'
                 )}
             >
-                {isVisible('trade_type_tabs') && <TradeTypeTabs is_minimized={is_minimized} />}
+                {is_minimized === undefined && isVisible('trade_type_tabs') && <TradeTypeTabs />}
                 {isVisible('last_digit') && <LastDigitPrediction is_minimized={is_minimized} />}
                 {isVisible('duration') && <Duration is_minimized={is_minimized} />}
                 {isVisible('strike') && <Strike is_minimized={is_minimized} />}
@@ -61,16 +67,17 @@ const TradeParameters = observer(({ is_minimized }: TTradeParametersProps) => {
                 {isVisible('multiplier') && <Multiplier is_minimized={is_minimized} />}
                 {isVisible('stake') && <Stake is_minimized={is_minimized} />}
                 {isVisible('payout_per_point') && <PayoutPerPoint is_minimized={is_minimized} />}
-                {isVisible('allow_equals') && !is_minimized && <AllowEquals />}
                 {isVisible('take_profit') && <TakeProfit is_minimized={is_minimized} />}
                 {isVisible('risk_management') && <RiskManagement is_minimized={is_minimized} />}
-                {isVisible('expiration') && !is_minimized && <MultipliersExpirationInfo />}
-                {isVisible('accu_info_display') && !is_minimized && <AccumulatorsInformation />}
-                {isVisible('barrier_info') && !is_minimized && <BarrierInfo />}
-                {isVisible('payout_per_point_info') && !is_minimized && <PayoutPerPointInfo />}
-                {isVisible('payout') && !is_minimized && <PayoutInfo />}
+                {isVisible('allow_equals') && <AllowEquals is_minimized={is_minimized} />}
             </div>
-            {isVisible('mult_info_display') && <MultipliersDealCancellationInfo is_minimized={is_minimized} />}
+            {isVisible('accu_info_display') && <AccumulatorsInformation />}
+            {isVisible('barrier_info') && <BarrierInfo />}
+            {isVisible('payout') && <PayoutInfo />}
+            {isVisible('payout_per_point_info') && <PayoutPerPointInfo />}
+            {isVisible('expiration') && <MultipliersExpirationInfo />}
+            {isVisible('mult_info_display') && <MultipliersDealCancellationInfo />}
+            {isVisible('multipliers_info') && <MultipliersInformation />}
         </div>
     );
 });

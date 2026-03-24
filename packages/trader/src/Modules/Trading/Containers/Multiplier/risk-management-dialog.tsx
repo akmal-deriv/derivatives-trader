@@ -105,8 +105,8 @@ const RiskManagementDialog = observer(({ is_open, onClose, toggleDialog }: TRisk
         <React.Fragment>
             <MobileDialog portal_element_id='modal_root' visible={is_open} has_content_scroll onClose={resetAndClose}>
                 <Div100vhContainer
-                    className={classNames('trade-params__multiplier-risk-management-dialog', {
-                        'trade-params__multiplier-risk-management-dialog--no-cancel': !should_show_deal_cancellation,
+                    className={classNames('trade-params-v1__multiplier-risk-management-dialog', {
+                        'trade-params-v1__multiplier-risk-management-dialog--no-cancel': !should_show_deal_cancellation,
                     })}
                     height_offset='54px'
                 >
@@ -147,8 +147,8 @@ const RiskManagementDialog = observer(({ is_open, onClose, toggleDialog }: TRisk
                             }
                         />
                     )}
-                    <div className='trade-params__multiplier-risk-management-dialog-bottom-separator' />
-                    <div className='trade-params__multiplier-risk-management-dialog-apply-button'>
+                    <div className='trade-params-v1__multiplier-risk-management-dialog-bottom-separator' />
+                    <div className='trade-params-v1__multiplier-risk-management-dialog-apply-button'>
                         <Button
                             text={localize('Apply')}
                             onClick={apply}

@@ -1,8 +1,5 @@
 const DerivAPIBasic = require('@deriv/deriv-api/dist/DerivAPIBasic');
-const getSocketURL = require('@deriv/shared').getSocketURL;
-const cloneObject = require('@deriv/shared').cloneObject;
-const State = require('@deriv/shared').State;
-const getBrandName = require('@deriv/shared').getBrandName;
+const { getCompleteWebSocketURL, getAccountId, getAccountType, cloneObject, State } = require('@deriv/shared');
 const SocketCache = require('./socket_cache');
 const APIMiddleware = require('./api_middleware');
 
@@ -18,6 +15,8 @@ const BinarySocketBase = (() => {
     let is_disconnect_called = false;
     let is_connected_before = false;
     let is_switching_socket = false;
+    let reconnect_handlers = []; // Array to store multiple reconnection handlers
+    let reconnect_attempt_count = 0; // Track number of reconnect attempts
 
     const availability = {
         is_up: true,
@@ -29,8 +28,8 @@ const BinarySocketBase = (() => {
         if (is_mock_server) {
             return 'ws://127.0.0.1:42069';
         }
-        // TODO remove hardcoded app_id in future
-        return `wss://${getSocketURL()}/websockets/v3?app_id=16929&brand=${getBrandName().toLowerCase()}`;
+
+        return getCompleteWebSocketURL();
     };
 
     const isReady = () => hasReadyState(1);
@@ -43,10 +42,19 @@ const BinarySocketBase = (() => {
         binary_socket.close();
     };
 
-    const closeAndOpenNewConnection = (session_id = '') => {
+    const closeAndOpenNewConnection = () => {
         close();
         is_switching_socket = true;
-        openNewConnection(session_id);
+        openNewConnection();
+    };
+
+    const handleAccountTypeChange = new_account_type => {
+        const current_account_type = getAccountType();
+
+        if (current_account_type !== new_account_type) {
+            localStorage.setItem('account_type', new_account_type);
+            closeAndOpenNewConnection();
+        }
     };
 
     const hasReadyState = (...states) => binary_socket && states.some(s => binary_socket.readyState === s);
@@ -78,27 +86,62 @@ const BinarySocketBase = (() => {
             is_disconnect_called = false;
             binary_socket = new WebSocket(getSocketUrl(session_id));
 
+            // Add error event listener for connection failures
+            binary_socket.addEventListener('error', error_event => {
+                // eslint-disable-next-line no-console
+                console.error('WebSocket error:', error_event);
+
+                // Increment reconnect attempt counter
+                reconnect_attempt_count++;
+
+                // Throw error after 3 reconnect attempts
+                if (reconnect_attempt_count >= 3 && typeof config.onConnectionError === 'function') {
+                    config.onConnectionError(error_event);
+                    reconnect_attempt_count = 0; // Reset counter after throwing error
+                }
+            });
+
             deriv_api = new DerivAPIBasic({
                 connection: binary_socket,
                 storage: SocketCache,
-                middleware: new APIMiddleware(config, session_id),
+                middleware: new APIMiddleware(config),
             });
         }
 
         deriv_api.onOpen().subscribe(() => {
             config.wsEvent('open');
 
-            if (client_store.is_logged_in) {
-                const authorize_token = client_store.getToken();
-                deriv_api.authorize(authorize_token);
+            // Reset reconnect attempt counter on successful connection
+            reconnect_attempt_count = 0;
+
+            // Remove automatic authorization - server handles it via account_id
+            // Balance subscription will serve as auth confirmation
+            const account_id = getAccountId();
+
+            if (account_id) {
+                // Only reset authorization state on initial connection, not on reconnection
+                // On reconnection, user is still logged in and is_authorize should remain true
+                // This allows stores' reaction() to work correctly on reconnection
+                if (client_store && !is_connected_before) {
+                    client_store.setIsAuthorize(false);
+                }
+
+                // Subscribe to balance immediately - this also confirms authorization
+                subscribeBalance();
+
+                // Call all reconnection handlers on reconnection (same timing as old system)
+                // Subscriptions will be queued by deriv-api until authorization completes
+                if (is_connected_before && reconnect_handlers.length > 0) {
+                    reconnect_handlers.forEach(handler => {
+                        if (typeof handler === 'function') {
+                            handler();
+                        }
+                    });
+                }
             }
 
             if (typeof config.onOpen === 'function') {
                 config.onOpen(isReady());
-            }
-
-            if (typeof config.onReconnect === 'function' && is_connected_before) {
-                config.onReconnect();
             }
 
             if (!is_connected_before) {
@@ -364,11 +407,6 @@ const BinarySocketBase = (() => {
         });
     };
 
-    const getSessionToken = oneTimeToken =>
-        deriv_api.send({
-            get_session_token: oneTimeToken,
-        });
-
     const changeEmail = api_request => deriv_api.send(api_request);
 
     return {
@@ -393,10 +431,22 @@ const BinarySocketBase = (() => {
             config.onDisconnect = onDisconnect;
         },
         setOnReconnect: onReconnect => {
-            config.onReconnect = onReconnect;
+            // Add handler to array if it's not already there
+            if (typeof onReconnect === 'function' && !reconnect_handlers.includes(onReconnect)) {
+                reconnect_handlers.push(onReconnect);
+            }
         },
-        removeOnReconnect: () => {
-            delete config.onReconnect;
+        removeOnReconnect: onReconnect => {
+            // If a specific handler is provided, remove only that one
+            if (typeof onReconnect === 'function') {
+                const index = reconnect_handlers.indexOf(onReconnect);
+                if (index > -1) {
+                    reconnect_handlers.splice(index, 1);
+                }
+            } else {
+                // If no handler provided, clear all handlers (backward compatibility)
+                reconnect_handlers = [];
+            }
         },
         removeOnDisconnect: () => {
             delete config.onDisconnect;
@@ -444,12 +494,12 @@ const BinarySocketBase = (() => {
         transferBetweenAccounts,
         fetchLoginHistory,
         closeAndOpenNewConnection,
+        handleAccountTypeChange,
         accountStatistics,
         tradingServers,
         tradingPlatformNewAccount,
         triggerMt5DryRun,
         getServiceToken,
-        getSessionToken,
         changeEmail,
     };
 })();
@@ -485,7 +535,16 @@ const proxyForAuthorize = obj =>
             if (target[field] && typeof target[field] !== 'function') {
                 return proxyForAuthorize(target[field]);
             }
-            return (...args) => BinarySocketBase?.wait('authorize')?.then(() => target[field](...args));
+            return (...args) => {
+                // Wait for balance response instead of authorize (balance serves as auth confirmation)
+                const account_id = getAccountId();
+                if (account_id) {
+                    // Wait for balance (which confirms authorization)
+                    return BinarySocketBase?.wait('balance')?.then(() => target[field](...args));
+                }
+                // Not logged in, execute without waiting
+                return target[field](...args);
+            };
         },
     });
 

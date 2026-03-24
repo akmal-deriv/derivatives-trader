@@ -222,6 +222,26 @@ describe('PositionsContent', () => {
         expect(default_mock_store.modules.trade.onPurchaseV2).toBeCalled();
     });
 
+    it('should disable the button when account is switching', async () => {
+        default_mock_store.ui.is_switching_account = true;
+        mockPurchaseButton();
+
+        const purchase_button = screen.getAllByRole('button')[0];
+        expect(purchase_button).toBeDisabled();
+
+        await userEvent.click(purchase_button);
+        expect(default_mock_store.modules.trade.onPurchaseV2).not.toBeCalled();
+    });
+
+    it('should enable the button when account is not switching and all conditions are met', () => {
+        default_mock_store.ui.is_switching_account = false;
+        default_mock_store.modules.trade.is_trade_enabled_v2 = true;
+        mockPurchaseButton();
+
+        const purchase_button = screen.getAllByRole('button')[0];
+        expect(purchase_button).toBeEnabled();
+    });
+
     it('should render only one button if trade_types have only one field and there are no trade type tabs', () => {
         default_mock_store.modules.trade.contract_type = TRADE_TYPES.ACCUMULATOR;
         default_mock_store.modules.trade.trade_types = {
@@ -249,7 +269,25 @@ describe('PositionsContent', () => {
     });
 
     it('should render sell button for Accumulators contract if there is an open Accumulators contract; if user clicks on it - onClickSell should be called', async () => {
-        default_mock_store.modules.trade.has_open_accu_contract = true;
+        default_mock_store.portfolio.open_accu_contract = {
+            contract_info: {
+                ...mockContractInfo({
+                    contract_id: 249545026128,
+                    contract_type: 'ACCU',
+                    underlying_symbol: '1HZ100V',
+                    bid_price: '19.32',
+                    entry_spot: '364.15',
+                    is_sold: 0,
+                    is_valid_to_sell: 1,
+                    status: 'open',
+                    is_expired: 0,
+                }),
+            },
+            display_name: 'Volatility 100 (1s) Index',
+            indicative: 19.32,
+            reference: 486015531488,
+            profit_loss: 9.32,
+        };
         default_mock_store.modules.trade.is_accumulator = true;
         mockPurchaseButton();
 

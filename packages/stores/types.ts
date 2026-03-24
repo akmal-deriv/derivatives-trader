@@ -1,16 +1,18 @@
 import React from 'react';
 import type { RouteComponentProps } from 'react-router';
 import type { Moment } from 'moment';
+
 import type {
     TActiveSymbolsResponse,
-    TUpdateContractResponse,
-    TUpdateContractHistoryResponse,
+    TLogOutResponse,
     TPortfolioResponse,
     TPriceProposalOpenContractsResponse,
     TTransactionsStreamResponse,
-    TLogOutResponse,
+    TUpdateContractHistoryResponse,
+    TUpdateContractResponse,
 } from '@deriv/api';
 import { TContractInfo } from '@deriv/shared/src/utils/contract/contract-types';
+
 import type { FeatureFlagsStore } from './src/stores';
 
 // Type aliases for compatibility
@@ -181,7 +183,7 @@ export type TCurrentAccount = {
     email?: string;
     landing_company_shortcode?: string;
     residence?: string;
-    session_token: string;
+    token: string;
     session_start: number;
     first_name?: string;
     last_name?: string;
@@ -234,16 +236,12 @@ export type TClientStore = {
     setEmail: (email: string) => void;
     resetVirtualBalance: () => Promise<void>;
     logout: () => Promise<LogOutResponse>;
-    getToken: () => string;
-    authenticateV2: (oneTimeToken?: string) => Promise<any>;
-    storeSessionToken: (token: string) => void;
-    getSessionToken: () => string | null;
-    clearSessionToken: () => void;
     removeTokenFromUrl: () => void;
     is_crypto: (currency?: string) => boolean;
     responseAuthorize: (response: any) => void;
     responsePayoutCurrencies: (response: any) => void;
     init: () => Promise<boolean>;
+    switchAccount: (account_id: string, account_type: 'real' | 'demo') => Promise<void>;
 };
 
 type TCommonStoreError = {
@@ -304,7 +302,6 @@ type TUiStore = {
     enableApp: () => void;
     getDurationFromUnit: (unit: string) => number;
     has_real_account_signup_ended: boolean;
-    header_extension: JSX.Element | null;
     is_additional_kyc_info_modal_open: boolean;
     is_advanced_duration: boolean;
     is_history_tab_active: boolean;
@@ -321,7 +318,6 @@ type TUiStore = {
     is_reports_visible: boolean;
     is_reset_password_modal_visible: boolean;
     is_route_modal_on: boolean;
-    is_language_settings_modal_on: boolean;
     is_verification_modal_visible: boolean;
     is_verification_submitted: boolean;
     is_desktop: boolean;
@@ -330,6 +326,7 @@ type TUiStore = {
     is_mobile: boolean;
     is_tablet: boolean;
     is_mobile_language_menu_open: boolean;
+    active_sidebar_flyout: 'theme' | 'language' | 'positions' | 'account' | null;
     is_positions_drawer_on: boolean;
     is_reset_email_modal_visible: boolean;
     is_services_error_visible: boolean;
@@ -345,17 +342,6 @@ type TUiStore = {
         show_trade_notifications?: boolean;
     }) => JSX.Element;
     setChartCountdown: (value: boolean) => void;
-    populateFooterExtensions: (
-        footer_extensions:
-            | [
-                  {
-                      position?: string;
-                      Component?: React.FunctionComponent;
-                      has_right_separator?: boolean;
-                  },
-              ]
-            | []
-    ) => void;
     resetPurchaseStates: () => void;
     setAppContentsScrollRef: (ref: React.MutableRefObject<null | HTMLDivElement>) => void;
     setCurrentFocus: (value: string | null) => void;
@@ -385,15 +371,19 @@ type TUiStore = {
     should_show_real_accounts_list?: boolean;
     toggleCashier: () => void;
     toggleHistoryTab: (state_change?: boolean) => void;
-    toggleLanguageSettingsModal: () => void;
     toggleLinkExpiredModal: (state_change: boolean) => void;
-    togglePositionsDrawer: () => void;
     toggleResetEmailModal: (state_change: boolean) => void;
     toggleResetPasswordModal: (state_change: boolean) => void;
     toggleServicesErrorModal: (is_visible: boolean) => void;
     toggleShouldShowRealAccountsList: (value: boolean) => void;
     toggleUrlUnavailableModal: (value: boolean) => void;
     toggleLogoutSuccessModal: (value: boolean) => void;
+    is_try_real_modal_visible: boolean;
+    is_switching_account: boolean;
+    setIsSwitchingAccount: (value: boolean) => void;
+    toggleTryRealModal: (value: boolean) => void;
+    setSidebarFlyout: (flyout_type: 'theme' | 'language' | 'positions' | 'account' | null) => void;
+    closeSidebarFlyout: () => void;
     removeToast: (key: string) => void;
     reports_route_tab_index: number;
     should_show_cancellation_warning: boolean;
@@ -418,7 +408,6 @@ type TUiStore = {
     real_account_signup: RealAccountSignupSettings;
     resetRealAccountSignupParams: () => void;
     setResetTradingPasswordModalOpen: () => void;
-    populateHeaderExtensions: (header_items: JSX.Element | null) => void;
     populateSettingsExtensions: (menu_items: Array<TPopulateSettingsExtensionsMenuItem> | null) => void;
     purchase_states: boolean[];
     vanilla_trade_type: 'VANILLALONGCALL' | 'VANILLALONGPUT';
@@ -569,6 +558,7 @@ type TContractTradeStore = {
     updateChartType: (type: string) => void;
     updateGranularity: (granularity: number | null) => void;
     updateProposal: (response: ProposalOpenContract) => void;
+    clearClosedContractMarkers: () => void;
 };
 
 type TContractStore = {
@@ -622,16 +612,6 @@ type TNotificationStore = {
 type TActiveSymbolsStore = {
     active_symbols: ActiveSymbols;
     setActiveSymbols: () => Promise<void>;
-};
-
-type TBalance = {
-    currency: string;
-    balance: number;
-};
-
-type TModalData = {
-    active_modal: string;
-    data: Record<string, unknown>;
 };
 
 type TContractReplay = {

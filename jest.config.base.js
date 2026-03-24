@@ -13,7 +13,7 @@ module.exports = {
     moduleNameMapper: {
         // Use simple mock for CSS/SCSS imports instead of identity-obj-proxy
         '\\.(css|less|scss|sass)$': '<rootDir>/../../__mocks__/styleMock.js',
-        '\\.(svg|png|jpg|jpeg|gif)$': '<rootDir>/../../__mocks__/fileMock.js',
+        '\\.(svg|png|jpg|jpeg|gif|webp)$': '<rootDir>/../../__mocks__/fileMock.js',
         '@deriv-com/translations': '<rootDir>/../../__mocks__/translation.mock.js',
     },
 };

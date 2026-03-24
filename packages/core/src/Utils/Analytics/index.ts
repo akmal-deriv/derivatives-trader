@@ -1,6 +1,8 @@
 import FIREBASE_INIT_DATA from '@deriv/api/src/remote_config.json';
 import { Analytics } from '@deriv-com/analytics';
+
 import initDatadog from 'Utils/Datadog';
+
 import { FeatureFlags, isFeatureFlags } from '../../types/feature-flags';
 
 /**
@@ -29,17 +31,57 @@ const fetchRemoteConfig = async (url: string): Promise<FeatureFlags> => {
 };
 
 export const AnalyticsInitializer = async () => {
+    // Initialize GTM
+    (function (w: any, d: Document, s: string, l: string, i: string) {
+        w[l] = w[l] || [];
+        w[l].push({ 'gtm.start': new Date().getTime(), event: 'gtm.js' });
+        const f = d.getElementsByTagName(s)[0];
+        const j = d.createElement(s) as HTMLScriptElement;
+        const dl = l !== 'dataLayer' ? `&l=${l}` : '';
+        j.async = true;
+        j.src = `https://www.googletagmanager.com/gtm.js?id=${i}${dl}`;
+        f?.parentNode?.insertBefore(j, f);
+    })(window, document, 'script', 'dataLayer', 'GTM-NF7884S');
+
     if (!process.env.REMOTE_CONFIG_URL) {
         return;
     }
 
     const flags = await fetchRemoteConfig(process.env.REMOTE_CONFIG_URL);
 
-    // Initialize RudderStack if enabled
-    if (process.env.RUDDERSTACK_KEY && flags.tracking_rudderstack) {
-        const config = {
-            rudderstackKey: process.env.RUDDERSTACK_KEY,
-        };
+    // Initialize RudderStack and/or PostHog based on feature flags
+    // Note: posthogKey and posthogHost are supported in @deriv-com/analytics v1.33.0+
+    const hasRudderStack = !!(process.env.RUDDERSTACK_KEY && flags.tracking_rudderstack);
+    const hasPostHog = !!(process.env.POSTHOG_KEY && flags.tracking_posthog);
+
+    // Initialize Analytics if at least one service is enabled
+    if (hasRudderStack || hasPostHog) {
+        const config: {
+            rudderstackKey?: string;
+            posthogOptions?: {
+                apiKey: string;
+                allowedDomains?: string[];
+                config?: {
+                    api_host?: string;
+                };
+            };
+        } = {};
+
+        if (hasRudderStack) {
+            config.rudderstackKey = process.env.RUDDERSTACK_KEY!;
+        }
+
+        if (hasPostHog) {
+            config.posthogOptions = {
+                apiKey: process.env.POSTHOG_KEY!,
+                ...(process.env.POSTHOG_HOST && {
+                    config: {
+                        api_host: process.env.POSTHOG_HOST,
+                    },
+                }),
+            };
+        }
+
         await Analytics?.initialise(config);
     }
 

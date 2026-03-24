@@ -10,7 +10,8 @@
             transform 0.25s cubic-bezier(0.25, 0.1, 0.1, 0.25),
             opacity 0.25s cubic-bezier(0.25, 0.1, 0.1, 0.25);
         background-color: var(--color-modal-bg);
-        box-shadow: 0 4px 6px 0 var(--color-shadow-medium);
+        border: 1px solid var(--color-surface-border);
+        box-shadow: 0 32px 64px 0 var(--color-shadow-medium);
 
         &--is-vertical-centered {
             position: absolute;

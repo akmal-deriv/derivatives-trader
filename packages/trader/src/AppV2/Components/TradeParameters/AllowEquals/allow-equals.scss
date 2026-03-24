@@ -1,3 +1,7 @@
+$HANDLEBAR_HEIGHT: var(--core-size-1000);
+$HEADER_TITLE_HEIGHT: var(--core-size-3200);
+$FOOTER_BUTTON_HEIGHT: var(--core-size-4000);
+
 .allow-equals {
     &__wrapper {
         width: 100%;
@@ -5,6 +9,25 @@
         justify-content: space-between;
         align-items: center;
         height: var(--core-size-1100);
+        padding: 0 var(--core-spacing-400);
+
+        @include rtl {
+            direction: rtl;
+        }
+
+        .toggle-switch__knob {
+            @include rtl {
+                left: auto;
+                right: var(--core-spacing-100);
+            }
+
+            &.enabled {
+                @include rtl {
+                    left: auto;
+                    right: calc(100% - var(--core-size-2200) / 2);
+                }
+            }
+        }
     }
 
     &__title {
@@ -14,6 +37,27 @@
             color: var(--component-textIcon-normal-disabled);
             border-bottom: var(--core-borderWidth-75) dotted var(--component-textIcon-normal-disabled);
         }
+    }
+
+    &__carousel {
+        & > .carousel__item {
+            height: 100%;
+        }
+
+        .trade-param-definition {
+            height: calc(480px - $HANDLEBAR_HEIGHT - $HEADER_TITLE_HEIGHT);
+        }
+    }
+
+    &__sheet-content {
+        height: calc(480px - $HANDLEBAR_HEIGHT - $HEADER_TITLE_HEIGHT - $FOOTER_BUTTON_HEIGHT);
+        padding: var(--component-actionSheet-spacing-padding-lg);
+    }
+
+    &__toggle-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
     }
 
     &__definition {
@@ -28,5 +72,23 @@
 
     &__button {
         padding: var(--component-actionSheet-spacing-padding-lg);
+    }
+
+    &__tooltip {
+        .dc-tooltip-portal__content {
+            @include rtl {
+                direction: rtl;
+                text-align: right;
+            }
+        }
+
+        .dc-tooltip-portal__arrow--left {
+            @include rtl {
+                right: -0.6rem;
+                left: auto;
+                border-width: 0.6rem 0 0.6rem 0.6rem;
+                border-color: transparent transparent transparent var(--color-surface-inverse);
+            }
+        }
     }
 }

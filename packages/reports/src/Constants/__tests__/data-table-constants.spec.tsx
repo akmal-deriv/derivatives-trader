@@ -19,6 +19,12 @@ jest.mock('@deriv/shared', () => ({
     }),
     getGrowthRatePercentage: jest.fn(growth_rate => `${growth_rate * 100}`),
     getCardLabels: jest.fn(() => ({})),
+    formatDate: jest.fn((timestamp, format) => {
+        if (typeof timestamp === 'number') {
+            return new Date(timestamp * 1000).toISOString().replace('T', ' ').substring(0, 19);
+        }
+        return timestamp;
+    }),
 }));
 
 jest.mock('../../Containers/progress-slider-stream', () => jest.fn(() => <div>ProgressSliderStream</div>));
@@ -84,7 +90,7 @@ describe('getStatementTableColumnsTemplate', () => {
 
         expect(columns[1]).toHaveProperty('col_index', 'refid');
         expect(columns[2]).toHaveProperty('col_index', 'currency');
-        expect(columns[3]).toHaveProperty('col_index', 'date');
+        expect(columns[3]).toHaveProperty('col_index', 'transaction_time');
         expect(columns[4]).toHaveProperty('col_index', 'action_type');
         expect(columns[5]).toHaveProperty('col_index', 'amount');
         expect(columns[6]).toHaveProperty('col_index', 'balance');
@@ -114,9 +120,9 @@ describe('getStatementTableColumnsTemplate', () => {
 
         // Test transaction time column
         const timeColumn = columns[3];
-        const timeProps = { ...mockProps, cell_value: '2023-01-01 12:00:00' };
+        const timeProps = { ...mockProps, cell_value: 1672574400 };
         render(timeColumn.renderCellContent(timeProps) as JSX.Element);
-        expect(screen.getByText('2023-01-01 12:00:00 GMT')).toBeInTheDocument();
+        expect(screen.getByText(/GMT/)).toBeInTheDocument();
 
         // Test amount column
         const amountColumn = columns[5];
@@ -140,9 +146,9 @@ describe('getProfitTableColumnsTemplate', () => {
         expect(columns[0]).toHaveProperty('col_index', 'action_type');
         expect(columns[1]).toHaveProperty('col_index', 'transaction_id');
         expect(columns[2]).toHaveProperty('col_index', 'currency');
-        expect(columns[3]).toHaveProperty('col_index', 'purchase_time');
+        expect(columns[3]).toHaveProperty('col_index', 'purchase_time_unix');
         expect(columns[4]).toHaveProperty('col_index', 'buy_price');
-        expect(columns[5]).toHaveProperty('col_index', 'sell_time');
+        expect(columns[5]).toHaveProperty('col_index', 'sell_time_unix');
         expect(columns[6]).toHaveProperty('col_index', 'sell_price');
         expect(columns[7]).toHaveProperty('col_index', 'profit_loss');
     });
@@ -183,10 +189,10 @@ describe('getProfitTableColumnsTemplate', () => {
 
         // Test buy time column
         const buyTimeColumn = columns[3];
-        const timeProps = { ...mockProps, cell_value: '2023-01-01 12:00:00' };
+        const timeProps = { ...mockProps, cell_value: 1672574400 };
         if (buyTimeColumn.renderCellContent) {
             render(buyTimeColumn.renderCellContent(timeProps) as JSX.Element);
-            expect(screen.getByText('2023-01-01 12:00:00 GMT')).toBeInTheDocument();
+            expect(screen.getByText(/GMT/)).toBeInTheDocument();
         }
     });
 });

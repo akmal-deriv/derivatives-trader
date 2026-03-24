@@ -30,7 +30,7 @@ describe('ErrorComponent', () => {
         );
         expect(screen.getByRole('dialog')).toBeInTheDocument();
         expect(screen.getByText('There was an error')).toBeInTheDocument();
-        expect(screen.getByText('Sorry, an error occured while processing your request.')).toBeInTheDocument();
+        expect(screen.getByText('Sorry, an error occurred while processing your request.')).toBeInTheDocument();
     });
 
     it('should render error component with custom header and message', () => {
@@ -96,7 +96,7 @@ describe('ErrorComponent', () => {
                 <ErrorComponent />
             </BrowserRouter>
         );
-        expect(screen.getByText('Sorry for the interruption')).toBeInTheDocument();
-        expect(screen.getByText('Refresh')).toBeInTheDocument();
+        expect(screen.getByText('An unexpected error occurred')).toBeInTheDocument();
+        expect(screen.getByText('Back to Home')).toBeInTheDocument();
     });
 });

@@ -44,7 +44,7 @@ const HOISTED_PACKAGES = {
     '@deriv/shared': path.resolve(__dirname, '../../../node_modules/@deriv/shared'),
     '@deriv/components': path.resolve(__dirname, '../../../node_modules/@deriv/components'),
     '@deriv-com/translations': path.resolve(__dirname, '../../../node_modules/@deriv-com/translations'),
-    '@deriv-com/derivatives-charts': path.resolve(__dirname, '../../../node_modules/@deriv-com/derivatives-charts'),
+    '@deriv-com/smartcharts-champion': path.resolve(__dirname, '../../../node_modules/@deriv-com/smartcharts-champion'),
     '@deriv/trader': path.resolve(__dirname, '../../../node_modules/@deriv/trader'),
     '@deriv/reports': path.resolve(__dirname, '../../../node_modules/@deriv/reports'),
 };
@@ -86,7 +86,7 @@ const rules = (is_test_env = false) => [
         use: html_loaders,
     },
     {
-        test: /\.(png|jpg|gif|woff|woff2|eot|ttf|otf|pdf)$/,
+        test: /\.(png|jpg|gif|woff|woff2|eot|ttf|otf|pdf|webp)$/,
         exclude: /node_modules/,
         use: file_loaders,
     },
@@ -135,6 +135,8 @@ const plugins = ({ base, is_test_env }) => {
             'process.env.DATADOG_SESSION_SAMPLE_RATE': JSON.stringify(process.env.DATADOG_SESSION_SAMPLE_RATE),
             'process.env.REF_NAME': JSON.stringify(process.env.REF_NAME),
             'process.env.RUDDERSTACK_KEY': JSON.stringify(process.env.RUDDERSTACK_KEY),
+            'process.env.POSTHOG_KEY': JSON.stringify(process.env.POSTHOG_KEY),
+            'process.env.POSTHOG_HOST': JSON.stringify(process.env.POSTHOG_HOST),
             'process.env.REMOTE_CONFIG_URL': JSON.stringify(process.env.REMOTE_CONFIG_URL),
             'process.env.R2_PROJECT_NAME': JSON.stringify(process.env.R2_PROJECT_NAME),
             'process.env.TRACKJS_TOKEN': JSON.stringify(process.env.TRACKJS_TOKEN),

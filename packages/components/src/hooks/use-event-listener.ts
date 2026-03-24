@@ -38,7 +38,7 @@ function useEventListener<
     KW extends keyof WindowEventMap,
     KH extends keyof HTMLElementEventMap,
     KM extends keyof MediaQueryListEventMap,
-    T extends HTMLElement | MediaQueryList | void = void
+    T extends HTMLElement | MediaQueryList | void = void,
 >(
     eventName: KW | KH | KM,
     handler: (event: WindowEventMap[KW] | HTMLElementEventMap[KH] | MediaQueryListEventMap[KM] | Event) => void,

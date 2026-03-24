@@ -1,5 +1,4 @@
 import React from 'react';
-import Loadable from 'react-loadable';
 import { matchPath, RouteComponentProps, withRouter } from 'react-router';
 
 import { UILoader } from '@deriv/components';
@@ -45,14 +44,15 @@ export const tradePageMountingMiddleware = ({
     return true;
 };
 
-const ErrorComponent = Loadable({
-    loader: () => import(/* webpackChunkName: "error-component" */ 'App/Components/Elements/Errors'),
-    loading: () => <UILoader />,
-    render(loaded, props) {
-        const Component = loaded.default;
-        return <Component {...props} />;
-    },
-});
+const ErrorComponentLazy = React.lazy(
+    () => import(/* webpackChunkName: "error-component" */ 'App/Components/Elements/Errors')
+);
+
+const ErrorComponent = (props: object) => (
+    <React.Suspense fallback={<UILoader />}>
+        <ErrorComponentLazy {...props} />
+    </React.Suspense>
+);
 
 const Routes = observer(({ history, passthrough }: TRoutesProps) => {
     const { client, common, ui, portfolio } = useStore();

@@ -1,16 +1,16 @@
 import React from 'react';
-import { useLocation } from 'react-router-dom';
 
-import { useIntercom, useRemoteConfig, useTrackJS } from '@deriv/api';
+import { useMobileBridge, useTrackJS } from '@deriv/api';
 import { observer, useStore } from '@deriv/stores';
 import { ThemeProvider } from '@deriv-com/quill-ui';
-import { useTranslations } from '@deriv-com/translations';
+import { getInitialLanguage, useTranslations } from '@deriv-com/translations';
+import { useDevice } from '@deriv-com/ui';
 
 import ErrorBoundary from './Components/Elements/Errors/error-boundary.jsx';
 import LandscapeBlocker from './Components/Elements/LandscapeBlocker';
 import AppToastMessages from './Containers/app-toast-messages.jsx';
 import AppContents from './Containers/Layout/app-contents.jsx';
-import Footer from './Containers/Layout/footer.jsx';
+import BottomNav from './Containers/Layout/bottom-nav';
 import Header from './Containers/Layout/header';
 import AppModals from './Containers/Modals';
 import Routes from './Containers/Routes/routes.jsx';
@@ -24,16 +24,17 @@ const AppContent: React.FC<{ passthrough: any }> = observer(({ passthrough }) =>
     const { current_language } = store.common;
     const { is_dark_mode_on } = store.ui;
 
+    const { isMobile } = useDevice();
+
     const { switchLanguage } = useTranslations();
+    const { isBridgeAvailable, sendBridgeEvent } = useMobileBridge();
 
-    const location = useLocation();
-    const has_access_denied_error = location.search.includes('access_denied');
+    // NOTE: Disabled Intercom until further notice
+    // const { data } = useRemoteConfig(true);
+    // const { cs_chat_intercom } = data;
 
-    const { data } = useRemoteConfig(true);
-    const { cs_chat_intercom } = data;
-
-    const token = current_account?.session_token || null;
-    useIntercom(cs_chat_intercom, token);
+    // const token = current_account?.token || null;
+    // useIntercom(cs_chat_intercom, token);
 
     const html = document.documentElement;
 
@@ -46,18 +47,36 @@ const AppContent: React.FC<{ passthrough: any }> = observer(({ passthrough }) =>
         switchLanguage(current_language);
         html?.setAttribute('lang', current_language.toLowerCase());
         html?.setAttribute('dir', current_language.toLowerCase() === 'ar' ? 'rtl' : 'ltr');
-    }, [current_language, switchLanguage, html]);
+        // On desktop, keep body LTR to prevent the main layout from flipping.
+        // html retains dir="rtl" so [dir='rtl'] CSS selectors still match for text-level RTL.
+        if (!isMobile && current_language.toLowerCase() === 'ar') {
+            document.body.setAttribute('dir', 'ltr');
+        } else {
+            document.body.removeAttribute('dir');
+        }
+    }, [current_language, switchLanguage, html, isMobile]);
+
+    // Send trading:config event when language or theme changes
+    React.useEffect(() => {
+        if (isBridgeAvailable) {
+            const language = current_language || getInitialLanguage();
+            sendBridgeEvent('trading:config', {
+                lang: language,
+                theme: is_dark_mode_on ? 'dark' : 'light',
+            });
+        }
+    }, [isBridgeAvailable, sendBridgeEvent, current_language, is_dark_mode_on]);
 
     return (
         <ThemeProvider theme={is_dark_mode_on ? 'dark' : 'light'}>
             <LandscapeBlocker />
-            {<Header />}
+            {isMobile && <Header />}
             <ErrorBoundary root_store={store}>
                 <AppContents>
                     <Routes {...({ passthrough } as any)} />
                 </AppContents>
             </ErrorBoundary>
-            {!has_access_denied_error && <Footer />}
+            {isMobile && <BottomNav />}
             <ErrorBoundary root_store={store}>
                 <AppModals />
             </ErrorBoundary>

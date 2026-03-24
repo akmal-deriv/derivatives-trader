@@ -3,10 +3,8 @@ import moment from 'moment';
 
 import { mockStore } from '@deriv/stores';
 import { TCoreStores } from '@deriv/stores/types';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-
-import { ContractType } from 'Stores/Modules/Trading/Helpers/contract-type';
 
 import TraderProviders from '../../../../../trader-providers';
 import DurationActionSheetContainer from '../container';
@@ -48,6 +46,11 @@ jest.mock('@deriv-com/quill-ui', () => ({
             </button>
         </div>
     )),
+}));
+
+jest.mock('../day', () => ({
+    __esModule: true,
+    default: jest.fn(() => <div>Mocked DayInput</div>),
 }));
 
 describe('DurationActionSheetContainer', () => {
@@ -105,13 +108,15 @@ describe('DurationActionSheetContainer', () => {
         setSelectedExpiryTime = jest.fn(),
         setSavedExpiryTime = jest.fn(),
         setSelectedExpiryDate = jest.fn(),
-        setSavedExpiryDate = jest.fn()
+        setSavedExpiryDate = jest.fn(),
+        onClose = jest.fn()
     ) => {
         render(
             <TraderProviders store={mocked_store}>
                 <DurationActionSheetContainer
                     unit={unit}
                     setUnit={setUnit}
+                    onClose={onClose}
                     selected_expiry_time={selected_expiry_time}
                     selected_expiry_date={selected_expiry_date}
                     setSelectedExpiryTime={setSelectedExpiryTime}
@@ -125,82 +130,127 @@ describe('DurationActionSheetContainer', () => {
 
     it('should render the DurationActionSheetContainer with default values', () => {
         renderDurationContainer(default_trade_store);
-        expect(screen.getByText('Duration')).toBeInTheDocument();
-        expect(screen.getByText('Save')).toBeInTheDocument();
+        expect(screen.getByText('minutes')).toBeInTheDocument();
     });
 
-    it('should select duration in hours if duration is more than 59 minutes', async () => {
+    it('should render preset chips for hours unit', async () => {
         default_trade_store.modules.trade.duration = 130;
         renderDurationContainer(default_trade_store, 'h');
 
-        const duration_chip = screen.getByText('1 h');
-        await userEvent.click(duration_chip);
-
-        expect(default_trade_store.modules.trade.onChangeMultiple).not.toHaveBeenCalled();
+        expect(screen.getByText('1 hr')).toBeInTheDocument();
+        expect(screen.getByText('2 hr')).toBeInTheDocument();
     });
 
-    it('should call onChangeMultiple with correct data with minutes', async () => {
+    it('should call onChangeMultiple with correct data when selecting a minutes preset chip', async () => {
         default_trade_store.modules.trade.duration = 30;
-        renderDurationContainer(default_trade_store, 'm');
+        const onClose = jest.fn();
+        renderDurationContainer(
+            default_trade_store,
+            'm',
+            jest.fn(),
+            '',
+            '',
+            jest.fn(),
+            jest.fn(),
+            jest.fn(),
+            jest.fn(),
+            onClose
+        );
 
-        await userEvent.click(screen.getByText('Save'));
+        await userEvent.click(screen.getByText('5 min'));
 
         expect(default_trade_store.modules.trade.onChangeMultiple).toHaveBeenCalledWith({
             duration_unit: 'm',
-            duration: 30,
+            duration: 5,
             expiry_type: 'duration',
         });
+        expect(onClose).toHaveBeenCalled();
     });
 
-    it('should call onChangeMultiple with correct data with ticks', async () => {
+    it('should call onChangeMultiple with correct data when selecting a ticks preset chip', async () => {
         default_trade_store.modules.trade.duration = 5;
+        const onClose = jest.fn();
+        renderDurationContainer(
+            default_trade_store,
+            't',
+            jest.fn(),
+            '',
+            '',
+            jest.fn(),
+            jest.fn(),
+            jest.fn(),
+            jest.fn(),
+            onClose
+        );
 
-        renderDurationContainer(default_trade_store, 't');
-
-        await userEvent.click(screen.getByText('Save'));
+        await userEvent.click(screen.getByText('5 ticks'));
 
         expect(default_trade_store.modules.trade.onChangeMultiple).toHaveBeenCalledWith({
             duration_unit: 't',
             duration: 5,
             expiry_type: 'duration',
         });
+        expect(onClose).toHaveBeenCalled();
     });
 
-    it('should call change duration on changing chips', async () => {
-        renderDurationContainer(default_trade_store, 'h');
+    it('should call setUnit when switching duration unit chips', async () => {
+        const setUnit = jest.fn();
+        renderDurationContainer(default_trade_store, 'h', setUnit);
 
         await userEvent.click(screen.getByText('minutes'));
-        expect(screen.getByText('1 min')).toBeInTheDocument();
-        await userEvent.click(screen.getByText('hours'));
-        expect(screen.getByText('1 h')).toBeInTheDocument();
+        expect(setUnit).toHaveBeenCalledWith('m');
     });
 
-    it('should call onChangeMultiple with correct data with seconds', async () => {
+    it('should call onChangeMultiple with correct data when selecting a seconds preset chip', async () => {
         default_trade_store.modules.trade.duration = 20;
+        const onClose = jest.fn();
 
-        renderDurationContainer(default_trade_store, 's');
-        await userEvent.click(screen.getByText('22 sec'));
-        await userEvent.click(screen.getByText('Save'));
+        renderDurationContainer(
+            default_trade_store,
+            's',
+            jest.fn(),
+            '',
+            '',
+            jest.fn(),
+            jest.fn(),
+            jest.fn(),
+            jest.fn(),
+            onClose
+        );
+        await userEvent.click(screen.getByText('30 sec'));
 
         expect(default_trade_store.modules.trade.onChangeMultiple).toHaveBeenCalledWith({
             duration_unit: 's',
-            duration: 20,
+            duration: 30,
             expiry_type: 'duration',
         });
+        expect(onClose).toHaveBeenCalled();
     });
 
-    it('should call onChangeMultiple with correct data with hour', async () => {
+    it('should call onChangeMultiple with correct data when selecting an hour preset chip', async () => {
         default_trade_store.modules.trade.duration = 240;
+        const onClose = jest.fn();
 
-        renderDurationContainer(default_trade_store, 'h');
-        await userEvent.click(screen.getByText('4 h'));
-        await userEvent.click(screen.getByText('Save'));
+        renderDurationContainer(
+            default_trade_store,
+            'h',
+            jest.fn(),
+            '',
+            '',
+            jest.fn(),
+            jest.fn(),
+            jest.fn(),
+            jest.fn(),
+            onClose
+        );
+        await userEvent.click(screen.getByText('4 hr'));
 
         expect(default_trade_store.modules.trade.onChangeMultiple).toHaveBeenCalledWith({
             duration_unit: 'm',
             duration: 240,
             expiry_type: 'duration',
         });
+        expect(onClose).toHaveBeenCalled();
     });
 
     it('should call onChangeMultiple with correct endtime with endtime', async () => {
@@ -226,36 +276,9 @@ describe('DurationActionSheetContainer', () => {
         });
     });
 
-    it('should show Expiry Date when days are selected', () => {
+    it('should render DayInput component when days unit is selected', () => {
         renderDurationContainer(default_trade_store, 'd');
-        expect(screen.getByText('Expiry')).toBeInTheDocument();
-    });
-
-    it('should show End Time Screen on selecting the days unit', () => {
-        renderDurationContainer(default_trade_store, 'd');
-        const date_input = screen.getByTestId('dt_date_input');
-        expect(date_input).toBeInTheDocument();
-    });
-
-    it('should open datepicker on clicking on date input in the days page', async () => {
-        renderDurationContainer(default_trade_store, 'd');
-        const mockEvents = [{ dates: 'Fridays, Saturdays', descrip: 'Some description' }];
-        jest.spyOn(ContractType, 'getTradingEvents').mockResolvedValue(mockEvents);
-
-        const date_input = screen.getByTestId('dt_date_input');
-        expect(date_input).toBeInTheDocument();
-        await userEvent.click(date_input);
-        expect(screen.getByText('Pick an end date'));
-    });
-
-    it('should save and close datepicker on clicking done button', async () => {
-        renderDurationContainer(default_trade_store, 'd');
-        const date_input = screen.getByTestId('dt_date_input');
-        expect(date_input).toBeInTheDocument();
-        await userEvent.click(date_input);
-        expect(screen.getByText('Pick an end date'));
-        await userEvent.click(screen.getByText('Done'));
-        await waitFor(() => expect(screen.queryByText('Pick an end date')).not.toBeInTheDocument());
+        expect(screen.getByText('Mocked DayInput')).toBeInTheDocument();
     });
 
     it('should not render chips if duration_units_list contains only ticks', () => {
@@ -300,18 +323,30 @@ describe('DurationActionSheetContainer', () => {
 
             await userEvent.click(screen.getByText('End Time'));
             // After clicking End Time chip, the component should still render
-            expect(screen.getByText('Duration')).toBeInTheDocument();
+            expect(screen.getByRole('tablist')).toBeInTheDocument();
         });
 
-        it('should correctly convert hours to minutes when saving', async () => {
+        it('should correctly convert hours to minutes when selecting hour preset chip', async () => {
             default_trade_store.modules.trade.duration = 120; // 2 hours in minutes
+            const onClose = jest.fn();
 
-            renderDurationContainer(default_trade_store, 'h');
-            await userEvent.click(screen.getByText('Save'));
+            renderDurationContainer(
+                default_trade_store,
+                'h',
+                jest.fn(),
+                '',
+                '',
+                jest.fn(),
+                jest.fn(),
+                jest.fn(),
+                jest.fn(),
+                onClose
+            );
+            await userEvent.click(screen.getByText('2 hr'));
 
             expect(default_trade_store.modules.trade.onChangeMultiple).toHaveBeenCalledWith({
                 duration_unit: 'm',
-                duration: expect.any(Number),
+                duration: 120,
                 expiry_type: 'duration',
             });
         });
@@ -327,7 +362,7 @@ describe('DurationActionSheetContainer', () => {
             await userEvent.click(screen.getByText('minutes'));
 
             // State should remain consistent
-            expect(screen.getByText('Duration')).toBeInTheDocument();
+            expect(screen.getByRole('tablist')).toBeInTheDocument();
         });
 
         it("should handle end time with today's date correctly", async () => {
@@ -360,18 +395,30 @@ describe('DurationActionSheetContainer', () => {
             renderDurationContainer(default_trade_store, 'h');
 
             // Component should display hours correctly
-            expect(screen.getByText('Duration')).toBeInTheDocument();
+            expect(screen.getByRole('tablist')).toBeInTheDocument();
         });
 
-        it('should handle edge case of 0 minutes when converting hours', async () => {
+        it('should handle edge case of exactly 1 hour when selecting preset chip', async () => {
             default_trade_store.modules.trade.duration = 60; // Exactly 1 hour
+            const onClose = jest.fn();
 
-            renderDurationContainer(default_trade_store, 'h');
-            await userEvent.click(screen.getByText('Save'));
+            renderDurationContainer(
+                default_trade_store,
+                'h',
+                jest.fn(),
+                '',
+                '',
+                jest.fn(),
+                jest.fn(),
+                jest.fn(),
+                jest.fn(),
+                onClose
+            );
+            await userEvent.click(screen.getByText('1 hr'));
 
             expect(default_trade_store.modules.trade.onChangeMultiple).toHaveBeenCalledWith({
                 duration_unit: 'm',
-                duration: expect.any(Number),
+                duration: 60,
                 expiry_type: 'duration',
             });
         });
@@ -400,20 +447,29 @@ describe('DurationActionSheetContainer', () => {
     });
 
     describe('Hours conversion bug fix verification', () => {
-        it('should correctly calculate minutes from selected hours and minutes', async () => {
-            // This test verifies the fix for the bug where duration was used instead of minutes
-            default_trade_store.modules.trade.duration = 30; // Old duration value
+        it('should correctly calculate minutes from selected hour preset chip', async () => {
+            default_trade_store.modules.trade.duration = 30;
+            const onClose = jest.fn();
 
-            renderDurationContainer(default_trade_store, 'h');
+            renderDurationContainer(
+                default_trade_store,
+                'h',
+                jest.fn(),
+                '',
+                '',
+                jest.fn(),
+                jest.fn(),
+                jest.fn(),
+                jest.fn(),
+                onClose
+            );
 
-            // Simulate selecting 2 hours 15 minutes (which should be 135 minutes total)
-            await userEvent.click(screen.getByText('Save'));
+            await userEvent.click(screen.getByText('2 hr'));
 
             const call_args = default_trade_store.modules.trade.onChangeMultiple.mock.calls[0][0];
 
-            // The duration should be calculated from selected_duration, not from the old duration value
             expect(call_args.duration_unit).toBe('m');
-            expect(typeof call_args.duration).toBe('number');
+            expect(call_args.duration).toBe(120);
         });
     });
 });

@@ -1,10 +1,12 @@
 import React from 'react';
 import { CSSTransition } from 'react-transition-group';
+
 import { MobileDialog, useOnClickOutside } from '@deriv/components';
 import { trackAnalyticsEvent } from '@deriv/shared';
 import { observer, useStore } from '@deriv/stores';
 import { Localize } from '@deriv-com/translations';
 import { useDevice } from '@deriv-com/ui';
+
 import NotificationListWrapper from './notification-list-wrapper';
 
 const NotificationsDialog = observer(() => {
@@ -20,6 +22,7 @@ const NotificationsDialog = observer(() => {
 
     const wrapper_ref = React.useRef<HTMLDivElement>(null);
     const { isMobile } = useDevice();
+    const nodeRef = React.useRef(null);
 
     const handleClickOutside = (event: MouseEvent) => {
         const notifications_toggle_btn = !(event?.target as Element)?.classList.contains(
@@ -75,9 +78,12 @@ const NotificationsDialog = observer(() => {
                 exit: 'notifications-dialog--exit',
             }}
             timeout={150}
+            nodeRef={nodeRef}
             unmountOnExit
         >
-            <NotificationListWrapper clearNotifications={clearNotifications} ref={wrapper_ref} />
+            <div ref={nodeRef}>
+                <NotificationListWrapper clearNotifications={clearNotifications} ref={wrapper_ref} />
+            </div>
         </CSSTransition>
     );
 });

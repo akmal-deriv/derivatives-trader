@@ -2,8 +2,8 @@
 import config_data from '../../../../../brand.config.json';
 import { appendLangParam } from '../url/helpers';
 
-export const getBrandDomain = () => {
-    return config_data.brand_domain;
+export const getBrandDomains = (): readonly string[] => {
+    return config_data.brand_domains;
 };
 
 export const getBrandName = () => {
@@ -14,22 +14,26 @@ export const getBrandLogo = () => {
     return config_data.brand_logo;
 };
 
-export const getBrandHostname = () => {
-    // Determine environment - use production if NODE_ENV is production, otherwise staging
-    const isProduction = process.env.NODE_ENV === 'production';
+/**
+ * Runtime production check based on window.location.hostname.
+ */
+export const isProduction = (): boolean => {
+    if (typeof window === 'undefined') return false;
+    const hostname = window.location.hostname;
+    return (config_data.brand_domains as string[]).some(domain => {
+        const pattern = new RegExp(`^(www\\.)?(beta-)?dtrader\\.${domain.replaceAll('.', '\\.')}$`, 'i');
+        return pattern.test(hostname);
+    });
+};
 
-    // Return appropriate URL from brand config
-    return isProduction ? config_data.brand_hostname.production : config_data.brand_hostname.staging;
+export const getBrandHostname = () => {
+    const hostname = isProduction() ? config_data.brand_hostname.production : config_data.brand_hostname.staging;
+    return substituteDerivDomain(hostname);
 };
 
 export const getBrandUrl = () => {
-    // Determine environment - use production if NODE_ENV is production, otherwise staging
-    const isProduction = process.env.NODE_ENV === 'production';
-
-    // Return appropriate URL from brand config
-    return isProduction
-        ? `https://${config_data.brand_hostname.production}`
-        : `https://${config_data.brand_hostname.staging}`;
+    const hostname = isProduction() ? config_data.brand_hostname.production : config_data.brand_hostname.staging;
+    return `https://${substituteDerivDomain(hostname)}`;
 };
 
 export const getBrandHomeUrl = (language?: string) => {
@@ -55,48 +59,12 @@ export const getPlatformLogo = () => {
     return config_data.platform.logo;
 };
 
-export const getPlatformHostname = () => {
-    // Check specific NODE_ENV values
-    if (process.env.NODE_ENV === 'production') {
-        return config_data.platform.hostname.production;
-    } else if (process.env.NODE_ENV === 'staging') {
-        return config_data.platform.hostname.staging;
-    }
-    if (typeof window !== 'undefined') {
-        return window.location.host;
-    }
-    return config_data.platform.hostname.staging;
-};
-
-export const getProductionPlatformHostname = () => {
-    return config_data.platform.hostname.production;
-};
-
-export const getStagingPlatformHostname = () => {
-    return config_data.platform.hostname.staging;
-};
-
-export const getPlatformUrl = () => {
-    // Determine environment - use production if NODE_ENV is production, otherwise staging
-    const isProduction = process.env.NODE_ENV === 'production';
-
-    // Return appropriate URL from brand config
-    return isProduction
-        ? `https://${config_data.platform.hostname.production}`
-        : `https://${config_data.platform.hostname.staging}`;
-};
-
-export const getProductionPlatformUrl = () => {
-    return `https://${config_data.platform.hostname.production}`;
-};
-
-export const getStagingPlatformUrl = () => {
-    return `https://${config_data.platform.hostname.staging}`;
-};
-
 export const getDomainName = () => {
+    if (typeof window === 'undefined') return '';
+    const hostname = window.location.hostname;
+    if (!hostname) return '';
     // Split the hostname into parts
-    const domainParts = window.location.hostname.split('.');
+    const domainParts = hostname.split('.');
 
     // Ensure we have at least two parts (SLD and TLD)
     if (domainParts.length >= 2) {
@@ -109,13 +77,115 @@ export const getDomainName = () => {
 };
 
 /**
- * Gets the WebSocket URL based on environment and account type
- * @param isProductionEnv - Whether the current environment is production
- * @param accountType - 'real' or 'demo'
- * @returns WebSocket server URL
+ * Replaces "deriv.com" in a URL with the current domain (e.g. deriv.be, deriv.me).
+ * Returns the URL unchanged when running on localhost or an unrecognised hostname.
  */
-export const getWebSocketURL = (isProductionEnv: boolean, accountType: 'real' | 'demo'): string => {
-    return isProductionEnv
-        ? config_data.platform.websocket.production[accountType]
-        : config_data.platform.websocket.staging[accountType];
+const substituteDerivDomain = (url: string): string => {
+    const domain = getDomainName();
+    if (!domain || !(config_data.brand_domains as string[]).includes(domain)) return url;
+    try {
+        // Parse the URL so we only rewrite the hostname — not query params or path segments
+        const parsed = new URL(url);
+        parsed.hostname = parsed.hostname.replace(/deriv\.com$/, domain);
+        return parsed.toString();
+    } catch {
+        // Fallback for non-absolute strings (e.g. "api-core.deriv.com", "home.deriv.com/dashboard")
+        return url.replace(/deriv\.com/, domain);
+    }
+};
+
+/**
+ * Returns the current TLD (e.g. "deriv.be") only when it is a known brand domain.
+ * Falls back to "deriv.com" on unrecognised hostnames to keep cookies on a trusted domain.
+ */
+export const getTrustedDomainName = (): string => {
+    const domain = getDomainName();
+    return (config_data.brand_domains as string[]).includes(domain) ? domain : 'deriv.com';
+};
+
+/**
+ * Returns window.location.hostname for use as an OAuth redirect parameter,
+ * but only if the current hostname belongs to a known brand domain or a
+ * recognised Cloudflare Pages preview deployment.
+ * Returns empty string on unrecognised hostnames to prevent open-redirect
+ * attacks where an attacker-controlled copy of the app injects a redirect
+ * back to their domain after authentication.
+ */
+const CLOUDFLARE_PAGES_PATTERN = /^[a-zA-Z0-9-]+\.derivatives-trader\.pages\.dev$/;
+export const getRedirectHostname = (): string => {
+    if (typeof window === 'undefined') return '';
+    const hostname = window.location.hostname;
+    const domain = getDomainName();
+    if ((config_data.brand_domains as string[]).includes(domain)) return hostname;
+    if (CLOUDFLARE_PAGES_PATTERN.test(hostname)) return hostname;
+    return '';
+};
+
+/**
+ * Gets the WebSocket server URL with base path
+ * @returns WebSocket server URL with base path (e.g., "staging-api-core.deriv.com/options/v1/ws")
+ */
+export const getWebSocketURL = (): string => {
+    const base = isProduction() ? config_data.api_core.production : config_data.api_core.staging;
+    return `${substituteDerivDomain(base)}/options/v1/ws`;
+};
+
+/**
+ * Gets the whoami endpoint URL
+ * @returns Whoami endpoint URL (e.g., "https://auth.deriv.com/sessions/whoami")
+ */
+export const getWhoAmIURL = (): string => {
+    const base = isProduction() ? config_data.auth.production : config_data.auth.staging;
+    return substituteDerivDomain(`${base}/sessions/whoami`);
+};
+
+/**
+ * Gets the logout endpoint URL
+ * @returns Logout endpoint URL (e.g., "https://auth.deriv.com/self-service/logout/browser")
+ */
+export const getLogoutURL = (): string => {
+    const base = isProduction() ? config_data.auth.production : config_data.auth.staging;
+    return substituteDerivDomain(`${base}/self-service/logout/browser`);
+};
+
+/**
+ * Gets the API Core URL based on environment
+ * @returns API Core base URL (without protocol)
+ */
+export const getApiCoreUrl = (): string => {
+    const url = isProduction() ? config_data.api_core.production : config_data.api_core.staging;
+    return substituteDerivDomain(url);
+};
+
+/**
+ * Gets the full API Core URL with protocol
+ * @returns Full API Core URL with https://
+ */
+export const getApiCoreBaseUrl = (): string => {
+    return `https://${getApiCoreUrl()}`;
+};
+
+/**
+ * Gets the API URL for account_list based on environment
+ * @returns API base URL (without protocol), e.g. "api.deriv.be"
+ */
+export const getApiUrl = (): string => {
+    const url = isProduction() ? config_data.api.production : config_data.api.staging;
+    return substituteDerivDomain(url);
+};
+
+/**
+ * Gets the full API URL for account_list with protocol
+ * @returns Full API URL with https://, e.g. "https://api.deriv.be"
+ */
+export const getApiBaseUrl = (): string => {
+    return `https://${getApiUrl()}`;
+};
+
+/**
+ * Gets the Help Centre URL
+ * @returns Help Centre URL (e.g., "https://trade.deriv.com/help-centre")
+ */
+export const getHelpCentreUrl = (): string => {
+    return substituteDerivDomain(config_data.platform.help_centre_url);
 };

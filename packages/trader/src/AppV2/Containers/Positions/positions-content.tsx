@@ -1,19 +1,16 @@
 import React from 'react';
-
-import { Loading } from '@deriv/components';
-import { TReportsStore, useReportsStore } from '@deriv/reports/src/Stores/useReportsStores';
 import { TContractInfo } from '@deriv/shared';
 import { observer, useStore } from '@deriv/stores';
+import { Loading } from '@deriv/components';
 import { TPortfolioPosition } from '@deriv/stores/types';
-
-import { ContractCardList, ContractCardsSections } from 'AppV2/Components/ContractCard';
 import { EmptyPositions, TEmptyPositionsProps } from 'AppV2/Components/EmptyPositions';
+import { ContractCardList, ContractCardsSections } from 'AppV2/Components/ContractCard';
 import { ContractTypeFilter, TimeFilter } from 'AppV2/Components/Filter';
 import TotalProfitLoss from 'AppV2/Components/TotalProfitLoss';
-import useTimeFilter from 'AppV2/Hooks/useTimeFilter';
 import useTradeTypeFilter from 'AppV2/Hooks/useTradeTypeFilter';
-
+import useTimeFilter from 'AppV2/Hooks/useTimeFilter';
 import { filterPositions, getTotalPositionsProfit, TAB_NAME } from '../../Utils/positions-utils';
+import { TReportsStore, useReportsStore } from '@deriv/reports/src/Stores/useReportsStores';
 
 type TPositionsContentProps = Omit<TEmptyPositionsProps, 'noMatchesFound'> & {
     hasButtonsDemo?: boolean;
@@ -30,9 +27,10 @@ const PositionsContent = observer(({ hasButtonsDemo, isClosedTab, setHasButtonsD
     const [filteredPositions, setFilteredPositions] = React.useState<(TPortfolioPosition | TClosedPosition)[]>([]);
     const [noMatchesFound, setNoMatchesFound] = React.useState(false);
 
-    const { common, client, portfolio } = useStore();
+    const { common, client, portfolio, ui } = useStore();
     const { server_time = undefined } = isClosedTab ? {} : common; // Server time is required only to update cards timers in Open positions
     const { currency } = client;
+    const { is_switching_account } = ui;
     const {
         active_positions,
         is_active_empty,
@@ -64,7 +62,9 @@ const PositionsContent = observer(({ hasButtonsDemo, isClosedTab, setHasButtonsD
     const shouldShowEmptyMessage = hasNoPositions || noMatchesFound;
     const shouldShowContractCards =
         !!filteredPositions.length && (isClosedTab || (filteredPositions[0]?.contract_info as TContractInfo)?.status);
-    const shouldShowLoading = isClosedTab ? isFetchingClosedPositions && !filteredPositions.length : is_loading;
+    const shouldShowLoading = isClosedTab
+        ? isFetchingClosedPositions && !filteredPositions.length
+        : is_loading || is_switching_account;
     const shouldShowTakeProfit = !isClosedTab || !!(timeFilter || customTimeRangeFilter);
 
     const onScroll = (e: React.UIEvent<HTMLDivElement>) => {
@@ -127,11 +127,11 @@ const PositionsContent = observer(({ hasButtonsDemo, isClosedTab, setHasButtonsD
         return <Loading.DTraderV2 is_positions is_closed_tab={isClosedTab} />;
     return (
         <div
-            className={`positions-page__${isClosedTab ? TAB_NAME.CLOSED.toLowerCase() : TAB_NAME.OPEN.toLowerCase()}`}
+            className={`positions-page-container__${isClosedTab ? TAB_NAME.CLOSED.toLowerCase() : TAB_NAME.OPEN.toLowerCase()}`}
             onScroll={isClosedTab ? onScroll : undefined}
         >
             {!hasNoPositions && (
-                <div className='positions-page__filter__wrapper'>
+                <div className='positions-page-container__filter__wrapper'>
                     {isClosedTab ? (
                         <TimeFilter
                             timeFilter={timeFilter}

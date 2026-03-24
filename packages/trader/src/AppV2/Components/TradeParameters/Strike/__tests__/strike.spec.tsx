@@ -10,6 +10,11 @@ import ModulesProvider from 'Stores/Providers/modules-providers';
 import TraderProviders from '../../../../../trader-providers';
 import Strike from '../strike';
 
+jest.mock('@deriv/shared', () => ({
+    ...jest.requireActual('@deriv/shared'),
+    isMobile: jest.fn(() => true),
+}));
+
 const strike_trade_param_label = 'Strike price';
 
 jest.mock('@deriv-com/quill-ui', () => ({
@@ -82,11 +87,12 @@ describe('Strike', () => {
     });
 
     it('opens ActionSheet with WheelPicker component, Payout per point information, "Save" button and text content with definition if user clicks on trade param', async () => {
+        const user = userEvent.setup();
         mockStrike();
 
         expect(screen.queryByTestId('dt-actionsheet-overlay')).not.toBeInTheDocument();
 
-        await userEvent.click(screen.getByText(strike_trade_param_label));
+        await user.click(screen.getByText(strike_trade_param_label));
 
         expect(screen.getByTestId('dt-actionsheet-overlay')).toBeInTheDocument();
         expect(screen.getByText('WheelPicker')).toBeInTheDocument();
@@ -96,41 +102,40 @@ describe('Strike', () => {
     });
 
     it('does not render Payout per point information if proposal_info is empty object', async () => {
+        const user = userEvent.setup();
         default_mock_store.modules.trade.proposal_info = {};
         mockStrike();
 
-        await userEvent.click(screen.getByText(strike_trade_param_label));
+        await user.click(screen.getByText(strike_trade_param_label));
 
         expect(screen.getByText('Payout per point:')).toBeInTheDocument();
         expect(screen.queryByText(/14.245555/)).not.toBeInTheDocument();
     });
 
     it('applies specific className if innerHeight is <= 640px', async () => {
+        const user = userEvent.setup();
         const original_height = window.innerHeight;
         window.innerHeight = 640;
         mockStrike();
 
-        await userEvent.click(screen.getByText(strike_trade_param_label));
+        await user.click(screen.getByText(strike_trade_param_label));
 
         expect(screen.getByTestId('dt_carousel')).toHaveClass('strike__carousel--small');
         window.innerHeight = original_height;
     });
 
     it('calls onChange function if user changes selected value', async () => {
-        jest.useFakeTimers();
+        const user = userEvent.setup();
         mockStrike();
 
         const new_selected_value = default_mock_store.modules.trade.barrier_choices[1];
-        await userEvent.click(screen.getByText(strike_trade_param_label));
-        await userEvent.click(screen.getByText(new_selected_value));
-        await userEvent.click(screen.getByText('Save'));
+        await user.click(screen.getByText(strike_trade_param_label));
+        await user.click(screen.getByText(new_selected_value));
+        await user.click(screen.getByText('Save'));
 
         await waitFor(() => {
-            jest.advanceTimersByTime(200);
+            expect(default_mock_store.modules.trade.onChange).toBeCalled();
         });
-
-        expect(default_mock_store.modules.trade.onChange).toBeCalled();
-        jest.useRealTimers();
     });
 
     it('disables trade param if is_market_closed === true', () => {

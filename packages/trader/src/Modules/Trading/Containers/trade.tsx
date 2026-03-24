@@ -9,7 +9,7 @@ import { Loader, useDevice } from '@deriv-com/ui';
 
 import ChartLoader from 'App/Components/Elements/chart-loader';
 import MarketIsClosedOverlay from 'App/Components/Elements/market-is-closed-overlay';
-import PositionsDrawer from 'App/Components/Elements/PositionsDrawer';
+import Sidebar from 'App/Components/Layout/Sidebar';
 import { useTraderStore } from 'Stores/useTraderStores';
 
 import FormLayout from '../Components/Form/form-layout';
@@ -44,7 +44,7 @@ const BottomWidgetsMobile = ({ tick, digits, setTick, setDigits }: TBottomWidget
 };
 
 const Trade = observer(() => {
-    const { client, common, ui } = useStore();
+    const { client, common, ui, contract_trade } = useStore();
     const {
         contract_type,
         form_components,
@@ -71,7 +71,7 @@ const Trade = observer(() => {
     const { is_dark_mode_on: is_dark_theme, notification_messages_ui: NotificationMessages } = ui;
     const { is_eu, is_logged_in, is_logging_in } = client;
     const { network_status } = common;
-    const { isDesktop, isMobile, isTabletPortrait } = useDevice();
+    const { isMobile, isTabletPortrait } = useDevice();
 
     const [digits, setDigits] = React.useState<number[]>([]);
     const [tick, setTick] = React.useState<null | TickSpotData>(null);
@@ -103,6 +103,7 @@ const Trade = observer(() => {
         if (has_session_storage && is_logged_in) {
             sessionStorage.removeItem('tradershub_redirect_to');
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     React.useEffect(() => {
@@ -132,6 +133,12 @@ const Trade = observer(() => {
 
     React.useEffect(() => {
         onMount();
+        return () => onUnmount();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // Market selection logic - runs when synthetics availability changes
+    React.useEffect(() => {
         if (!is_synthetics_available) {
             const setMarket = async () => {
                 const markets_to_search = ['forex', 'indices', 'commodities']; // none-synthetic
@@ -145,8 +152,16 @@ const Trade = observer(() => {
 
             setMarket();
         }
-        return () => onUnmount();
-    }, [onMount, onUnmount, getFirstOpenMarket, is_synthetics_available]);
+    }, [is_synthetics_available, getFirstOpenMarket]);
+
+    // Clear contract markers when navigating to trade page from reports
+    React.useEffect(() => {
+        // Clear any existing contract markers from closed contracts
+        if (contract_trade && 'clearClosedContractMarkers' in contract_trade) {
+            contract_trade.clearClosedContractMarkers();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     React.useEffect(() => {
         if (isMobile) {
@@ -182,7 +197,7 @@ const Trade = observer(() => {
         [open_market, try_synthetic_indices, try_open_markets]
     );
 
-    const form_wrapper_class = isMobile ? 'mobile-wrapper' : 'sidebar__container';
+    const form_wrapper_class = isMobile ? 'mobile-wrapper' : 'trade-params-v1';
     const chart_height_offset = React.useMemo(() => {
         if (is_accumulator) return '295px';
         if (is_turbos) return '300px';
@@ -196,7 +211,7 @@ const Trade = observer(() => {
             })}
             id='trade_container'
         >
-            {isDesktop && <PositionsDrawer />}
+            {!isMobile && <Sidebar />}
             {/* Div100vhContainer is workaround for browsers on devices
                     with toolbars covering screen height,
                     using css vh is not returning correct screen height */}

@@ -3,8 +3,9 @@ import ReactDOM from 'react-dom';
 import { CSSTransition } from 'react-transition-group';
 import classNames from 'classnames';
 
-import Div100vhContainer from '../div100vh-container';
 import { LegacyClose2pxIcon } from '@deriv/quill-icons';
+
+import Div100vhContainer from '../div100vh-container';
 import Text from '../text/text';
 import ThemedScrollbars from '../themed-scrollbars';
 
@@ -87,6 +88,9 @@ const MobileDialog = (props: React.PropsWithChildren<TMobileDialog>) => {
         }
     };
 
+    // Create a ref for CSSTransition to fix findDOMNode deprecation warning
+    const node_ref = React.useRef(null);
+
     checkVisibility();
     if (!portal_element) return null;
     return ReactDOM.createPortal(
@@ -100,8 +104,9 @@ const MobileDialog = (props: React.PropsWithChildren<TMobileDialog>) => {
                 exit: 'dc-mobile-dialog--exit',
             }}
             unmountOnExit
+            nodeRef={node_ref}
         >
-            <div data-testid='dt_mobile_dialog' className='dc-mobile-dialog' onClick={handleClick}>
+            <div ref={node_ref} data-testid='dt_mobile_dialog' className='dc-mobile-dialog' onClick={handleClick}>
                 <Div100vhContainer
                     className={classNames('dc-mobile-dialog__container', {
                         'dc-mobile-dialog__container--has-scroll': props.has_content_scroll,

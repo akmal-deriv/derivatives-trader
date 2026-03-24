@@ -1,6 +1,7 @@
 import React from 'react';
 import { RouteComponentProps, withRouter } from 'react-router-dom';
 
+import { useMobileBridge } from '@deriv/api';
 import { Button, Modal } from '@deriv/components';
 import { getBrandUrl } from '@deriv/shared';
 import { observer, useStore } from '@deriv/stores';
@@ -21,6 +22,20 @@ const InsufficientBalanceModal = observer(
             common: { current_language },
         } = useStore();
         const { localize } = useTranslations();
+        const { sendBridgeEvent } = useMobileBridge();
+
+        const handleTransferClick = () => {
+            if (!is_virtual) {
+                const brandUrl = getBrandUrl();
+                const lang_param = current_language ? `&lang=${current_language}` : '';
+                sendBridgeEvent('trading:transfer', () => {
+                    window.location.href = `${brandUrl}/transfer?from=dtrader&source=options&acc=options&curr=${currency}${lang_param}`;
+                });
+            } else {
+                toggleModal();
+            }
+        };
+
         return (
             <Modal
                 id='dt_insufficient_balance_modal'
@@ -35,16 +50,8 @@ const InsufficientBalanceModal = observer(
                     {/* TODO: Add topping up mechanism for demo accounts after confirmation */}
                     <Button
                         has_effect
-                        text={is_virtual ? localize('OK') : localize('Transfer now')}
-                        onClick={() => {
-                            if (!is_virtual) {
-                                const brandUrl = getBrandUrl();
-                                const lang_param = current_language ? `&lang=${current_language}` : '';
-                                window.location.href = `${brandUrl}/transfer?acc=options&curr=${currency}&from=home&source=options${lang_param}`;
-                            } else {
-                                toggleModal();
-                            }
-                        }}
+                        text={is_virtual ? localize('OK') : localize('Deposit now')}
+                        onClick={handleTransferClick}
                         primary
                     />
                 </Modal.Footer>

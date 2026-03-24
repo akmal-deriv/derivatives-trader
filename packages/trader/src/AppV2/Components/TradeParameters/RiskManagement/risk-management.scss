@@ -99,7 +99,10 @@ $FOOTER_BUTTON_HEIGHT: var(--core-size-4000);
     }
 
     &__save-button {
-        margin: var(--core-spacing-800) 0;
+        flex-shrink: 0;
+        position: sticky;
+        bottom: var(--core-spacing-800);
+        margin-top: var(--core-spacing-800);
     }
 
     &__description {

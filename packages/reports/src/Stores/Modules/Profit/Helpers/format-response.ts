@@ -1,14 +1,11 @@
 import { TProfitTableResponse } from '@deriv/api';
-import { formatMoney, getMarketInformation, getSymbolDisplayName, toMoment } from '@deriv/shared';
+import { formatMoney, getMarketInformation, getSymbolDisplayName } from '@deriv/shared';
 
 export type TTransaction = NonNullable<NonNullable<TProfitTableResponse['profit_table']>['transactions']>[number];
 
 export const formatProfitTableTransactions = (transaction: TTransaction, currency: string) => {
-    const format_string = 'DD MMM YYYY HH:mm:ss';
-    const purchase_time =
-        transaction.purchase_time && `${toMoment(Number(transaction.purchase_time)).format(format_string)}`;
     const purchase_time_unix = transaction.purchase_time;
-    const sell_time = transaction.sell_time && `${toMoment(Number(transaction.sell_time)).format(format_string)}`;
+    const sell_time_unix = transaction.sell_time;
     const payout = transaction.payout ?? NaN;
     const sell_price = transaction.sell_price ?? NaN;
     const buy_price = transaction.buy_price ?? NaN;
@@ -22,10 +19,9 @@ export const formatProfitTableTransactions = (transaction: TTransaction, currenc
             sell_price,
             buy_price,
             profit_loss,
-            sell_time,
-            purchase_time,
-            display_name,
+            sell_time_unix,
             purchase_time_unix,
+            display_name,
         },
     };
 };

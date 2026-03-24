@@ -1,13 +1,10 @@
 import React from 'react';
-import Loadable from 'react-loadable';
 
 import { mockStore } from '@deriv/stores';
 import { render, screen, waitFor } from '@testing-library/react';
 
 import TraderProviders from '../../../../../trader-providers';
 import FormLayout from '../form-layout';
-
-Loadable.preloadAll();
 
 const mock_props = {
     is_market_closed: false,

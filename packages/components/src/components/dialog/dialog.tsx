@@ -1,11 +1,13 @@
 import React from 'react';
-import classNames from 'classnames';
 import ReactDOM from 'react-dom';
 import { CSSTransition } from 'react-transition-group';
+import classNames from 'classnames';
+
 import { LegacyClose2pxIcon } from '@deriv/quill-icons';
+
+import { useOnClickOutside } from '../../hooks';
 import Button from '../button/button';
 import Text from '../text';
-import { useOnClickOutside } from '../../hooks';
 
 type TDialog = {
     cancel_button_text?: string;
@@ -105,7 +107,7 @@ const Dialog = ({
     const content_classes = classNames('dc-dialog__content', {
         'dc-dialog__content--centered': is_content_centered,
     });
-    //
+    const nodeRef = React.useRef(null);
     const is_text =
         typeof children === 'string' ||
         (React.isValidElement(children) && typeof children?.props?.i18n_default_text === 'string');
@@ -121,8 +123,10 @@ const Dialog = ({
                 exit: 'dc-dialog__wrapper--exit',
             }}
             unmountOnExit
+            nodeRef={nodeRef}
         >
             <div
+                ref={nodeRef}
                 className={classNames('dc-dialog__wrapper', className, {
                     'dc-dialog__wrapper--has-portal': !!portal_element_id,
                 })}

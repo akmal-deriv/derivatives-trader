@@ -1,8 +1,9 @@
-import { screen, render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+
 import * as ContractUtils from '../contract';
-import { TContractStore, TDigitsInfo, TTickItem } from '../contract-types';
 import { CONTRACT_TYPES } from '../contract';
 import { mockContractInfo } from '../contract-info';
+import { TContractStore, TDigitsInfo, TTickItem } from '../contract-types';
 
 describe('getFinalPrice', () => {
     it("should return sell_price as final price when it's available", () => {
@@ -398,6 +399,34 @@ describe('isOpen', () => {
                 contract_type: CONTRACT_TYPES.ACCUMULATOR,
                 exit_spot_time: 1608098748,
                 profit: '10',
+                status: 'open',
+            })
+        ).toBe(false);
+    });
+    it('isOpen returns false for a contract with status open but has exit_spot_time (ended)', () => {
+        expect(
+            ContractUtils.isOpen({
+                contract_type: CONTRACT_TYPES.CALL,
+                exit_spot_time: 1608098748,
+                profit: '-0.11',
+                status: 'open',
+            })
+        ).toBe(false);
+    });
+    it('isOpen returns false for a contract with status open but is_expired', () => {
+        expect(
+            ContractUtils.isOpen({
+                contract_type: CONTRACT_TYPES.MULTIPLIER.UP,
+                is_expired: 1,
+                status: 'open',
+            })
+        ).toBe(false);
+    });
+    it('isOpen returns false for a contract with status open but is_settleable', () => {
+        expect(
+            ContractUtils.isOpen({
+                contract_type: CONTRACT_TYPES.VANILLA.CALL,
+                is_settleable: 1,
                 status: 'open',
             })
         ).toBe(false);

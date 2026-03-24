@@ -1,55 +1,52 @@
 import React from 'react';
 import classNames from 'classnames';
 
-import { MobileDrawer } from '@deriv/components';
+import { Button, Text } from '@deriv/components';
 import { UNSUPPORTED_LANGUAGES } from '@deriv/shared';
 import { observer, useStore } from '@deriv/stores';
 import { getAllowedLanguages, useTranslations } from '@deriv-com/translations';
 
-import { LanguageLink } from 'App/Components/Routes';
-
 type TMobileLanguageMenu = {
-    expandSubMenu: (prop: boolean) => void;
     toggleDrawer: () => void;
 };
 
-const MobileLanguageMenu = observer(({ expandSubMenu, toggleDrawer }: TMobileLanguageMenu) => {
-    const { common, ui } = useStore();
-    const { is_language_changing } = common;
-    const { is_mobile_language_menu_open, setMobileLanguageMenuOpen } = ui;
-    const { localize } = useTranslations();
+const MobileLanguageMenu = observer(({ toggleDrawer }: TMobileLanguageMenu) => {
+    const { common } = useStore();
+    const { currentLang, switchLanguage } = useTranslations();
+    const { changeSelectedLanguage } = common;
+    const allowed_languages = getAllowedLanguages(UNSUPPORTED_LANGUAGES);
 
-    const allowed_languages = Object.keys(getAllowedLanguages(UNSUPPORTED_LANGUAGES));
+    const handleLanguageChange = async (lang: string) => {
+        try {
+            await changeSelectedLanguage(lang);
+            switchLanguage(lang);
+            toggleDrawer();
+        } catch (error) {
+            // eslint-disable-next-line no-console
+            console.error('Failed to change language:', error);
+            // Keep drawer open on error so user can retry
+        }
+    };
 
     return (
-        <MobileDrawer.SubMenu
-            is_expanded={is_mobile_language_menu_open}
-            has_subheader
-            submenu_title={localize('Select language')}
-            onToggle={is_expanded => {
-                expandSubMenu(is_expanded);
-                setMobileLanguageMenuOpen(false);
-            }}
-            submenu_toggle_class='dc-mobile-drawer__submenu-toggle--hidden'
-        >
-            <div
-                className={classNames('settings-language__language-container', {
-                    'settings-language__language-container--disabled': is_language_changing,
-                })}
-            >
-                {allowed_languages.map(lang => (
-                    <LanguageLink
+        <div className='flyout-selector'>
+            {Object.keys(allowed_languages).map(lang => {
+                const isActive = lang === currentLang;
+                return (
+                    <Button
                         key={lang}
-                        is_clickable
-                        lang={lang}
-                        toggleModal={() => {
-                            toggleDrawer();
-                            setMobileLanguageMenuOpen(false);
-                        }}
-                    />
-                ))}
-            </div>
-        </MobileDrawer.SubMenu>
+                        className={classNames('flyout-selector__option', {
+                            'flyout-selector__option--active': isActive,
+                        })}
+                        onClick={() => !isActive && handleLanguageChange(lang)}
+                        disabled={isActive}
+                        type='button'
+                    >
+                        <Text>{allowed_languages[lang]}</Text>
+                    </Button>
+                );
+            })}
+        </div>
     );
 });
 

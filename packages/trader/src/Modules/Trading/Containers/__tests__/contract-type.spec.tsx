@@ -1,5 +1,3 @@
-import React from 'react';
-
 import { TRADE_TYPES } from '@deriv/shared';
 import { mockStore } from '@deriv/stores';
 import { TCoreStores } from '@deriv/stores/types';
@@ -42,7 +40,24 @@ jest.mock('@deriv/components', () => ({
     usePrevious: () => 'EN',
 }));
 
+jest.mock('AppV2/Hooks/useNativeAppAllowedTradeTypes', () => ({
+    __esModule: true,
+    default: jest.fn(() => undefined),
+}));
+
 describe('<Contract />', () => {
+    let useNativeAppAllowedTradeTypesMock: jest.Mock;
+
+    beforeEach(() => {
+        const module = jest.requireMock('AppV2/Hooks/useNativeAppAllowedTradeTypes');
+        useNativeAppAllowedTradeTypesMock = module.default;
+        useNativeAppAllowedTradeTypesMock.mockReturnValue(undefined);
+    });
+
+    afterEach(() => {
+        jest.clearAllMocks();
+    });
+
     const mockContract = (mocked_store: TCoreStores) => {
         return (
             <TraderProviders store={mocked_store}>
@@ -74,5 +89,67 @@ describe('<Contract />', () => {
         render(mockContract(mock_root_store));
 
         expect(screen.queryByText(/ContractTypeWidget/i)).toHaveAttribute('data-test', 'true');
+    });
+
+    describe('Native App Trade Type Filtering', () => {
+        it('should call useNativeAppAllowedTradeTypes hook', () => {
+            const mock_root_store = mockStore(default_mock_store);
+            render(mockContract(mock_root_store));
+
+            expect(useNativeAppAllowedTradeTypesMock).toHaveBeenCalled();
+        });
+
+        it('should not filter trade types when native app bridge is not available', () => {
+            useNativeAppAllowedTradeTypesMock.mockReturnValue(undefined);
+            const mock_root_store = mockStore(default_mock_store);
+            render(mockContract(mock_root_store));
+
+            expect(screen.getByText(/ContractTypeWidget/i)).toBeInTheDocument();
+        });
+
+        it('should filter trade types when native app bridge is available with allowed types', () => {
+            useNativeAppAllowedTradeTypesMock.mockReturnValue(['Accumulators', 'Multipliers']);
+            const mock_root_store = mockStore(default_mock_store);
+            render(mockContract(mock_root_store));
+
+            expect(screen.getByText(/ContractTypeWidget/i)).toBeInTheDocument();
+            expect(useNativeAppAllowedTradeTypesMock).toHaveBeenCalled();
+        });
+
+        it('should handle empty array from native app allowed trade types', () => {
+            useNativeAppAllowedTradeTypesMock.mockReturnValue([]);
+            const mock_root_store = mockStore(default_mock_store);
+            render(mockContract(mock_root_store));
+
+            expect(screen.getByText(/ContractTypeWidget/i)).toBeInTheDocument();
+        });
+
+        it('should apply filtering to both available and unavailable contract lists', () => {
+            useNativeAppAllowedTradeTypesMock.mockReturnValue(['Accumulators']);
+            const new_mock_store = {
+                ...default_mock_store,
+                modules: {
+                    trade: {
+                        ...default_mock_store.modules.trade,
+                        contract_types_list: {
+                            Accumulators: {
+                                name: 'Accumulators',
+                                categories: [],
+                            },
+                        },
+                        non_available_contract_types_list: {
+                            Multipliers: {
+                                name: 'Multipliers',
+                                categories: [],
+                            },
+                        },
+                    },
+                },
+            };
+            const mock_root_store = mockStore(new_mock_store);
+            render(mockContract(mock_root_store));
+
+            expect(screen.getByText(/ContractTypeWidget/i)).toBeInTheDocument();
+        });
     });
 });

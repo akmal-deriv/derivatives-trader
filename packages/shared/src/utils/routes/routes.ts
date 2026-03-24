@@ -3,9 +3,11 @@ export const routes = {
     index: '/',
     callback_page: '/callback',
     error404: '/404',
+    unavailable: '/unavailable',
     endpoint: '/endpoint',
 
     // Trading routes
+    menu: '/menu',
     trader_positions: '/positions',
     contract: '/contract/:contract_id',
 

@@ -44,6 +44,8 @@ jest.mock('@deriv/shared', () => ({
         tradingTimes: jest.fn(),
         wait: jest.fn(),
         profitTable: jest.fn().mockReturnValue({ profit_table: { transactions: [] } }),
+        setOnReconnect: jest.fn(),
+        removeOnReconnect: jest.fn(),
     },
 }));
 
@@ -83,6 +85,9 @@ describe('PositionsContent', () => {
 
     beforeEach(() => {
         defaultMockStore = mockStore({
+            client: {
+                is_logged_in: true,
+            },
             portfolio: {
                 active_positions: [
                     {
@@ -258,6 +263,17 @@ describe('PositionsContent', () => {
         render(mockPositionsContent());
 
         expect(screen.getByTestId(loaderTestId)).toBeInTheDocument();
+    });
+
+    it('should render loader when account is switching', () => {
+        defaultMockStore = mockStore({
+            ui: { is_switching_account: true },
+            portfolio: { ...defaultMockStore.portfolio, is_loading: false },
+        });
+        render(mockPositionsContent());
+
+        expect(screen.getByTestId(loaderTestId)).toBeInTheDocument();
+        expect(screen.queryByText(contractCardList)).not.toBeInTheDocument();
     });
 
     it('should render EmptyPositions if data has loaded but user has no open positions', () => {

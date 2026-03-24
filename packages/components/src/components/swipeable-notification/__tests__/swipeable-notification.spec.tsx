@@ -1,9 +1,11 @@
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
-import SwipeableNotification from '../swipeable-notification';
 import { BrowserRouter } from 'react-router-dom';
-import userEvent from '@testing-library/user-event';
 import { useSwipeable } from 'react-swipeable';
+
+import { fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+
+import SwipeableNotification from '../swipeable-notification';
 
 jest.mock('react-swipeable', () => ({
     useSwipeable: jest.fn(() => ({
@@ -55,11 +57,11 @@ describe('SwipeableNotification', () => {
         renderwithRouter({ visibility_duration_ms: 3000, onUnmount: onUnmountCallback, timestamp: 1234567890 });
         expect(onUnmountCallback).toBeCalled();
     });
-    it('should redirect to URL passed as redirect_to', () => {
+    it('should redirect to URL passed as redirect_to', async () => {
         renderwithRouter({ redirect_to: '/test_url' });
         const link = screen.getByRole('link');
         expect(link).toHaveAttribute('href', '/test_url');
-        userEvent.click(link);
+        await userEvent.click(link);
         expect(window.location.pathname).toEqual('/test_url');
     });
     it('should apply correct classname in case of failure', () => {

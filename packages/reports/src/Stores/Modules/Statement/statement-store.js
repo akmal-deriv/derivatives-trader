@@ -1,7 +1,7 @@
 import debounce from 'lodash.debounce';
-import { action, computed, makeObservable, observable, override } from 'mobx';
+import { action, computed, makeObservable, observable, override, reaction } from 'mobx';
 
-import { filterDisabledPositions, toMoment, WS, mapErrorMessage } from '@deriv/shared';
+import { filterDisabledPositions, mapErrorMessage, toMoment, WS } from '@deriv/shared';
 
 import BaseStore from '../../base-store';
 import getDateBoundaries from '../Profit/Helpers/format-request';
@@ -30,6 +30,10 @@ export default class StatementStore extends BaseStore {
     constructor({ root_store }) {
         // TODO: [mobx-undecorate] verify the constructor arguments and the arguments of this automatically generated super call
         super({ root_store });
+
+        // Initialize disposers for cleanup
+        this.loginReactionDisposer = null;
+        this.reconnectHandler = null;
 
         makeObservable(this, {
             data: observable,
@@ -169,7 +173,7 @@ export default class StatementStore extends BaseStore {
         this.is_loading = this.is_loading || !is_online;
     }
 
-    async onMount() {
+    onMount() {
         this.assertHasValidCache(
             this.client_loginid,
             this.clearDateFilter,
@@ -178,13 +182,48 @@ export default class StatementStore extends BaseStore {
         );
         this.client_loginid = this.root_store.client.loginid;
         this.onNetworkStatusChange(this.networkStatusChangeListener);
-        await WS.wait('authorize');
-        this.fetchNextBatch(true);
+
+        // Check current state first to handle both initial connection and reconnection
+        if (this.root_store.client.is_logged_in) {
+            this.fetchNextBatch(true);
+        } else if (!this.loginReactionDisposer) {
+            // Only create reaction if one doesn't exist
+            this.loginReactionDisposer = reaction(
+                () => this.root_store.client.is_logged_in,
+                () => {
+                    if (this.root_store.client.is_logged_in) {
+                        this.fetchNextBatch(true);
+                    }
+                }
+            );
+        }
+
+        // Add reconnection handler - onReconnect is only called when account_id exists
+        // Store the handler so we can remove it later
+        if (!this.reconnectHandler) {
+            this.reconnectHandler = () => {
+                this.clearTable();
+                this.fetchNextBatch(true);
+            };
+            WS.setOnReconnect(this.reconnectHandler);
+        }
     }
 
     /* DO NOT call clearDateFilter() upon unmounting the component, date filters should stay
     as we change tab or click on any contract for later references as discussed with UI/UX and QA */
     onUnmount() {
         WS.forgetAll('proposal');
+
+        // Dispose MobX reaction to prevent memory leak
+        if (this.loginReactionDisposer) {
+            this.loginReactionDisposer();
+            this.loginReactionDisposer = null;
+        }
+
+        // Remove reconnection handler
+        if (this.reconnectHandler) {
+            WS.removeOnReconnect(this.reconnectHandler);
+            this.reconnectHandler = null;
+        }
     }
 }

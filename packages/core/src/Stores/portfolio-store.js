@@ -10,10 +10,8 @@ import {
     filterDisabledPositions,
     formatMoney,
     formatPortfolioPosition,
-    trackAnalyticsEvent,
     getContractPath,
     getCurrentTick,
-    mapErrorMessage,
     getDisplayStatus,
     getDurationPeriod,
     getDurationTime,
@@ -26,9 +24,11 @@ import {
     isEnded,
     isMultiplierContract,
     isValidToSell,
+    mapErrorMessage,
     removeBarrier,
     routes,
     setLimitOrderBarriers,
+    trackAnalyticsEvent,
     TRADE_TYPES,
     WS,
 } from '@deriv/shared';
@@ -63,6 +63,10 @@ export default class PortfolioStore extends BaseStore {
     constructor(root_store) {
         // TODO: [mobx-undecorate] verify the constructor arguments and the arguments of this automatically generated super call
         super(root_store);
+
+        // Initialize disposers for cleanup
+        this.loginReactionDisposer = null;
+        this.reconnectHandler = null;
 
         makeObservable(this, {
             positions: observable.shallow,
@@ -111,12 +115,11 @@ export default class PortfolioStore extends BaseStore {
         this.root_store = root_store;
     }
 
-    async initializePortfolio() {
+    initializePortfolio() {
         if (this.has_subscribed_to_poc_and_transaction) {
             this.clearTable();
         }
         this.is_loading = true;
-        await WS.wait('authorize');
         WS.portfolio().then(this.portfolioHandler);
         WS.subscribeProposalOpenContract(null, this.proposalOpenContractQueueHandler);
         WS.subscribeTransaction(this.transactionHandler);
@@ -160,22 +163,10 @@ export default class PortfolioStore extends BaseStore {
     }
 
     onBuyResponse({ contract_id, longcode, contract_type }) {
-        // Extract underlying_symbol from shortcode if available
-        let underlying_symbol;
-        if (longcode) {
-            // Shortcode format: "CALL_1HZ100V_19.79_1753695396_1753373396_S0P0"
-            // Extract the second part which is the underlying symbol
-            const parts = longcode.split('_');
-            if (parts.length >= 2) {
-                underlying_symbol = parts[1];
-            }
-        }
-
         const new_pos = {
             contract_id,
             longcode,
             contract_type,
-            underlying_symbol, // Add the extracted underlying symbol
         };
         this.pushNewPosition(new_pos);
     }
@@ -558,12 +549,14 @@ export default class PortfolioStore extends BaseStore {
     onMount() {
         this.onNetworkStatusChange(this.networkStatusChangeListener);
         this.onLogout(this.logoutListener);
+
         if (this.positions.length === 0 && !this.has_subscribed_to_poc_and_transaction) {
-            // TODO: Optimise the way is_logged_in changes are detected for "logging in" and "already logged on" states
+            // Check current state first to handle both initial connection and reconnection
             if (this.root_store.client.is_logged_in) {
                 this.initializePortfolio();
-            } else {
-                reaction(
+            } else if (!this.loginReactionDisposer) {
+                // Only create reaction if one doesn't exist
+                this.loginReactionDisposer = reaction(
                     () => this.root_store.client.is_logged_in,
                     () => {
                         if (this.root_store.client.is_logged_in) {
@@ -573,13 +566,36 @@ export default class PortfolioStore extends BaseStore {
                 );
             }
         }
+
+        // Add reconnection handler - onReconnect is only called when account_id exists
+        // so we don't need to check is_logged_in here
+        // Store the handler so we can remove it later
+        if (!this.reconnectHandler) {
+            this.reconnectHandler = () => {
+                this.initializePortfolio();
+            };
+            WS.setOnReconnect(this.reconnectHandler);
+        }
     }
 
     onUnmount() {
         const is_reports_path = /^\/reports/.test(window.location.pathname);
-        if (!is_reports_path) {
+        const is_menu_path = /^\/menu/.test(window.location.pathname);
+        if (!is_reports_path && !is_menu_path) {
             this.clearTable();
             this.disposeLogout();
+        }
+
+        // Dispose MobX reaction to prevent memory leak
+        if (this.loginReactionDisposer) {
+            this.loginReactionDisposer();
+            this.loginReactionDisposer = null;
+        }
+
+        // Remove reconnection handler
+        if (this.reconnectHandler) {
+            WS.removeOnReconnect(this.reconnectHandler);
+            this.reconnectHandler = null;
         }
     }
 

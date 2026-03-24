@@ -62,13 +62,14 @@ describe('NotificationsClearAllFooter', () => {
         expect(screen.getByRole('button', { name: 'Clear All' })).toBeEnabled();
     });
 
-    it('should fire the "clearNotifications" method on clicking the button', () => {
+    it('should fire the "clearNotifications" method on clicking the button', async () => {
+        const user = userEvent.setup();
         render(
             <StoreProvider store={mock_store_with_notifications}>
                 <NotificationsClearAllFooter {...mock_props} />
             </StoreProvider>
         );
-        userEvent.click(screen.getByRole('button', { name: 'Clear All' }));
+        await user.click(screen.getByRole('button', { name: 'Clear All' }));
         expect(mock_props.clearNotifications).toBeCalledTimes(1);
     });
 });

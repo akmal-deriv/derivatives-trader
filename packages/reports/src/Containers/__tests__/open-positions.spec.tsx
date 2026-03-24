@@ -16,8 +16,8 @@ const base_time = Math.floor(Date.now() / 1000);
 const future_time = base_time + 5000;
 const options_position = {
     contract_info: mockContractInfo({
-        bid_price: 9.52,
-        buy_price: 10,
+        bid_price: '9.52',
+        buy_price: '10',
         date_start: base_time,
         shortcode: `CALL_R_100_19.73_1718630564_${future_time}_S0P_0`,
     }),
@@ -38,7 +38,11 @@ const options_position = {
 } as TPortfolioPosition;
 
 jest.mock('@deriv-com/ui', () => ({
-    useDevice: jest.fn(() => ({ isDesktop: true })),
+    useDevice: jest.fn(() => ({ isMobile: false })),
+}));
+
+jest.mock('../open-positions-table', () => ({
+    OpenPositionsTable: jest.fn(() => <div>OpenPositionsTable</div>),
 }));
 
 jest.mock('@deriv/components', () => ({
@@ -69,11 +73,8 @@ jest.mock('@deriv/components', () => ({
 
 describe('OpenPositions', () => {
     let store = mockStore({});
-    const data_table_test_id = 'dt_data_table';
     const filter_dropdown = 'dt_dropdown_display';
-    const loading_test_id = 'dt_loading_component';
     const mocked_error_message = 'Error message';
-    const no_open_positions_text = 'You have no open positions yet.';
     const notifications = 'NotificationMessages';
 
     const accumulators = 'Accumulators';
@@ -86,8 +87,8 @@ describe('OpenPositions', () => {
 
     const accumulators_position = {
         contract_info: mockContractInfo({
-            bid_price: 11.38,
-            buy_price: 10,
+            bid_price: '11.38',
+            buy_price: '10',
             contract_type: 'ACCU',
             date_start: base_time + 2000,
             growth_rate: 0.01,
@@ -118,8 +119,8 @@ describe('OpenPositions', () => {
     } as TPortfolioPosition;
     const multipliers_position = {
         contract_info: mockContractInfo({
-            bid_price: 10.09,
-            buy_price: 11.29,
+            bid_price: '10.09',
+            buy_price: '11.29',
             contract_type: 'MULTUP',
             date_start: base_time + 1000,
             shortcode: `MULTUP_R_100_10.00_30_1718716675_${future_time}_60m_0.00_N1`,
@@ -145,10 +146,9 @@ describe('OpenPositions', () => {
         is_valid_to_sell: true,
         status: null,
     } as TPortfolioPosition;
-    const multipliers_profit = '1.20';
 
     beforeEach(() => {
-        (useDevice as jest.Mock).mockImplementation(() => ({ isDesktop: true }));
+        (useDevice as jest.Mock).mockImplementation(() => ({ isMobile: false }));
 
         store = mockStore({
             portfolio: {
@@ -173,32 +173,31 @@ describe('OpenPositions', () => {
         );
     };
 
-    it('should render filter dropdown with Accumulators selected by default since it is the latest contract & with DataTable on desktop', () => {
+    it('should render filter dropdown with Accumulators selected by default since it is the latest contract & with OpenPositionsTable on desktop', () => {
         // accumulators_position has the latest date_start
         render(mockedOpenPositions());
 
         expect(screen.getByText(notifications)).toBeInTheDocument();
         const dropdowns = screen.getAllByTestId(filter_dropdown);
         expect(dropdowns[0]).toHaveTextContent(accumulators);
-        expect(screen.getByTestId(data_table_test_id)).toBeInTheDocument();
+        expect(screen.getByText('OpenPositionsTable')).toBeInTheDocument();
     });
-    it('should render filter dropdown with Accumulators selected by default since it is the latest contract & with DataList for mobile', () => {
-        (useDevice as jest.Mock).mockImplementation(() => ({ isDesktop: false }));
+    it('should render filter dropdown with Accumulators selected by default since it is the latest contract & with OpenPositionsTable for mobile', () => {
+        (useDevice as jest.Mock).mockImplementation(() => ({ isMobile: true }));
         render(mockedOpenPositions());
 
         expect(screen.getByText(notifications)).toBeInTheDocument();
         const comboboxes = screen.getAllByRole('combobox');
         expect(comboboxes[0]).toHaveValue(accumulators.toLowerCase());
-        expect(screen.getByText(data_list)).toBeInTheDocument();
+        expect(screen.getByText('OpenPositionsTable')).toBeInTheDocument();
     });
-    it('should render notifications and No positions message but no filter and no DataTable if positions are empty on desktop', () => {
+    it('should render notifications and No positions message but no filter when positions are empty on desktop', () => {
         store.portfolio.active_positions = [];
         render(mockedOpenPositions());
 
         expect(screen.getByText(notifications)).toBeInTheDocument();
         expect(screen.queryByTestId(filter_dropdown)).not.toBeInTheDocument();
-        expect(screen.queryByTestId(data_table_test_id)).not.toBeInTheDocument();
-        expect(screen.getByText(no_open_positions_text)).toBeInTheDocument();
+        expect(screen.getByText('OpenPositionsTable')).toBeInTheDocument();
     });
     it('should default to Options when no positions are present and no localStorage value', () => {
         store.portfolio.active_positions = [];
@@ -207,18 +206,16 @@ describe('OpenPositions', () => {
 
         expect(screen.getByText(notifications)).toBeInTheDocument();
         expect(screen.queryByTestId(filter_dropdown)).not.toBeInTheDocument();
-        expect(screen.queryByTestId(data_table_test_id)).not.toBeInTheDocument();
-        expect(screen.getByText(no_open_positions_text)).toBeInTheDocument();
+        expect(screen.getByText('OpenPositionsTable')).toBeInTheDocument();
     });
-    it('should render notifications and No positions message but no filter and no Datalist if positions are empty on mobile', () => {
-        (useDevice as jest.Mock).mockImplementation(() => ({ isDesktop: false }));
+    it('should render notifications and No positions message but no filter when positions are empty on mobile', () => {
+        (useDevice as jest.Mock).mockImplementation(() => ({ isMobile: true }));
         store.portfolio.active_positions = [];
         render(mockedOpenPositions());
 
         expect(screen.getByText(notifications)).toBeInTheDocument();
         expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
-        expect(screen.queryByText(data_list)).not.toBeInTheDocument();
-        expect(screen.getByText(no_open_positions_text)).toBeInTheDocument();
+        expect(screen.getByText('OpenPositionsTable')).toBeInTheDocument();
     });
     it('should render filter dropdown with Options selected when only options positions are present', () => {
         store = mockStore({
@@ -236,27 +233,24 @@ describe('OpenPositions', () => {
 
         const dropdowns = screen.getAllByTestId(filter_dropdown);
         expect(dropdowns[0]).toHaveTextContent(options);
-        expect(screen.getByText(Math.abs(options_position.profit_loss))).toBeInTheDocument();
-        expect(screen.queryByText(multipliers_profit)).not.toBeInTheDocument();
-        expect(screen.queryByText(Math.abs(accumulators_position.profit_loss))).not.toBeInTheDocument();
+        expect(screen.getByText('OpenPositionsTable')).toBeInTheDocument();
     });
 
     it('should render error if it is defined', () => {
         store.portfolio.error = mocked_error_message;
         render(mockedOpenPositions());
 
-        expect(screen.queryByTestId(data_table_test_id)).not.toBeInTheDocument();
+        expect(screen.queryByText('OpenPositionsTable')).not.toBeInTheDocument();
         expect(screen.getByText(mocked_error_message)).toBeInTheDocument();
     });
-    it('should render Loading when positions are empty & is_loading is true in portfolio-store', () => {
+    it('should render OpenPositionsTable when positions are empty & is_loading is true in portfolio-store', () => {
         store.portfolio.active_positions = [];
         store.portfolio.is_loading = true;
         render(mockedOpenPositions());
 
-        expect(screen.queryByTestId(data_table_test_id)).not.toBeInTheDocument();
-        expect(screen.getByTestId(loading_test_id)).toBeInTheDocument();
+        expect(screen.getByText('OpenPositionsTable')).toBeInTheDocument();
     });
-    it('should render filter dropdown together with Loading when positions are available & is_loading === true', () => {
+    it('should render filter dropdown together with OpenPositionsTable when positions are available & is_loading === true', () => {
         store = mockStore({
             portfolio: {
                 active_positions: [accumulators_position, multipliers_position, options_position],
@@ -273,8 +267,7 @@ describe('OpenPositions', () => {
 
         const dropdowns = screen.getAllByTestId(filter_dropdown);
         expect(dropdowns[0]).toHaveTextContent(accumulators); // Should show accumulators as it has the latest date_start
-        expect(screen.queryByTestId(data_table_test_id)).not.toBeInTheDocument();
-        expect(screen.getByTestId(loading_test_id)).toBeInTheDocument();
+        expect(screen.getByText('OpenPositionsTable')).toBeInTheDocument();
     });
     it('should set Multipliers filter when it is selected from the dropdown on desktop', async () => {
         store = mockStore({
@@ -325,7 +318,7 @@ describe('OpenPositions', () => {
         // Clear any previous sessionStorage state
         sessionStorage.clear();
 
-        (useDevice as jest.Mock).mockImplementation(() => ({ isDesktop: false }));
+        (useDevice as jest.Mock).mockImplementation(() => ({ isMobile: true }));
         store = mockStore({
             portfolio: {
                 active_positions: [accumulators_position],

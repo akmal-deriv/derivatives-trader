@@ -1,9 +1,11 @@
-import { action, observable, makeObservable, override, when } from 'mobx';
-import { isEmptyObject, WS, contractCancelled, contractSold, trackAnalyticsEvent } from '@deriv/shared';
+import { action, makeObservable, observable, override, when } from 'mobx';
+
 import { Money } from '@deriv/components';
+import { contractCancelled, contractSold, isEmptyObject, trackAnalyticsEvent, WS } from '@deriv/shared';
 import { localize } from '@deriv-com/translations';
-import ContractStore from './contract-store';
+
 import BaseStore from './base-store';
+import ContractStore from './contract-store';
 
 export default class ContractReplayStore extends BaseStore {
     chart_state = '';
@@ -265,6 +267,10 @@ export default class ContractReplayStore extends BaseStore {
                 sell_price: response.sell.sold_for,
                 transaction_id: response.sell.transaction_id,
             };
+
+            // Clear accumulator barriers data when contract is sold from contract details
+            // This prevents stale barriers from being displayed when navigating back to trade page
+            this.root_store.contract_trade.clearAccumulatorBarriersData(false, true);
 
             this.root_store.notifications.addNotificationMessage(
                 contractSold(this.root_store.client.currency, response.sell.sold_for, Money)

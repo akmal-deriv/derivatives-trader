@@ -25,7 +25,7 @@ const MultiplierAmountModal = ({ is_open, toggleModal }: TMultiplierAmountModal)
         <React.Fragment>
             <Modal
                 id='dt_trade_parameters_mobile'
-                className='trade-params dc-modal-header--title-bar'
+                className='trade-params-v1 dc-modal-header--title-bar'
                 is_open={is_open}
                 is_title_centered
                 should_header_stick_body={false}
@@ -94,7 +94,7 @@ const TradeParamsMobile = observer(({ toggleModal }: { toggleModal: TToggleModal
                 stake_value={stake_value}
             />
             <MultipliersInfo
-                className='trade-params__multiplier-trade-info'
+                className='trade-params-v1__multiplier-trade-info'
                 should_show_tooltip
                 commission={commission}
                 stop_out={stop_out}

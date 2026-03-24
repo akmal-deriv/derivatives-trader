@@ -1,10 +1,7 @@
-import React from 'react';
-
 import { mockStore } from '@deriv/stores';
 import { render, screen } from '@testing-library/react';
 
 import useActiveSymbols from 'AppV2/Hooks/useActiveSymbols';
-import useDefaultSymbol from 'AppV2/Hooks/useDefaultSymbol';
 
 import TraderProviders from '../../../../trader-providers';
 import TradeChart from '../trade-chart';
@@ -12,15 +9,22 @@ import TradeChart from '../trade-chart';
 const mock_chart = 'Mocked Chart';
 
 jest.mock('Modules/SmartChart', () => ({
-    SmartChart: () => {
-        return <div>{mock_chart}</div>;
-    },
+    SmartChart: () => 'Mocked Chart',
+    createSmartChartsChampionAdapter: jest.fn(() => ({
+        getChartData: jest.fn(async () => ({
+            activeSymbols: [{ symbol: 'EURUSD', display_name: 'EUR/USD', market: 'forex', exchange_is_open: 1 }],
+            tradingTimes: { EURUSD: { isOpen: true, openTime: '00:00', closeTime: '23:59' } },
+        })),
+        getQuotes: jest.fn(),
+        subscribeQuotes: jest.fn(),
+        unsubscribeQuotes: jest.fn(),
+    })),
 }));
 jest.mock('react-router-dom', () => ({
     useLocation: jest.fn(() => ({
         pathname: '/',
     })),
-    withRouter: jest.fn(children => <div>{children}</div>),
+    withRouter: jest.fn(children => children),
 }));
 jest.mock('@deriv-com/ui', () => ({
     ...jest.requireActual('@deriv-com/ui'),
@@ -33,18 +37,12 @@ jest.mock('AppV2/Hooks/useActiveSymbols', () => ({
         activeSymbols: [{ symbol: 'EURUSD', display_name: 'EUR/USD', exchange_is_open: 1 }],
     })),
 }));
-jest.mock('AppV2/Hooks/useDefaultSymbol', () => ({
-    ...jest.requireActual('AppV2/Hooks/useDefaultSymbol'),
-    __esModule: true,
-    default: jest.fn(() => ({
-        symbol: 'EURUSD',
-    })),
-}));
 
 describe('TradeChart', () => {
-    const mockedTradeChart = () => {
+    const mockedTradeChart = (store_override?: ReturnType<typeof mockStore>) => {
+        const store = store_override || mockStore({});
         render(
-            <TraderProviders store={mockStore({})}>
+            <TraderProviders store={store}>
                 <TradeChart />
             </TraderProviders>
         );
@@ -60,17 +58,18 @@ describe('TradeChart', () => {
     });
 
     it('does not render the chart if there is no symbol', () => {
-        (useDefaultSymbol as jest.Mock).mockReturnValueOnce({
-            symbol: '',
-        });
-        mockedTradeChart();
+        const store = mockStore({});
+        store.modules.trade.symbol = '';
+        mockedTradeChart(store);
 
         expect(screen.queryByText(mock_chart)).not.toBeInTheDocument();
     });
 
-    it('renders the chart', () => {
-        mockedTradeChart();
-
-        expect(screen.getByText(mock_chart)).toBeInTheDocument();
+    it('renders the chart', async () => {
+        const store = mockStore({});
+        store.modules.trade.symbol = 'EURUSD';
+        mockedTradeChart(store);
+        // Wait for async chartData effect
+        expect(await screen.findByText(mock_chart)).toBeInTheDocument();
     });
 });

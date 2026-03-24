@@ -35,10 +35,10 @@ describe('<ToolBarWidgets />', () => {
             updateGranularity: jest.fn(),
         };
     });
-    it('Should render only mocked chart mode when isMobile is true', () => {
+    it('Should render only mocked chart mode and mocked draw tools when isMobile is true', () => {
         render(<ToolbarWidgets {...mocked_props} />);
         expect(screen.getByText(/mockedchartmode/i)).toBeInTheDocument();
-        expect(screen.queryByText(/mockeddrawtools/i)).not.toBeInTheDocument();
+        expect(screen.getByText(/mockeddrawtools/i)).toBeInTheDocument();
         expect(screen.queryByText(/mockedshare/i)).not.toBeInTheDocument();
         expect(screen.queryByText(/mockedstudylegend/i)).not.toBeInTheDocument();
         expect(screen.queryByText(/mockedviews/i)).not.toBeInTheDocument();

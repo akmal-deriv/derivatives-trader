@@ -28,11 +28,6 @@ jest.mock('@deriv/components', () => ({
     ContractDrawer: jest.fn(() => <div>ContractDrawer</div>),
 }));
 
-jest.mock('../contract-replay-widget', () => ({
-    DigitsWidget: jest.fn(() => <div>DigitsWidget</div>),
-    InfoBoxWidget: jest.fn(() => <div>InfoBoxWidget</div>),
-}));
-
 jest.mock('../replay-chart', () => jest.fn(() => <div>ReplayChart</div>));
 
 jest.mock('@deriv/api', () => ({
@@ -93,8 +88,8 @@ describe('<ContractReplay>', () => {
         expect(screen.getByTestId('dt_barspinner')).toBeInTheDocument();
     });
 
-    it('renders DigitsWidget and SwipeableWrapper on Mobile for Digits contracts', () => {
-        (useDevice as jest.Mock).mockReturnValue({ isMobile: true });
+    it('renders ReplayChart for all contract types', () => {
+        (useDevice as jest.Mock).mockReturnValue({ isMobile: false });
 
         mocked_store.contract_replay.contract_store.contract_info.contract_type = 'DIGITODD';
         mocked_store.contract_replay.contract_store.is_digit_contract = true;
@@ -102,7 +97,6 @@ describe('<ContractReplay>', () => {
 
         render(<MockContractReplay store={mocked_store} />);
 
-        expect(screen.getByText('DigitsWidget')).toBeInTheDocument();
-        expect(screen.getByTestId('dt_replay_chart_swipeable_wrapper')).toBeInTheDocument();
+        expect(screen.getByText('ReplayChart')).toBeInTheDocument();
     });
 });

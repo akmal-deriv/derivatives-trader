@@ -1,37 +1,32 @@
 import React from 'react';
 import { TooltipRenderProps } from 'react-joyride';
-import { useSwipeable } from 'react-swipeable';
 
-import { LabelPairedChevronsUpXlBoldIcon, LabelPairedXmarkSmBoldIcon } from '@deriv/quill-icons';
+import { LabelPairedXmarkSmBoldIcon } from '@deriv/quill-icons';
+import { Button, CaptionText, IconButton } from '@deriv-com/quill-ui';
 import { Localize } from '@deriv-com/translations';
-import { Button, CaptionText, IconButton, Text } from '@deriv-com/quill-ui';
 
 export interface GuideTooltipProps extends TooltipRenderProps {
     setStepIndex: React.Dispatch<React.SetStateAction<number>>;
+    is_single_step?: boolean;
 }
 
-const GuideTooltip = ({ isLastStep, primaryProps, skipProps, step, tooltipProps, setStepIndex }: GuideTooltipProps) => {
-    const swipe_handlers = useSwipeable({
-        onSwipedUp: () => {
-            document.querySelector('.trade__chart')?.scrollIntoView();
-            setStepIndex((prev: number) => prev + 1);
-        },
-        preventDefaultTouchmoveEvent: true,
-        trackTouch: true,
-        trackMouse: true,
-    });
-
-    if (step.title === 'scroll-icon') {
-        return (
-            <div {...swipe_handlers} className='guide-tooltip__wrapper-scroll'>
-                <LabelPairedChevronsUpXlBoldIcon className='guide-tooltip--bounce' fill='var(--color-text-primary)' />
-                <Text size='sm' bold className='guide-tooltip__wrapper-scroll-text'>
-                    <Localize i18n_default_text='Swipe up to see the chart' />
-                </Text>
-            </div>
-        );
-    }
-
+const GuideTooltip = ({
+    isLastStep,
+    primaryProps,
+    skipProps,
+    step,
+    tooltipProps,
+    setStepIndex,
+    is_single_step,
+}: GuideTooltipProps) => {
+    // For single-step guides: show "Got it", for multi-step: show "Next"/"Done"
+    const button_label = is_single_step ? (
+        <Localize i18n_default_text='Got it' />
+    ) : isLastStep ? (
+        <Localize i18n_default_text='Done' />
+    ) : (
+        <Localize i18n_default_text='Next' />
+    );
     return (
         <div {...tooltipProps} className='guide-tooltip__wrapper'>
             <div>
@@ -66,7 +61,7 @@ const GuideTooltip = ({ isLastStep, primaryProps, skipProps, step, tooltipProps,
                 className='guide-tooltip__button'
                 variant='secondary'
                 size='sm'
-                label={isLastStep ? <Localize i18n_default_text='Done' /> : <Localize i18n_default_text='Next' />}
+                label={button_label}
             />
         </div>
     );

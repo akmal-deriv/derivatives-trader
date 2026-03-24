@@ -1,5 +1,3 @@
-import React from 'react';
-
 import { mockStore } from '@deriv/stores';
 import { TCoreStores } from '@deriv/stores/types';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
@@ -252,5 +250,168 @@ describe('BarrierInput', () => {
     it('shows current spot price', () => {
         mockBarrierInput(mockStore(default_trade_store));
         expect(screen.getByText('1234.56')).toBeInTheDocument();
+    });
+
+    // Tests for new API validation features
+    describe('API Validation Features', () => {
+        it('renders correctly when is_open prop is passed', () => {
+            mockBarrierInput(mockStore(default_trade_store));
+            // Component should render without errors
+            expect(screen.getByText('Current spot')).toBeInTheDocument();
+            expect(screen.getByPlaceholderText('Distance to spot')).toBeInTheDocument();
+        });
+
+        it('disables Save button when there is a client-side validation error', async () => {
+            mockBarrierInput(mockStore(default_trade_store));
+            const input = screen.getByPlaceholderText('Distance to spot');
+
+            // Enter invalid value (zero)
+            await userEvent.clear(input);
+            await userEvent.type(input, '0');
+
+            // Wait for debounced validation
+            await waitFor(() => {
+                expect(screen.getByText('Barrier cannot be zero.')).toBeInTheDocument();
+            });
+
+            // Save button should be disabled
+            const saveButton = screen.getByRole('button', { name: /Save/i });
+            expect(saveButton).toBeDisabled();
+        });
+
+        it('shows validation error for incomplete decimal values', async () => {
+            mockBarrierInput(mockStore(default_trade_store));
+            const input = screen.getByPlaceholderText('Distance to spot');
+
+            // Enter incomplete decimal
+            await userEvent.clear(input);
+            await userEvent.type(input, '1.');
+
+            // Wait for debounced validation
+            await screen.findByText('Please enter a complete number.');
+        });
+
+        it('shows validation error for invalid number', async () => {
+            mockBarrierInput(mockStore(default_trade_store));
+            const input = screen.getByPlaceholderText('Distance to spot');
+
+            // Enter invalid characters (should be filtered by regex, but test validation)
+            await userEvent.clear(input);
+
+            // Wait for debounced validation
+            await waitFor(() => {
+                expect(screen.getByText('Barrier is a required field.')).toBeInTheDocument();
+            });
+        });
+
+        it('does not call onChange during typing, only on Save', async () => {
+            mockBarrierInput(mockStore(default_trade_store));
+            const input = screen.getByPlaceholderText('Distance to spot');
+
+            // Type a new value
+            await userEvent.clear(input);
+            await userEvent.type(input, '25');
+
+            // onChange should NOT be called during typing
+            expect(onChange).not.toHaveBeenCalled();
+
+            // Click Save
+            await userEvent.click(screen.getByText(/Save/));
+
+            // onChange should be called only once on Save
+            await waitFor(() => {
+                expect(onChange).toHaveBeenCalledTimes(1);
+                expect(onChange).toHaveBeenCalledWith({ target: { name: 'barrier_1', value: '+25' } });
+            });
+        });
+
+        it('updates proposalRequestValues without updating store', async () => {
+            mockBarrierInput(mockStore(default_trade_store));
+            const input = screen.getByPlaceholderText('Distance to spot');
+
+            // Type a new value
+            await userEvent.clear(input);
+            await userEvent.type(input, '15');
+
+            // Wait for debounce
+            await waitFor(
+                () => {
+                    // onChange should NOT be called (store not updated)
+                    expect(onChange).not.toHaveBeenCalled();
+                },
+                { timeout: 500 }
+            );
+
+            // Value should be in local state but not in store
+            expect(input).toHaveValue('15');
+        });
+
+        it('validates zero values correctly', async () => {
+            mockBarrierInput(mockStore(default_trade_store));
+            const input = screen.getByPlaceholderText('Distance to spot');
+
+            // Enter zero
+            await userEvent.clear(input);
+            await userEvent.type(input, '0');
+
+            // Wait for debounced validation
+            await waitFor(() => {
+                expect(screen.getByText('Barrier cannot be zero.')).toBeInTheDocument();
+            });
+
+            // Save button should be disabled
+            const saveButton = screen.getByRole('button', { name: /Save/i });
+            expect(saveButton).toBeDisabled();
+        });
+
+        it('does not call onChange during input changes', async () => {
+            mockBarrierInput(mockStore(default_trade_store));
+            const input = screen.getByPlaceholderText('Distance to spot');
+
+            // Type a new value
+            await userEvent.clear(input);
+            await userEvent.type(input, '15');
+
+            // onChange should NOT be called during typing
+            expect(onChange).not.toHaveBeenCalled();
+
+            // Value should be updated in local state
+            expect(input).toHaveValue('15');
+        });
+
+        it('renders correctly with different barrier values', () => {
+            // Test with negative barrier
+            default_trade_store.modules.trade.barrier_1 = '-5';
+            mockBarrierInput(mockStore(default_trade_store));
+
+            // Component should render without errors
+            expect(screen.getByText('Current spot')).toBeInTheDocument();
+            const input = screen.getByPlaceholderText('Distance to spot');
+            expect(input).toHaveValue('5');
+        });
+
+        it('validates input changes with debounce', async () => {
+            mockBarrierInput(mockStore(default_trade_store));
+            const input = screen.getByPlaceholderText('Distance to spot');
+
+            // Type a valid value
+            await userEvent.clear(input);
+            await userEvent.type(input, '25');
+
+            // Wait for debounced validation
+            await waitFor(
+                () => {
+                    expect(input).toHaveValue('25');
+                },
+                { timeout: 500 }
+            );
+
+            // onChange should NOT be called (only on Save)
+            expect(onChange).not.toHaveBeenCalled();
+
+            // Save button should be enabled for valid input
+            const saveButton = screen.getByRole('button', { name: /Save/i });
+            expect(saveButton).toBeEnabled();
+        });
     });
 });

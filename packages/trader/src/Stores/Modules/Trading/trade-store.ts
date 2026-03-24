@@ -31,7 +31,6 @@ import {
     getCurrencyDisplayCode,
     getMarketName,
     getMinPayout,
-    getPropertyValue,
     getTradeNotificationMessage,
     getTradeTypeName,
     getTradeURLParams,
@@ -59,7 +58,6 @@ import {
     WS,
 } from '@deriv/shared';
 import { safeParse } from '@deriv/utils';
-import type { TEvents } from '@deriv-com/analytics';
 import { localize } from '@deriv-com/translations';
 
 import { isDigitContractType, isDigitTradeType } from 'Modules/Trading/Helpers/digits';
@@ -113,13 +111,7 @@ type TickSpotData = NonNullable<TTicksStreamResponse['tick']>;
 type History = NonNullable<TTicksHistoryResponse['history']>;
 
 export type TProposalResponse = TPriceProposalResponse & {
-    proposal: TPriceProposalResponse['proposal'] & {
-        payout_choices: string[];
-        barrier_spot_distance: string;
-        contract_details: {
-            barrier: string;
-        };
-    };
+    proposal: TPriceProposalResponse['proposal'];
     error?: TPriceProposalResponse['error'] & {
         code: string;
         message: string;
@@ -383,6 +375,7 @@ export default class TradeStore extends BaseStore {
     is_initial_barrier_applied = false;
     is_digits_widget_active = false;
     should_skip_prepost_lifecycle = false;
+    reconnectHandler?: () => Promise<void>;
     constructor({ root_store }: { root_store: TRootStore }) {
         const local_storage_properties = [
             'amount',
@@ -711,6 +704,10 @@ export default class TradeStore extends BaseStore {
             () => {
                 // Clear existing validation errors to prevent stale messages
                 this.validation_errors = {};
+                // Reinitialize barrier keys so observer components don't crash
+                // accessing undefined before validation rules are reprocessed
+                this.validation_errors.barrier_1 = [];
+                this.validation_errors.barrier_2 = [];
 
                 // Regenerate all validation rules with new language
                 this.setValidationRules(getValidationRules());
@@ -814,27 +811,28 @@ export default class TradeStore extends BaseStore {
         }
         this.should_show_active_symbols_loading = should_show_loading;
 
-        await this.setActiveSymbols();
-        await this.root_store.active_symbols.setActiveSymbols();
+        try {
+            await this.setActiveSymbols();
 
-        const { symbol, showModal } = getTradeURLParams({ active_symbols: this.active_symbols });
-        if (showModal && should_show_loading && !this.root_store.client.is_logging_in) {
-            this.root_store.ui.toggleUrlUnavailableModal(true);
+            const { symbol, showModal } = getTradeURLParams({ active_symbols: this.active_symbols });
+            if (showModal && should_show_loading && !this.root_store.client.is_logging_in) {
+                this.root_store.ui.toggleUrlUnavailableModal(true);
+            }
+            const hasSymbolChanged = symbol && symbol !== this.symbol;
+            if (hasSymbolChanged) this.symbol = symbol;
+            if (should_set_default_symbol && !symbol) await this.setDefaultSymbol();
+            setTradeURLParams({ symbol: hasSymbolChanged ? symbol : this.symbol });
+
+            const r = await WS.storage.contractsFor(this.symbol);
+            if (['InvalidSymbol', 'InputValidationFailed'].includes(r.error?.code)) {
+                const symbol_to_update = await pickDefaultSymbol(this.active_symbols);
+                await this.processNewValuesAsync({ symbol: symbol_to_update });
+            }
+        } finally {
+            runInAction(() => {
+                this.should_show_active_symbols_loading = false;
+            });
         }
-        const hasSymbolChanged = symbol && symbol !== this.symbol;
-        if (hasSymbolChanged) this.symbol = symbol;
-        if (should_set_default_symbol && !symbol) await this.setDefaultSymbol();
-        setTradeURLParams({ symbol: hasSymbolChanged ? symbol : this.symbol });
-
-        const r = await WS.storage.contractsFor(this.symbol);
-        if (['InvalidSymbol', 'InputValidationFailed'].includes(r.error?.code)) {
-            const symbol_to_update = await pickDefaultSymbol(this.active_symbols);
-            await this.processNewValuesAsync({ symbol: symbol_to_update });
-        }
-
-        runInAction(() => {
-            this.should_show_active_symbols_loading = false;
-        });
     }
 
     async setDefaultSymbol() {
@@ -849,7 +847,7 @@ export default class TradeStore extends BaseStore {
     async setActiveSymbols() {
         const showError = this.root_store.common.showError;
 
-        const { active_symbols, error } = await WS.authorized.activeSymbols();
+        const { active_symbols, error } = await WS.activeSymbols();
 
         if (error) {
             showError({ message: localize('Trading is unavailable at this time.') });
@@ -1088,6 +1086,8 @@ export default class TradeStore extends BaseStore {
             // create barrier only when it's available in response
             this.main_barrier = new ChartBarrierStore(barrier, barrier2, this.onChartBarrierChange, {
                 color: BARRIER_COLORS.BLUE,
+                backgroundColor: BARRIER_COLORS.BLUE,
+                foregroundColor: BARRIER_COLORS.WHITE,
                 not_draggable: this.is_turbos || this.is_vanilla,
             });
         } else {
@@ -1270,7 +1270,7 @@ export default class TradeStore extends BaseStore {
                             // and then set the chart view to the start_time
                             // draw the start time line and show longcode then mount contract
                             // this.root_store.modules.contract_trade.drawContractStartTime(start_time, longcode, contract_id);
-                            if (!is_dtrader_v2) {
+                            if (!is_dtrader_v2 || !isMobile) {
                                 // Convert raw technical values to user-friendly display names
                                 // For trade_type_name, use the title from getContractTypesConfig which has human-friendly names
                                 const contract_types_config = getContractTypesConfig(this.symbol);
@@ -1382,19 +1382,6 @@ export default class TradeStore extends BaseStore {
      */
     updateStore(new_state: Partial<TradeStore>) {
         // Protective logic: Prevent clearing barriers for markets that need them
-        if (new_state.barrier_1 === '' && this.barrier_1 && this.barrier_1 !== '') {
-            // Check if current symbol/contract requires barriers
-            const requiresBarriers =
-                this.symbol &&
-                this.active_symbols &&
-                !isDigitTradeType(this.contract_type) &&
-                !isAccumulatorContract(this.contract_type);
-
-            if (requiresBarriers) {
-                // Don't clear the barrier - remove it from new_state
-                delete new_state.barrier_1;
-            }
-        }
 
         Object.keys(cloneObject(new_state) || {}).forEach(key => {
             if (key === 'root_store' || ['validation_rules', 'validation_errors', 'currency'].indexOf(key) > -1) return;
@@ -1505,8 +1492,8 @@ export default class TradeStore extends BaseStore {
             if (symbol_to_check && symbol_to_check.trim() !== '') {
                 this.setMarketStatus(isMarketClosed(this.active_symbols, symbol_to_check));
 
-                // Handle trade parameters reset when switching between symbols with different support (V2 only)
-                if (this.is_dtrader_v2 && this.symbol && this.symbol !== symbol_to_check) {
+                // Handle trade parameters reset when switching between symbols with different duration/barrier support
+                if (this.symbol && this.symbol !== symbol_to_check) {
                     const trade_params_reset_values = this.handleTradeParamsResetOnSymbolChange(
                         this.symbol,
                         symbol_to_check
@@ -1642,7 +1629,7 @@ export default class TradeStore extends BaseStore {
             },
             settings: {
                 theme: this.root_store.ui.is_dark_mode_on ? 'dark' : 'light',
-                positions_drawer: this.root_store.ui.is_positions_drawer_on ? 'open' : 'closed',
+                positions_drawer: this.root_store.ui.active_sidebar_flyout ? 'open' : 'closed',
                 chart: {
                     toolbar_position: this.root_store.ui.is_chart_layout_default ? 'bottom' : 'left',
                     chart_asset_info: this.root_store.ui.is_chart_asset_info_visible ? 'visible' : 'hidden',
@@ -1661,6 +1648,16 @@ export default class TradeStore extends BaseStore {
     }
 
     requestProposal() {
+        // Don't request proposals for closed markets - the server would return MarketIsClosed errors
+        // which trigger error snackbars. The closed market state is handled by ClosedMarketMessage.
+        if (this.is_market_closed) {
+            runInAction(() => {
+                this.proposal_info = {};
+                this.purchase_info = {};
+            });
+            this.forgetAllProposal();
+            return;
+        }
         const requests = createProposalRequests(this);
         if (Object.values(this.validation_errors).some(e => e.length)) {
             runInAction(() => {
@@ -1696,14 +1693,24 @@ export default class TradeStore extends BaseStore {
     // eslint-disable-next-line class-methods-use-this
     getTurbosChartBarrier(response: TProposalResponse) {
         return (Number(response.proposal?.contract_details?.barrier) - Number(response.proposal?.spot)).toFixed(
-            getBarrierPipSize(response.proposal?.contract_details?.barrier)
+            getBarrierPipSize(response.proposal?.contract_details?.barrier ?? '')
         );
     }
 
     onProposalResponse(response: TResponse<TPriceProposalRequest, TProposalResponse, 'proposal'>) {
-        const { contract_type } = response.echo_req;
-        const prev_proposal_info = getPropertyValue(this.proposal_info, contract_type) || {};
-        const obj_prev_contract_basis = getPropertyValue(prev_proposal_info, 'obj_contract_basis') || {};
+        const { contract_type, underlying_symbol } = response.echo_req;
+
+        // Ignore stale proposal responses from a previously selected symbol.
+        // underlying_symbol is always present in proposal echo_req (set in createProposalRequests).
+        // The falsy check is intentional: if absent for any reason, fall through and process normally.
+        if (underlying_symbol && underlying_symbol !== this.symbol) {
+            return;
+        }
+        // Ignore MarketIsClosed errors - the closed market state is already handled by
+        // is_market_closed flag and the ClosedMarketMessage component in the UI.
+        if (response.error?.code === 'MarketIsClosed') {
+            return;
+        }
 
         // add/update expiration or date_expiry for crypto indices from proposal
         const date_expiry = response.proposal?.date_expiry;
@@ -1715,7 +1722,7 @@ export default class TradeStore extends BaseStore {
 
         this.proposal_info = {
             ...this.proposal_info,
-            [contract_type]: getProposalInfo(this, response, obj_prev_contract_basis),
+            [contract_type]: getProposalInfo(this, response),
         };
         this.validation_params[contract_type] = this.proposal_info[contract_type].validation_params;
 
@@ -1766,7 +1773,7 @@ export default class TradeStore extends BaseStore {
         if (!this.main_barrier || this.main_barrier?.shade) {
             if (this.is_turbos) {
                 if (response.proposal) {
-                    const chart_barrier = response.proposal.barrier_spot_distance;
+                    const chart_barrier = response.proposal.contract_details?.barrier_spot_distance;
                     this.setMainBarrier({
                         ...response.echo_req,
                         barrier: String(chart_barrier),
@@ -1873,6 +1880,7 @@ export default class TradeStore extends BaseStore {
                 }
             } else if (this.is_turbos) {
                 const { max_stake, min_stake, payout_choices } = response.proposal ?? {};
+                const { barrier_spot_distance } = response.proposal?.contract_details ?? {};
                 if (payout_choices) {
                     if (this.payout_per_point == '') {
                         this.onChange({
@@ -1884,7 +1892,7 @@ export default class TradeStore extends BaseStore {
                     }
                     this.setPayoutChoices(payout_choices as string[]);
                     this.setStakeBoundary(contract_type, min_stake, max_stake);
-                    this.barrier_1 = response.proposal.barrier_spot_distance;
+                    this.barrier_1 = barrier_spot_distance ?? '';
                 }
             }
         }
@@ -2013,6 +2021,36 @@ export default class TradeStore extends BaseStore {
         this.onLogout(this.logoutListener);
         this.onClientInit(this.clientInitListener);
         this.onNetworkStatusChange(this.networkStatusChangeListener);
+
+        // Add reconnection handler - onReconnect is only called when account_id exists
+        // Store the handler so we can remove it later
+        this.reconnectHandler = async () => {
+            if (!this.is_trade_component_mounted) {
+                return;
+            }
+
+            try {
+                // Clear existing data
+                this.refresh();
+
+                // Reload active symbols (without loading indicator to avoid UI flicker)
+                await this.loadActiveSymbols(false, false);
+
+                // Reload contract types for current symbol
+                await this.setContractTypes();
+
+                // Request new proposals
+                this.debouncedProposal();
+            } catch (error) {
+                // eslint-disable-next-line no-console
+                console.error('Error during reconnection:', error);
+                // Still attempt to get proposals with existing data as fallback
+                this.debouncedProposal();
+            }
+        };
+
+        WS.setOnReconnect(this.reconnectHandler);
+
         this.setChartModeFromURL();
         this.setChartStatus(true);
         runInAction(async () => {
@@ -2071,6 +2109,9 @@ export default class TradeStore extends BaseStore {
         this.disposeClientInit();
         this.disposeNetworkStatusChange();
         this.disposeThemeChange();
+        if (this.reconnectHandler) {
+            WS.removeOnReconnect(this.reconnectHandler);
+        }
         this.is_trade_component_mounted = false;
         this.clearV2ParamsInitialValues();
         // TODO: Find a more elegant solution to unmount contract-trade-store
@@ -2134,6 +2175,7 @@ export default class TradeStore extends BaseStore {
                 accumulators_low_barrier?: string;
                 barrier_spot_distance?: string;
                 previous_spot_time?: number;
+                underlying?: string;
             }
 
             if (this.is_accumulator) {
@@ -2145,6 +2187,7 @@ export default class TradeStore extends BaseStore {
                     current_spot_data = {
                         current_spot: quote,
                         current_spot_time: epoch,
+                        underlying: symbol,
                     };
                 } else if ('history' in args[0]) {
                     const { prices, times } = args[0].history as History;
@@ -2154,6 +2197,7 @@ export default class TradeStore extends BaseStore {
                         current_spot: prices?.[prices?.length - 1],
                         current_spot_time: times?.[times?.length - 1],
                         previous_spot_time: times?.[times?.length - 2],
+                        underlying: symbol,
                     };
                 } else {
                     return;
@@ -2269,15 +2313,17 @@ export default class TradeStore extends BaseStore {
     }
 
     async getFirstOpenMarket(markets_to_search: string[]) {
-        if (this.active_symbols?.length) {
-            return findFirstOpenMarket(this.active_symbols, markets_to_search);
+        // Wait for active_symbols to be populated instead of fetching again
+        if (!this.active_symbols?.length) {
+            try {
+                await when(() => !!this.active_symbols?.length, { timeout: 10000 });
+            } catch (error) {
+                // eslint-disable-next-line no-console
+                console.error('[TradeStore] Timeout waiting for active_symbols:', error);
+                return undefined;
+            }
         }
-        const { active_symbols, error } = await WS.authorized.activeSymbols();
-        if (error) {
-            this.root_store.common.showError({ message: localize('Trading is unavailable at this time.') });
-            return undefined;
-        }
-        return findFirstOpenMarket(active_symbols, markets_to_search);
+        return findFirstOpenMarket(this.active_symbols, markets_to_search);
     }
 
     setStakeBoundary(type: string, min_stake?: number, max_stake?: number) {
@@ -2432,7 +2478,7 @@ export default class TradeStore extends BaseStore {
 
     /**
      * Handles trade parameters reset when switching between symbols with different support
-     * This includes both barrier and duration resets for V2 only
+     * This includes both barrier and duration resets for all platforms (desktop and mobile)
      * @param old_symbol - The previous symbol
      * @param new_symbol - The new symbol being switched to
      * @returns Object with trade parameters to reset, or null if no reset needed

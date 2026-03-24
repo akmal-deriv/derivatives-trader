@@ -1,7 +1,6 @@
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { mockStore } from '@deriv/stores';
-import Loadable from 'react-loadable';
 import App from '../app';
 
 const root_store = mockStore({});
@@ -22,8 +21,7 @@ describe('App', () => {
     it('should render the component with Trade Modals', async () => {
         render(<App passthrough={{ root_store }} />);
 
-        await waitFor(() => Loadable.preloadReady());
-
+        // Note: React.lazy components are loaded automatically in tests
         expect(screen.getByText(routes)).toBeInTheDocument();
         expect(screen.getByText(trade_modals)).toBeInTheDocument();
     });

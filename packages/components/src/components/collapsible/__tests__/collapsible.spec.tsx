@@ -1,6 +1,8 @@
 import React from 'react';
+
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+
 import Collapsible from '../collapsible';
 
 const collapsibleButtonClassName = 'dc-collapsible--has-collapsible-btn';
@@ -42,13 +44,13 @@ describe('<Collapsible/>', () => {
         expect(screen.getByTestId(collapsibleTestId)).toHaveClass(collapsibleButtonClassName);
     });
 
-    it('should change className if user clicks on handle button', () => {
+    it('should change className if user clicks on handle button', async () => {
         render(<Collapsible {...mockedDefaultProps} />);
 
         expect(screen.getByTestId(collapsibleTestId)).toHaveClass(expandedClassName);
         expect(screen.queryByTestId(collapsibleTestId)).not.toHaveClass(collapsedClassName);
 
-        userEvent.click(screen.getByTestId(handleButtonTestId));
+        await userEvent.click(screen.getByTestId(handleButtonTestId));
 
         expect(screen.getByTestId(collapsibleTestId)).toHaveClass(collapsedClassName);
         expect(screen.queryByTestId(collapsibleTestId)).not.toHaveClass(expandedClassName);

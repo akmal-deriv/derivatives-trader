@@ -8,11 +8,14 @@ export const getQueryKeys = (name: string, props?: Record<string, unknown>) => {
 
     const ordered_props = Object.keys(props)
         .sort((a, b) => a.localeCompare(b))
-        .reduce((obj, key) => {
-            obj[key] = props[key];
+        .reduce(
+            (obj, key) => {
+                obj[key] = props[key];
 
-            return obj;
-        }, {} as { [k: string]: unknown });
+                return obj;
+            },
+            {} as { [k: string]: unknown }
+        );
 
     const query_props = JSON.stringify(ordered_props);
 

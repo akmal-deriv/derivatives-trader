@@ -31,14 +31,24 @@ const ServicesErrorSnackbar = observer(() => {
     // Some BO errors comes inside of proposal and we store them inside of proposal_info.
     // Such error have no error_field and it is one of the main differences from trade parameters errors (duration, stake and etc).
     // Another difference is that trade params errors arrays in validation_errors are empty.
-    const { has_error, error_field, message: contract_error_message } = proposal_info[contract_types[0]] ?? {};
+    const {
+        has_error,
+        error_field,
+        error_code: proposal_error_code,
+        message: contract_error_message,
+    } = proposal_info[contract_types[0]] ?? {};
+    // Exclude MarketIsClosed errors from snackbar - already handled by ClosedMarketMessage component
+    const is_market_closed_error = proposal_error_code === 'MarketIsClosed';
     const contract_error =
-        has_error && !error_field && !Object.keys(validation_errors).some(key => validation_errors[key].length);
+        has_error &&
+        !error_field &&
+        !is_market_closed_error &&
+        !Object.keys(validation_errors).some(key => validation_errors[key].length);
 
     const checkShouldShowErrorSnackBar = () => {
         if (!has_services_error && !contract_error) return false;
         if (pathname === routes.index) return (has_services_error && !is_modal_error) || contract_error;
-        if (pathname === routes.trader_positions || location.pathname.startsWith('/contract/'))
+        if (pathname === routes.trader_positions || pathname.startsWith(routes.contract.replace('/:contract_id', '')))
             return has_services_error;
         return false;
     };
@@ -46,7 +56,9 @@ const ServicesErrorSnackbar = observer(() => {
     const should_show_error_snackbar = checkShouldShowErrorSnackBar();
     const should_contain_action = should_show_error_snackbar && code === SERVICE_ERROR.COMPANY_WIDE_LIMIT_EXCEEDED;
     const bottom_position =
-        location.pathname.startsWith('/contract/') && is_multiplier && isValidToCancel(contract_info)
+        pathname.startsWith(routes.contract.replace('/:contract_id', '')) &&
+        is_multiplier &&
+        isValidToCancel(contract_info)
             ? '104px'
             : '48px';
     const action_props = {

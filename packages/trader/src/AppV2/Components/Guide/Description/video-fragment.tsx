@@ -19,10 +19,10 @@ const VideoFragment = ({ contract_type }: TVideoFragment) => {
     const { isMobile } = useDevice();
 
     // memoize file paths for videos and open the modal only after we get them
+    // Using mobile videos for both desktop and mobile as desktop-specific videos don't exist yet
     const getVideoSource = React.useCallback(
-        (extension: string) =>
-            getUrlBase(`/public/videos/${contract_type.toLowerCase()}_${isMobile ? 'mobile' : 'desktop'}.${extension}`),
-        [contract_type, isMobile]
+        (extension: string) => getUrlBase(`/public/videos/${contract_type.toLowerCase()}_mobile.${extension}`),
+        [contract_type]
     );
     const lottie_src = React.useMemo(() => getVideoSource('lottie'), [getVideoSource]);
 

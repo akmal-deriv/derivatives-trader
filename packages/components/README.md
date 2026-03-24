@@ -47,7 +47,6 @@ The `@deriv/components` package is a foundational UI library that provides a wid
 - **Modal** - Modal dialog component
 - **Dialog** - Dialog component
 - **MobileDialog** - Mobile-optimized dialog
-- **MobileDrawer** - Mobile drawer component
 - **Popover** - Popover component with positioning
 - **Tooltip** - Tooltip component
 - **Tabs** - Tab navigation component
@@ -95,7 +94,6 @@ The `@deriv/components` package is a foundational UI library that provides a wid
 - **ThemedScrollbars** - Themed scrollbar component
 - **PageError** - Error page component
 - **PageErrorContainer** - Error container component
-- **UnhandledErrorModal** - Unhandled error modal
 - **ErrorModal** - Error modal component
 
 ### Trading-Specific Components

@@ -11,9 +11,9 @@ import { Localize } from '@deriv-com/translations';
 import MarkerSpot from './marker-spot.jsx';
 
 const MarkerSpotLabel = ({
-    align_label,
+    align_label = 'top',
     has_hover_toggle,
-    is_value_hidden,
+    is_value_hidden = false,
     spot_className,
     spot_count,
     spot_epoch,
@@ -98,11 +98,6 @@ const MarkerSpotLabel = ({
             )}
         </React.Fragment>
     );
-};
-
-MarkerSpotLabel.defaultProps = {
-    align_label: 'top',
-    is_value_hidden: false,
 };
 
 MarkerSpotLabel.propTypes = {

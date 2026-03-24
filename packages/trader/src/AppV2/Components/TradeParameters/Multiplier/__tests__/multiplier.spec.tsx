@@ -14,6 +14,11 @@ const multiplier_carousel_testid = 'dt_carousel';
 const skeleton_testid = 'square-skeleton';
 const mocked_definition = 'Multiplier is...';
 
+jest.mock('@deriv/shared', () => ({
+    ...jest.requireActual('@deriv/shared'),
+    isMobile: jest.fn(() => true),
+}));
+
 jest.mock('@deriv-com/quill-ui', () => ({
     ...jest.requireActual('@deriv-com/quill-ui'),
     WheelPicker: jest.fn(({ data, setSelectedValue }) => (
@@ -55,6 +60,9 @@ describe('<Multiplier />', () => {
                         commission: 0.01,
                     },
                 },
+                ui: {
+                    is_mobile: true,
+                },
             }))
     );
 
@@ -88,11 +96,12 @@ describe('<Multiplier />', () => {
         expect(screen.getByRole('textbox')).toBeDisabled();
     });
     it('opens ActionSheet with WheelPicker component, details, "Save" button and trade param definition if user clicks on multiplier trade param', async () => {
+        const user = userEvent.setup();
         mockMultiplier();
 
         expect(screen.queryByTestId('dt-actionsheet-overlay')).not.toBeInTheDocument();
 
-        await userEvent.click(screen.getByText(multiplier_param_label));
+        await user.click(screen.getByText(multiplier_param_label));
 
         expect(screen.getByTestId('dt-actionsheet-overlay')).toBeInTheDocument();
         expect(screen.getByText('WheelPicker')).toBeInTheDocument();
@@ -102,46 +111,46 @@ describe('<Multiplier />', () => {
         expect(screen.getByText('0.01')).toBeInTheDocument();
     });
     it('renders skeleton instead of WheelPicker if multiplier_range_list is empty', async () => {
+        const user = userEvent.setup();
         default_mock_store.modules.trade.multiplier_range_list = [];
         mockMultiplier();
 
-        await userEvent.click(screen.getByText(multiplier_param_label));
+        await user.click(screen.getByText(multiplier_param_label));
 
         expect(screen.getByTestId('dt-actionsheet-overlay')).toBeInTheDocument();
         expect(screen.queryByText('WheelPicker')).not.toBeInTheDocument();
         expect(screen.getByTestId(skeleton_testid)).toBeInTheDocument();
     });
     it('renders skeleton instead of detail if commission not available', async () => {
+        const user = userEvent.setup();
         default_mock_store.modules.trade.commission = null;
         mockMultiplier();
 
-        await userEvent.click(screen.getByText(multiplier_param_label));
+        await user.click(screen.getByText(multiplier_param_label));
 
         expect(screen.getByTestId(skeleton_testid)).toBeInTheDocument();
     });
     it('applies specific className if innerHeight is <= 640px', async () => {
+        const user = userEvent.setup();
         const original_height = window.innerHeight;
         window.innerHeight = 640;
         mockMultiplier();
 
-        await userEvent.click(screen.getByText(multiplier_param_label));
+        await user.click(screen.getByText(multiplier_param_label));
 
         expect(screen.getByTestId(multiplier_carousel_testid)).toHaveClass('multiplier__carousel--small');
         window.innerHeight = original_height;
     });
     it('calls onChange function if user changes selected value', async () => {
-        jest.useFakeTimers();
+        const user = userEvent.setup();
         mockMultiplier();
 
-        await userEvent.click(screen.getByText(multiplier_param_label));
-        await userEvent.click(screen.getByText('x2'));
-        await userEvent.click(screen.getByText('Save'));
+        await user.click(screen.getByText(multiplier_param_label));
+        await user.click(screen.getByText('x2'));
+        await user.click(screen.getByText('Save'));
 
         await waitFor(() => {
-            jest.advanceTimersByTime(200);
+            expect(default_mock_store.modules.trade.onChange).toBeCalled();
         });
-
-        expect(default_mock_store.modules.trade.onChange).toBeCalled();
-        jest.useRealTimers();
     });
 });

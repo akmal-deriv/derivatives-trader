@@ -41,9 +41,13 @@ describe('GuideTooltip', () => {
         expect(screen.queryByText('Next')).not.toBeInTheDocument();
     });
 
-    it('should render scroll icon if title of the step is scroll-icon', () => {
-        mock_props.step.title = 'scroll-icon';
-        render(<GuideTooltip {...mock_props} isLastStep={true} />);
-        expect(screen.getByText('Swipe up to see the chart')).toBeInTheDocument();
+    it('should render "Got it" for single-step guides', () => {
+        render(<GuideTooltip {...mock_props} is_single_step={true} />);
+
+        expect(screen.getByText('Title')).toBeInTheDocument();
+        expect(screen.getByText('Step content')).toBeInTheDocument();
+        expect(screen.getByText('Got it')).toBeInTheDocument();
+        expect(screen.queryByText('Next')).not.toBeInTheDocument();
+        expect(screen.queryByText('Done')).not.toBeInTheDocument();
     });
 });

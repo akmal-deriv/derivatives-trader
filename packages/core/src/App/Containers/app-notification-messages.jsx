@@ -30,26 +30,41 @@ const NotificationsContent = ({
     removeNotificationMessage,
     show_trade_notifications,
 }) => {
+    const nodeRefs = React.useRef({});
+
     return (
         <div className={'notification-messages'} style={style}>
             <TransitionGroup component='div'>
-                {notifications.map(notification => (
-                    <CSSTransition
-                        appear={!!is_notification_loaded}
-                        key={notification.key}
-                        in={!!notification.header}
-                        timeout={150}
-                        classNames={{
-                            appear: 'notification--enter',
-                            enter: 'notification--enter',
-                            enterDone: 'notification--enter-done',
-                            exit: 'notification--exit',
-                        }}
-                        unmountOnExit
-                    >
-                        <Notification data={notification} removeNotificationMessage={removeNotificationMessage} />
-                    </CSSTransition>
-                ))}
+                {notifications.map(notification => {
+                    // Create or reuse ref for this notification
+                    if (!nodeRefs.current[notification.key]) {
+                        nodeRefs.current[notification.key] = React.createRef();
+                    }
+                    const nodeRef = nodeRefs.current[notification.key];
+                    return (
+                        <CSSTransition
+                            appear={!!is_notification_loaded}
+                            key={notification.key}
+                            in={!!notification.header}
+                            timeout={150}
+                            classNames={{
+                                appear: 'notification--enter',
+                                enter: 'notification--enter',
+                                enterDone: 'notification--enter-done',
+                                exit: 'notification--exit',
+                            }}
+                            nodeRef={nodeRef}
+                            unmountOnExit
+                        >
+                            <div ref={nodeRef}>
+                                <Notification
+                                    data={notification}
+                                    removeNotificationMessage={removeNotificationMessage}
+                                />
+                            </div>
+                        </CSSTransition>
+                    );
+                })}
                 <TradeNotifications show_trade_notifications={show_trade_notifications} />
             </TransitionGroup>
         </div>

@@ -13,7 +13,7 @@ const getSubmarketDisplayName = (submarket: string) => {
         major_pairs: localize('Major pairs'),
         minor_pairs: localize('Minor pairs'),
         smart_fx: localize('Smart FX'),
-        random_index: localize('Continuous indices'),
+        random_index: localize('Volatility indices'),
         random_daily: localize('Daily reset indices'),
         crash_boom: localize('Crash/Boom'),
         crash_index: localize('Crash/Boom'),

@@ -1,5 +1,4 @@
 import React from 'react';
-import Loadable from 'react-loadable';
 
 import { UILoader } from '@deriv/components';
 import { LegacyChartsIcon } from '@deriv/quill-icons';
@@ -13,13 +12,18 @@ type TTradeSettingsExtensionsProps = {
     store: TCoreStores;
 };
 
-const ChartSettingContainer = Loadable({
-    loader: () =>
+const ChartSettingContainerLazy = React.lazy(
+    () =>
         import(
             /* webpackChunkName: "settings-chart", webpackPrefetch: true */ 'App/Containers/SettingsModal/settings-chart'
-        ),
-    loading: () => <UILoader />,
-});
+        )
+);
+
+const ChartSettingContainer = <T extends object>(props: T) => (
+    <React.Suspense fallback={<UILoader />}>
+        <ChartSettingContainerLazy {...props} />
+    </React.Suspense>
+);
 
 const renderItemValue = <T extends object>(props: T, store: TCoreStores) => (
     <TraderProviders store={store}>

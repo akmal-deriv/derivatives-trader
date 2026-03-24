@@ -3,9 +3,9 @@ import clsx from 'clsx';
 import { observer } from 'mobx-react-lite';
 
 import { Skeleton } from '@deriv/components';
-import { CONTRACT_TYPES, getGrowthRatePercentage, isEmptyObject } from '@deriv/shared';
-import { Localize } from '@deriv-com/translations';
+import { CONTRACT_TYPES, getGrowthRatePercentage, isEmptyObject, isMobile } from '@deriv/shared';
 import { ActionSheet, TextField } from '@deriv-com/quill-ui';
+import { Localize } from '@deriv-com/translations';
 
 import Carousel from 'AppV2/Components/Carousel';
 import CarouselHeader from 'AppV2/Components/Carousel/carousel-header';
@@ -15,6 +15,7 @@ import { useTraderStore } from 'Stores/useTraderStores';
 
 import { TTradeParametersProps } from '../trade-parameters';
 
+import GrowthRateDesktop from './growth-rate-desktop';
 import GrowthRatePicker from './growth-rate-picker';
 
 const GrowthRate = observer(({ is_minimized }: TTradeParametersProps) => {
@@ -34,6 +35,8 @@ const GrowthRate = observer(({ is_minimized }: TTradeParametersProps) => {
     } = useTraderStore();
 
     const [is_open, setIsOpen] = React.useState(false);
+    const [carousel_index, setCarouselIndex] = React.useState(0);
+    const is_mobile = isMobile();
     const is_small_screen = isSmallScreen();
     const info = proposal_info?.[CONTRACT_TYPES.ACCUMULATOR] || {};
     const is_proposal_data_available =
@@ -43,7 +46,10 @@ const GrowthRate = observer(({ is_minimized }: TTradeParametersProps) => {
     const handleGrowthRateChange = (rate: number) => {
         onChange({ target: { name: 'growth_rate', value: rate } });
     };
-    const onActionSheetClose = React.useCallback(() => setIsOpen(false), []);
+    const onActionSheetClose = React.useCallback(() => {
+        setIsOpen(false);
+        setCarouselIndex(0);
+    }, []);
 
     const action_sheet_content = [
         {
@@ -53,6 +59,7 @@ const GrowthRate = observer(({ is_minimized }: TTradeParametersProps) => {
                     accumulator_range_list={accumulator_range_list}
                     maximum_ticks={maximum_ticks}
                     growth_rate={growth_rate}
+                    onDetailClick={setCarouselIndex}
                     setGrowthRate={handleGrowthRateChange}
                     setV2ParamsInitialValues={setV2ParamsInitialValues}
                     should_show_details={is_proposal_data_available}
@@ -65,13 +72,27 @@ const GrowthRate = observer(({ is_minimized }: TTradeParametersProps) => {
             component: (
                 <TradeParamDefinition
                     description={
-                        <Localize
-                            i18n_default_text='Your stake will grow at {{growth_rate}}% per tick as long as the current spot price remains within ±{{tick_size_barrier_percentage}} from the previous spot price.'
-                            values={{
-                                growth_rate: getGrowthRatePercentage(growth_rate),
-                                tick_size_barrier_percentage,
-                            }}
-                        />
+                        <Localize i18n_default_text='The growth rate determines the rate at which your stake will grow with each successful tick.' />
+                    }
+                />
+            ),
+        },
+        {
+            id: 3,
+            component: (
+                <TradeParamDefinition
+                    description={
+                        <Localize i18n_default_text='The price range within which the spot price must remain at each tick for your payout to keep growing. If the price moves outside this range, your contract is terminated.' />
+                    }
+                />
+            ),
+        },
+        {
+            id: 4,
+            component: (
+                <TradeParamDefinition
+                    description={
+                        <Localize i18n_default_text='Your contract will be automatically closed upon reaching this number of ticks.' />
                     }
                 />
             ),
@@ -90,6 +111,12 @@ const GrowthRate = observer(({ is_minimized }: TTradeParametersProps) => {
                 <Skeleton />
             </div>
         );
+    // Render desktop version with InputPopover for non-mobile devices
+    if (!is_mobile) {
+        return <GrowthRateDesktop is_minimized={is_minimized} />;
+    }
+
+    // Render mobile version with ActionSheet (unchanged)
     return (
         <>
             <TextField
@@ -114,6 +141,9 @@ const GrowthRate = observer(({ is_minimized }: TTradeParametersProps) => {
                     <Carousel
                         classname={clsx('growth-rate__carousel', is_small_screen && 'growth-rate__carousel--small')}
                         header={CarouselHeader}
+                        current_index={carousel_index}
+                        setCurrentIndex={setCarouselIndex}
+                        onPreviousButtonClick={() => setCarouselIndex(0)}
                         pages={action_sheet_content}
                         title={<Localize i18n_default_text='Growth rate' />}
                     />

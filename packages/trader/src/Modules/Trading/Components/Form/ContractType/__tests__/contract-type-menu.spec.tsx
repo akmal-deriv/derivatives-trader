@@ -39,7 +39,7 @@ const mock_connect_props = {
                 subgroup: 'synthetics',
                 subgroup_display_name: 'Synthetics',
                 submarket: 'random_index',
-                submarket_display_name: 'Continuous Indices',
+                submarket_display_name: 'Volatility Indices',
                 symbol: 'R_100',
                 symbol_type: 'stockindex',
             } as NonNullable<TActiveSymbolsResponse['active_symbols']>[0],

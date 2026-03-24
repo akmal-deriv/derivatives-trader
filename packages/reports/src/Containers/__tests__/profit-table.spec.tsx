@@ -281,6 +281,9 @@ describe('Profit Table', () => {
     });
 
     test('renders footer when is_footer prop is true on mobile', () => {
+        (useDevice as jest.Mock).mockReturnValue({
+            isMobile: true,
+        });
         (useReportsStore as jest.Mock).mockReturnValueOnce({
             profit_table: {
                 ...useReportsStore().profit_table,
@@ -288,14 +291,14 @@ describe('Profit Table', () => {
                 totals: {},
             },
         });
-        (useDevice as jest.Mock).mockReturnValue({
-            isDesktop: false,
-        });
         renderProfitTable();
         expect(screen.queryByTestId(dataList)).not.toBeInTheDocument();
     });
 
     test('renders DataList on mobile when data is available', () => {
+        (useDevice as jest.Mock).mockReturnValue({
+            isMobile: true,
+        });
         (useReportsStore as jest.Mock).mockReturnValueOnce({
             profit_table: {
                 ...useReportsStore().profit_table,
@@ -304,14 +307,14 @@ describe('Profit Table', () => {
                 is_empty: false,
             },
         });
-        (useDevice as jest.Mock).mockReturnValue({
-            isDesktop: false,
-        });
         renderProfitTable();
         expect(screen.getByTestId(dataList)).toBeInTheDocument();
     });
 
     test('renders DataList on mobile when data is available and not loading', () => {
+        (useDevice as jest.Mock).mockReturnValue({
+            isMobile: true,
+        });
         (useReportsStore as jest.Mock).mockReturnValueOnce({
             profit_table: {
                 ...useReportsStore().profit_table,
@@ -320,9 +323,6 @@ describe('Profit Table', () => {
                 is_empty: false,
                 is_loading: false,
             },
-        });
-        (useDevice as jest.Mock).mockReturnValue({
-            isDesktop: false,
         });
         renderProfitTable();
         expect(screen.getByTestId(dataList)).toBeInTheDocument();

@@ -1,18 +1,36 @@
 import React from 'react';
-import Loadable from 'react-loadable';
 
+/**
+ * Creates a lazy-loaded component using React.lazy and Suspense
+ * @param importFn - Function that returns a dynamic import promise
+ * @param loaderFn - Function that returns a loading component
+ * @param component_name - Optional: name of a named export from the module
+ * @returns A lazy-loaded React component wrapped with Suspense
+ */
 export const makeLazyLoader =
-    (importFn: () => Promise<unknown>, loaderFn: () => JSX.Element) => (component_name?: string) =>
-        Loadable.Map({
-            loader: {
-                ComponentModule: importFn,
-            },
+    (importFn: () => Promise<unknown>, loaderFn: () => JSX.Element) => (component_name?: string) => {
+        const LazyComponent = React.lazy(async () => {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            render(loaded: { [key: string]: any }, props: object) {
-                const ComponentLazy = component_name
-                    ? loaded.ComponentModule.default[component_name]
-                    : loaded.ComponentModule.default;
-                return <ComponentLazy {...props} />;
-            },
-            loading: loaderFn,
+            const module = (await importFn()) as { default: Record<string, any> };
+
+            // Handle named exports if component_name is provided
+            if (component_name) {
+                const NamedComponent = module.default[component_name];
+                return { default: NamedComponent };
+            }
+
+            return module;
         });
+
+        // Return a component that wraps the lazy component with Suspense
+        const WrappedComponent = (props: object) => (
+            <React.Suspense fallback={loaderFn()}>
+                <LazyComponent {...props} />
+            </React.Suspense>
+        );
+
+        // Preserve display name for debugging
+        WrappedComponent.displayName = component_name ? `LazyLoader(${component_name})` : 'LazyLoader';
+
+        return WrappedComponent;
+    };

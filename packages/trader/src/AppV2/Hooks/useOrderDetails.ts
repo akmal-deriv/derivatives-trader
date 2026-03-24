@@ -324,6 +324,8 @@ const transformFunctionMap: Record<string, (data: TContractInfo, card_label: TCa
     [CONTRACT_TYPES.PUTE]: transformCallPutData,
     [CONTRACT_TYPES.CALLE]: transformCallPutData,
     [CONTRACT_TYPES.CALL]: transformCallPutData,
+    [CONTRACT_TYPES.HIGHER]: transformCallPutData,
+    [CONTRACT_TYPES.LOWER]: transformCallPutData,
     [CONTRACT_TYPES.TOUCH.ONE_TOUCH]: transformCallPutData,
     [CONTRACT_TYPES.TOUCH.NO_TOUCH]: transformCallPutData,
     [CONTRACT_TYPES.ACCUMULATOR]: transformAccumulatorData,

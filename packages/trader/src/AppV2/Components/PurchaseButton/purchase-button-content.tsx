@@ -4,6 +4,7 @@ import clsx from 'clsx';
 import { Money } from '@deriv/components';
 import { getLocalizedBasis } from '@deriv/shared';
 import { CaptionText } from '@deriv-com/quill-ui';
+import { useTranslations } from '@deriv-com/translations';
 
 import { useTraderStore } from 'Stores/useTraderStores';
 
@@ -13,11 +14,12 @@ type TPurchaseButtonContent = {
     is_reverse?: boolean;
 } & Pick<
     ReturnType<typeof useTraderStore>,
-    'currency' | 'has_open_accu_contract' | 'is_multiplier' | 'is_vanilla' | 'is_turbos'
+    'currency' | 'has_cancellation' | 'has_open_accu_contract' | 'is_multiplier' | 'is_vanilla' | 'is_turbos'
 >;
 
 const PurchaseButtonContent = ({
     currency,
+    has_cancellation,
     has_open_accu_contract,
     has_no_button_content,
     info,
@@ -26,15 +28,29 @@ const PurchaseButtonContent = ({
     is_vanilla,
     is_reverse,
 }: TPurchaseButtonContent) => {
-    if (has_no_button_content) return null;
+    const { localize } = useTranslations();
+    const { payout } = getLocalizedBasis();
 
-    const { payout, stake } = getLocalizedBasis();
+    if (has_no_button_content || (is_multiplier && !has_cancellation)) return null;
 
     const getAmount = () => {
         const { stake, obj_contract_basis } = info;
-        return is_multiplier ? stake : obj_contract_basis?.value;
+        if (is_multiplier) {
+            // For multipliers, the stake value from proposal_info already includes all fees
+            // (base stake + commission + DC fee if applicable)
+            // So we just return the stake value directly
+            const total_cost = typeof stake === 'string' ? parseFloat(stake) || 0 : stake || 0;
+            return total_cost;
+        }
+        return obj_contract_basis?.value;
     };
-    const getTextBasis = () => (is_multiplier ? stake : payout);
+
+    const getTextBasis = () => {
+        if (is_multiplier) {
+            return has_cancellation ? localize('Total cost') : undefined;
+        }
+        return payout;
+    };
 
     const text_basis = getTextBasis();
     const amount = getAmount();

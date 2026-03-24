@@ -101,7 +101,7 @@ jest.mock('@deriv/shared', () => {
                                 name: 'Derived',
                                 submarkets: [
                                     {
-                                        name: 'Continuous Indices',
+                                        name: 'Volatility Indices',
                                         symbols: [
                                             {
                                                 events: [

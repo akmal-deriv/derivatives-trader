@@ -13,6 +13,10 @@ jest.mock('../../RiskManagement/take-profit-and-stop-loss-input', () =>
     jest.fn(() => <div>TakeProfitAndStopLossInput</div>)
 );
 jest.mock('AppV2/Components/TradeParamDefinition', () => jest.fn(() => <div>TradeParamDefinition</div>));
+jest.mock('@deriv-com/ui', () => ({
+    ...jest.requireActual('@deriv-com/ui'),
+    useDevice: jest.fn(() => ({ isMobile: true })),
+}));
 
 describe('TakeProfit', () => {
     let default_mock_store: ReturnType<typeof mockStore>;

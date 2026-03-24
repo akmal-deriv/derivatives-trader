@@ -2,6 +2,7 @@ import React from 'react';
 import { useLocation, withRouter } from 'react-router';
 import classNames from 'classnames';
 import PropTypes from 'prop-types';
+
 import { ThemedScrollbars } from '@deriv/components';
 import { CookieStorage, redirectToLogin, TRACKING_STATUS_KEY } from '@deriv/shared';
 import { observer, useStore } from '@deriv/stores';
@@ -17,6 +18,7 @@ const AppContents = observer(({ children }) => {
     const [is_gtm_tracking, setIsGtmTracking] = React.useState(false);
     const {
         client,
+        common,
         gtm: { pushDataLayer },
         ui,
     } = useStore();
@@ -27,9 +29,7 @@ const AppContents = observer(({ children }) => {
     const { is_logged_in, is_logging_in, should_redirect_user_to_login, setShouldRedirectToLogin } = client;
     const {
         is_app_disabled,
-        is_cashier_visible,
-        is_cfd_page,
-        is_positions_drawer_on,
+        active_sidebar_flyout,
         is_route_modal_on,
         notifyAppInstall,
         setAppContentsScrollRef,
@@ -43,14 +43,14 @@ const AppContents = observer(({ children }) => {
 
     React.useEffect(() => {
         if (should_redirect_user_to_login && client.is_client_store_initialized) {
-            // For V2 authentication, don't redirect if we have a session token
-            const hasSessionToken = !!localStorage.getItem('session_token');
+            // Don't redirect if we have an account_id (user is authenticated)
+            const hasAccountId = !!localStorage.getItem('account_id');
 
-            if (hasSessionToken) {
+            if (hasAccountId) {
                 setShouldRedirectToLogin(false);
             } else {
                 setShouldRedirectToLogin(false);
-                redirectToLogin();
+                redirectToLogin(common.current_language);
             }
         }
     }, [should_redirect_user_to_login, is_logged_in, setShouldRedirectToLogin, client.is_client_store_initialized]);
@@ -123,11 +123,10 @@ const AppContents = observer(({ children }) => {
         <div
             id='app_contents'
             className={classNames('app-contents', {
-                'app-contents--show-positions-drawer': is_positions_drawer_on,
+                'app-contents--show-positions-drawer': active_sidebar_flyout,
                 'app-contents--is-disabled': is_app_disabled,
                 'app-contents--is-mobile': isMobile,
                 'app-contents--is-route-modal': is_route_modal_on,
-                'app-contents--is-scrollable': is_cfd_page || is_cashier_visible,
                 'app-contents--is-hidden': has_access_denied_error,
                 'app-contents--is-dtrader-v2': isMobile,
             })}
@@ -136,11 +135,7 @@ const AppContents = observer(({ children }) => {
             {isMobile && children}
             {!isMobile && (
                 /* Calculate height of user screen and offset height of header and footer */
-                <ThemedScrollbars
-                    height={isDesktop ? 'calc(100vh - 84px)' : undefined}
-                    has_horizontal
-                    refSetter={child_ref}
-                >
+                <ThemedScrollbars height={isDesktop ? '100vh' : undefined} has_horizontal refSetter={child_ref}>
                     {children}
                 </ThemedScrollbars>
             )}

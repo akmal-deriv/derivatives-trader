@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import TradeTypesSelectionGuide from '../trade-types-selection-guide';
@@ -10,6 +10,10 @@ const localStorage_key = 'guide_dtrader_v2';
 const video = 'Video';
 
 jest.mock('../../../StreamIframe', () => jest.fn(() => <div>{video}</div>));
+jest.mock('@deriv-com/ui', () => ({
+    ...jest.requireActual('@deriv-com/ui'),
+    useDevice: jest.fn(() => ({ isMobile: true, isDesktop: false, isTablet: false })),
+}));
 
 describe('TradeTypesSelectionGuide', () => {
     beforeEach(() => {
@@ -20,10 +24,14 @@ describe('TradeTypesSelectionGuide', () => {
         jest.useFakeTimers();
         render(<TradeTypesSelectionGuide />);
 
-        await waitFor(() => jest.advanceTimersByTime(800));
+        act(() => {
+            jest.advanceTimersByTime(800);
+        });
 
-        expect(screen.getByText(video)).toBeInTheDocument();
-        expect(screen.getByText(modal_text)).toBeInTheDocument();
+        await waitFor(() => {
+            expect(screen.getByText(video)).toBeInTheDocument();
+            expect(screen.getByText(modal_text)).toBeInTheDocument();
+        });
 
         jest.useRealTimers();
     });
@@ -44,23 +52,30 @@ describe('TradeTypesSelectionGuide', () => {
     });
 
     it('should close the Modal and set flag to localStorage equal to true after user clicks on "Got it" button', async () => {
+        const user = userEvent.setup({ delay: null });
         const field = 'trade_types_selection';
         jest.useFakeTimers();
         render(<TradeTypesSelectionGuide />);
 
-        await waitFor(() => jest.advanceTimersByTime(800));
+        act(() => {
+            jest.advanceTimersByTime(800);
+        });
 
-        expect(screen.getByText(video)).toBeInTheDocument();
-        expect(screen.getByText(modal_text)).toBeInTheDocument();
+        await waitFor(() => {
+            expect(screen.getByText(video)).toBeInTheDocument();
+            expect(screen.getByText(modal_text)).toBeInTheDocument();
+        });
+
         expect(JSON.parse(localStorage.getItem(localStorage_key) as string)[field]).toBe(false);
 
-        await userEvent.click(screen.getByRole('button'));
-        await waitFor(() => jest.advanceTimersByTime(300));
-
-        expect(screen.queryByText(video)).not.toBeInTheDocument();
-        expect(screen.queryByText(modal_text)).not.toBeInTheDocument();
-        expect(JSON.parse(localStorage.getItem(localStorage_key) as string)[field]).toBe(true);
-
         jest.useRealTimers();
+        await user.click(screen.getByRole('button'));
+
+        await waitFor(() => {
+            expect(screen.queryByText(video)).not.toBeInTheDocument();
+            expect(screen.queryByText(modal_text)).not.toBeInTheDocument();
+        });
+
+        expect(JSON.parse(localStorage.getItem(localStorage_key) as string)[field]).toBe(true);
     });
 });

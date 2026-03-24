@@ -28,18 +28,17 @@ describe('formatProfitTableTransactions', () => {
         expect(returnValue).toEqual({
             ...mockProfitTableTransactionData,
             display_name: 'Volatility 100 (1s) Index',
-            purchase_time: '21 Nov 2023 04:07:41',
             purchase_time_unix: 1700539661,
-            sell_time: '21 Nov 2023 04:10:16',
+            sell_time_unix: 1700539816,
             profit_loss: '-0.39',
         });
     });
 
-    it('should not return purchase time if purchase time is not available', () => {
+    it('should not return purchase time unix if purchase time is not available', () => {
         mockProfitTableTransactionData.purchase_time = undefined;
         const currency = 'USD';
         const returnValue = formatProfitTableTransactions(mockProfitTableTransactionData, currency);
-        expect(returnValue.purchase_time).toBeUndefined();
+        expect(returnValue.purchase_time_unix).toBeUndefined();
     });
 
     it('should return profit loss for with correct BTC formatted value', () => {

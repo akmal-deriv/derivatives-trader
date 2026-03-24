@@ -23,6 +23,28 @@ module.exports = function (env) {
             moduleIds: 'named',
             minimize: IS_RELEASE,
             minimizer: MINIMIZERS,
+            splitChunks: {
+                chunks: 'all',
+                minSize: 75000, // 75KB minimum chunk size for balanced granularity
+                minSizeReduction: 75000,
+                maxSize: 1000000, // 1MB max chunks - fewer chunks for better performance
+                maxAsyncRequests: 30,
+                maxInitialRequests: 30,
+                cacheGroups: {
+                    default: {
+                        minChunks: 2,
+                        minSize: 75000,
+                        priority: -20,
+                        reuseExistingChunk: true,
+                    },
+                    defaultVendors: {
+                        idHint: 'vendors',
+                        test: /[\\/]node_modules[\\/]/,
+                        priority: -10,
+                        reuseExistingChunk: true,
+                    },
+                },
+            },
         },
         output: {
             filename: 'reports/js/[name].js',
@@ -45,6 +67,8 @@ module.exports = function (env) {
                 '@deriv/components': '@deriv/components',
                 '@deriv-com/translations': '@deriv-com/translations',
                 '@deriv-com/analytics': '@deriv-com/analytics',
+                moment: 'moment',
+                dayjs: 'dayjs',
             },
             /^@deriv\/shared\/.+$/,
             /^@deriv\/components\/.+$/,

@@ -1,75 +1,133 @@
 import React from 'react';
+import classNames from 'classnames';
+import { observer } from 'mobx-react-lite';
 
-import { Button } from '@deriv/components';
-import { formatMoney } from '@deriv/shared';
+import { useDerivativesAccount, useMobileBridge } from '@deriv/api';
+import { Button, Skeleton, Text } from '@deriv/components';
+import { getBrandUrl, trackAnalyticsEvent } from '@deriv/shared';
+import { useStore } from '@deriv/stores';
 import { useTranslations } from '@deriv-com/translations';
 
-import { LoginButtonV2 } from './login-button-v2';
-import { useMobileBridge } from 'App/Hooks/useMobileBridge';
+import { LoginButton } from './login-button';
 
 import 'Sass/app/_common/components/account-switcher.scss';
 
-type TAccountActionsProps = {
-    balance: string | number | undefined;
-    currency: string;
-    is_logged_in: boolean;
-    onClickLogout: () => void;
-};
-
 const AccountInfo = React.lazy(
     () =>
-        import(
-            /* webpackChunkName: "account-info", webpackPreload: true */ 'App/Components/Layout/Header/account-info.jsx'
-        )
+        import(/* webpackChunkName: "account-info", webpackPreload: true */ 'App/Components/Layout/Header/account-info')
 );
 
-const LogoutButton = ({ onClickLogout }: { onClickLogout: () => void }) => {
+const AccountActionsComponent = observer(() => {
+    const { client, common, ui } = useStore();
+    const { currency, is_logged_in, loginid } = client;
+    const { is_switching_account, setIsSwitchingAccount } = ui;
+
     const { localize } = useTranslations();
-    const { sendBridgeEvent, isBridgeAvailable } = useMobileBridge();
+    const { sendBridgeEvent } = useMobileBridge();
 
-    const handleLogoutClick = () => {
-        sendBridgeEvent('trading:back', onClickLogout);
+    // Fetch derivatives accounts to determine button type (single source of truth)
+    const { data, isLoading, error, refetch } = useDerivativesAccount(loginid, is_logged_in);
+    const accounts = data?.data || [];
+
+    // Handle account switch start
+    const handleAccountSwitchStart = React.useCallback(() => {
+        setIsSwitchingAccount(true);
+    }, [setIsSwitchingAccount]);
+
+    // Reset switching state when loading completes with either data or error
+    React.useEffect(() => {
+        if (!isLoading && (accounts.length > 0 || error)) {
+            setIsSwitchingAccount(false);
+        }
+    }, [isLoading, accounts, error, setIsSwitchingAccount]);
+
+    // Determine account types available
+    const hasOnlyDemoAccounts = accounts.length > 0 && accounts.every(acc => acc.account_type === 'demo');
+
+    // Button logic:
+    // - If only demo accounts exist -> show "Try real"
+    // - Otherwise (real only or both real and demo) -> show "Deposit"
+    const buttonLabel = hasOnlyDemoAccounts ? localize('Try real') : localize('Deposit');
+    const buttonType = hasOnlyDemoAccounts ? 'try_real' : 'deposit';
+
+    const handleTransferClick = () => {
+        // Track analytics event
+        const eventName = 'ce_trade_types_form_v2';
+
+        trackAnalyticsEvent(eventName, {
+            action: 'click',
+            button_type: buttonType,
+        });
+
+        if (hasOnlyDemoAccounts) {
+            // Show modal instead of redirecting directly
+            ui.toggleTryRealModal(true);
+        } else {
+            // Deposit button (for both account types or real-only accounts)
+            const brandUrl = getBrandUrl();
+            const lang_param = common.current_language ? `&lang=${common.current_language}` : '';
+            sendBridgeEvent('trading:transfer', () => {
+                window.location.href = `${brandUrl}/transfer?from=dtrader&source=options&acc=options&curr=${currency}${lang_param}`;
+            });
+        }
     };
-
-    const buttonText = isBridgeAvailable() ? localize('Back to app') : localize('Log out');
-
-    return <Button className='acc-info__button' has_effect text={buttonText} onClick={handleLogoutClick} />;
-};
-
-const LoggedOutView = () => (
-    <>
-        <LoginButtonV2 className='acc-info__button' />
-    </>
-);
-
-const AccountActionsComponent = ({ balance, currency, is_logged_in, onClickLogout }: TAccountActionsProps) => {
-    const { isDesktop } = useMobileBridge();
-    const isLogoutButtonVisible = isDesktop && is_logged_in;
-    const formattedBalance = balance != null ? formatMoney(currency, balance, true) : undefined;
 
     const renderAccountInfo = () => (
         <React.Suspense fallback={<div />}>
             <AccountInfo
-                balance={formattedBalance}
-                currency={currency}
-                {...(!isDesktop && {
-                    is_mobile: true,
-                })}
+                accounts={accounts}
+                isLoading={isLoading}
+                error={error}
+                refetch={refetch}
+                onAccountSwitch={handleAccountSwitchStart}
             />
+            <Button
+                className='acc-info__transfer-button'
+                onClick={handleTransferClick}
+                aria-label={buttonLabel}
+                type='button'
+                has_effect
+            >
+                <Text size='xs' weight='bold' color='white'>
+                    {buttonLabel}
+                </Text>
+            </Button>
         </React.Suspense>
     );
 
     if (!is_logged_in) {
-        return <LoggedOutView />;
+        return (
+            <div
+                id='dt_core_header_acc-info-container'
+                className={classNames('acc-info__container', {
+                    'acc-info__container--logged-out': !is_logged_in,
+                })}
+            >
+                <LoginButton className='acc-info__button' />
+            </div>
+        );
     }
 
+    const shouldShowLoader = isLoading || is_switching_account;
+
     return (
-        <React.Fragment>
-            {renderAccountInfo()}
-            {isLogoutButtonVisible && <LogoutButton onClickLogout={onClickLogout} />}
-        </React.Fragment>
+        <div
+            id='dt_core_header_acc-info-container'
+            className={classNames('acc-info__container', {
+                'acc-info__container--loading': shouldShowLoader,
+            })}
+        >
+            {shouldShowLoader ? (
+                <React.Fragment>
+                    <Skeleton height={32} width={120} borderRadius={16} />
+                    <Skeleton height={32} width={80} borderRadius={16} />
+                </React.Fragment>
+            ) : (
+                renderAccountInfo()
+            )}
+        </div>
     );
-};
+});
 
 AccountActionsComponent.displayName = 'AccountActions';
 

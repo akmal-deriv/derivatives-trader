@@ -1,8 +1,11 @@
 import React from 'react';
+
+import { Localize } from '@deriv-com/translations';
+
 import Button from '../button';
 import Text from '../text';
-import { DerivLightIcCashierBlockedIcon } from '@deriv/quill-icons';
-import { Localize } from '@deriv-com/translations';
+
+import TriangleWarningIcon from './triangle-warning-icon';
 
 type TErrorModalContent = {
     error_message?: string;
@@ -10,12 +13,9 @@ type TErrorModalContent = {
 
 const ErrorModalContent = ({ error_message }: TErrorModalContent) => {
     return (
-        <div className='unhandled-error'>
-            <DerivLightIcCashierBlockedIcon width={96} height={96} />
-            <Text className='da-icon-with-message__text' as='p' line_height='xxl' align='center' weight='bold'>
-                <Localize i18n_default_text='Sorry for the interruption' />
-            </Text>
-            <Text className='da-icon-with-message__text__desc' as='p' size='xs' line_height='xxs' align='center'>
+        <div className='error-modal'>
+            <TriangleWarningIcon height={120} width={120} />
+            <Text className='error-modal__content' as='p' size='xs' line_height='xxl' align='center'>
                 {error_message}
             </Text>
             <Button onClick={() => location.reload()} has_effect primary large>

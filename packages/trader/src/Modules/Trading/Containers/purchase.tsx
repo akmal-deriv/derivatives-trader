@@ -33,7 +33,7 @@ const getSortedIndex = (type: string, index: number) => {
 const Purchase = observer(({ is_market_closed }: { is_market_closed?: boolean }) => {
     const {
         portfolio: { all_positions, onClickSell },
-        ui: { purchase_states: purchased_states_arr, is_mobile, setPurchaseState },
+        ui: { purchase_states: purchased_states_arr, is_mobile, setPurchaseState, is_switching_account },
     } = useStore();
     const {
         basis,
@@ -89,7 +89,7 @@ const Purchase = observer(({ is_market_closed }: { is_market_closed?: boolean })
 
     Object.keys(trade_types).forEach((type, index) => {
         const info = proposal_info?.[type] || {};
-        const is_disabled = !is_trade_enabled || !info.id || !is_purchase_enabled;
+        const is_disabled = !is_trade_enabled || !info.id || !is_purchase_enabled || is_switching_account;
         const is_accum_or_mult_error = info?.has_error && !!info?.message;
         const is_proposal_error =
             is_multiplier || (is_accumulator && !is_mobile) ? is_accum_or_mult_error : info?.has_error;

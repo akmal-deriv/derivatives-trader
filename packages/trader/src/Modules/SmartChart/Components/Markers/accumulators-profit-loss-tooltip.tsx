@@ -46,6 +46,9 @@ const AccumulatorsProfitLossTooltip = ({
     const tooltip_timeout = React.useRef<ReturnType<typeof setTimeout>>();
     const should_show_profit_percentage = getDecimalPlaces(currency) > 2 && !!profit_percentage;
 
+    // Create a ref for CSSTransition to fix findDOMNode deprecation warning
+    const node_ref = React.useRef(null);
+
     React.useEffect(() => {
         return () => {
             clearTimeout(tooltip_timeout.current);
@@ -121,8 +124,9 @@ const AccumulatorsProfitLossTooltip = ({
                 }}
                 unmountOnExit
                 classNames={`${className}__content`}
+                nodeRef={node_ref}
             >
-                <div className={classNames(`${className}__content`, `arrow-${opposite_arrow_position}`)}>
+                <div ref={node_ref} className={classNames(`${className}__content`, `arrow-${opposite_arrow_position}`)}>
                     <Text size={is_mobile ? 'xxxxs' : 'xxs'} className={`${className}__text`}>
                         <Localize i18n_default_text='Total profit/loss:' />
                     </Text>

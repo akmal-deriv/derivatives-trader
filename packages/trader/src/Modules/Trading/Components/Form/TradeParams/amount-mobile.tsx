@@ -113,12 +113,12 @@ const Basis = observer(
 
         return (
             <React.Fragment>
-                <div className='trade-params__stake-container'>
+                <div className='trade-params-v1__stake-container'>
                     {(is_turbos || is_vanilla) && (
                         <MinMaxStakeInfo currency={currency} max_stake={max_stake} min_stake={min_stake} />
                     )}
                     <div
-                        className={classNames('trade-params__amount-keypad', {
+                        className={classNames('trade-params-v1__amount-keypad', {
                             strike__pos: is_vanilla,
                         })}
                     >

@@ -27,7 +27,7 @@ const StrikeParamModal = ({
     const { localize } = useTranslations();
     return (
         <Modal
-            className='trade-params dc-modal-header--title-bar'
+            className='trade-params-v1 dc-modal-header--title-bar'
             is_open={is_open}
             should_header_stick_body={false}
             is_title_centered
@@ -37,7 +37,7 @@ const StrikeParamModal = ({
             title={<Localize i18n_default_text='Strike' />}
         >
             <Div100vhContainer className='mobile-widget-dialog__wrapper' max_autoheight_offset='48px'>
-                <div className='trade-params__vanilla-ic-info-wrapper'>
+                <div className='trade-params-v1__vanilla-ic-info-wrapper'>
                     <Popover
                         alignment='bottom'
                         icon='info'
@@ -58,13 +58,13 @@ const StrikeParamModal = ({
                                 }}
                             />
                         }
-                        classNameBubble='trade-params--modal-wrapper__content'
+                        classNameBubble='trade-params-v1--modal-wrapper__content'
                     />
                 </div>
-                <div className={classNames('trade-params__amount-keypad', 'trade-params--mobile-strike')}>
+                <div className={classNames('trade-params-v1__amount-keypad', 'trade-params--mobile-strike')}>
                     <RadioGroup
                         name={name}
-                        className='trade-params__amount--mobile'
+                        className='trade-params-v1__amount--mobile'
                         onToggle={onChange}
                         selected={strike}
                     >

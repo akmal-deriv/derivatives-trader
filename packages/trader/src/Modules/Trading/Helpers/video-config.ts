@@ -62,5 +62,37 @@ export const UNIFIED_MODE_VIDEO_ID = {
     accumulator_stats: '26d1401d2e3f6ae16913a21ec0579fc1',
 };
 
+// Onboarding videos
+export const ONBOARDING_VIDEO_ID: TDtraderVideoUrl = {
+    trade_page: {
+        light: '166b342c39cdf08e3700590800ea0059', // user-onboarding-guide-trade-page.mp4
+        dark: 'c1706dfdee97113ca2c85b65d70cddac', // user-onboarding-guide-trade-page-dark.mp4
+    },
+    positions_page: {
+        light: '4b0f1938a87040b4d89adf4503cf97e2', // user-onboarding-guide-positions-page.mp4
+        dark: '810669c92ea3094ba48891fe6c055a92', // user-onboarding-guide-positions-page-dark.mp4
+    },
+};
+
+// Accumulator manual videos
+export const ACCUMULATOR_MANUAL_VIDEO_ID = {
+    desktop: {
+        light: '7221d8b2b532def533e0448a8a410d62', // accumulators_manual_desktop.mp4
+        dark: '2627ac2a8744e9c42e8dea01790edc93', // accumulators_manual_desktop_dark.mp4
+    },
+    mobile: {
+        light: 'b7909afcfea13c6ee05caf1b1272f184', // accumulators_manual_mobile.mp4
+        dark: '385da1df9eabcae32e45d7e3b8f44602', // accumulators_manual_mobile_dark.mp4
+    },
+};
+
 export const getDescriptionVideoId = (contract_type = '', is_dark_theme = false) =>
     DESCRIPTION_VIDEO_ID[contract_type]?.[is_dark_theme ? 'dark' : 'light'];
+
+// Helper function to get onboarding video ID
+export const getOnboardingVideoId = (page_type: 'trade_page' | 'positions_page', is_dark_theme = false) =>
+    ONBOARDING_VIDEO_ID[page_type]?.[is_dark_theme ? 'dark' : 'light'];
+
+// Helper function to get accumulator manual video ID
+export const getAccumulatorManualVideoId = (device: 'desktop' | 'mobile', is_dark_theme = false) =>
+    ACCUMULATOR_MANUAL_VIDEO_ID[device]?.[is_dark_theme ? 'dark' : 'light'];

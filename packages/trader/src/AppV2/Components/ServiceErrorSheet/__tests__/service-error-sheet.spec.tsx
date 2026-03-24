@@ -23,6 +23,23 @@ jest.mock('@deriv/shared', () => ({
     getBrandUrl: jest.fn(() => 'https://home.deriv.com/dashboard'),
 }));
 
+// Mock useMobileBridge hook
+const mockSendBridgeEvent = jest.fn(async (_event, dataOrFallback, fallback) => {
+    // Handle overloaded signature - detect if second param is function or data
+    const actualFallback = typeof dataOrFallback === 'function' ? dataOrFallback : fallback;
+    // Execute fallback to simulate browser behavior
+    if (actualFallback) await actualFallback();
+    return true;
+});
+
+jest.mock('@deriv/api', () => ({
+    ...jest.requireActual('@deriv/api'),
+    useMobileBridge: () => ({
+        sendBridgeEvent: mockSendBridgeEvent,
+        isBridgeAvailable: false,
+    }),
+}));
+
 // Mock window.location.href
 delete (window as any).location;
 window.location = { href: '' } as any;
@@ -32,6 +49,8 @@ describe('ServiceErrorSheet', () => {
 
     const history = createMemoryHistory();
     beforeEach(() => {
+        jest.clearAllMocks();
+        mockSendBridgeEvent.mockClear();
         default_mock_store = mockStore({
             client: { is_logged_in: true, is_virtual: false, currency: 'USD' },
             common: {
@@ -57,12 +76,12 @@ describe('ServiceErrorSheet', () => {
         );
     };
 
-    it('renders the Action Sheet with appropriate message and action for InsufficientBalance error', async () => {
+    it('renders the modal with appropriate message and action for InsufficientBalance error', async () => {
         render(mockTrade());
 
         expect(screen.getByText('Insufficient balance')).toBeInTheDocument();
 
-        await userEvent.click(screen.getByRole('button'));
+        await userEvent.click(screen.getByText(/deposit now/i));
         expect(default_mock_store.common.resetServicesError).toBeCalled();
     });
 
@@ -87,31 +106,65 @@ describe('ServiceErrorSheet', () => {
         expect(container).toBeEmptyDOMElement();
     });
 
-    it('should redirect to brand deposit page when "Transfer now" is clicked for real accounts', async () => {
+    it('should redirect to brand deposit page when "Deposit now" is clicked for real accounts', async () => {
         render(mockTrade());
 
         expect(screen.getByText('Insufficient balance')).toBeInTheDocument();
 
-        const depositButton = screen.getByText(/transfer now/i);
+        const depositButton = screen.getByText(/Deposit now/i);
         await userEvent.click(depositButton);
 
         expect(fileUtils.getBrandUrl).toHaveBeenCalled();
         expect(window.location.href).toBe(
-            'https://home.deriv.com/dashboard/transfer?acc=options&curr=USD&from=home&source=options&lang=EN'
+            'https://home.deriv.com/dashboard/transfer?from=dtrader&source=options&acc=options&curr=USD&lang=EN'
         );
         expect(default_mock_store.common.resetServicesError).toHaveBeenCalled();
     });
 
-    it('should not redirect for virtual accounts when "Transfer now" is clicked', async () => {
+    it('should show "OK" button for virtual accounts instead of "Deposit now"', async () => {
         default_mock_store.client.is_virtual = true;
         render(mockTrade());
 
         expect(screen.getByText('Insufficient balance')).toBeInTheDocument();
+        expect(screen.queryByText(/Deposit now/i)).not.toBeInTheDocument();
 
-        const depositButton = screen.getByText(/transfer now/i);
-        await userEvent.click(depositButton);
+        const okButton = screen.getByText(/ok/i);
+        expect(okButton).toBeInTheDocument();
 
-        expect(window.location.href).toBe('');
+        await userEvent.click(okButton);
         expect(default_mock_store.common.resetServicesError).toHaveBeenCalled();
+    });
+
+    describe('Bridge events', () => {
+        it('should call sendBridgeEvent with trading:transfer when "Deposit now" is clicked', async () => {
+            render(mockTrade());
+
+            const depositButton = screen.getByText(/Deposit now/i);
+            await userEvent.click(depositButton);
+
+            expect(mockSendBridgeEvent).toHaveBeenCalledWith('trading:transfer', expect.any(Function));
+        });
+
+        it('should not call sendBridgeEvent when "OK" button is clicked for virtual accounts', async () => {
+            default_mock_store.client.is_virtual = true;
+            render(mockTrade());
+
+            const okButton = screen.getByText(/ok/i);
+            await userEvent.click(okButton);
+
+            expect(mockSendBridgeEvent).not.toHaveBeenCalled();
+        });
+
+        it('should execute fallback (redirect) when bridge is not available', async () => {
+            window.location.href = '';
+            render(mockTrade());
+
+            const depositButton = screen.getByText(/Deposit now/i);
+            await userEvent.click(depositButton);
+
+            // Since mockSendBridgeEvent executes the fallback, window.location should be set
+            expect(window.location.href).toContain('home.deriv.com/dashboard/transfer');
+            expect(window.location.href).toContain('curr=USD');
+        });
     });
 });

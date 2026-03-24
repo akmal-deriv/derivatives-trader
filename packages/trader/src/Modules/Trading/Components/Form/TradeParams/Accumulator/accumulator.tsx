@@ -38,11 +38,7 @@ const Accumulator = observer(() => {
             is_center
             is_tooltip_disabled={has_error_or_not_loaded && is_accumulator}
             header_tooltip={localize(
-                'Your stake will grow at {{growth_rate}}% per tick as long as the current spot price remains within ±{{tick_size_barrier_percentage}} from the previous spot price.',
-                {
-                    growth_rate: getGrowthRatePercentage(growth_rate),
-                    tick_size_barrier_percentage,
-                }
+                'The growth rate determines the rate at which your stake will grow with each successful tick.'
             )}
         >
             <NumberSelector

@@ -56,7 +56,7 @@ const MultiplierOptions = observer(({ toggleModal }: TMultiplierOptions) => {
                 should_show_tooltip={false}
             />
             <MultipliersInfo
-                className='trade-params__multiplier-trade-info'
+                className='trade-params-v1__multiplier-trade-info'
                 should_show_tooltip
                 commission={commission}
                 stop_out={stop_out}

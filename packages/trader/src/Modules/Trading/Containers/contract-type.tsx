@@ -5,6 +5,7 @@ import { getMarketNamesMap, unsupported_contract_types_list } from '@deriv/share
 import { observer, useStore } from '@deriv/stores';
 import { Localize } from '@deriv-com/translations';
 
+import useNativeAppAllowedTradeTypes from 'AppV2/Hooks/useNativeAppAllowedTradeTypes';
 import { ToastPopup } from 'Modules/Trading/Containers/toast-popup';
 import { isDigitTradeType } from 'Modules/Trading/Helpers/digits';
 import { useTraderStore } from 'Stores/useTraderStores';
@@ -25,13 +26,17 @@ const Contract = observer(() => {
         common: { current_language },
     } = useStore();
 
+    const nativeAppAllowedTradeTypes = useNativeAppAllowedTradeTypes();
+
     const list = getAvailableContractTypes(
         contract_types_list as unknown as Parameters<typeof getAvailableContractTypes>[0],
-        unsupported_contract_types_list
+        unsupported_contract_types_list,
+        nativeAppAllowedTradeTypes
     );
     const unavailable_trade_types_list = getAvailableContractTypes(
         non_available_contract_types_list,
-        unsupported_contract_types_list
+        unsupported_contract_types_list,
+        nativeAppAllowedTradeTypes
     ).map(item => ({ ...item, is_unavailable: true }));
     const prev_lang = usePrevious(current_language);
     return (

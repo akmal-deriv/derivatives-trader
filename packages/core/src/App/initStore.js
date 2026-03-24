@@ -1,4 +1,8 @@
 import { configure } from 'mobx';
+
+import { clearAccountId, getAccountId, getAccountType, getApiCoreBaseUrl, getBrandDomains } from '@deriv/shared';
+
+import { checkWhoAmI } from 'Services';
 import NetworkMonitor from 'Services/network-monitor';
 import RootStore from 'Stores';
 
@@ -30,7 +34,7 @@ const setStorageEvents = root_store => {
     });
 };
 
-const initStore = (notification_messages, accounts) => {
+const initStore = async notification_messages => {
     // Check Endpoint from URL need to be done before initializing store to avoid
     // race condition with setting up user session from URL
     const url_query_string = window.location.search;
@@ -46,6 +50,92 @@ const initStore = (notification_messages, accounts) => {
         if (server_url) localStorage.setItem('config.server_url', server_url);
     }
 
+    // Handle Ory recovery link for mobile app
+    const is_mobile_app = url_params?.get('is_mobile_app');
+    const ory_cookie_link = url_params?.get('ory_cookie_link');
+
+    if (is_mobile_app && ory_cookie_link) {
+        try {
+            const decodedRecoveryLink = atob(ory_cookie_link);
+
+            // Validate URL is from trusted domain
+            const url = new URL(decodedRecoveryLink);
+            const allowedHosts = getBrandDomains().flatMap(domain => [`auth.${domain}`, `staging-auth.${domain}`]);
+
+            if (!allowedHosts.includes(url.hostname)) {
+                // eslint-disable-next-line no-console
+                console.error('Invalid ory_cookie_link domain:', url.hostname);
+                return root_store; // or throw error
+            }
+
+            // Enforce HTTPS
+            if (url.protocol !== 'https:') {
+                // eslint-disable-next-line no-console
+                console.error('ory_cookie_link must use HTTPS');
+                return root_store;
+            }
+
+            await fetch(decodedRecoveryLink, {
+                credentials: 'include',
+            });
+        } catch (e) {
+            // eslint-disable-next-line no-console
+            console.error('Failed to decode ory_cookie_link:', e);
+        }
+    }
+
+    // Check whoami BEFORE initializing NetworkMonitor to prevent connecting with stale credentials
+    let external_id;
+    const account_id = getAccountId();
+    getAccountType();
+
+    if (account_id) {
+        const whoami_result = await checkWhoAmI();
+
+        // If session is invalid (401), clear credentials before any WebSocket connection
+        if (whoami_result.error?.code === 401) {
+            // Clear credentials to prevent WebSocket from connecting with stale account_id
+            clearAccountId();
+            localStorage.removeItem('account_type');
+            localStorage.removeItem('active_loginid');
+            sessionStorage.removeItem('active_loginid');
+            localStorage.removeItem('current_account');
+        } else {
+            if (whoami_result.data?.identity?.external_id) {
+                external_id = whoami_result.data.identity.external_id;
+            }
+
+            // Check if the target account is trading_disabled — fall back to demo if so
+            try {
+                const response = await fetch(`${getApiCoreBaseUrl()}/v1/derivatives/account`, {
+                    credentials: 'include',
+                });
+                if (response.ok) {
+                    const { data: accounts } = await response.json();
+                    const target_account = accounts?.find(acc => acc.account_id === account_id);
+
+                    if (target_account?.status === 'trading_disabled') {
+                        const demo_account = accounts?.find(
+                            acc => acc.account_type === 'demo' && acc.status !== 'trading_disabled'
+                        );
+                        if (demo_account) {
+                            localStorage.setItem('account_id', demo_account.account_id);
+                            localStorage.setItem('account_type', 'demo');
+                        } else {
+                            // No valid account to fall back to — connect as public
+                            clearAccountId();
+                            localStorage.removeItem('account_type');
+                        }
+                    }
+                }
+            } catch (e) {
+                // eslint-disable-next-line no-console
+                console.error('Failed to check account status:', e);
+                // Continue with original account_id — WebSocket retry will handle failures
+            }
+        }
+    }
+
     const root_store = new RootStore();
 
     // Set up global store reference for analytics and other utilities
@@ -55,8 +145,9 @@ const initStore = (notification_messages, accounts) => {
 
     setStorageEvents(root_store);
 
+    // Now safe to initialize NetworkMonitor - credentials are validated
     NetworkMonitor.init(root_store);
-    root_store.client.init(accounts);
+    root_store.client.init(external_id);
     root_store.common.init();
     root_store.ui.init(notification_messages);
 

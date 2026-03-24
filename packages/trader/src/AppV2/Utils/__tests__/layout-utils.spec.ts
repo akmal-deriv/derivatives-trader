@@ -83,9 +83,15 @@ describe('getChartHeight', () => {
             is_accumulator: false,
             symbol: '1HZ100V',
         };
-        const default_chart_height = 484;
-        const accumulators_chart_height = 428;
-        const chart_height_with_additional_info = 454;
+        // window.innerHeight (740) - HEADER (56) - TRADE_TYPE (48) - MARKET_SELECTOR (58) - TRADE_PARAM_SHEET (170) - BOTTOM_NAV (56) = 352
+        // MATCH_DIFF is a digit type, so subtract DIGIT_INFO (56): 352 - 56 = 296
+        const default_chart_height = 296;
+        // base (352) - CHART_STATS (82) = 270
+        const accumulators_chart_height = 270;
+        // base (352) - ADDITIONAL_INFO (30) = 322
+        const chart_height_with_additional_info = 322;
+        // HIGH_LOW has no additional info components (barrier vs barrier_info)
+        const high_low_chart_height = 352;
 
         expect(
             getChartHeight({
@@ -130,7 +136,7 @@ describe('getChartHeight', () => {
                 ...common_args,
                 contract_type: TRADE_TYPES.HIGH_LOW,
             })
-        ).toEqual(chart_height_with_additional_info);
+        ).toEqual(high_low_chart_height);
     });
 });
 

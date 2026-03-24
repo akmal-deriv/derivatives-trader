@@ -28,7 +28,7 @@ const Header = ({
                 onClick={e => clickAndKeyEventHandler(onClickBack, e)}
                 onKeyDown={e => clickAndKeyEventHandler(onClickBack, e)}
             >
-                <LegacyArrowLeft2pxIcon iconSize='xs' />
+                <LegacyArrowLeft2pxIcon iconSize='xs' fill='var(--color-text-primary)' />
             </span>
         )}
         <Text size={text_size} weight='bold' color='primary' className='contract-type-info__title'>
@@ -40,7 +40,7 @@ const Header = ({
                 onClick={e => clickAndKeyEventHandler(onClose, e)}
                 onKeyDown={e => clickAndKeyEventHandler(onClose, e)}
             >
-                <LegacyClose2pxIcon iconSize='xs' />
+                <LegacyClose2pxIcon iconSize='xs' fill='var(--color-text-primary)' />
             </span>
         )}
     </div>

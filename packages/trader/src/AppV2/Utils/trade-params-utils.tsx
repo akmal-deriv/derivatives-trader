@@ -25,11 +25,13 @@ export const DURATION_UNIT = {
 
 export const getTradeParams = (symbol?: string, has_cancellation?: boolean) => ({
     [TRADE_TYPES.RISE_FALL]: {
+        trade_type_tabs: true,
         duration: true,
         stake: true,
         allow_equals: true,
     },
     [TRADE_TYPES.RISE_FALL_EQUAL]: {
+        trade_type_tabs: true,
         duration: true,
         stake: true,
         allow_equals: true,
@@ -39,25 +41,26 @@ export const getTradeParams = (symbol?: string, has_cancellation?: boolean) => (
         duration: true,
         barrier: true,
         stake: true,
-        payout: true,
     },
     [TRADE_TYPES.TOUCH]: {
         trade_type_tabs: true,
         duration: true,
         barrier: true,
         stake: true,
-        payout: true,
     },
     [TRADE_TYPES.MATCH_DIFF]: {
+        trade_type_tabs: true,
         last_digit: true,
         duration: true,
         stake: true,
     },
     [TRADE_TYPES.EVEN_ODD]: {
+        trade_type_tabs: true,
         duration: true,
         stake: true,
     },
     [TRADE_TYPES.OVER_UNDER]: {
+        trade_type_tabs: true,
         last_digit: true,
         duration: true,
         stake: true,
@@ -69,11 +72,13 @@ export const getTradeParams = (symbol?: string, has_cancellation?: boolean) => (
         accu_info_display: true,
     },
     [TRADE_TYPES.MULTIPLIER]: {
+        trade_type_tabs: true,
         multiplier: true,
         stake: true,
         risk_management: true,
         ...(has_cancellation ? { mult_info_display: true } : {}),
         ...(shouldShowExpiration(symbol) ? { expiration: true } : {}),
+        multipliers_info: true,
     },
     [TRADE_TYPES.TURBOS.LONG]: {
         trade_type_tabs: true,
@@ -148,6 +153,8 @@ export const getTradeTypeTabsList = (contract_type = '') => {
     const is_vanilla = isVanillaContract(contract_type);
     const is_high_low = contract_type === TRADE_TYPES.HIGH_LOW;
     const is_touch = isTouchContract(contract_type);
+    const is_rise_fall_equal = contract_type === TRADE_TYPES.RISE_FALL_EQUAL;
+    const is_rise_fall = contract_type === TRADE_TYPES.RISE_FALL || is_rise_fall_equal;
     const tab_list = [
         {
             label: 'Up',
@@ -191,6 +198,66 @@ export const getTradeTypeTabsList = (contract_type = '') => {
             value: TRADE_TYPES.TOUCH,
             contract_type: CONTRACT_TYPES.TOUCH.NO_TOUCH,
             is_displayed: is_touch,
+        },
+        {
+            label: 'Rise',
+            value: is_rise_fall_equal ? TRADE_TYPES.RISE_FALL_EQUAL : TRADE_TYPES.RISE_FALL,
+            contract_type: is_rise_fall_equal ? CONTRACT_TYPES.CALLE : CONTRACT_TYPES.CALL,
+            is_displayed: is_rise_fall,
+        },
+        {
+            label: 'Fall',
+            value: is_rise_fall_equal ? TRADE_TYPES.RISE_FALL_EQUAL : TRADE_TYPES.RISE_FALL,
+            contract_type: is_rise_fall_equal ? CONTRACT_TYPES.PUTE : CONTRACT_TYPES.PUT,
+            is_displayed: is_rise_fall,
+        },
+        {
+            label: 'Matches',
+            value: TRADE_TYPES.MATCH_DIFF,
+            contract_type: CONTRACT_TYPES.MATCH_DIFF.MATCH,
+            is_displayed: contract_type === TRADE_TYPES.MATCH_DIFF,
+        },
+        {
+            label: 'Differs',
+            value: TRADE_TYPES.MATCH_DIFF,
+            contract_type: CONTRACT_TYPES.MATCH_DIFF.DIFF,
+            is_displayed: contract_type === TRADE_TYPES.MATCH_DIFF,
+        },
+        {
+            label: 'Even',
+            value: TRADE_TYPES.EVEN_ODD,
+            contract_type: CONTRACT_TYPES.EVEN_ODD.EVEN,
+            is_displayed: contract_type === TRADE_TYPES.EVEN_ODD,
+        },
+        {
+            label: 'Odd',
+            value: TRADE_TYPES.EVEN_ODD,
+            contract_type: CONTRACT_TYPES.EVEN_ODD.ODD,
+            is_displayed: contract_type === TRADE_TYPES.EVEN_ODD,
+        },
+        {
+            label: 'Over',
+            value: TRADE_TYPES.OVER_UNDER,
+            contract_type: CONTRACT_TYPES.OVER_UNDER.OVER,
+            is_displayed: contract_type === TRADE_TYPES.OVER_UNDER,
+        },
+        {
+            label: 'Under',
+            value: TRADE_TYPES.OVER_UNDER,
+            contract_type: CONTRACT_TYPES.OVER_UNDER.UNDER,
+            is_displayed: contract_type === TRADE_TYPES.OVER_UNDER,
+        },
+        {
+            label: 'Up',
+            value: TRADE_TYPES.MULTIPLIER,
+            contract_type: CONTRACT_TYPES.MULTIPLIER.UP,
+            is_displayed: contract_type === TRADE_TYPES.MULTIPLIER,
+        },
+        {
+            label: 'Down',
+            value: TRADE_TYPES.MULTIPLIER,
+            contract_type: CONTRACT_TYPES.MULTIPLIER.DOWN,
+            is_displayed: contract_type === TRADE_TYPES.MULTIPLIER,
         },
     ];
     return tab_list.filter(({ is_displayed }) => is_displayed);

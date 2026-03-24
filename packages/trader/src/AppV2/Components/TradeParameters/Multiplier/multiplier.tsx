@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import clsx from 'clsx';
 import { observer } from 'mobx-react-lite';
 
-import { Localize } from '@deriv-com/translations';
 import { ActionSheet, Skeleton, TextField } from '@deriv-com/quill-ui';
+import { Localize } from '@deriv-com/translations';
+import { isMobile } from '@deriv/shared';
 
 import Carousel from 'AppV2/Components/Carousel';
 import CarouselHeader from 'AppV2/Components/Carousel/carousel-header';
@@ -13,12 +14,14 @@ import { useTraderStore } from 'Stores/useTraderStores';
 
 import { TTradeParametersProps } from '../trade-parameters';
 
+import MultiplierDesktop from './multiplier-desktop';
 import MultiplierWheelPicker from './multiplier-wheel-picker';
 
 const Multiplier = observer(({ is_minimized }: TTradeParametersProps) => {
     const { multiplier, multiplier_range_list, commission, is_market_closed, onChange, currency } = useTraderStore();
 
     const [isOpen, setIsOpen] = useState(false);
+    const is_mobile = isMobile();
     const is_small_screen_device = isSmallScreen();
     const classname = clsx('trade-params__option', is_minimized && 'trade-params__option--minimized');
 
@@ -60,6 +63,12 @@ const Multiplier = observer(({ is_minimized }: TTradeParametersProps) => {
             </div>
         );
 
+    // Render desktop version with InputPopover for non-mobile devices
+    if (!is_mobile) {
+        return <MultiplierDesktop is_minimized={is_minimized} />;
+    }
+
+    // Render mobile version with ActionSheet (unchanged)
     return (
         <React.Fragment>
             <TextField

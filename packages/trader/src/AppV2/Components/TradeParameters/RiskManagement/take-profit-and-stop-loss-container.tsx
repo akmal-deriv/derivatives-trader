@@ -1,9 +1,11 @@
 import React from 'react';
 import { observer } from 'mobx-react-lite';
 
-import { Localize } from '@deriv-com/translations';
+import { trackAnalyticsEvent } from '@deriv/shared';
 import { Button, useSnackbar } from '@deriv-com/quill-ui';
+import { Localize } from '@deriv-com/translations';
 
+import useIsVirtualKeyboardOpen from 'AppV2/Hooks/useIsVirtualKeyboardOpen';
 import { getSnackBarText } from 'AppV2/Utils/trade-params-utils';
 import { useTraderStore } from 'Stores/useTraderStores';
 
@@ -34,6 +36,90 @@ const TakeProfitAndStopLossContainer = observer(({ closeActionSheet }: TTakeProf
     const [sl_error_text, setSLErrorText] = React.useState<React.ReactNode>(validation_errors?.stop_loss?.[0] ?? '');
     const sl_ref = React.useRef({ has_stop_loss, stop_loss, sl_error_text: validation_errors?.stop_loss?.[0] });
     const is_api_response_sl_received_ref = React.useRef(false);
+
+    // Detect keyboard visibility for Stop Loss input
+    const { is_key_board_visible: is_sl_keyboard_visible } = useIsVirtualKeyboardOpen('stop_loss');
+
+    const wrapper_ref = React.useRef<HTMLDivElement>(null);
+
+    // Scroll container to bottom when Stop Loss keyboard opens
+    React.useEffect(() => {
+        if (!is_sl_keyboard_visible || !wrapper_ref.current) return;
+
+        let rafId: number;
+        let lastViewportHeight = window.visualViewport?.height || 0;
+        let viewportStableFrames = 0;
+        const VIEWPORT_STABLE_FRAMES = 3;
+        // Save button may have a separate animation cycle from the keyboard —
+        // wait for its position to stop changing before scrolling
+        const BUTTON_STABLE_FRAMES = 3;
+
+        const scrollToBottom = () => {
+            // Find the parent Action Sheet container which is the actual scrollable element
+            const scrollableParent = wrapper_ref.current?.closest('.risk-management__picker');
+            if (scrollableParent) {
+                scrollableParent.scrollTo({
+                    top: scrollableParent.scrollHeight,
+                    behavior: 'smooth',
+                });
+            }
+        };
+
+        // After viewport is stable, poll save button position each frame until it stops moving.
+        // getBoundingClientRect is only called after keyboard animation ends (~20 reads total).
+        const checkSaveButtonStability = () => {
+            const saveButton = wrapper_ref.current?.querySelector('.risk-management__save-button');
+            if (!saveButton) {
+                scrollToBottom();
+                return;
+            }
+
+            let lastTop = saveButton.getBoundingClientRect().top;
+            let stableFrames = 0;
+
+            const poll = () => {
+                const currentTop = saveButton.getBoundingClientRect().top;
+                if (currentTop === lastTop) {
+                    stableFrames++;
+                    if (stableFrames >= BUTTON_STABLE_FRAMES) {
+                        scrollToBottom();
+                        return;
+                    }
+                } else {
+                    stableFrames = 0;
+                    lastTop = currentTop;
+                }
+                rafId = requestAnimationFrame(poll);
+            };
+
+            rafId = requestAnimationFrame(poll);
+        };
+
+        const checkViewportStability = () => {
+            const currentHeight = window.visualViewport?.height || 0;
+
+            if (currentHeight === lastViewportHeight) {
+                viewportStableFrames++;
+                if (viewportStableFrames >= VIEWPORT_STABLE_FRAMES) {
+                    // Viewport stable, now wait for save button to stop moving
+                    checkSaveButtonStability();
+                    return;
+                }
+            } else {
+                // Viewport still changing, reset counter
+                viewportStableFrames = 0;
+                lastViewportHeight = currentHeight;
+            }
+
+            rafId = requestAnimationFrame(checkViewportStability);
+        };
+
+        rafId = requestAnimationFrame(checkViewportStability);
+
+        return () => {
+            cancelAnimationFrame(rafId);
+        };
+    }, [is_sl_keyboard_visible]);
 
     const onSave = () => {
         // Prevent from saving if user clicks before we got response from API
@@ -82,11 +168,17 @@ const TakeProfitAndStopLossContainer = observer(({ closeActionSheet }: TTakeProf
             ...(is_tp_enabled || is_sl_enabled ? { has_cancellation: false } : {}),
         });
 
+        trackAnalyticsEvent('ce_trade_types_form_v2', {
+            action: 'customizing_trades',
+            input_method: 'custom',
+            parameter_type: 'take_profit_stop_loss',
+        });
+
         closeActionSheet();
     };
 
     return (
-        <div className='risk-management__tp-sl__wrapper'>
+        <div ref={wrapper_ref} className='risk-management__tp-sl__wrapper'>
             <TakeProfitAndStopLossInput
                 classname='risk-management__tp-sl'
                 has_save_button={false}
