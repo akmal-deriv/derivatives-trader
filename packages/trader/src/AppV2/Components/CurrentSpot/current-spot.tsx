@@ -142,8 +142,15 @@ const CurrentSpot = observer(() => {
             // Use throttled version for regular updates
             throttledSetNewData();
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [contract_id, is_prev_contract_elapsed, last_contract, prev_contract, prev_contract_id, should_enter_from_top]);
+    }, [
+        contract_id,
+        is_prev_contract_elapsed,
+        last_contract,
+        prev_contract,
+        prev_contract_id,
+        should_enter_from_top,
+        throttledSetNewData,
+    ]);
 
     React.useEffect(() => {
         return () => {

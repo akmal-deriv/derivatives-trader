@@ -429,6 +429,8 @@ const StakeInput = observer(({ onClose, is_open }: TStakeInput) => {
     };
 
     const onSave = () => {
+        // Flush any pending debounced update so proposal_request_values.amount is up to date
+        debouncedUpdateProposal.flush();
         // Prevent from saving if user clicks before we get theAPI response or if we get an error in response or the field is empty
         if (
             is_fetching_1 ||
@@ -437,7 +439,7 @@ const StakeInput = observer(({ onClose, is_open }: TStakeInput) => {
             fe_stake_error
         )
             return;
-        if (proposal_request_values.amount === '') {
+        if (displayAmount === '') {
             dispatch({
                 type: 'SET_FE_STAKE_ERROR',
                 payload: localize('Amount is a required field.'),
@@ -445,7 +447,7 @@ const StakeInput = observer(({ onClose, is_open }: TStakeInput) => {
             return;
         }
         // Setting new stake value to the store and send it in streaming proposal
-        onChange({ target: { name: 'amount', value: proposal_request_values.amount } });
+        onChange({ target: { name: 'amount', value: displayAmount } });
         trackAnalyticsEvent('ce_trade_types_form_v2', {
             action: 'customizing_trades',
             input_method: 'custom',

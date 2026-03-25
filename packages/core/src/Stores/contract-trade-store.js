@@ -467,7 +467,7 @@ export default class ContractTradeStore extends BaseStore {
         );
 
         this.contracts.push(contract);
-        this.contracts_map[contract_id] = contract;
+        this.contracts_map = { ...this.contracts_map, [contract_id]: contract };
 
         // Clear any override when adding a new contract
         this.clearLastContractOverride();
@@ -479,7 +479,8 @@ export default class ContractTradeStore extends BaseStore {
 
     removeContract({ contract_id }) {
         this.contracts = this.contracts.filter(c => c.contract_id !== contract_id);
-        delete this.contracts_map[contract_id];
+        const { [contract_id]: _, ...rest } = this.contracts_map;
+        this.contracts_map = rest;
     }
 
     /**
