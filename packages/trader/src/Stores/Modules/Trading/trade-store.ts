@@ -1724,7 +1724,10 @@ export default class TradeStore extends BaseStore {
             ...this.proposal_info,
             [contract_type]: getProposalInfo(this, response),
         };
-        this.validation_params[contract_type] = this.proposal_info[contract_type].validation_params;
+        this.validation_params = {
+            ...this.validation_params,
+            [contract_type]: this.proposal_info[contract_type].validation_params,
+        };
 
         if (this.is_multiplier && this.proposal_info && this.proposal_info.MULTUP) {
             const { commission, cancellation, limit_order } = this.proposal_info.MULTUP;
@@ -2327,7 +2330,12 @@ export default class TradeStore extends BaseStore {
     }
 
     setStakeBoundary(type: string, min_stake?: number, max_stake?: number) {
-        if (min_stake && max_stake) this.stake_boundary[type] = { min_stake, max_stake };
+        if (min_stake && max_stake) {
+            this.stake_boundary = {
+                ...this.stake_boundary,
+                [type]: { min_stake, max_stake },
+            };
+        }
     }
 
     setActiveSymbolsV2(active_symbols: ActiveSymbols) {

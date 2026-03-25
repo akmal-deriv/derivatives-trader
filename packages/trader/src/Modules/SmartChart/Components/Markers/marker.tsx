@@ -54,8 +54,9 @@ const ChartMarker = ({
 }: TChartMarker) => {
     const { ContentComponent, ...marker_props } = marker_config;
 
-    // Memoize toJS conversion to avoid expensive operation on every render
-    const contentProps = useMemo(() => toJS(marker_content_props), [marker_content_props]);
+    // Convert MobX observable to plain object on every render to ensure fresh data
+    // (marker_content_props reference may be stable while internal data changes)
+    const contentProps = toJS(marker_content_props);
 
     // Memoize onRef callback to prevent recreation
     const onRef = React.useCallback(

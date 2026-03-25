@@ -116,9 +116,16 @@ const CurrentSpot = observer(() => {
         setDisplayedSpot(latest_digit.spot);
     }, [current_tick, latest_digit.spot]);
 
+    // Stable ref so the throttle can always call the latest version
+    const setNewDataRef = React.useRef(setNewData);
+    React.useEffect(() => {
+        setNewDataRef.current = setNewData;
+    });
+
+    // Create the throttle only ONCE — calls through the ref
     const throttledSetNewData = React.useMemo(
-        () => throttle(setNewData, 100), // Max 10 updates per second
-        [setNewData]
+        () => throttle(() => setNewDataRef.current(), 100), // Max 10 updates per second
+        [] // stable — never recreated
     );
 
     React.useEffect(() => {
@@ -129,22 +136,14 @@ const CurrentSpot = observer(() => {
             setShouldEnterFromTop(true);
             contract_switching_timer.current = setTimeout(() => {
                 setShouldEnterFromTop(false);
-                setNewData();
+                setNewDataRef.current();
             }, 240); // equal to animation duration
         } else if (!should_enter_from_top) {
             // Use throttled version for regular updates
             throttledSetNewData();
         }
-    }, [
-        contract_id,
-        is_prev_contract_elapsed,
-        last_contract,
-        prev_contract,
-        prev_contract_id,
-        setNewData,
-        throttledSetNewData,
-        should_enter_from_top,
-    ]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [contract_id, is_prev_contract_elapsed, last_contract, prev_contract, prev_contract_id, should_enter_from_top]);
 
     React.useEffect(() => {
         return () => {

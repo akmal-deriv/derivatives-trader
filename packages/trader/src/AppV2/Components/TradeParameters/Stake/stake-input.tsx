@@ -354,6 +354,15 @@ const StakeInput = observer(({ onClose, is_open }: TStakeInput) => {
             />
         );
 
+    // Separate local display value from the debounced API-triggering value
+    // so user keystrokes are visible immediately while API calls are debounced
+    const [displayAmount, setDisplayAmount] = React.useState(String(proposal_request_values.amount ?? ''));
+
+    // Sync display amount when proposal_request_values changes externally (e.g. on init)
+    React.useEffect(() => {
+        setDisplayAmount(String(proposal_request_values.amount ?? ''));
+    }, [proposal_request_values.amount]);
+
     // Debounced function to update proposal values and trigger API call
     const debouncedUpdateProposal = React.useMemo(
         () =>
@@ -369,6 +378,7 @@ const StakeInput = observer(({ onClose, is_open }: TStakeInput) => {
 
     const onInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const new_value = String(e.target.value);
+        setDisplayAmount(new_value); // Immediate display update
         dispatch({
             type: 'SET_MAX_LENGTH',
             payload: calculateMaxLength(new_value, decimals),
@@ -479,7 +489,7 @@ const StakeInput = observer(({ onClose, is_open }: TStakeInput) => {
                     status={fe_stake_error || (should_show_stake_error && stake_error) ? 'error' : 'neutral'}
                     textAlignment='center'
                     unitLeft={getCurrencyDisplayCode(currency)}
-                    value={proposal_request_values.amount}
+                    value={displayAmount}
                     variant='fill'
                 />
                 <StakeDetails
