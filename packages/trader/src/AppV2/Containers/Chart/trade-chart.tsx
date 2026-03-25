@@ -12,7 +12,7 @@ import {
 import { observer, useStore } from '@deriv/stores';
 import { useDevice } from '@deriv-com/ui';
 
-import { filterByContractType } from 'App/Components/Elements/PositionsDrawer/helpers';
+import { filterByContractType } from 'Modules/Contract/Components/ContractAudit/positions-helper';
 import useActiveSymbols from 'AppV2/Hooks/useActiveSymbols';
 import { SmartChart } from 'Modules/SmartChart';
 import AccumulatorsChartElements from 'Modules/SmartChart/Components/Markers/accumulators-chart-elements';

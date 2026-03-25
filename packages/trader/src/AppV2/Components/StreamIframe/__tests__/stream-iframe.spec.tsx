@@ -2,7 +2,7 @@ import React from 'react';
 
 import { fireEvent, render, screen } from '@testing-library/react';
 
-import { UNIFIED_MODE_VIDEO_ID } from 'Modules/Trading/Helpers/video-config';
+import { UNIFIED_MODE_VIDEO_ID } from 'AppV2/Utils/video-config';
 
 import StreamIframe from '../stream-iframe';
 

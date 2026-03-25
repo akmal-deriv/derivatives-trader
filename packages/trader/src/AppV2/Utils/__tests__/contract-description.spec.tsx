@@ -29,7 +29,9 @@ describe('getTermDefinition', () => {
         );
 
         expect(
-            screen.getByText('The growth rate determines the rate at which your stake will grow with each successful tick.')
+            screen.getByText(
+                'The growth rate determines the rate at which your stake will grow with each successful tick.'
+            )
         ).toBeInTheDocument();
     });
 

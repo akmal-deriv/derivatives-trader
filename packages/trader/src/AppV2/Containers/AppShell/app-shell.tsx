@@ -6,7 +6,7 @@ import { routes } from '@deriv/shared';
 import { useStore } from '@deriv/stores';
 import { useDevice } from '@deriv-com/ui';
 
-import Sidebar from 'App/Components/Layout/Sidebar/sidebar';
+import Sidebar from 'AppV2/Components/Layout/Sidebar/sidebar';
 
 import Router from '../../Routes/router';
 

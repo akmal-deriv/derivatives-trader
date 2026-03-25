@@ -18,8 +18,8 @@ import {
 import { observer, useStore } from '@deriv/stores';
 import { Localize } from '@deriv-com/translations';
 
-import ChartLoader from 'App/Components/Elements/chart-loader';
-import ContractDrawer from 'App/Components/Elements/ContractDrawer';
+import ChartLoader from '../Components/chart-loader';
+import ContractDrawer from '../Components/ContractDrawer';
 
 import ReplayChart from './replay-chart';
 

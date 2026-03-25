@@ -729,7 +729,7 @@ describe('TradeStore', () => {
             it('should return true for digit trade types', () => {
                 // Mock the isDigitTradeType function to return true
                 const mockIsDigitTradeType = jest.fn(() => true);
-                jest.doMock('Modules/Trading/Helpers/digits', () => ({
+                jest.doMock('AppV2/Utils/digits', () => ({
                     isDigitTradeType: mockIsDigitTradeType,
                 }));
 

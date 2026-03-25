@@ -19,7 +19,7 @@ import {
 } from '@deriv/shared';
 import { Localize } from '@deriv-com/translations';
 
-import { getBarrierValue } from 'App/Components/Elements/PositionsDrawer/helpers';
+import { getBarrierValue } from 'Modules/Contract/Components/ContractAudit/positions-helper';
 import { isCancellationExpired } from 'Stores/Modules/Trading/Helpers/logic';
 
 type TCardLabels = ReturnType<typeof getCardLabelsV2>;

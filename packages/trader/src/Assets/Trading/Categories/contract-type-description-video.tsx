@@ -3,7 +3,7 @@ import React from 'react';
 import { VideoPlayer } from '@deriv/components';
 import { useStore } from '@deriv/stores';
 
-import { getDescriptionVideoId } from 'Modules/Trading/Helpers/video-config';
+import { getDescriptionVideoId } from 'AppV2/Utils/video-config';
 
 type TContractTypeDescriptionVideo = {
     data_testid?: string;

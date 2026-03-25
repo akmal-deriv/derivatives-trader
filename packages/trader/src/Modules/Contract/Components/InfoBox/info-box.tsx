@@ -2,7 +2,7 @@ import React from 'react';
 
 import { TContractInfo } from '@deriv/shared';
 
-import { SlideIn } from 'App/Components/Animations';
+import { SlideIn } from '../Animations';
 
 import ContractError from '../contract-error';
 

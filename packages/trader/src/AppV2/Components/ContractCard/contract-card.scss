@@ -166,10 +166,10 @@
         &.has-cancel-button {
             transform: translateX(calc(var(--core-size-3600) * -2));
 
-                [dir='rtl'] & {
+            [dir='rtl'] & {
                 transform: translateX(calc(var(--core-size-3600) * 2));
             }
-            }
+        }
     }
     &-wrapper {
         position: relative;
@@ -206,14 +206,14 @@
                     &.has-cancel-button {
                         animation: var(--motion-duration-relax) var(--motion-easing-inandout) bounce-two-buttons;
                     }
-                                [dir='rtl'] & {
+                    [dir='rtl'] & {
                         animation-name: bounce-one-button-rtl;
 
                         &.has-cancel-button {
                             animation-name: bounce-two-buttons-rtl;
                         }
                     }
-                                @keyframes bounce-one-button {
+                    @keyframes bounce-one-button {
                         0%,
                         100% {
                             transform: translateX(0);
@@ -233,7 +233,7 @@
                             transform: translateX(calc(var(--core-size-3600) * -2));
                         }
                     }
-                                @keyframes bounce-one-button-rtl {
+                    @keyframes bounce-one-button-rtl {
                         0%,
                         100% {
                             transform: translateX(0);
@@ -253,7 +253,7 @@
                             transform: translateX(calc(var(--core-size-3600) * 2));
                         }
                     }
-                            }
+                }
             }
         }
     }

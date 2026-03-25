@@ -60,7 +60,7 @@ import {
 import { safeParse } from '@deriv/utils';
 import { localize } from '@deriv-com/translations';
 
-import { isDigitContractType, isDigitTradeType } from 'Modules/Trading/Helpers/digits';
+import { isDigitContractType, isDigitTradeType } from 'AppV2/Utils/digits';
 import { getMultiplierValidationRules, getValidationRules } from 'Stores/Modules/Trading/Constants/validation-rules';
 import { ContractType } from 'Stores/Modules/Trading/Helpers/contract-type';
 import { TContractTypesList, TRootStore, TTextValueNumber, TTextValueStrings } from 'Types';

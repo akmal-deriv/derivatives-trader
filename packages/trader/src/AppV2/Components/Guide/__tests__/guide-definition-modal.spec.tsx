@@ -23,7 +23,9 @@ describe('GuideDefinitionModal', () => {
 
         expect(screen.getByText(getTerm().GROWTH_RATE)).toBeInTheDocument();
         expect(
-            screen.getByText(/The growth rate determines the rate at which your stake will grow with each successful tick/i)
+            screen.getByText(
+                /The growth rate determines the rate at which your stake will grow with each successful tick/i
+            )
         ).toBeInTheDocument();
     });
 });

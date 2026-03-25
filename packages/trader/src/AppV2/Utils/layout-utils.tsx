@@ -1,6 +1,6 @@
 import { TCommonStoreServicesError } from '@deriv/stores/types';
 
-import { isDigitTradeType } from 'Modules/Trading/Helpers/digits';
+import { isDigitTradeType } from 'AppV2/Utils/digits';
 
 import { getTradeParams } from './trade-params-utils';
 

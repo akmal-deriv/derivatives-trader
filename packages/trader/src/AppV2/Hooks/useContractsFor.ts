@@ -6,7 +6,7 @@ import { useStore } from '@deriv/stores';
 
 import { checkContractTypePrefix } from 'AppV2/Utils/contract-type';
 import { getTradeTypesList } from 'AppV2/Utils/trade-types-utils';
-import { TContractType } from 'Modules/Trading/Components/Form/ContractType/types';
+import { TContractType } from 'AppV2/Types/contract-type';
 import { ContractType } from 'Stores/Modules/Trading/Helpers/contract-type';
 import { useTraderStore } from 'Stores/useTraderStores';
 import { TConfig, TContractTypesList } from 'Types';

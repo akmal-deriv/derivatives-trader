@@ -3,7 +3,7 @@ import React from 'react';
 import { Localize } from '@deriv-com/translations';
 import { ActionSheet, Text } from '@deriv-com/quill-ui';
 
-import { UNIFIED_MODE_VIDEO_ID } from 'Modules/Trading/Helpers/video-config';
+import { UNIFIED_MODE_VIDEO_ID } from 'AppV2/Utils/video-config';
 
 import StreamIframe from '../StreamIframe';
 

@@ -7,7 +7,7 @@ import { routes } from '@deriv/shared';
 import { observer, useStore } from '@deriv/stores';
 import { useTranslations } from '@deriv-com/translations';
 
-import ErrorComponent from 'App/Components/Elements/Errors';
+import ErrorComponent from '../Components/Errors';
 
 import ContractReplay from './contract-replay';
 

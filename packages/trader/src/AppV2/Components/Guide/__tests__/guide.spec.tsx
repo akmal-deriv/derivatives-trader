@@ -229,7 +229,8 @@ describe('Guide', () => {
 
         renderGuide();
 
-        const term_definition = 'The growth rate determines the rate at which your stake will grow with each successful tick.';
+        const term_definition =
+            'The growth rate determines the rate at which your stake will grow with each successful tick.';
         expect(screen.queryByText(term_definition)).not.toBeInTheDocument();
 
         // On mobile, the guide trigger is a button instead of text link

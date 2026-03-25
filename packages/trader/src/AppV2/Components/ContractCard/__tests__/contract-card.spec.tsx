@@ -331,8 +331,8 @@ describe('ContractCard', () => {
     );
     beforeEach(() => {
         history.push('/');
-                mockCurrentLang = 'EN';
-            });
+        mockCurrentLang = 'EN';
+    });
     it('should not render component if contractInfo prop is empty/missing contract_type', () => {
         const { container } = render(mockedContractCard({ ...mockProps, contractInfo: {} }));
 
@@ -469,7 +469,7 @@ describe('ContractCard', () => {
         expect(mockedOnClick).toHaveBeenCalledTimes(1);
         expect(history.location.pathname).not.toBe(redirectTo);
     });
-        it('should show buttons on swipe left in LTR mode', () => {
+    it('should show buttons on swipe left in LTR mode', () => {
         render(mockedContractCard());
         act(() => swipeableConfig.onSwipedLeft());
         expect(screen.getByTestId('dt_contract_card')).toHaveClass('show-buttons');
@@ -506,4 +506,4 @@ describe('ContractCard', () => {
         act(() => swipeableConfig.onSwipedLeft());
         expect(screen.getByTestId('dt_contract_card')).not.toHaveClass('show-buttons');
     });
-    });
+});

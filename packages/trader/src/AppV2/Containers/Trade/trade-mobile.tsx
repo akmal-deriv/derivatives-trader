@@ -19,7 +19,7 @@ import useContractsFor from 'AppV2/Hooks/useContractsFor';
 import useDefaultSymbol from 'AppV2/Hooks/useDefaultSymbol';
 import { getChartHeight } from 'AppV2/Utils/layout-utils';
 import { getDisplayedContractTypes } from 'AppV2/Utils/trade-types-utils';
-import { isDigitTradeType } from 'Modules/Trading/Helpers/digits';
+import { isDigitTradeType } from 'AppV2/Utils/digits';
 import { useTraderStore } from 'Stores/useTraderStores';
 
 import { TradeChart } from '../Chart';

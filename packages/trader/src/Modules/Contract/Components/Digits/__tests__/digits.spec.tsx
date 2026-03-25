@@ -11,8 +11,8 @@ const tick_information_text = /Tick/i;
 const mocked_digit_spot = 'DigitSpot';
 const mocked_last_digit_prediction = 'LastDigitPrediction';
 
-jest.mock('App/Components/Animations', () => ({
-    ...jest.requireActual('App/Components/Animations'),
+jest.mock('Modules/Contract/Components/Animations', () => ({
+    ...jest.requireActual('Modules/Contract/Components/Animations'),
     Bounce: jest.fn(({ children }) => <div>{children}</div>),
     SlideIn: jest.fn(({ children, is_visible }) => (is_visible ? <div>{children}</div> : null)),
 }));

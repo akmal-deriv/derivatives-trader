@@ -1,5 +1,6 @@
 import React from 'react';
 
+import { useDevice } from '@deriv-com/ui';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
@@ -32,13 +33,16 @@ beforeEach(() => {
         value: class {
             onload: (() => void) | null = null;
             onerror: (() => void) | null = null;
+            // eslint-disable-next-line no-underscore-dangle
             private _src = '';
             set src(value: string) {
+                // eslint-disable-next-line no-underscore-dangle
                 this._src = value;
                 if (this.onload) image_on_load_callbacks.push(this.onload);
                 setTimeout(() => this.onload?.(), 0);
             }
             get src() {
+                // eslint-disable-next-line no-underscore-dangle
                 return this._src;
             }
         },
@@ -64,8 +68,7 @@ describe('PresetsOnboardingGuide', () => {
     });
 
     it('should not render when isMobile is false', () => {
-        const { useDevice } = require('@deriv-com/ui');
-        useDevice.mockReturnValueOnce({ isMobile: false, isDesktop: true, isTablet: false });
+        (useDevice as jest.Mock).mockReturnValueOnce({ isMobile: false, isDesktop: true, isTablet: false });
 
         setGuideAsSeen();
         render(<PresetsOnboardingGuide />);

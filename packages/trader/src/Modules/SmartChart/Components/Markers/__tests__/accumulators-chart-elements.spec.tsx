@@ -3,7 +3,7 @@ import { CONTRACT_TYPES } from '@deriv/shared';
 import { render, screen } from '@testing-library/react';
 import AccumulatorsChartElements from '../accumulators-chart-elements';
 
-jest.mock('App/Components/Elements/PositionsDrawer/helpers/positions-helper', () => ({
+jest.mock('Modules/Contract/Components/ContractAudit/positions-helper', () => ({
     filterByContractType: jest.fn(() => true),
 }));
 jest.mock('../accumulators-profit-loss-tooltip', () => jest.fn(() => <div>AccumulatorsProfitLossTooltip</div>));

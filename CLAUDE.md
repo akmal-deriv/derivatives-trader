@@ -15,28 +15,6 @@ A comprehensive TypeScript/React-based derivatives trading platform built with M
 **Build System:** Webpack with separate configs per package
 **Architecture Pattern:** Multi-store reactive state management + component-driven UI
 
-## AI Code Generation Rules (CRITICAL)
-
-**When generating ANY code, you MUST wrap it with AI markers:**
-
-```typescript
-function exampleFunction() {
-    // Your AI-generated code here
-    return 'This is AI generated';
-}
-```
-
-**Rules:**
-
-- ALWAYS wrap AI-generated code with `[AI]` and `[/AI]` markers using appropriate comment syntax
-- NEVER nest AI markers inside existing AI blocks
-- NEVER add comments on the same line as markers
-- NEVER add markers to deleted code
-- Each function, class, or code block should have its own markers
-- This is required for productivity tracking - violations will break the build
-
----
-
 ## Common Commands
 
 ### Development
@@ -638,6 +616,7 @@ export type {
 **Account Status Types:**
 
 Derivatives accounts now support three status values:
+
 - `active` - Normal trading account
 - `inactive` - Deactivated account
 - `trading_disabled` - Account with trading restrictions
@@ -728,6 +707,7 @@ const initRoutesConfig = () => [
 **Mobile Positions Route:**
 
 The `/positions` route uses `PositionsSwitch` component that:
+
 - Renders positions page on mobile
 - Redirects to index and opens positions flyout on desktop
 - Prevents scaling issues by handling routing logic separately
@@ -1520,22 +1500,22 @@ The account switcher displays accounts with restricted trading access:
 
 ## Key Files to Know
 
-| File                                                        | Purpose                          |
-| ----------------------------------------------------------- | -------------------------------- |
-| `packages/core/src/App/initStore.js`                        | Store initialization & setup     |
-| `packages/core/src/App/app.jsx`                             | Provider nesting + root layout   |
-| `packages/trader/src/Stores/Modules/Trading/trade-store.ts` | Main trading state (103KB)       |
-| `packages/api/src/APIProvider.tsx`                          | WebSocket + QueryClient mgmt     |
-| `packages/api/src/useSubscription.ts`                       | Real-time data subscription hook |
-| `packages/shared/src/utils/contract/contract-types.ts`      | Contract type utilities          |
-| `packages/core/src/App/Constants/routes-config.js`          | Main route configuration         |
-| `packages/trader/src/Modules/Trading/Components/Form/`      | Trade form components            |
-| `packages/shared/src/utils/brand/brand.ts`                  | Multi-domain brand configuration |
-| `packages/trader/src/AppV2/Routes/PositionsSwitch.tsx`      | Mobile/desktop positions routing |
-| `packages/trader/src/AppV2/Components/TradeParameters/Duration/early-close-dot.tsx` | Market event indicators |
-| `jest.config.js`                                            | Jest configuration               |
-| `packages/core/build/webpack.config.js`                     | Main webpack config              |
-| `brand.config.json`                                         | Brand-specific configuration     |
+| File                                                                                | Purpose                          |
+| ----------------------------------------------------------------------------------- | -------------------------------- |
+| `packages/core/src/App/initStore.js`                                                | Store initialization & setup     |
+| `packages/core/src/App/app.jsx`                                                     | Provider nesting + root layout   |
+| `packages/trader/src/Stores/Modules/Trading/trade-store.ts`                         | Main trading state (103KB)       |
+| `packages/api/src/APIProvider.tsx`                                                  | WebSocket + QueryClient mgmt     |
+| `packages/api/src/useSubscription.ts`                                               | Real-time data subscription hook |
+| `packages/shared/src/utils/contract/contract-types.ts`                              | Contract type utilities          |
+| `packages/core/src/App/Constants/routes-config.js`                                  | Main route configuration         |
+| `packages/trader/src/Modules/Trading/Components/Form/`                              | Trade form components            |
+| `packages/shared/src/utils/brand/brand.ts`                                          | Multi-domain brand configuration |
+| `packages/trader/src/AppV2/Routes/PositionsSwitch.tsx`                              | Mobile/desktop positions routing |
+| `packages/trader/src/AppV2/Components/TradeParameters/Duration/early-close-dot.tsx` | Market event indicators          |
+| `jest.config.js`                                                                    | Jest configuration               |
+| `packages/core/build/webpack.config.js`                                             | Main webpack config              |
+| `brand.config.json`                                                                 | Brand-specific configuration     |
 
 ---
 

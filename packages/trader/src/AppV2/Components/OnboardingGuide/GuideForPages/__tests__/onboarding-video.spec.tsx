@@ -9,7 +9,7 @@ const dt_loader = 'square-skeleton';
 
 jest.mock('AppV2/Components/StreamIframe', () => jest.fn(() => <div data-testid={dt_video}>StreamIframe</div>));
 
-jest.mock('Modules/Trading/Helpers/video-config', () => ({
+jest.mock('AppV2/Utils/video-config', () => ({
     getOnboardingVideoId: jest.fn(() => 'mock_video_id_123'),
 }));
 
