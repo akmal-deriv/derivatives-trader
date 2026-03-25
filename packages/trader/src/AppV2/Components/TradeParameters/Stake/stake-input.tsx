@@ -417,10 +417,7 @@ const StakeInput = observer(({ onClose, is_open }: TStakeInput) => {
     }, [debouncedUpdateProposal]);
 
     const onBeforeInputChange = (e: React.FormEvent<HTMLInputElement>) => {
-        if (
-            ['.', ','].includes((e.nativeEvent as InputEvent)?.data ?? '') &&
-            (String(proposal_request_values.amount)?.length ?? 0) <= 10
-        ) {
+        if (['.', ','].includes((e.nativeEvent as InputEvent)?.data ?? '') && (displayAmount?.length ?? 0) <= 10) {
             dispatch({
                 type: 'SET_MAX_LENGTH',
                 payload: decimals ? 11 + decimals : 10,
@@ -480,7 +477,7 @@ const StakeInput = observer(({ onClose, is_open }: TStakeInput) => {
                     id={input_id}
                     maxLength={state.max_length}
                     message={fe_stake_error || (should_show_stake_error && stake_error) || getInputMessage()}
-                    minusDisabled={Number(proposal_request_values.amount) - 1 <= 0}
+                    minusDisabled={Number(displayAmount) - 1 <= 0}
                     name='amount'
                     noStatusIcon
                     onChange={onInputChange}
@@ -502,7 +499,7 @@ const StakeInput = observer(({ onClose, is_open }: TStakeInput) => {
                     has_stop_loss={has_stop_loss}
                     is_loading_proposal={is_loading_proposal}
                     is_multiplier={is_multiplier}
-                    is_empty={!proposal_request_values.amount}
+                    is_empty={!displayAmount}
                     should_show_payout_details={should_show_payout_details}
                 />
             </ActionSheet.Content>

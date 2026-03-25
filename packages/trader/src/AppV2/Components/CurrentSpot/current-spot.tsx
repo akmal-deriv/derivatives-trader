@@ -144,6 +144,8 @@ const CurrentSpot = observer(() => {
         }
     }, [
         contract_id,
+        current_tick,
+        latest_digit.spot,
         is_prev_contract_elapsed,
         last_contract,
         prev_contract,
