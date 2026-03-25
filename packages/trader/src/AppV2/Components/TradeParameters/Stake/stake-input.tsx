@@ -428,6 +428,10 @@ const StakeInput = observer(({ onClose, is_open }: TStakeInput) => {
     const onSave = () => {
         // Flush any pending debounced update so proposal_request_values.amount is up to date
         debouncedUpdateProposal.flush();
+        // If displayAmount diverges from the last validated amount, the API hasn't
+        // seen the new value yet — block the save until validation completes.
+        const validated_amount = String(proposal_request_values.amount ?? '');
+        if (displayAmount !== validated_amount) return;
         // Prevent from saving if user clicks before we get theAPI response or if we get an error in response or the field is empty
         if (
             is_fetching_1 ||

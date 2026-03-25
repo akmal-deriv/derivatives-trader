@@ -32,12 +32,6 @@ type TBottomWidgetsParams = {
 const BottomWidgetsMobile = observer(({ digits, tick }: TBottomWidgetsParams) => {
     const { setDigitStats, setTickData } = useTraderStore();
 
-    // Memoize the digits string to prevent unnecessary recalculations
-    const digitsKey = React.useMemo(() => digits.join('-'), [digits]);
-
-    // Memoize previous digits to prevent duplicate setDigitStats calls
-    const prevDigitsRef = React.useRef<string>('');
-
     // Using bottom widgets in V2 to get tick data for all trade types and to get digit stats for Digit trade types
     React.useEffect(() => {
         setTickData(tick);
@@ -45,15 +39,13 @@ const BottomWidgetsMobile = observer(({ digits, tick }: TBottomWidgetsParams) =>
     }, [tick]);
 
     React.useEffect(() => {
-        // Only update if digits have actually changed
-        if (digitsKey !== prevDigitsRef.current) {
-            setDigitStats(digits);
-            prevDigitsRef.current = digitsKey;
-        }
+        setDigitStats(digits);
         // For digits array, which is coming from SmartChart, reference is not always changing.
         // As it is the same, this useEffect was not triggered on every array update.
+        // Computing digits.join('-') directly in deps (not via useMemo) ensures React catches
+        // in-place array mutations where the reference stays the same.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [digitsKey]);
+    }, [digits.join('-')]);
 
     // render no bottom widgets on chart
     return null;

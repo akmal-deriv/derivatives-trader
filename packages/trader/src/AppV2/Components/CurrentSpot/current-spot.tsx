@@ -116,7 +116,9 @@ const CurrentSpot = observer(() => {
         setDisplayedSpot(latest_digit.spot);
     }, [current_tick, latest_digit.spot]);
 
-    // Stable ref so the throttle can always call the latest version
+    // Keep the ref in sync with the latest setNewData on every render.
+    // No deps array is intentional: this effect must run after EVERY render
+    // so the throttle always dispatches the most-recent captured values.
     const setNewDataRef = React.useRef(setNewData);
     React.useEffect(() => {
         setNewDataRef.current = setNewData;
