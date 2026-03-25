@@ -151,7 +151,7 @@ export interface AdapterConfig {
 export interface SmartchartsChampionFunctions {
     getQuotes: (request: TGetQuotesRequest) => Promise<TGetQuotesResult>;
     subscribeQuotes: (request: TGetQuotesRequest, callback: TSubscriptionCallback) => TUnsubscribeFunction;
-    getChartData: () => Promise<ChartDataResponse>;
+    getChartData: (prefetchedActiveSymbols?: any[]) => Promise<ChartDataResponse>;
     unsubscribeQuotes: (request: TGetQuotesRequest) => void;
 }
 

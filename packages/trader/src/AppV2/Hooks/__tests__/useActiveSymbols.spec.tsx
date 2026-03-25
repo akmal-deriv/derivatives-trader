@@ -137,7 +137,7 @@ describe('useActiveSymbols', () => {
             expect(result.current.isLoading).toBe(true);
         });
     });
-    it('should call useQuery with correct payload for Vanillas', async () => {
+    it('should call useQuery with brief payload regardless of contract type', async () => {
         mocked_store.modules.trade.is_vanilla = true;
 
         renderHook(() => useActiveSymbols(), { wrapper });
@@ -146,29 +146,10 @@ describe('useActiveSymbols', () => {
             expect(useQuery).toHaveBeenCalledWith('active_symbols', {
                 payload: {
                     active_symbols: 'brief',
-                    contract_type: [CONTRACT_TYPES.VANILLA.CALL, CONTRACT_TYPES.VANILLA.PUT],
                 },
                 options: {
                     cacheTime: 10 * 60 * 1000,
-                    keepPreviousData: true,
-                },
-            });
-        });
-    });
-
-    it('should call useQuery with correct payload for Turbos', async () => {
-        mocked_store.modules.trade.is_turbos = true;
-
-        renderHook(() => useActiveSymbols(), { wrapper });
-
-        await waitFor(() => {
-            expect(useQuery).toHaveBeenCalledWith('active_symbols', {
-                payload: {
-                    active_symbols: 'brief',
-                    contract_type: [CONTRACT_TYPES.TURBOS.LONG, CONTRACT_TYPES.TURBOS.SHORT],
-                },
-                options: {
-                    cacheTime: 10 * 60 * 1000,
+                    staleTime: 10 * 60 * 1000,
                     keepPreviousData: true,
                 },
             });

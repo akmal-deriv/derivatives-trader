@@ -102,20 +102,21 @@ export const useSmartChartsAdapter = (config: UseSmartChartsAdapterConfig = {}):
         return [0, 60, 120, 180, 300, 600, 900, 1800, 3600, 7200, 14400, 28800, 86400].includes(g);
     }, []);
 
-    // Fetch chart data including trading times
+    // Fetch chart data including trading times.
+    // Pass activeSymbols from React Query to avoid a duplicate WS.activeSymbols call.
     const fetchChartData = React.useCallback(async () => {
         setIsLoading(true);
         setError(null);
         try {
-            const data = await smartChartsAdapter.getChartData();
-            const { rawData, activeSymbols, tradingTimes } = data;
+            const data = await smartChartsAdapter.getChartData(activeSymbols);
+            const { rawData, activeSymbols: enrichedSymbols, tradingTimes } = data;
             rawDataRef.current = {
                 rawActiveSymbols: rawData.activeSymbols,
                 rawTradingTimes: rawData.tradingTimes,
             };
 
             setChartData({
-                activeSymbols,
+                activeSymbols: enrichedSymbols,
                 tradingTimes,
             });
         } catch (error) {
@@ -125,7 +126,7 @@ export const useSmartChartsAdapter = (config: UseSmartChartsAdapterConfig = {}):
         } finally {
             setIsLoading(false);
         }
-    }, [smartChartsAdapter]);
+    }, [smartChartsAdapter, activeSymbols]);
 
     // Retry function for error recovery
     const retryFetchChartData = React.useCallback(async () => {

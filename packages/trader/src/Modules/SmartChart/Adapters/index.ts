@@ -344,7 +344,7 @@ export function buildSmartChartsChampionAdapter(
          * Get chart reference data (symbols and trading times)
          * Uses optimized transformations that work with existing store data
          */
-        async getChartData(): Promise<{
+        async getChartData(prefetchedActiveSymbols?: any[]): Promise<{
             activeSymbols: ActiveSymbols;
             rawData: {
                 activeSymbols: any[];
@@ -355,8 +355,10 @@ export function buildSmartChartsChampionAdapter(
             logger.info('Fetching chart reference data using optimized transformations');
 
             try {
-                // Get active symbols from existing store data (no API call needed)
-                const activeSymbolsData = await services.getActiveSymbols();
+                // Use pre-fetched active symbols if provided (from React Query), otherwise fetch via WS
+                const activeSymbolsData = prefetchedActiveSymbols?.length
+                    ? prefetchedActiveSymbols
+                    : await services.getActiveSymbols();
                 // Convert MobX observables to plain JavaScript objects using toJS (more efficient than JSON roundtrip)
                 const plainActiveSymbols = Array.isArray(activeSymbolsData) ? toJS(activeSymbolsData) : [];
 

@@ -739,14 +739,11 @@ describe('TradeStore', () => {
         });
 
         describe('is_dtrader_v2', () => {
-            it('should return true when UI is mobile', () => {
+            it('should always return true', () => {
                 mockRootStore.ui.is_mobile = true;
                 expect(tradeStore.is_dtrader_v2).toBe(true);
-            });
-
-            it('should return false when UI is not mobile', () => {
                 mockRootStore.ui.is_mobile = false;
-                expect(tradeStore.is_dtrader_v2).toBe(false);
+                expect(tradeStore.is_dtrader_v2).toBe(true);
             });
         });
 

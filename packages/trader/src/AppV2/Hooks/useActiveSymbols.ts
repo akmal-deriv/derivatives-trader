@@ -1,13 +1,10 @@
-import { useCallback, useEffect } from 'react';
+import { useEffect } from 'react';
 
-import { TActiveSymbolsRequest, useQuery } from '@deriv/api';
-import { CONTRACT_TYPES, getContractTypesConfig } from '@deriv/shared';
+import { useQuery } from '@deriv/api';
 import { useStore } from '@deriv/stores';
 import { localize } from '@deriv-com/translations';
 
 import { useTraderStore } from 'Stores/useTraderStores';
-
-type TContractTypesList = NonNullable<TActiveSymbolsRequest['contract_type']>;
 
 // Cache configuration for active symbols query
 const ACTIVE_SYMBOLS_CACHE_CONFIG = {
@@ -20,14 +17,13 @@ const ACTIVE_SYMBOLS_CACHE_CONFIG = {
 const useActiveSymbols = () => {
     const { common } = useStore();
     const { showError } = common;
-    const { contract_type, is_vanilla, is_turbos, setActiveSymbolsV2 } = useTraderStore();
+    const { setActiveSymbolsV2 } = useTraderStore();
 
-    const getContractTypesList = (): TContractTypesList => {
-        if (is_turbos) return [CONTRACT_TYPES.TURBOS.LONG, CONTRACT_TYPES.TURBOS.SHORT] as TContractTypesList;
-        if (is_vanilla) return [CONTRACT_TYPES.VANILLA.CALL, CONTRACT_TYPES.VANILLA.PUT] as TContractTypesList;
-        return (getContractTypesConfig()[contract_type]?.trade_types ?? []) as TContractTypesList;
-    };
-
+    // Fetch all active symbols without contract_type filter.
+    // Previously, contract_type was included in the payload which caused
+    // React Query to refetch whenever contract_type changed during initialization.
+    // The contract_type filter is not needed — useContractsFor already filters
+    // available contracts for the selected symbol.
     const {
         data: response,
         error: queryError,
@@ -35,10 +31,10 @@ const useActiveSymbols = () => {
     } = useQuery('active_symbols', {
         payload: {
             active_symbols: 'brief',
-            contract_type: getContractTypesList(),
         },
         options: {
             cacheTime: ACTIVE_SYMBOLS_CACHE_CONFIG.CACHE_TIME,
+            staleTime: ACTIVE_SYMBOLS_CACHE_CONFIG.CACHE_TIME,
             keepPreviousData: true,
         },
     });
