@@ -116,11 +116,11 @@ const CurrentSpot = observer(() => {
         setDisplayedSpot(latest_digit.spot);
     }, [current_tick, latest_digit.spot]);
 
-    // Keep the ref in sync with the latest setNewData on every render.
-    // No deps array is intentional: this effect must run after EVERY render
-    // so the throttle always dispatches the most-recent captured values.
+    // Keep ref current synchronously after every render so the throttle
+    // always dispatches the most-recent captured values. useLayoutEffect
+    // runs before the browser paints, closing the stale-ref window.
     const setNewDataRef = React.useRef(setNewData);
-    React.useEffect(() => {
+    React.useLayoutEffect(() => {
         setNewDataRef.current = setNewData;
     });
 
