@@ -6,7 +6,8 @@ import { useStore } from '@deriv/stores';
 
 import { checkContractTypePrefix } from 'AppV2/Utils/contract-type';
 import { getTradeTypesList } from 'AppV2/Utils/trade-types-utils';
-import { TContractType } from 'Modules/Trading/Components/Form/ContractType/types';
+import { TContractType } from 'AppV2/Types/contract-type';
+import { ContractType } from 'Stores/Modules/Trading/Helpers/contract-type';
 import { useTraderStore } from 'Stores/useTraderStores';
 import { TConfig, TContractTypesList } from 'Types';
 
@@ -16,8 +17,15 @@ const useContractsFor = () => {
     const [contract_types_list, setContractTypesList] = React.useState<TContractTypesList | []>([]);
 
     const [trade_types, setTradeTypes] = React.useState<TContractType[]>([]);
-    const { contract_type, onChange, setContractTypesListV2, setDefaultStake, symbol, active_symbols } =
-        useTraderStore();
+    const {
+        contract_type,
+        onChange,
+        processContractsForV2,
+        setContractTypesListV2,
+        setDefaultStake,
+        symbol,
+        active_symbols,
+    } = useTraderStore();
     const { client } = useStore();
     const { loginid } = client;
     const { isMobileApp } = useMobileBridge();
@@ -63,6 +71,7 @@ const useContractsFor = () => {
         },
         options: {
             enabled: isQueryEnabled(),
+            staleTime: 60 * 1000,
         },
     });
 
@@ -203,11 +212,28 @@ const useContractsFor = () => {
                 setContractTypesList(available_categories);
                 setAvailableContractTypes(available_contract_types);
 
+                // Populate the ContractType closure with the React Query response data.
+                // This ensures ContractType.getContractValues() returns barrier/duration config
+                // without making a duplicate WS.contractsFor call.
+                ContractType.processContractsForResponse(
+                    { contracts_for } as Required<typeof response>,
+                    underlying_symbol
+                );
+
                 const trade_types = getTradeTypes(available_categories);
                 setTradeTypes(trade_types);
 
                 const new_contract_type = getNewContractType(trade_types);
                 processNewContractType(new_contract_type);
+
+                // Call processContractsForV2 AFTER processNewContractType ensures the
+                // correct contract_type is set in the store. On page refresh, the contract_type
+                // may be empty or stale before processNewContractType runs.
+                // getContractValues(this) needs the correct contract_type to return
+                // barrier/duration config from the populated ContractType closure.
+                // processContractsForV2 now awaits its calls sequentially and triggers
+                // debouncedProposal internally after all values are applied.
+                processContractsForV2();
             } else {
                 setTradeTypes([]);
             }

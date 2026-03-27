@@ -6,7 +6,7 @@ import { Localize } from '@deriv-com/translations';
 import { CaptionText, Skeleton, Tag, Text, useSnackbar } from '@deriv-com/quill-ui';
 import useActiveSymbols from 'AppV2/Hooks/useActiveSymbols';
 import useContractsFor from 'AppV2/Hooks/useContractsFor';
-import { TContractType } from 'Modules/Trading/Components/Form/ContractType/types';
+import { TContractType } from 'AppV2/Types/contract-type';
 import { useTraderStore } from 'Stores/useTraderStores';
 import ActiveSymbolsList from '../ActiveSymbolsList';
 import SymbolIconsMapper from '../SymbolIconsMapper/symbol-icons-mapper';

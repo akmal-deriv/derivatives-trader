@@ -4,7 +4,7 @@ import { Text } from '@deriv-com/quill-ui';
 import { Localize, localize } from '@deriv-com/translations';
 
 import VideoFragment from 'AppV2/Components/Guide/Description/video-fragment';
-import { DESCRIPTION_VIDEO_ID } from 'Modules/Trading/Helpers/video-config';
+import { DESCRIPTION_VIDEO_ID } from 'AppV2/Utils/video-config';
 
 import { CONTRACT_LIST } from './trade-types-utils';
 

@@ -6,7 +6,7 @@ import { isMobile } from '@deriv/shared';
 import { Localize } from '@deriv-com/translations';
 
 import StreamIframe from 'AppV2/Components/StreamIframe';
-import { getAccumulatorManualVideoId } from 'Modules/Trading/Helpers/video-config';
+import { getAccumulatorManualVideoId } from 'AppV2/Utils/video-config';
 
 import 'Sass/app/modules/contract/accumulators-stats.scss';
 

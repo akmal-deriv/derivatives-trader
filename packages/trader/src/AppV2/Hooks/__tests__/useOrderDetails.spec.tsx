@@ -19,7 +19,7 @@ jest.mock('@deriv/shared', () => ({
     getStartTime: jest.fn(),
 }));
 
-jest.mock('App/Components/Elements/PositionsDrawer/helpers', () => ({
+jest.mock('Modules/Contract/Components/ContractAudit/positions-helper', () => ({
     getBarrierValue: jest.fn(),
 }));
 

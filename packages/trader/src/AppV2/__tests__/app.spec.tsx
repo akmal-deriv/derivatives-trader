@@ -31,7 +31,7 @@ jest.mock('@deriv-com/quill-ui', () => ({
     ),
 }));
 
-jest.mock('App/init-store', () => jest.fn(rootStore => rootStore));
+jest.mock('Stores/init-store', () => jest.fn(rootStore => rootStore));
 
 jest.mock('Stores/Providers/modules-providers', () => {
     const MockModulesProvider = ({ children }: { children: React.ReactNode }) => (

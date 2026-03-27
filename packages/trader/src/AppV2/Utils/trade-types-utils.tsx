@@ -8,7 +8,7 @@ import {
 } from '@deriv/shared';
 import { Localize } from '@deriv-com/translations';
 
-import { getAvailableContractTypes, getCategoriesSortedByKey } from 'Modules/Trading/Helpers/contract-type';
+import { getAvailableContractTypes, getCategoriesSortedByKey } from 'AppV2/Utils/trading-contract-type-helpers';
 import { useTraderStore } from 'Stores/useTraderStores';
 
 import { getTradeTypeTabsList } from './trade-params-utils';

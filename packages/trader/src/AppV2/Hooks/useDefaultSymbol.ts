@@ -29,9 +29,16 @@ const useDefaultSymbol = () => {
 
             setSymbol(new_symbol);
 
+            // Only call onChange + processContractsForV2 if the symbol actually needs changing.
+            // When the symbol is pre-set from URL params in the store constructor,
+            // useContractsFor already handles the contracts_for fetch and proposal lifecycle.
+            // Calling onChange here with the same symbol would trigger forgetAllProposal()
+            // (via should_forget_first=true) and cancel any in-flight proposals.
             if (is_initailization || has_symbol_changed) {
-                await onChange({ target: { name: 'symbol', value: new_symbol } });
-                processContractsForV2();
+                if (symbol_from_store !== new_symbol) {
+                    await onChange({ target: { name: 'symbol', value: new_symbol } });
+                    processContractsForV2();
+                }
             }
             setTradeURLParams({ symbol: new_symbol });
         },

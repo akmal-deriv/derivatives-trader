@@ -15,28 +15,6 @@ A comprehensive TypeScript/React-based derivatives trading platform built with M
 **Build System:** Webpack with separate configs per package
 **Architecture Pattern:** Multi-store reactive state management + component-driven UI
 
-## AI Code Generation Rules (CRITICAL)
-
-**When generating ANY code, you MUST wrap it with AI markers:**
-
-```typescript
-function exampleFunction() {
-    // Your AI-generated code here
-    return 'This is AI generated';
-}
-```
-
-**Rules:**
-
-- ALWAYS wrap AI-generated code with `[AI]` and `[/AI]` markers using appropriate comment syntax
-- NEVER nest AI markers inside existing AI blocks
-- NEVER add comments on the same line as markers
-- NEVER add markers to deleted code
-- Each function, class, or code block should have its own markers
-- This is required for productivity tracking - violations will break the build
-
----
-
 ## Common Commands
 
 ### Development

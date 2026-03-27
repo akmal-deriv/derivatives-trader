@@ -5,7 +5,7 @@ import { Localize } from '@deriv-com/translations';
 import { Modal } from '@deriv-com/quill-ui';
 import { useDevice } from '@deriv-com/ui';
 
-import { DESCRIPTION_VIDEO_ID } from 'Modules/Trading/Helpers/video-config';
+import { DESCRIPTION_VIDEO_ID } from 'AppV2/Utils/video-config';
 
 import StreamIframe from '../../StreamIframe';
 

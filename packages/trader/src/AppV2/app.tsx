@@ -6,7 +6,7 @@ import { trackAnalyticsEvent } from '@deriv/shared';
 import type { TCoreStores } from '@deriv/stores/types';
 import { NotificationsProvider, SnackbarProvider } from '@deriv-com/quill-ui';
 
-import initStore from 'App/init-store';
+import initStore from 'Stores/init-store';
 import ModulesProvider from 'Stores/Providers/modules-providers';
 import type { TWebSocket } from 'Types';
 

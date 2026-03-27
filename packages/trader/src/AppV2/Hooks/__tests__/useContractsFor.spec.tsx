@@ -32,6 +32,12 @@ jest.mock('../useNativeAppAllowedTradeTypes', () => ({
     default: jest.fn(() => undefined),
 }));
 
+jest.mock('Stores/Modules/Trading/Helpers/contract-type', () => ({
+    ContractType: {
+        processContractsForResponse: jest.fn(),
+    },
+}));
+
 describe('useContractsFor', () => {
     let mocked_store: ReturnType<typeof mockStore>;
 
@@ -53,6 +59,7 @@ describe('useContractsFor', () => {
                 trade: {
                     setContractTypesListV2: jest.fn(),
                     onChange: jest.fn(),
+                    processContractsForV2: jest.fn(),
                     symbol: 'R_50',
                 },
             },
@@ -205,6 +212,7 @@ describe('useContractsFor', () => {
                     },
                     options: {
                         enabled: true,
+                        staleTime: 60 * 1000,
                     },
                 });
             });

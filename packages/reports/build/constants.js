@@ -108,7 +108,9 @@ const MINIMIZERS = !IS_RELEASE
               exclude: /(smartcharts)/,
               parallel: 2,
           }),
-          new CssMinimizerPlugin(),
+          new CssMinimizerPlugin({
+              minify: CssMinimizerPlugin.cssnanoMinify,
+          }),
       ];
 
 const plugins = (base, is_test_env) => [

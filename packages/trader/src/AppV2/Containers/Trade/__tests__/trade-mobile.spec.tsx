@@ -36,7 +36,7 @@ jest.mock('@deriv/api', () => ({
     useLocalStorageData: jest.fn(() => [{ trade_page: false }]),
 }));
 
-jest.mock('Modules/Trading/Helpers/digits', () => ({
+jest.mock('AppV2/Utils/digits', () => ({
     isDigitTradeType: jest.fn(
         contract_type =>
             contract_type === 'even_odd' || contract_type === 'match_diff' || contract_type === 'over_under'

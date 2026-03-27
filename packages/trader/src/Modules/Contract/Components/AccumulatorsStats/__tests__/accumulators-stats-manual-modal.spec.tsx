@@ -9,7 +9,7 @@ jest.mock('AppV2/Components/StreamIframe', () =>
     jest.fn(() => <div data-testid='dt_accumulators_stats_manual_video'>StreamIframe</div>)
 );
 
-jest.mock('Modules/Trading/Helpers/video-config', () => ({
+jest.mock('AppV2/Utils/video-config', () => ({
     getAccumulatorManualVideoId: jest.fn(() => 'mock_accumulator_video_id'),
 }));
 

@@ -34,7 +34,6 @@ const ALIASES = {
     'react/jsx-runtime.js': 'react/jsx-runtime',
     'react/jsx-runtime': 'react/jsx-runtime',
     _common: path.resolve(__dirname, '../src/_common'),
-    App: path.resolve(__dirname, '../src/App'),
     AppV2: path.resolve(__dirname, '../src/AppV2'),
     Assets: path.resolve(__dirname, '../src/Assets'),
     Constants: path.resolve(__dirname, '../src/Constants'),
@@ -124,7 +123,9 @@ const MINIMIZERS = !IS_RELEASE
               exclude: /(smartcharts)/,
               parallel: 2,
           }),
-          new CssMinimizerPlugin(),
+          new CssMinimizerPlugin({
+              minify: CssMinimizerPlugin.cssnanoMinify,
+          }),
       ];
 
 const plugins = (base, is_test_env) => [

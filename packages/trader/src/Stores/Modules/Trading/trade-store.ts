@@ -60,7 +60,7 @@ import {
 import { safeParse } from '@deriv/utils';
 import { localize } from '@deriv-com/translations';
 
-import { isDigitContractType, isDigitTradeType } from 'Modules/Trading/Helpers/digits';
+import { isDigitContractType, isDigitTradeType } from 'AppV2/Utils/digits';
 import { getMultiplierValidationRules, getValidationRules } from 'Stores/Modules/Trading/Constants/validation-rules';
 import { ContractType } from 'Stores/Modules/Trading/Helpers/contract-type';
 import { TContractTypesList, TRootStore, TTextValueNumber, TTextValueStrings } from 'Types';
@@ -587,6 +587,17 @@ export default class TradeStore extends BaseStore {
             handleTradeParamsResetOnSymbolChange: action.bound,
         });
 
+        // Early symbol initialization from URL params enables contracts_for to fire
+        // in parallel with active_symbols, eliminating one sequential round trip.
+        // Must be set before reactions so reaction(() => this.symbol) sees this as initial value.
+        if (this.is_dtrader_v2) {
+            const searchParams = new URLSearchParams(window.location.search);
+            const urlSymbol = searchParams.get('symbol');
+            if (urlSymbol) {
+                this.symbol = urlSymbol;
+            }
+        }
+
         when(
             () => !isEmptyObject(this.contract_types_list_v2),
             () => {
@@ -862,10 +873,21 @@ export default class TradeStore extends BaseStore {
 
     async processContractsForV2() {
         const contract_categories = ContractType.getContractCategories();
-        this.processNewValuesAsync({
-            ...(contract_categories as Pick<TradeStore, 'contract_types_list'>),
-        });
-        this.processNewValuesAsync(ContractType.getContractValues(this));
+        // Await sequentially: first sets contract_types_list, second sets barrier/duration values.
+        // Without await, these race each other and the second call's forgetAllProposal
+        // cancels the first call's work.
+        // Pass should_forget_first=false to avoid cancelling proposals between calls.
+        await this.processNewValuesAsync(
+            { ...(contract_categories as Pick<TradeStore, 'contract_types_list'>) },
+            false,
+            null,
+            false
+        );
+        await this.processNewValuesAsync(ContractType.getContractValues(this), false, null, false);
+        // Explicitly trigger proposal after all contract values (barriers, duration, stake)
+        // are applied. The processNewValuesAsync calls above use is_changed_by_user=false
+        // and their keys don't always match the regex gate that triggers debouncedProposal.
+        this.debouncedProposal();
     }
 
     async setContractTypes() {
@@ -1486,7 +1508,12 @@ export default class TradeStore extends BaseStore {
                 this.validation_errors.barrier_2 = [];
             }
 
-            await Symbol.onChangeSymbolAsync(obj_new_values.symbol ?? '');
+            // In V2, useContractsFor() React Query hook handles contracts_for fetching.
+            // Skip the legacy WS path (onChangeSymbolAsync → buildContractTypesConfig → WS.contractsFor)
+            // to avoid duplicate contracts_for API calls.
+            if (!this.is_dtrader_v2) {
+                await Symbol.onChangeSymbolAsync(obj_new_values.symbol ?? '');
+            }
 
             const symbol_to_check = obj_new_values.symbol ?? '';
             if (symbol_to_check && symbol_to_check.trim() !== '') {
@@ -1579,8 +1606,10 @@ export default class TradeStore extends BaseStore {
     }
 
     get is_dtrader_v2() {
-        // Use simple device detection: V2 for mobile, V1 for desktop
-        return this.root_store.ui.is_mobile;
+        // V2 is now active on both mobile and desktop — always use V2 init paths
+        // to avoid duplicate API calls (V1 loadActiveSymbols/setContractTypes
+        // duplicated what useActiveSymbols/useContractsFor React Query hooks already do).
+        return true;
     }
 
     get is_synthetics_available() {

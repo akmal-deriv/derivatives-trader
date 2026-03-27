@@ -6,7 +6,7 @@ import { TPriceProposalOpenContractsResponse } from '@deriv/api';
 import { DesktopWrapper } from '@deriv/components';
 import { isMobile } from '@deriv/shared';
 
-import { Bounce } from 'App/Components/Animations';
+import { Bounce } from '../Animations';
 
 import Digit from './digit';
 import DigitSpot from './digit-spot';

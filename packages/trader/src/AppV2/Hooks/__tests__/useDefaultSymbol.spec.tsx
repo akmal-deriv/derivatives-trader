@@ -95,9 +95,9 @@ describe('useActiveSymbols', () => {
 
         await waitFor(() => {
             expect(result.current.symbol).toEqual('GBPUSD');
-            expect(mocked_store.modules.trade.onChange).toHaveBeenCalledWith({
-                target: { name: 'symbol', value: 'GBPUSD' },
-            });
+            // onChange should NOT be called when the symbol is already set in the store
+            // — useContractsFor handles the contracts_for fetch independently.
+            expect(mocked_store.modules.trade.onChange).not.toHaveBeenCalled();
         });
     });
 });

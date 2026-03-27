@@ -7,7 +7,7 @@ import { ActionSheet, Heading, Modal, Text } from '@deriv-com/quill-ui';
 import { Localize } from '@deriv-com/translations';
 import { useDevice } from '@deriv-com/ui';
 
-import { UNIFIED_MODE_VIDEO_ID } from 'Modules/Trading/Helpers/video-config';
+import { UNIFIED_MODE_VIDEO_ID } from 'AppV2/Utils/video-config';
 import { useTraderStore } from 'Stores/useTraderStores';
 
 import StreamIframe from '../StreamIframe';

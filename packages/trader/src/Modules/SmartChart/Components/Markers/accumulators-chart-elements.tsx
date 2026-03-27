@@ -3,7 +3,7 @@ import React from 'react';
 import { TRADE_TYPES } from '@deriv/shared';
 import { useStore } from '@deriv/stores';
 
-import { filterByContractType } from 'App/Components/Elements/PositionsDrawer/helpers/positions-helper';
+import { filterByContractType } from 'Modules/Contract/Components/ContractAudit/positions-helper';
 
 import AccumulatorsProfitLossTooltip from './accumulators-profit-loss-tooltip';
 import ChartMarker from './marker';
