@@ -77,7 +77,7 @@ const PurchaseButton = observer(({ onPurchaseSuccess }: TPurchaseButtonProps = {
     const active_accu_contract = is_accumulator
         ? all_positions.find(({ contract_info, type }) => {
               const contract_underlying = contract_info.underlying_symbol;
-              return isAccumulatorContract(type) && contract_underlying === symbol && !contract_info.is_sold;
+              return isAccumulatorContract(type) && contract_underlying === symbol && isOpen(contract_info);
           })
         : undefined;
 
