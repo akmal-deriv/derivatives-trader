@@ -28,6 +28,13 @@ module.exports = function (env) {
             client: {
                 overlay: false,
             },
+            // Cross-Origin Isolation headers required for Flutter's skwasm WASM renderer.
+            // Without these, window.crossOriginIsolated is false and Flutter falls back
+            // to the dart2js + Canvaskit renderer automatically even on browsers which support wasmGC.
+            headers: {
+                'Cross-Origin-Opener-Policy': 'same-origin',
+                'Cross-Origin-Embedder-Policy': 'credentialless',
+            },
         },
         devtool: IS_RELEASE ? 'source-map' : 'eval-cheap-module-source-map',
 

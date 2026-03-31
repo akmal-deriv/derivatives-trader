@@ -427,7 +427,7 @@ export function calculateMarker(contract_info, is_dark_theme, is_last_contract, 
             if (entry_spot && !is_digit_contract) {
                 markers.push({
                     epoch: entry_spot_time,
-                    quote: entry_spot,
+                    quote: +entry_spot,
                     type: 'entrySpot',
                     direction: getMarkerDirection(contract_type),
                 });
@@ -453,7 +453,7 @@ export function calculateMarker(contract_info, is_dark_theme, is_last_contract, 
         if (exit_spot_time && exit_spot) {
             markers.push({
                 epoch: exit_spot_time,
-                quote: exit_spot,
+                quote: +exit_spot,
                 type: 'exitSpot',
                 direction: getMarkerDirection(contract_type),
             });
@@ -469,7 +469,7 @@ export function calculateMarker(contract_info, is_dark_theme, is_last_contract, 
             const _displayOffsetY = +exit_spot >= +price ? -24 : 24;
             markers.push({
                 epoch: exit_spot_time,
-                quote: exit_spot,
+                quote: +exit_spot,
                 type: 'profitAndLossLabel',
                 direction: getMarkerDirection(contract_type),
                 displayOffsetY: _displayOffsetY,
@@ -498,7 +498,7 @@ export function calculateMarker(contract_info, is_dark_theme, is_last_contract, 
             if (!is_digit_contract) {
                 markers.push({
                     epoch: entry_spot_time,
-                    quote: entry_spot,
+                    quote: +entry_spot,
                     type: 'entrySpot',
                     direction: getMarkerDirection(contract_type),
                 });
@@ -517,7 +517,7 @@ export function calculateMarker(contract_info, is_dark_theme, is_last_contract, 
         if (exit_spot) {
             markers.push({
                 epoch: exit_spot_time,
-                quote: exit_spot,
+                quote: +exit_spot,
                 type: 'exitSpot',
                 direction: getMarkerDirection(contract_type),
             });
