@@ -7,6 +7,7 @@ import {
     TGranularity,
     TSubscribeQuotes,
     TUnsubscribeQuotes,
+    transformations,
 } from '../Adapters';
 import { enrichActiveSymbols } from '../Adapters/transformers';
 
@@ -89,10 +90,14 @@ export const useSmartChartsAdapter = (config: UseSmartChartsAdapterConfig = {}):
         });
     }, [debug]);
 
-    // Chart data state
-    const [chartData, setChartData] = React.useState<ChartData>({
-        activeSymbols: activeSymbols ? toJS(activeSymbols) : [],
-    });
+    // Chart data state — transform symbols immediately so SmartChart always gets the right shape.
+    // When activeSymbols are pre-fetched (trade chart): set tradingTimes:{} so the chart renders immediately.
+    // When activeSymbols are empty (replay chart): leave tradingTimes undefined so the guard blocks
+    // until fetchChartData provides real symbol data (SmartChart needs symbolMap to render).
+    const [chartData, setChartData] = React.useState<ChartData>(() => ({
+        activeSymbols: activeSymbols?.length ? transformations.toActiveSymbols(toJS(activeSymbols)) : [],
+        ...(activeSymbols?.length ? { tradingTimes: {} } : {}),
+    }));
     const [isLoading, setIsLoading] = React.useState(true);
     const [error, setError] = React.useState<Error | null>(null);
     const [shouldUseCandlesOverride, setShouldUseCandlesOverride] = React.useState(false);
@@ -102,8 +107,9 @@ export const useSmartChartsAdapter = (config: UseSmartChartsAdapterConfig = {}):
         return [0, 60, 120, 180, 300, 600, 900, 1800, 3600, 7200, 14400, 28800, 86400].includes(g);
     }, []);
 
-    // Fetch chart data including trading times.
-    // Pass activeSymbols from React Query to avoid a duplicate WS.activeSymbols call.
+    // Fetch trading times and enrich active symbols.
+    // active_symbols comes from React Query (via the activeSymbols prop) —
+    // we only fetch trading_times here to avoid duplicating the active_symbols WS call.
     const fetchChartData = React.useCallback(async () => {
         setIsLoading(true);
         setError(null);
@@ -133,13 +139,28 @@ export const useSmartChartsAdapter = (config: UseSmartChartsAdapterConfig = {}):
         await fetchChartData();
     }, [fetchChartData]);
 
-    // Initialize chart data on mount and re-enrich when language changes
+    // Immediately sync activeSymbols into chartData so SmartChart can render
+    // and start ticks_history subscription before trading_times arrives.
+    // Enriched data replaces this when fetchChartData finishes.
+    React.useEffect(() => {
+        if (activeSymbols?.length) {
+            setChartData(prev => ({
+                ...prev,
+                activeSymbols: transformations.toActiveSymbols(toJS(activeSymbols)),
+            }));
+        }
+    }, [activeSymbols]);
+
+    // Fetch trading times (non-blocking) and enrich symbols when ready.
+    // The early sync effect above already makes the chart renderable with activeSymbols,
+    // so this fetch only adds enrichment — it doesn't block ticks_history.
     const hasFetchedRef = React.useRef(false);
     const previousLanguageRef = React.useRef(current_language);
     const languageChangeTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
     React.useEffect(() => {
-        // First time: fetch data
+        // Fetch once on mount. For trade chart, uses pre-fetched activeSymbols.
+        // For replay chart (activeSymbols: []), getChartData falls back to fetching from API.
         if (!hasFetchedRef.current) {
             hasFetchedRef.current = true;
             fetchChartData();

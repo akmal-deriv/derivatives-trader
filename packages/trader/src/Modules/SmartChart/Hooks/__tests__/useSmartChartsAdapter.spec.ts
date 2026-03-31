@@ -18,6 +18,9 @@ jest.mock('../../Adapters', () => ({
             unsubscribeAll: jest.fn(),
         },
     })),
+    transformations: {
+        toActiveSymbols: jest.fn(data => data),
+    },
     TGetQuotes: {},
     TGranularity: {},
     TSubscribeQuotes: {},
@@ -32,6 +35,9 @@ jest.mock('mobx', () => ({
     toJS: jest.fn(data => data),
 }));
 
+// Default activeSymbols to pass to the hook so fetchChartData fires
+const mockActiveSymbols = [{ symbol: 'EURUSD', display_name: 'EUR/USD' }];
+
 describe('useSmartChartsAdapter', () => {
     beforeEach(() => {
         jest.clearAllMocks();
@@ -44,9 +50,41 @@ describe('useSmartChartsAdapter', () => {
         });
     });
 
+    describe('early-sync effect', () => {
+        it('should populate chartData with activeSymbols before getChartData resolves', async () => {
+            const symbols = [{ symbol: 'R_100', display_name: 'Volatility 100 Index' }];
+            const { transformations: mockTransformations } = jest.requireMock('../../Adapters');
+
+            // getChartData resolves after a delay — early-sync should fire before it
+            mockGetChartData.mockImplementation(
+                () =>
+                    new Promise(resolve =>
+                        setTimeout(
+                            () =>
+                                resolve({
+                                    rawData: { activeSymbols: [], tradingTimes: {} },
+                                    activeSymbols: symbols,
+                                    tradingTimes: { R_100: { isOpen: true, openTime: '00:00', closeTime: '23:59' } },
+                                }),
+                            200
+                        )
+                    )
+            );
+
+            const { result } = renderHook(() => useSmartChartsAdapter({ activeSymbols: symbols }));
+
+            // Before getChartData resolves, chartData should already have activeSymbols via early-sync
+            await waitFor(() => {
+                expect(result.current.chartData.activeSymbols).not.toHaveLength(0);
+            });
+            expect(mockTransformations.toActiveSymbols).toHaveBeenCalledWith(symbols);
+            expect(result.current.chartData.tradingTimes).toEqual({});
+        });
+    });
+
     describe('shouldUseCandlesOverride', () => {
         it('should return shouldUseCandlesOverride as false by default', async () => {
-            const { result } = renderHook(() => useSmartChartsAdapter({}));
+            const { result } = renderHook(() => useSmartChartsAdapter({ activeSymbols: mockActiveSymbols }));
 
             await waitFor(() => {
                 expect(result.current.isLoading).toBe(false);
@@ -69,6 +107,7 @@ describe('useSmartChartsAdapter', () => {
 
             const { result } = renderHook(() =>
                 useSmartChartsAdapter({
+                    activeSymbols: mockActiveSymbols,
                     minStartEpoch,
                 })
             );
@@ -112,6 +151,7 @@ describe('useSmartChartsAdapter', () => {
 
             const { result } = renderHook(() =>
                 useSmartChartsAdapter({
+                    activeSymbols: mockActiveSymbols,
                     minStartEpoch,
                 })
             );
@@ -150,6 +190,7 @@ describe('useSmartChartsAdapter', () => {
 
             const { result } = renderHook(() =>
                 useSmartChartsAdapter({
+                    activeSymbols: mockActiveSymbols,
                     minStartEpoch,
                 })
             );
@@ -181,6 +222,7 @@ describe('useSmartChartsAdapter', () => {
 
             const { result } = renderHook(() =>
                 useSmartChartsAdapter({
+                    activeSymbols: mockActiveSymbols,
                     // minStartEpoch is NOT provided
                 })
             );
@@ -211,6 +253,7 @@ describe('useSmartChartsAdapter', () => {
 
             const { result } = renderHook(() =>
                 useSmartChartsAdapter({
+                    activeSymbols: mockActiveSymbols,
                     minStartEpoch,
                 })
             );
@@ -243,7 +286,7 @@ describe('useSmartChartsAdapter', () => {
                 ],
             });
 
-            const { result } = renderHook(() => useSmartChartsAdapter({}));
+            const { result } = renderHook(() => useSmartChartsAdapter({ activeSymbols: mockActiveSymbols }));
 
             await waitFor(() => {
                 expect(result.current.isLoading).toBe(false);
@@ -271,7 +314,7 @@ describe('useSmartChartsAdapter', () => {
                 quotes: [{ Date: '1609459200', Open: 1.12, High: 1.13, Low: 1.11, Close: 1.125 }],
             });
 
-            const { result } = renderHook(() => useSmartChartsAdapter({}));
+            const { result } = renderHook(() => useSmartChartsAdapter({ activeSymbols: mockActiveSymbols }));
 
             await waitFor(() => {
                 expect(result.current.isLoading).toBe(false);

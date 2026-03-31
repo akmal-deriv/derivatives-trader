@@ -10,14 +10,23 @@ const mock_chart = 'Mocked Chart';
 
 jest.mock('Modules/SmartChart', () => ({
     SmartChart: () => 'Mocked Chart',
-    createSmartChartsChampionAdapter: jest.fn(() => ({
-        getChartData: jest.fn(async () => ({
+}));
+
+jest.mock('Modules/SmartChart/Hooks/useSmartChartsAdapter', () => ({
+    useSmartChartsAdapter: jest.fn(() => ({
+        smartChartsAdapter: {},
+        chartData: {
             activeSymbols: [{ symbol: 'EURUSD', display_name: 'EUR/USD', market: 'forex', exchange_is_open: 1 }],
             tradingTimes: { EURUSD: { isOpen: true, openTime: '00:00', closeTime: '23:59' } },
-        })),
+        },
+        isLoading: false,
+        error: null,
         getQuotes: jest.fn(),
         subscribeQuotes: jest.fn(),
         unsubscribeQuotes: jest.fn(),
+        retryFetchChartData: jest.fn(),
+        isValidGranularity: jest.fn(() => true),
+        shouldUseCandlesOverride: false,
     })),
 }));
 jest.mock('react-router-dom', () => ({

@@ -173,14 +173,14 @@ const transformations = {
             const symbolCode = symbol.underlying_symbol || symbol.symbol;
             symbols.push({
                 display_name: symbol.display_name || symbolCode,
-                market: symbol.market,
+                market: symbol.market || '',
                 market_display_name: symbol.market_display_name || '',
-                subgroup: symbol.subgroup,
+                subgroup: symbol.subgroup || '',
                 subgroup_display_name: symbol.subgroup_display_name || '',
-                submarket: symbol.submarket,
+                submarket: symbol.submarket || '',
                 submarket_display_name: symbol.submarket_display_name || '',
                 symbol: symbolCode,
-                symbol_type: symbol.underlying_symbol_type || '',
+                symbol_type: symbol.underlying_symbol_type || symbol.symbol_type || '',
                 pip: symbol.pip || symbol.pip_size || 0.01,
                 exchange_is_open: symbol.exchange_is_open || 0,
                 is_trading_suspended: symbol.is_trading_suspended || 0,
@@ -355,15 +355,18 @@ export function buildSmartChartsChampionAdapter(
             logger.info('Fetching chart reference data using optimized transformations');
 
             try {
-                // Use pre-fetched active symbols if provided (from React Query), otherwise fetch via WS
-                const activeSymbolsData = prefetchedActiveSymbols?.length
-                    ? prefetchedActiveSymbols
-                    : await services.getActiveSymbols();
+                // Fetch active symbols and trading times in parallel to reduce load time
+                const activeSymbolsPromise = prefetchedActiveSymbols?.length
+                    ? Promise.resolve(prefetchedActiveSymbols)
+                    : services.getActiveSymbols();
+
+                const [activeSymbolsData, tradingTimesData] = await Promise.all([
+                    activeSymbolsPromise,
+                    services.getTradingTimes(),
+                ]);
+
                 // Convert MobX observables to plain JavaScript objects using toJS (more efficient than JSON roundtrip)
                 const plainActiveSymbols = Array.isArray(activeSymbolsData) ? toJS(activeSymbolsData) : [];
-
-                // Get trading times using optimized function that leverages existing caching
-                const tradingTimesData = await services.getTradingTimes();
 
                 // Convert MobX observables to plain JavaScript objects using toJS (safer and faster)
                 const plainTradingTimes = tradingTimesData ? toJS(tradingTimesData.tradingTimes) : {};

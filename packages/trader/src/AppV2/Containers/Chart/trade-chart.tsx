@@ -3,6 +3,7 @@ import React from 'react';
 import { TTicksStreamResponse } from '@deriv/api';
 import {
     ChartBarrierStore,
+    getSymbolDisplayName,
     isAccumulatorContract,
     isContractSupportedAndStarted,
     isTurbosContract,
@@ -68,7 +69,15 @@ const TradeChart = observer(() => {
     const { all_positions, removePositionById: onClickRemove } = portfolio;
     const { is_chart_countdown_visible, is_chart_layout_default, is_dark_mode_on, active_sidebar_flyout } = ui;
     const { current_language, is_socket_opened } = common;
-    const { activeSymbols: active_symbols } = useActiveSymbols();
+    const { activeSymbols: raw_active_symbols } = useActiveSymbols();
+    const active_symbols = React.useMemo(
+        () =>
+            raw_active_symbols.map((s: any) => ({
+                ...s,
+                display_name: getSymbolDisplayName(s.underlying_symbol || s.symbol) || s.display_name,
+            })),
+        [raw_active_symbols]
+    );
     const {
         barriers_flattened: extra_barriers,
         chartStateChange,
