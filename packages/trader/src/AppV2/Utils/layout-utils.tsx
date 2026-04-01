@@ -7,6 +7,7 @@ import { getTradeParams } from './trade-params-utils';
 export const HEIGHT = {
     HEADER: 56,
     TRADE_TYPE: 48,
+    TRADE_TYPE_TAB: 46,
     MARKET_SELECTOR: 58,
     CHART_STATS: 82,
     TRADE_PARAM_SHEET: 170,
@@ -61,11 +62,14 @@ export const getChartHeight = ({
         height -= HEIGHT.DIGIT_INFO;
     }
 
+    if (isVisible('trade_type_tabs')) {
+        height -= HEIGHT.TRADE_TYPE_TAB;
+    }
+
     if (
         isVisible('expiration') ||
         isVisible('mult_info_display') ||
         isVisible('payout_per_point_info') ||
-        isVisible('allow_equals') ||
         isVisible('payout') ||
         isVisible('barrier_info') ||
         isVisible('multipliers_info')
