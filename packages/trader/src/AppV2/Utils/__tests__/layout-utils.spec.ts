@@ -84,14 +84,15 @@ describe('getChartHeight', () => {
             symbol: '1HZ100V',
         };
         // window.innerHeight (740) - HEADER (56) - TRADE_TYPE (48) - MARKET_SELECTOR (58) - TRADE_PARAM_SHEET (170) - BOTTOM_NAV (56) = 352
-        // MATCH_DIFF is a digit type, so subtract DIGIT_INFO (56): 352 - 56 = 296
-        const default_chart_height = 296;
-        // base (352) - CHART_STATS (82) = 270
+        // MATCH_DIFF has trade_type_tabs, so subtract TRADE_TYPE_TAB (46): 352 - 46 = 306
+        // MATCH_DIFF is a digit type, so subtract DIGIT_INFO (56): 306 - 56 = 250
+        const default_chart_height = 250;
+        // base (352) - CHART_STATS (82) = 270 (ACCUMULATOR has no trade_type_tabs)
         const accumulators_chart_height = 270;
-        // base (352) - ADDITIONAL_INFO (30) = 322
-        const chart_height_with_additional_info = 322;
-        // HIGH_LOW has no additional info components (barrier vs barrier_info)
-        const high_low_chart_height = 352;
+        // base (352) - TRADE_TYPE_TAB (46) - ADDITIONAL_INFO (30) = 276
+        const chart_height_with_additional_info = 276;
+        // base (352) - TRADE_TYPE_TAB (46) = 306 (has trade_type_tabs but no additional info)
+        const chart_height_with_trade_type_tabs = 306;
 
         expect(
             getChartHeight({
@@ -130,13 +131,13 @@ describe('getChartHeight', () => {
                 ...common_args,
                 contract_type: TRADE_TYPES.RISE_FALL,
             })
-        ).toEqual(chart_height_with_additional_info);
+        ).toEqual(chart_height_with_trade_type_tabs);
         expect(
             getChartHeight({
                 ...common_args,
                 contract_type: TRADE_TYPES.HIGH_LOW,
             })
-        ).toEqual(high_low_chart_height);
+        ).toEqual(chart_height_with_trade_type_tabs);
     });
 });
 
