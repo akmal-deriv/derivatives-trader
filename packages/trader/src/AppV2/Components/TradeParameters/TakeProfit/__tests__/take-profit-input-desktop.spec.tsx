@@ -217,4 +217,27 @@ describe('TakeProfitInputDesktop', () => {
             take_profit: '100',
         });
     });
+
+    it('uses trade_types key to look up validation params, ignoring stale entries', () => {
+        const store = mockStore({
+            modules: {
+                trade: {
+                    ...mockStore({}).modules.trade,
+                    currency: 'USD',
+                    has_take_profit: true,
+                    take_profit: '50',
+                    onChangeMultiple: jest.fn(),
+                    validation_params: {
+                        CALL: { take_profit: { min: '1', max: '999' } },
+                        ACCU: { take_profit: { min: '0.01', max: '5000.00' } },
+                    },
+                    trade_types: { ACCU: 'Accumulators' },
+                },
+            },
+        });
+
+        render(<MockedTakeProfitInputDesktop store={store} />);
+
+        expect(screen.getByText(/0.01 to 5,000.00 USD/)).toBeInTheDocument();
+    });
 });

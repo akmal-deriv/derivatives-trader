@@ -55,11 +55,12 @@ const TakeProfitStopLossDesktop = observer(({ onClose, is_open }: TTakeProfitSto
 
     const decimals = getDecimalPlaces(currency);
 
-    // Extract primitive min/max values during render so MobX tracks deep property access
-    // and React's useEffect can detect changes via primitive comparison
-    const contract_type_keys = Object.keys(validation_params);
-    const tp_params = contract_type_keys.length > 0 ? validation_params[contract_type_keys[0]]?.take_profit : undefined;
-    const sl_params = contract_type_keys.length > 0 ? validation_params[contract_type_keys[0]]?.stop_loss : undefined;
+    // Use the current active contract type to look up validation params, not just the first key.
+    // validation_params accumulates entries across contract type switches (e.g. CALL from Rise/Fall),
+    // so Object.keys()[0] could return a stale type that lacks take_profit/stop_loss params.
+    const current_contract_type = Object.keys(trade_types)[0];
+    const tp_params = current_contract_type ? validation_params[current_contract_type]?.take_profit : undefined;
+    const sl_params = current_contract_type ? validation_params[current_contract_type]?.stop_loss : undefined;
 
     const [tp_state, setTpState] = React.useState<TFieldState>({
         is_enabled: has_take_profit,
@@ -131,7 +132,7 @@ const TakeProfitStopLossDesktop = observer(({ onClose, is_open }: TTakeProfitSto
     } = useProposal({
         trade_store,
         proposal_request_values: tp_proposal_values,
-        contract_type: Object.keys(trade_types)[0],
+        contract_type: current_contract_type,
         is_enabled: is_open && tp_state.is_enabled,
         should_skip_validation: 'stop_loss',
     });
@@ -150,7 +151,7 @@ const TakeProfitStopLossDesktop = observer(({ onClose, is_open }: TTakeProfitSto
     } = useProposal({
         trade_store,
         proposal_request_values: sl_proposal_values,
-        contract_type: Object.keys(trade_types)[0],
+        contract_type: current_contract_type,
         is_enabled: is_open && sl_state.is_enabled,
         should_skip_validation: 'take_profit',
     });

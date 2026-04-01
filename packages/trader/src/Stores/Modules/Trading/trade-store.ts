@@ -1567,6 +1567,7 @@ export default class TradeStore extends BaseStore {
                 // disable purchase button(s), clear contract info
                 is_purchase_enabled: false,
                 proposal_info: {},
+                validation_params: {},
             });
 
             // To prevent infinite loop when changing from advanced end_time to digit type contract
