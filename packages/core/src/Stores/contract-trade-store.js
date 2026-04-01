@@ -25,7 +25,7 @@ import ContractStore from './contract-store';
 export default class ContractTradeStore extends BaseStore {
     // --- Observable properties ---
     contracts = [];
-    contracts_map = {};
+    contracts_map = {}; // Optimized with observable.ref for better performance
     has_error = false;
     error_message = '';
 
@@ -56,6 +56,7 @@ export default class ContractTradeStore extends BaseStore {
             clearAccumulatorBarriersData: action.bound,
             setBarriersLoadingState: action.bound,
             contracts: observable.shallow,
+            contracts_map: observable.ref, // Only react to reference changes, not deep property changes
             has_crossed_accu_barriers: computed,
             has_error: observable,
             error_message: observable,
@@ -466,7 +467,7 @@ export default class ContractTradeStore extends BaseStore {
         );
 
         this.contracts.push(contract);
-        this.contracts_map[contract_id] = contract;
+        this.contracts_map = { ...this.contracts_map, [contract_id]: contract };
 
         // Clear any override when adding a new contract
         this.clearLastContractOverride();
@@ -478,7 +479,8 @@ export default class ContractTradeStore extends BaseStore {
 
     removeContract({ contract_id }) {
         this.contracts = this.contracts.filter(c => c.contract_id !== contract_id);
-        delete this.contracts_map[contract_id];
+        const { [contract_id]: _, ...rest } = this.contracts_map;
+        this.contracts_map = rest;
     }
 
     /**

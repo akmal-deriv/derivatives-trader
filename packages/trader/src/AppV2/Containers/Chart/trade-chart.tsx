@@ -43,6 +43,8 @@ const BottomWidgetsMobile = observer(({ digits, tick }: TBottomWidgetsParams) =>
         setDigitStats(digits);
         // For digits array, which is coming from SmartChart, reference is not always changing.
         // As it is the same, this useEffect was not triggered on every array update.
+        // Computing digits.join('-') directly in deps (not via useMemo) ensures React catches
+        // in-place array mutations where the reference stays the same.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [digits.join('-')]);
 
@@ -96,20 +98,33 @@ const TradeChart = observer(() => {
     } = useTraderStore();
     const is_accumulator = isAccumulatorContract(contract_type);
     const timeoutsMapRef = React.useRef<Map<number, NodeJS.Timeout>>(new Map());
-    const settings = {
-        countdown: is_chart_countdown_visible,
-        isHighestLowestMarkerEnabled: false, // TODO: Pending UI,
-        language: current_language.toLowerCase(),
-        position: is_chart_layout_default ? 'bottom' : 'left',
-        theme: is_dark_mode_on ? 'dark' : 'light',
-        ...(is_accumulator
-            ? {
-                  whitespace: CHART_CONSTANTS.ACCUMULATOR_WHITESPACE,
-                  minimumLeftBars: isMobile ? CHART_CONSTANTS.ACCUMULATOR_MIN_LEFT_BARS_MOBILE : undefined,
-              }
-            : {}),
-        ...(has_barrier ? { whitespace: CHART_CONSTANTS.BARRIER_WHITESPACE } : {}),
-    };
+
+    // Memoize settings object to prevent chart re-initialization
+    const settings = React.useMemo(
+        () => ({
+            countdown: is_chart_countdown_visible,
+            isHighestLowestMarkerEnabled: false, // TODO: Pending UI,
+            language: current_language.toLowerCase(),
+            position: is_chart_layout_default ? 'bottom' : 'left',
+            theme: is_dark_mode_on ? 'dark' : 'light',
+            ...(is_accumulator
+                ? {
+                      whitespace: CHART_CONSTANTS.ACCUMULATOR_WHITESPACE,
+                      minimumLeftBars: isMobile ? CHART_CONSTANTS.ACCUMULATOR_MIN_LEFT_BARS_MOBILE : undefined,
+                  }
+                : {}),
+            ...(has_barrier ? { whitespace: CHART_CONSTANTS.BARRIER_WHITESPACE } : {}),
+        }),
+        [
+            is_chart_countdown_visible,
+            current_language,
+            is_chart_layout_default,
+            is_dark_mode_on,
+            is_accumulator,
+            isMobile,
+            has_barrier,
+        ]
+    );
 
     const { current_spot, current_spot_time } = accumulator_barriers_data || {};
 
@@ -136,7 +151,11 @@ const TradeChart = observer(() => {
         }
     }, [is_accumulator, onChange, prev_contract_type, show_digits_stats]);
 
-    const barriers: ChartBarrierStore[] = main_barrier ? [main_barrier, ...extra_barriers] : extra_barriers;
+    // Memoize barriers array to prevent unnecessary recalculations
+    const barriers: ChartBarrierStore[] = React.useMemo(
+        () => (main_barrier ? [main_barrier, ...extra_barriers] : extra_barriers),
+        [main_barrier, extra_barriers]
+    );
 
     // max ticks to display for mobile view for tick chart
     const max_ticks =
@@ -197,6 +216,14 @@ const TradeChart = observer(() => {
             timeoutsMap.clear();
         };
     }, []);
+
+    // Memoize yAxisMargin to prevent object recreation
+    const yAxisMargin = React.useMemo(
+        () => ({
+            top: isMobile ? CHART_CONSTANTS.Y_AXIS_MARGIN_MOBILE : CHART_CONSTANTS.Y_AXIS_MARGIN_DESKTOP,
+        }),
+        [isMobile]
+    );
 
     if (!symbol || !active_symbols.length) return null;
 
@@ -267,9 +294,7 @@ const TradeChart = observer(() => {
                 hasAlternativeSource={has_alternative_source}
                 getMarketsOrder={getMarketsOrder}
                 should_zoom_out_on_yaxis={is_accumulator}
-                yAxisMargin={{
-                    top: isMobile ? CHART_CONSTANTS.Y_AXIS_MARGIN_MOBILE : CHART_CONSTANTS.Y_AXIS_MARGIN_DESKTOP,
-                }}
+                yAxisMargin={yAxisMargin}
                 isLive
                 leftMargin={
                     !isMobile && active_sidebar_flyout

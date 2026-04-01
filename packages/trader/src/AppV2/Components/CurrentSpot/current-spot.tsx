@@ -1,5 +1,6 @@
 import React from 'react';
 import clsx from 'clsx';
+import throttle from 'lodash.throttle';
 import { toJS } from 'mobx';
 import { observer } from 'mobx-react-lite';
 
@@ -69,10 +70,23 @@ const CurrentSpot = observer(() => {
         .map(spot_time => digits_info[+spot_time]);
     // last_contract_digit refers to digit and spot values from last digit contract in contracts array:
     const last_contract_digit = React.useMemo(() => digits_array.slice(-1)[0] || {}, [digits_array]);
-    const latest_tick_pip_size = tick ? +tick.pip_size : null;
-    const latest_tick_quote_price =
-        tick?.quote && latest_tick_pip_size ? tick.quote.toFixed(latest_tick_pip_size) : null;
-    const latest_tick_digit = latest_tick_quote_price ? +(latest_tick_quote_price.split('').pop() || '') : null;
+
+    // Memoize tick calculations to avoid recalculating on every render
+    const tickCalculations = React.useMemo(() => {
+        const latest_tick_pip_size = tick ? +tick.pip_size : null;
+        const latest_tick_quote_price =
+            tick?.quote && latest_tick_pip_size ? tick.quote.toFixed(latest_tick_pip_size) : null;
+        const latest_tick_digit = latest_tick_quote_price ? +(latest_tick_quote_price.split('').pop() || '') : null;
+
+        return {
+            latest_tick_pip_size,
+            latest_tick_quote_price,
+            latest_tick_digit,
+        };
+    }, [tick?.quote, tick?.pip_size]);
+
+    const { latest_tick_pip_size, latest_tick_quote_price, latest_tick_digit } = tickCalculations;
+
     // latest_digit refers to digit and spot values from the latest price:
     const latest_digit = React.useMemo(
         () =>
@@ -96,10 +110,25 @@ const CurrentSpot = observer(() => {
         !prev_contract?.contract_info ||
         !!(is_prev_contract_elapsed && last_contract_ticks === 1 && !prev_last_contract_ticks);
 
+    // Throttle tick updates to max 10 per second to reduce re-renders
     const setNewData = React.useCallback(() => {
         setDisplayedTick(current_tick);
         setDisplayedSpot(latest_digit.spot);
     }, [current_tick, latest_digit.spot]);
+
+    // Keep ref current synchronously after every render so the throttle
+    // always dispatches the most-recent captured values. useLayoutEffect
+    // runs before the browser paints, closing the stale-ref window.
+    const setNewDataRef = React.useRef(setNewData);
+    React.useLayoutEffect(() => {
+        setNewDataRef.current = setNewData;
+    });
+
+    // Create the throttle only ONCE — calls through the ref
+    const throttledSetNewData = React.useMemo(
+        () => throttle(() => setNewDataRef.current(), 100), // Max 10 updates per second
+        [] // stable — never recreated
+    );
 
     React.useEffect(() => {
         const has_multiple_contracts =
@@ -109,26 +138,31 @@ const CurrentSpot = observer(() => {
             setShouldEnterFromTop(true);
             contract_switching_timer.current = setTimeout(() => {
                 setShouldEnterFromTop(false);
-                setNewData();
+                setNewDataRef.current();
             }, 240); // equal to animation duration
         } else if (!should_enter_from_top) {
-            setNewData();
+            // Use throttled version for regular updates
+            throttledSetNewData();
         }
     }, [
         contract_id,
+        current_tick,
+        latest_digit.spot,
         is_prev_contract_elapsed,
         last_contract,
         prev_contract,
         prev_contract_id,
-        setNewData,
         should_enter_from_top,
+        throttledSetNewData,
     ]);
 
     React.useEffect(() => {
         return () => {
             clearTimeout(contract_switching_timer.current);
+            // Cancel any pending throttled calls on unmount
+            throttledSetNewData.cancel();
         };
-    }, []);
+    }, [throttledSetNewData]);
 
     return (
         <div

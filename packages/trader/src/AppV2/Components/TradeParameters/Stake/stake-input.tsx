@@ -1,4 +1,5 @@
 import React from 'react';
+import debounce from 'lodash.debounce';
 import { observer } from 'mobx-react-lite';
 
 import { TPriceProposalResponse, TSocketError } from '@deriv/api';
@@ -353,8 +354,31 @@ const StakeInput = observer(({ onClose, is_open }: TStakeInput) => {
             />
         );
 
+    // Separate local display value from the debounced API-triggering value
+    // so user keystrokes are visible immediately while API calls are debounced
+    const [displayAmount, setDisplayAmount] = React.useState(String(proposal_request_values.amount ?? ''));
+
+    // Sync display amount when proposal_request_values changes externally (e.g. on init)
+    React.useEffect(() => {
+        setDisplayAmount(String(proposal_request_values.amount ?? ''));
+    }, [proposal_request_values.amount]);
+
+    // Debounced function to update proposal values and trigger API call
+    const debouncedUpdateProposal = React.useMemo(
+        () =>
+            debounce((new_value: string) => {
+                dispatch({ type: 'RESET_ERRORS' });
+                dispatch({
+                    type: 'SET_PROPOSAL_VALUES',
+                    payload: { amount: new_value },
+                });
+            }, 300), // Wait 300ms after user stops typing
+        []
+    );
+
     const onInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const new_value = String(e.target.value);
+        setDisplayAmount(new_value); // Immediate display update
         dispatch({
             type: 'SET_MAX_LENGTH',
             payload: calculateMaxLength(new_value, decimals),
@@ -381,18 +405,19 @@ const StakeInput = observer(({ onClose, is_open }: TStakeInput) => {
             return;
         }
 
-        dispatch({ type: 'RESET_ERRORS' });
-        dispatch({
-            type: 'SET_PROPOSAL_VALUES',
-            payload: { amount: new_value },
-        });
+        // Use debounced function to reduce API calls
+        debouncedUpdateProposal(new_value);
     };
 
+    // Cleanup debounced function on unmount
+    React.useEffect(() => {
+        return () => {
+            debouncedUpdateProposal.cancel();
+        };
+    }, [debouncedUpdateProposal]);
+
     const onBeforeInputChange = (e: React.FormEvent<HTMLInputElement>) => {
-        if (
-            ['.', ','].includes((e.nativeEvent as InputEvent)?.data ?? '') &&
-            (String(proposal_request_values.amount)?.length ?? 0) <= 10
-        ) {
+        if (['.', ','].includes((e.nativeEvent as InputEvent)?.data ?? '') && (displayAmount?.length ?? 0) <= 10) {
             dispatch({
                 type: 'SET_MAX_LENGTH',
                 payload: decimals ? 11 + decimals : 10,
@@ -401,6 +426,12 @@ const StakeInput = observer(({ onClose, is_open }: TStakeInput) => {
     };
 
     const onSave = () => {
+        // Flush any pending debounced update so proposal_request_values.amount is up to date
+        debouncedUpdateProposal.flush();
+        // If displayAmount diverges from the last validated amount, the API hasn't
+        // seen the new value yet — block the save until validation completes.
+        const validated_amount = String(proposal_request_values.amount ?? '');
+        if (displayAmount !== validated_amount) return;
         // Prevent from saving if user clicks before we get theAPI response or if we get an error in response or the field is empty
         if (
             is_fetching_1 ||
@@ -409,7 +440,7 @@ const StakeInput = observer(({ onClose, is_open }: TStakeInput) => {
             fe_stake_error
         )
             return;
-        if (proposal_request_values.amount === '') {
+        if (displayAmount === '') {
             dispatch({
                 type: 'SET_FE_STAKE_ERROR',
                 payload: localize('Amount is a required field.'),
@@ -417,7 +448,7 @@ const StakeInput = observer(({ onClose, is_open }: TStakeInput) => {
             return;
         }
         // Setting new stake value to the store and send it in streaming proposal
-        onChange({ target: { name: 'amount', value: proposal_request_values.amount } });
+        onChange({ target: { name: 'amount', value: displayAmount } });
         trackAnalyticsEvent('ce_trade_types_form_v2', {
             action: 'customizing_trades',
             input_method: 'custom',
@@ -450,7 +481,7 @@ const StakeInput = observer(({ onClose, is_open }: TStakeInput) => {
                     id={input_id}
                     maxLength={state.max_length}
                     message={fe_stake_error || (should_show_stake_error && stake_error) || getInputMessage()}
-                    minusDisabled={Number(proposal_request_values.amount) - 1 <= 0}
+                    minusDisabled={Number(displayAmount) - 1 <= 0}
                     name='amount'
                     noStatusIcon
                     onChange={onInputChange}
@@ -461,7 +492,7 @@ const StakeInput = observer(({ onClose, is_open }: TStakeInput) => {
                     status={fe_stake_error || (should_show_stake_error && stake_error) ? 'error' : 'neutral'}
                     textAlignment='center'
                     unitLeft={getCurrencyDisplayCode(currency)}
-                    value={proposal_request_values.amount}
+                    value={displayAmount}
                     variant='fill'
                 />
                 <StakeDetails
@@ -472,7 +503,7 @@ const StakeInput = observer(({ onClose, is_open }: TStakeInput) => {
                     has_stop_loss={has_stop_loss}
                     is_loading_proposal={is_loading_proposal}
                     is_multiplier={is_multiplier}
-                    is_empty={!proposal_request_values.amount}
+                    is_empty={!displayAmount}
                     should_show_payout_details={should_show_payout_details}
                 />
             </ActionSheet.Content>
