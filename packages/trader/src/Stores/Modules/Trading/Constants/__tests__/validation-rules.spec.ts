@@ -179,8 +179,14 @@ describe('getValidationRules', () => {
 
     it('should contain rules for duration', () => {
         expect(validation_rules).toHaveProperty('duration');
-        const message = (validation_rules.duration.rules?.[0][1] as TExtendedRuleOptions).message;
+        const rule_options = validation_rules.duration.rules?.[0][1] as TExtendedRuleOptions;
+        const message = rule_options.message;
         expect(typeof message === 'function' ? message() : message).toBe('Duration is a required field.');
+        expect(rule_options.condition({ form_components: ['duration'] } as TTradeStore)).toBe(true);
+        expect(rule_options.condition({ form_components: [] } as unknown as TTradeStore)).toBe(false);
+        expect(rule_options.condition({ form_components: ['amount', 'multiplier'] } as unknown as TTradeStore)).toBe(
+            false
+        );
     });
 
     it('should contain rules for start_date', () => {

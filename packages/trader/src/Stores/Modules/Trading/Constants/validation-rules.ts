@@ -90,7 +90,15 @@ export const getValidationRules = (): TValidationRules => ({
         trigger: 'barrier_1',
     },
     duration: {
-        rules: [['req', { message: getDynamicMessage('Duration is a required field.') }]],
+        rules: [
+            [
+                'req',
+                {
+                    condition: (store: TTradeStore) => store.form_components.indexOf('duration') > -1,
+                    message: getDynamicMessage('Duration is a required field.'),
+                },
+            ],
+        ],
     },
     start_date: {
         trigger: 'start_time',

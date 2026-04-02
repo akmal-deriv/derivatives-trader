@@ -1957,7 +1957,7 @@ export default class TradeStore extends BaseStore {
     }
 
     changeDurationValidationRules() {
-        if (this.expiry_type === 'endtime') {
+        if (this.expiry_type === 'endtime' || this.form_components.indexOf('duration') === -1) {
             this.validation_errors.duration = [];
             return;
         }
