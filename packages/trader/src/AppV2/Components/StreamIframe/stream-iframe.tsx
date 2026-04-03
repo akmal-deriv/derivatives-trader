@@ -52,6 +52,9 @@ const StreamIframe = ({
                 data-testid={test_id}
                 title={title}
                 onLoad={() => setIsLoading(false)}
+                // @ts-expect-error -- credentialless is not yet in React's iframe type definitions
+                // eslint-disable-next-line react/no-unknown-property
+                credentialless=''
                 {...props}
             />
         </div>
