@@ -1683,6 +1683,9 @@ export default class TradeStore extends BaseStore {
     }
 
     requestProposal() {
+        // Cancel old subscriptions before creating new ones to prevent stale responses.
+        this.forgetAllProposal();
+
         // Don't request proposals for closed markets - the server would return MarketIsClosed errors
         // which trigger error snackbars. The closed market state is handled by ClosedMarketMessage.
         if (this.is_market_closed) {
@@ -1883,6 +1886,9 @@ export default class TradeStore extends BaseStore {
                 }
             }
             if (this.is_turbos && response.error.details?.payout_per_point_choices) {
+                // Ignore stale error responses just as we do for success responses.
+                if (Number(response.echo_req.amount) !== Number(this.amount)) return;
+
                 const { payout_per_point_choices, min_stake, max_stake } = response.error.details;
                 const payoutIndex = Math.floor(payout_per_point_choices.length / 2);
                 this.setPayoutChoices(payout_per_point_choices.map(item => String(item)));
@@ -1893,7 +1899,9 @@ export default class TradeStore extends BaseStore {
                         value: String(payout_per_point_choices[payoutIndex]),
                     },
                 });
-                this.barrier_1 = String(this.getTurbosChartBarrier(response));
+                if (response.proposal?.contract_details?.barrier) {
+                    this.barrier_1 = String(this.getTurbosChartBarrier(response));
+                }
             }
         } else {
             this.validateAllProperties();
@@ -1917,6 +1925,9 @@ export default class TradeStore extends BaseStore {
                     });
                 }
             } else if (this.is_turbos) {
+                // Ignore stale Turbo responses where the stake no longer matches.
+                // payout_choices are stake-dependent, so applying choices from a different stake is always wrong.
+                if (Number(response.echo_req.amount) !== Number(this.amount)) return;
                 const { max_stake, min_stake, payout_choices } = response.proposal ?? {};
                 const { barrier_spot_distance } = response.proposal?.contract_details ?? {};
                 if (payout_choices) {

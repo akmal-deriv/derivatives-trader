@@ -418,6 +418,9 @@ const StakeInput = observer(({ onClose, is_open }: TStakeInput) => {
         }
         // Setting new stake value to the store and send it in streaming proposal
         onChange({ target: { name: 'amount', value: proposal_request_values.amount } });
+        if (is_turbos && proposal_request_values.payout_per_point) {
+            onChange({ target: { name: 'payout_per_point', value: proposal_request_values.payout_per_point } });
+        }
         trackAnalyticsEvent('ce_trade_types_form_v2', {
             action: 'customizing_trades',
             input_method: 'custom',
