@@ -160,4 +160,5 @@ export type TConfig = ReturnType<typeof getContractTypesConfig>[string]['config'
     multiplier_range?: number[];
     cancellation_range?: string[];
     barrier_choices?: string[];
+    payout_choices?: number[];
 };

@@ -245,7 +245,8 @@ export const createProposalRequestForContract = (store: TTradeStore, type_of_con
                 barrier2: store.barrier_2,
             }),
         ...(isTurbosContract(type_of_contract) && {
-            payout_per_point: store.payout_per_point || store.last_digit,
+            payout_per_point:
+                store.payout_per_point || store.payout_choices?.[Math.floor((store.payout_choices?.length ?? 0) / 2)],
         }),
         limit_order,
         ...obj_accumulator,

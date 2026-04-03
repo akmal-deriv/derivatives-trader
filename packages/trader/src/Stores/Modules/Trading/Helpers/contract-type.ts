@@ -132,6 +132,7 @@ export const ContractType = (() => {
             config.trade_types = buildTradeTypesConfig(contract, config.trade_types);
             config.barriers = buildBarriersConfig(contract, config.barriers);
             config.barrier_choices = contract.barrier_choices as TConfig['barrier_choices'];
+            config.payout_choices = contract.payout_choices as TConfig['payout_choices'];
             config.growth_rate_range = contract.growth_rate_range as TConfig['growth_rate_range'];
             config.multiplier_range = contract.multiplier_range as TConfig['multiplier_range'];
             config.cancellation_range = contract.cancellation_range as TConfig['cancellation_range'];
@@ -239,6 +240,7 @@ export const ContractType = (() => {
         const obj_duration_units_min_max = getDurationMinMax(contract_type);
         const obj_accumulator_range_list = getAccumulatorRange(contract_type);
         const obj_barrier_choices = getBarrierChoices(contract_type, stored_barriers_data?.barrier_choices);
+        const obj_payout_choices = getPayoutChoices(contract_type);
         const obj_multiplier_range_list = getMultiplierRange(contract_type, multiplier);
         const obj_cancellation = getCancellation(contract_type, cancellation_duration);
         const obj_expiry_type = getExpiryType(obj_duration_units_list.duration_units_list, expiry_type);
@@ -257,6 +259,7 @@ export const ContractType = (() => {
             ...obj_expiry_type,
             ...obj_accumulator_range_list,
             ...obj_barrier_choices,
+            ...obj_payout_choices,
             ...obj_multiplier_range_list,
             ...obj_cancellation,
             ...obj_equal,
@@ -680,6 +683,12 @@ export const ContractType = (() => {
             ? stored_barrier_choices
             : getPropertyValue(available_contract_types, [contract_type, 'config', 'barrier_choices']) || [],
     });
+
+    const getPayoutChoices = (contract_type: string): { payout_choices: string[] } => {
+        const choices: number[] =
+            getPropertyValue(available_contract_types, [contract_type, 'config', 'payout_choices']) || [];
+        return { payout_choices: choices.map(String) };
+    };
 
     const getMultiplierRange = (contract_type: string, multiplier: number) => {
         const arr_multiplier: number[] =

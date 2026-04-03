@@ -884,6 +884,11 @@ export default class TradeStore extends BaseStore {
             false
         );
         await this.processNewValuesAsync(ContractType.getContractValues(this), false, null, false);
+        // For Turbo contracts, initialize payout_per_point from contracts_for payout_choices
+        // before the first proposal to avoid sending an invalid fallback value.
+        if (this.is_turbos && this.payout_choices.length && !this.payout_per_point) {
+            this.payout_per_point = String(this.payout_choices[Math.floor(this.payout_choices.length / 2)]);
+        }
         // Explicitly trigger proposal after all contract values (barriers, duration, stake)
         // are applied. The processNewValuesAsync calls above use is_changed_by_user=false
         // and their keys don't always match the regex gate that triggers debouncedProposal.
@@ -1919,7 +1924,7 @@ export default class TradeStore extends BaseStore {
                         this.onChange({
                             target: {
                                 name: 'payout_per_point',
-                                value: String(Math.floor(payout_choices.length / 2)),
+                                value: String(payout_choices[Math.floor(payout_choices.length / 2)]),
                             },
                         });
                     }

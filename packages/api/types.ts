@@ -108,6 +108,7 @@ type ContractsForSymbolResponse = Omit<BaseContractsForSymbolResponse, 'contract
             > & {
                 underlying_symbol?: string;
                 default_stake?: number;
+                payout_choices?: number[];
             }
         >;
     };
