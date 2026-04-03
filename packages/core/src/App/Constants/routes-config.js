@@ -58,7 +58,7 @@ const getModules = () => {
         {
             path: routes.index,
             component: Trader,
-            getTitle: () => localize('Trader'),
+            getTitle: () => localize('Trade'),
             protected: false,
         },
         {

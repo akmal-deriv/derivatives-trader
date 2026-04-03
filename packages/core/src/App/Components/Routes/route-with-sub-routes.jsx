@@ -57,8 +57,8 @@ const RouteWithSubRoutes = observer(route => {
             );
         }
 
-        const title = route.getTitle?.() || '';
-        document.title = `${title} | ${getBrandName()}`;
+        const title = route.getTitle?.();
+        if (title) document.title = `${title} | ${getBrandName()}`;
 
         return result;
     };

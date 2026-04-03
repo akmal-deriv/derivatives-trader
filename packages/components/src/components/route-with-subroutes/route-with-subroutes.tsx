@@ -85,8 +85,8 @@ const RouteWithSubRoutes = ({
             );
         }
 
-        const title = getTitle?.() || '';
-        document.title = `${title} | ${getBrandName()}`;
+        const title = getTitle?.();
+        if (title) document.title = `${title} | ${getBrandName()}`;
 
         return result;
     };
