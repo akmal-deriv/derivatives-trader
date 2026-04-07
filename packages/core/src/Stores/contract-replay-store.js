@@ -97,14 +97,18 @@ export default class ContractReplayStore extends BaseStore {
 
     onMount(contract_id) {
         if (contract_id) {
+            if (contract_id === this.contract_id && this.reconnectHandler) {
+                return;
+            }
             this.contract_id = contract_id;
             this.contract_store = new ContractStore(this.root_store, { contract_id });
             this.subscribeProposalOpenContract();
-            WS.setOnReconnect(() => {
+            this.reconnectHandler = () => {
                 if (!this.root_store.client.is_switching) {
                     this.subscribeProposalOpenContract();
                 }
-            });
+            };
+            WS.setOnReconnect(this.reconnectHandler);
         }
     }
 
@@ -117,7 +121,10 @@ export default class ContractReplayStore extends BaseStore {
         this.contract_info = {};
         this.chart_state = '';
         this.root_store.ui.toggleHistoryTab(false);
-        WS.removeOnReconnect();
+        if (this.reconnectHandler) {
+            WS.removeOnReconnect(this.reconnectHandler);
+            this.reconnectHandler = null;
+        }
 
         this.root_store.contract_trade.clearAccumulatorBarriersData(true, true);
     }

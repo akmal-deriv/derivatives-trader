@@ -667,6 +667,10 @@ export default class ClientStore extends BaseStore {
         // Clear contract markers to prevent showing previous account's contracts on chart
         this.root_store.contract_trade.clearContracts();
 
+        // Clear stale positions immediately so previous account's positions
+        // are not visible while the new account's data loads
+        this.root_store.portfolio.clearTable();
+
         // Reconnect WebSocket with new account
         BinarySocket.closeAndOpenNewConnection();
     }
