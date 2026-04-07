@@ -1,5 +1,6 @@
 import {
     getContractStatus,
+    getCurrentTick,
     getDecimalPlaces,
     getEndTime,
     isAccumulatorContract,
@@ -11,8 +12,6 @@ import {
     isTicksContract,
     unique,
 } from '@deriv/shared';
-import { localize } from '@deriv-com/translations';
-
 import { MARKER_TYPES_CONFIG } from '../Constants/markers';
 
 import {
@@ -316,7 +315,7 @@ export const getMarkerDirection = contract_type => {
 };
 
 export const getStartText = contract_info => {
-    const { barrier, contract_type, currency, is_sold, profit, tick_count, tick_stream } = contract_info;
+    const { barrier, contract_type, currency, is_sold, profit, tick_count } = contract_info;
     const is_non_tick_contract = !tick_count;
 
     if (is_sold || isAccumulatorContract(contract_type)) return undefined;
@@ -331,7 +330,7 @@ export const getStartText = contract_info => {
         return `${sign}${symbol}${Math.abs(profit).toFixed(decimal_places)}`;
     }
 
-    return `${Math.max(tick_stream.length - 1, 0)}/${tick_count}`;
+    return `${getCurrentTick(contract_info)}/${tick_count}`;
 };
 
 export const getTickStreamMarkers = (contract_info, barrier_price) => {
@@ -359,7 +358,7 @@ export const getTickStreamMarkers = (contract_info, barrier_price) => {
 };
 
 // eslint-disable-next-line no-unused-vars
-export function calculateMarker(contract_info, is_dark_theme, is_last_contract, is_mobile = false) {
+export function calculateMarker(contract_info, is_dark_theme, is_last_contract, is_mobile = false, granularity = 0) {
     if (!contract_info) {
         return null;
     }
@@ -504,11 +503,14 @@ export function calculateMarker(contract_info, is_dark_theme, is_last_contract, 
                 });
             }
             if (!is_accumulator_contract) {
+                const is_tick_chart = granularity === 0;
+                const tick_counter_text = is_tick_contract && is_tick_chart ? getStartText(contract_info) : undefined;
                 markers.push({
                     epoch: date_start,
                     quote: price,
                     type: 'contractMarker',
-                    text: `${localize('Start')}\n${localize('Time')}`,
+                    text: tick_counter_text,
+                    ...(tick_counter_text ? { textType: 'counter' } : {}),
                     direction: getMarkerDirection(contract_type),
                 });
             }
