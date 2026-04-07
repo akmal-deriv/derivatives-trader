@@ -40,12 +40,15 @@ jest.mock('@deriv/shared', () => ({
     getCurrencyDisplayCode: jest.fn((currency: string) => currency),
 }));
 
+const mockClientStore = {
+    balance: '10000.00',
+    switchAccount: jest.fn(),
+};
+
 jest.mock('@deriv/stores', () => ({
     observer: (component: any) => component,
     useStore: jest.fn(() => ({
-        client: {
-            switchAccount: jest.fn(),
-        },
+        client: mockClientStore,
     })),
 }));
 
@@ -110,6 +113,7 @@ const mockAccounts: TDerivativesAccount[] = [
 describe('AccountSwitcher', () => {
     beforeEach(() => {
         jest.clearAllMocks();
+        mockClientStore.balance = '10000.00';
         mockUseDevice.mockReturnValue({
             isDesktop: true,
             isMobile: false,
@@ -417,6 +421,7 @@ describe('AccountSwitcher', () => {
         });
 
         it('should handle accounts with zero balance', () => {
+            mockClientStore.balance = '0.00';
             const accountsWithZeroBalance: TDerivativesAccount[] = [
                 {
                     account_id: 'CR000',
@@ -443,6 +448,7 @@ describe('AccountSwitcher', () => {
         });
 
         it('should handle accounts with large balance values', () => {
+            mockClientStore.balance = '999999999.99';
             const accountsWithLargeBalance: TDerivativesAccount[] = [
                 {
                     account_id: 'CR999',

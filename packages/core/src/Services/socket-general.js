@@ -185,7 +185,7 @@ const ResponseHandlers = (() => {
             }
 
             // Regular balance update
-            const balance = response.balance?.balance || response.balance;
+            const balance = response.balance?.balance ?? response.balance;
 
             // Only update if we have a valid balance
             if (balance !== undefined && balance !== null && balance !== '') {

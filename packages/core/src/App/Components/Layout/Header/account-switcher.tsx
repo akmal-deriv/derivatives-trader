@@ -115,8 +115,7 @@ const AccountSwitcher = observer(
                             .map(account => {
                                 const is_selected = account.account_id === current_loginid;
                                 const is_disabled = account.status === 'trading_disabled';
-                                const balance =
-                                    is_selected && client.balance !== undefined ? client.balance : account.balance;
+                                const balance = is_selected ? client.balance : account.balance;
                                 const formatted_balance = addComma(balance, 2);
                                 const currency_display = getCurrencyDisplayCode(account.currency);
                                 const account_type_label =
