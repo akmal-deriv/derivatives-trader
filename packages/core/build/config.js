@@ -121,28 +121,13 @@ const generateSWConfig = () => ({
                 },
             },
         },
-        // Google Fonts webfonts - long cache
-        // StaleWhileRevalidate with explicit CORS mode avoids NS_ERROR_INTERCEPTION_FAILED in Firefox
-        // under Cross-Origin-Embedder-Policy. CacheFirst with status:0 opaque responses fails COEP
-        {
-            urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
-            handler: 'StaleWhileRevalidate',
-            options: {
-                cacheName: 'google-fonts-webfonts',
-                fetchOptions: {
-                    mode: 'cors',
-                    credentials: 'omit',
-                },
-                cacheableResponse: {
-                    statuses: [200],
-                },
-                expiration: {
-                    maxEntries: 30,
-                    maxAgeSeconds: 60 * 60 * 24 * 365, // 1 year
-                },
-            },
-        },
-        // CDN resources (GTM, analytics, cookies) - try network first with timeout
+        // Google Fonts webfonts - intentionally not cached by SW.
+        // Under Cross-Origin-Embedder-Policy, Firefox applies COEP checks to SW-intercepted responses
+        // and rejects them if fonts.gstatic.com does not return Cross-Origin-Resource-Policy header
+        // (NS_ERROR_INTERCEPTION_FAILED). Native browser fetches (non-SW) are not subject to this
+        // check, so fonts load correctly when the SW does not intercept them. The browser's own
+        // HTTP cache handles font caching via Cache-Control headers from gstatic (1 year TTL).
+        // CDN resources (GTM, analytics, cookies)
         {
             urlPattern: /^https:\/\/(www\.googletagmanager\.com|cdn\.jsdelivr\.net)\/.*/i,
             handler: 'StaleWhileRevalidate',
