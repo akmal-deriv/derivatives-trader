@@ -122,13 +122,19 @@ const generateSWConfig = () => ({
             },
         },
         // Google Fonts webfonts - long cache
+        // StaleWhileRevalidate with explicit CORS mode avoids NS_ERROR_INTERCEPTION_FAILED in Firefox
+        // under Cross-Origin-Embedder-Policy. CacheFirst with status:0 opaque responses fails COEP
         {
             urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
-            handler: 'CacheFirst',
+            handler: 'StaleWhileRevalidate',
             options: {
                 cacheName: 'google-fonts-webfonts',
+                fetchOptions: {
+                    mode: 'cors',
+                    credentials: 'omit',
+                },
                 cacheableResponse: {
-                    statuses: [0, 200],
+                    statuses: [200],
                 },
                 expiration: {
                     maxEntries: 30,
