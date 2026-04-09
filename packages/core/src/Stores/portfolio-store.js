@@ -265,8 +265,10 @@ export default class PortfolioStore extends BaseStore {
 
         // fix for missing barrier and entry_spot in proposal_open_contract API response, only re-assign if valid
         Object.entries(proposal).forEach(([key, value]) => {
-            if (key === 'barrier' || key === 'high_barrier' || key === 'low_barrier' || key === 'entry_spot') {
+            if (key === 'barrier' || key === 'high_barrier' || key === 'low_barrier') {
                 portfolio_position[key] = +value;
+            } else if (key === 'entry_spot') {
+                portfolio_position[key] = value;
             }
         });
 
@@ -684,7 +686,7 @@ export default class PortfolioStore extends BaseStore {
 
         let purchase_spot_barrier = this.barriers.find(b => b.key === key);
         if (purchase_spot_barrier) {
-            if (purchase_spot_barrier.high !== +position.contract_info.entry_spot) {
+            if (+purchase_spot_barrier.high !== +position.contract_info.entry_spot) {
                 purchase_spot_barrier.onChange({
                     high: position.contract_info.entry_spot,
                 });

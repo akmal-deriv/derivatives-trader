@@ -61,6 +61,14 @@ beforeEach(() => {
                 },
             ],
         },
+        contract_trade: {
+            addContract: jest.fn(),
+            updateProposal: jest.fn(),
+        },
+        contract_replay: {
+            contract_id: null,
+            populateConfig: jest.fn(),
+        },
     });
     mockedPortfolioStore.portfolioHandler({
         echo_req: {
@@ -92,5 +100,28 @@ describe('PortfolioStore', () => {
         expect(mockedPortfolioStore.getPositionById('incorrect-id')).toEqual(undefined);
         expect(mockedPortfolioStore.getPositionById(null)).toEqual(undefined);
         expect(mockedPortfolioStore.getPositionById(undefined)).toEqual(undefined);
+    });
+
+    it('proposalOpenContractHandler() should preserve entry_spot as string with trailing zeros', () => {
+        const contract_id = contracts[0].contract_id;
+
+        mockedPortfolioStore.proposalOpenContractHandler({
+            proposal_open_contract: {
+                contract_id,
+                contract_type: 'MULTUP',
+                shortcode: contracts[0].shortcode,
+                bid_price: '10.00',
+                profit: '0.50',
+                entry_spot: '975.40',
+                barrier: '980.00',
+                is_valid_to_sell: 1,
+            },
+        });
+
+        const position = mockedPortfolioStore.positions_map[contract_id];
+        expect(typeof position.entry_spot).toBe('string');
+        expect(position.entry_spot).toBe('975.40');
+        expect(typeof position.barrier).toBe('number');
+        expect(position.barrier).toBe(980);
     });
 });
