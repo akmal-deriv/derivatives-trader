@@ -1552,7 +1552,13 @@ export default class TradeStore extends BaseStore {
             if (has_symbol_changed || has_contract_type_changed) {
                 const is_crypto = isCryptocurrency(this.currency ?? '');
                 const default_crypto_value = getMinPayout(this.currency ?? '') ?? '';
-                obj_new_values.amount = is_crypto ? default_crypto_value : this.default_stake;
+                // On symbol switch, only reset stake if the user hasn't customised it away from the
+                // default. On contract type switch (or crypto accounts) always reset.
+                const user_amount_is_default = this.amount === this.default_stake;
+                const should_reset_amount = has_contract_type_changed || is_crypto || user_amount_is_default;
+                if (should_reset_amount) {
+                    obj_new_values.amount = is_crypto ? default_crypto_value : this.default_stake;
+                }
             }
             if (has_contract_type_changed) {
                 obj_new_values.has_take_profit = false;
