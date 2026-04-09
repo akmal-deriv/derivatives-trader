@@ -222,6 +222,8 @@ const mock = (): TStores & { is_mock: boolean } => {
             toggleTncUpdateModal: jest.fn(),
             is_switching_account: false,
             setIsSwitchingAccount: jest.fn(),
+            is_chart_loading: false,
+            setIsChartLoading: jest.fn(),
         },
         notifications: {
             addNotificationMessage: jest.fn(),

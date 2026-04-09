@@ -103,6 +103,7 @@ describe('AccountHeader', () => {
                 ...store.ui,
                 is_switching_account: false,
                 setIsSwitchingAccount: jest.fn(),
+                is_chart_loading: store.ui?.is_chart_loading ?? false,
             },
         };
         return render(
@@ -865,6 +866,48 @@ describe('AccountHeader', () => {
                 });
 
                 renderComponent();
+
+                expect(screen.queryByTestId('dt_skeleton')).not.toBeInTheDocument();
+                expect(screen.getByText('Real account')).toBeInTheDocument();
+            });
+        });
+
+        describe('Chart loading behavior', () => {
+            it('should show skeleton loader when chart is loading', () => {
+                const chart_loading_store = mockStore({
+                    client: {
+                        balance: '10,000.00',
+                        currency: 'USD',
+                        is_logged_in: true,
+                        is_virtual: false,
+                        logout: jest.fn(),
+                    },
+                    ui: {
+                        is_chart_loading: true,
+                    },
+                });
+
+                renderComponent(chart_loading_store);
+
+                expect(screen.getByTestId('dt_skeleton')).toBeInTheDocument();
+                expect(screen.queryByText('Real account')).not.toBeInTheDocument();
+            });
+
+            it('should show account info when chart is not loading', () => {
+                const chart_not_loading_store = mockStore({
+                    client: {
+                        balance: '10,000.00',
+                        currency: 'USD',
+                        is_logged_in: true,
+                        is_virtual: false,
+                        logout: jest.fn(),
+                    },
+                    ui: {
+                        is_chart_loading: false,
+                    },
+                });
+
+                renderComponent(chart_not_loading_store);
 
                 expect(screen.queryByTestId('dt_skeleton')).not.toBeInTheDocument();
                 expect(screen.getByText('Real account')).toBeInTheDocument();

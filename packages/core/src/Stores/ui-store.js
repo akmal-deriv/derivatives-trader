@@ -155,6 +155,7 @@ export default class UIStore extends BaseStore {
     sub_section_index = 0;
     field_ref_to_focus = null;
     is_switching_account = false;
+    is_chart_loading = false;
 
     // tnc update
     is_tnc_update_modal_open = false;
@@ -250,6 +251,7 @@ export default class UIStore extends BaseStore {
             is_logout_success_modal_visible: observable,
             is_try_real_modal_visible: observable,
             is_switching_account: observable,
+            is_chart_loading: observable,
             manage_real_account_tab_index: observable,
             modal_index: observable,
             notification_messages_ui: observable,
@@ -350,6 +352,7 @@ export default class UIStore extends BaseStore {
             setSidebarFlyout: action.bound,
             closeSidebarFlyout: action.bound,
             setIsSwitchingAccount: action.bound,
+            setIsChartLoading: action.bound,
         });
 
         window.addEventListener('resize', this.handleResize);
@@ -793,6 +796,10 @@ export default class UIStore extends BaseStore {
 
     setIsSwitchingAccount(value) {
         this.is_switching_account = value;
+    }
+
+    setIsChartLoading(value) {
+        this.is_chart_loading = value;
     }
 
     setSidebarFlyout(flyout_type) {

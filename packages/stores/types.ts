@@ -381,6 +381,8 @@ type TUiStore = {
     is_try_real_modal_visible: boolean;
     is_switching_account: boolean;
     setIsSwitchingAccount: (value: boolean) => void;
+    is_chart_loading: boolean;
+    setIsChartLoading: (value: boolean) => void;
     toggleTryRealModal: (value: boolean) => void;
     setSidebarFlyout: (flyout_type: 'theme' | 'language' | 'positions' | 'account' | null) => void;
     closeSidebarFlyout: () => void;

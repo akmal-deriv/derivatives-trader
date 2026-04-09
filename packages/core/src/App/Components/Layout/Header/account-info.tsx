@@ -2,7 +2,7 @@ import React from 'react';
 import classNames from 'classnames';
 
 import { TDerivativesAccount } from '@deriv/api';
-import { Text } from '@deriv/components';
+import { Skeleton, Text } from '@deriv/components';
 import { LegacyChevronDown1pxIcon } from '@deriv/quill-icons';
 import { addComma, formatMoney, getAccountType, getCurrencyDisplayCode } from '@deriv/shared';
 import { observer, useStore } from '@deriv/stores';
@@ -27,8 +27,9 @@ const AccountInfo = observer(
         const { isMobile } = useDevice();
 
         // Get client data from store
-        const { client } = useStore();
+        const { client, ui } = useStore();
         const { loginid, balance, currency } = client;
+        const { is_chart_loading } = ui;
 
         // Dropdown open/close state
         const [is_dropdown_open, setIsDropdownOpen] = React.useState(false);
@@ -60,6 +61,14 @@ const AccountInfo = observer(
         const toggleDropdown = () => {
             setIsDropdownOpen(!is_dropdown_open);
         };
+
+        if (is_chart_loading) {
+            return (
+                <div className='acc-info__wrapper'>
+                    <Skeleton height={44} width={240} borderRadius={22} />
+                </div>
+            );
+        }
 
         return (
             <React.Fragment>

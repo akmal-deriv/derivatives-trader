@@ -639,6 +639,22 @@ describe('TradeStore', () => {
 
                 spy.mockRestore();
             });
+
+            it('should call ui.setIsChartLoading immediately when isFromChart is falsy', () => {
+                const setIsChartLoadingMock = jest.fn();
+                tradeStore.root_store.ui.setIsChartLoading = setIsChartLoadingMock;
+
+                tradeStore.setChartStatus(true);
+                expect(setIsChartLoadingMock).toHaveBeenCalledWith(true);
+            });
+
+            it('should NOT call ui.setIsChartLoading immediately when isFromChart is true (debounced)', () => {
+                const setIsChartLoadingMock = jest.fn();
+                tradeStore.root_store.ui.setIsChartLoading = setIsChartLoadingMock;
+
+                tradeStore.setChartStatus(true, true);
+                expect(setIsChartLoadingMock).not.toHaveBeenCalled();
+            });
         });
 
         describe('setSkipPrePostLifecycle', () => {
@@ -654,6 +670,19 @@ describe('TradeStore', () => {
                 tradeStore.should_skip_prepost_lifecycle = true;
                 tradeStore.setSkipPrePostLifecycle(true);
                 expect(tradeStore.should_skip_prepost_lifecycle).toBe(true);
+            });
+        });
+
+        describe('onUnmount', () => {
+            it('should reset is_chart_loading and ui.is_chart_loading', () => {
+                const setIsChartLoadingMock = jest.fn();
+                tradeStore.root_store.ui.setIsChartLoading = setIsChartLoadingMock;
+
+                tradeStore.is_chart_loading = true;
+                tradeStore.onUnmount();
+
+                expect(tradeStore.is_chart_loading).toBe(false);
+                expect(setIsChartLoadingMock).toHaveBeenCalledWith(false);
             });
         });
     });

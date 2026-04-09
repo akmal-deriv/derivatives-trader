@@ -365,6 +365,7 @@ export default class TradeStore extends BaseStore {
     debouncedSetChartStatus = debounce((status: boolean) => {
         runInAction(() => {
             this.is_chart_loading = status;
+            this.root_store.ui.setIsChartLoading(status);
         });
     }); // no time is needed here, the only goal is to put the call into macrotasks queue
     debouncedProposal = debounce(this.requestProposal, 500);
@@ -2144,8 +2145,12 @@ export default class TradeStore extends BaseStore {
     }
 
     setChartStatus(status: boolean, isFromChart?: boolean) {
-        if (isFromChart) this.debouncedSetChartStatus(status);
-        else this.is_chart_loading = status;
+        if (isFromChart) {
+            this.debouncedSetChartStatus(status);
+        } else {
+            this.is_chart_loading = status;
+            this.root_store.ui.setIsChartLoading(status);
+        }
     }
 
     async initAccountCurrency(new_currency: string) {
@@ -2168,6 +2173,8 @@ export default class TradeStore extends BaseStore {
             WS.removeOnReconnect(this.reconnectHandler);
         }
         this.is_trade_component_mounted = false;
+        this.is_chart_loading = false;
+        this.root_store.ui.setIsChartLoading(false);
         this.clearV2ParamsInitialValues();
         // TODO: Find a more elegant solution to unmount contract-trade-store
         this.root_store.contract_trade.onUnmount();
