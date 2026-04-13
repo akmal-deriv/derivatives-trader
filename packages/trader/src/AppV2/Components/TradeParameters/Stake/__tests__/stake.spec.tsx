@@ -7,6 +7,8 @@ import ModulesProvider from 'Stores/Providers/modules-providers';
 
 import TraderProviders from '../../../../../trader-providers';
 import Stake from '../stake';
+import StakeInput from '../stake-input';
+import StakeInputDesktop from '../stake-input-desktop';
 
 const stake_param_label = 'Stake';
 
@@ -230,5 +232,167 @@ describe('Stake', () => {
         render(<MockedStake />);
 
         expect(screen.getByRole('textbox')).toBeDisabled();
+    });
+});
+
+describe('StakeInput', () => {
+    let default_mock_store: ReturnType<typeof mockStore>;
+
+    beforeEach(() => {
+        default_mock_store = mockStore({
+            modules: {
+                trade: {
+                    ...mockStore({}).modules.trade,
+                    amount: 10,
+                    basis: 'stake',
+                    contract_type: TRADE_TYPES.RISE_FALL,
+                    currency: 'USD',
+                    trade_types: {
+                        [CONTRACT_TYPES.CALL]: 'Higher',
+                        [CONTRACT_TYPES.PUT]: 'Lower',
+                    },
+                    trade_type_tab: 'CALL',
+                    validation_params: {
+                        [CONTRACT_TYPES.CALL]: { stake: { max: '50000.00', min: '0.35' } },
+                        [CONTRACT_TYPES.PUT]: { stake: { max: '50000.00', min: '0.35' } },
+                    },
+                },
+            },
+        });
+    });
+
+    const renderStakeInput = (store = default_mock_store) =>
+        render(
+            <TraderProviders store={store}>
+                <ModulesProvider store={store}>
+                    <StakeInput onClose={jest.fn()} is_open />
+                </ModulesProvider>
+            </TraderProviders>
+        );
+
+    it('does not increment stake when typing a digit that would exceed max decimal places', async () => {
+        default_mock_store.modules.trade.amount = 5.34;
+        const user = userEvent.setup();
+        renderStakeInput();
+
+        const stake_input = screen.getByDisplayValue('5.34');
+
+        // Cursor is at the end of '5.34' (position 4).
+        // For USD (decimals=2), adding a 3rd decimal digit must be blocked
+        // so TextFieldWithSteppers cannot round it (e.g. 5.345 -> 5.35).
+        await user.type(stake_input, '5');
+        expect(stake_input).toHaveValue('5.34');
+
+        // Confirm it stays blocked on repeated presses
+        await user.type(stake_input, '5');
+        expect(stake_input).toHaveValue('5.34');
+    });
+
+    it('does not corrupt stake when cursor is repositioned within the decimal portion', async () => {
+        default_mock_store.modules.trade.amount = 5.34;
+        const user = userEvent.setup();
+        renderStakeInput();
+
+        const stake_input = screen.getByDisplayValue('5.34') as HTMLInputElement;
+
+        // Place cursor between '3' and '4' (position 3) and type '5'.
+        // Without the fix: 5.354 -> toFixed(2) -> 5.35 (wrong).
+        // With the fix: insertion is blocked, value stays 5.34.
+        stake_input.setSelectionRange(3, 3);
+        await user.type(stake_input, '5');
+        expect(stake_input).toHaveValue('5.34');
+    });
+
+    it('allows typing a digit when still within max decimal places', async () => {
+        default_mock_store.modules.trade.amount = 5.3; // only 1 decimal digit used
+        const user = userEvent.setup();
+        renderStakeInput();
+
+        const stake_input = screen.getByDisplayValue('5.3');
+
+        // Typing '4' appends a second decimal digit — this must NOT be blocked
+        await user.type(stake_input, '4');
+        expect(stake_input).toHaveValue('5.34');
+    });
+});
+
+describe('StakeInputDesktop', () => {
+    let default_mock_store: ReturnType<typeof mockStore>;
+
+    beforeEach(() => {
+        default_mock_store = mockStore({
+            modules: {
+                trade: {
+                    ...mockStore({}).modules.trade,
+                    amount: 10,
+                    basis: 'stake',
+                    contract_type: TRADE_TYPES.RISE_FALL,
+                    currency: 'USD',
+                    trade_types: {
+                        [CONTRACT_TYPES.CALL]: 'Higher',
+                        [CONTRACT_TYPES.PUT]: 'Lower',
+                    },
+                    trade_type_tab: 'CALL',
+                    validation_params: {
+                        [CONTRACT_TYPES.CALL]: { stake: { max: '50000.00', min: '0.35' } },
+                        [CONTRACT_TYPES.PUT]: { stake: { max: '50000.00', min: '0.35' } },
+                    },
+                },
+            },
+        });
+    });
+
+    const renderStakeInputDesktop = (store = default_mock_store) =>
+        render(
+            <TraderProviders store={store}>
+                <ModulesProvider store={store}>
+                    <StakeInputDesktop onClose={jest.fn()} is_open />
+                </ModulesProvider>
+            </TraderProviders>
+        );
+
+    it('does not increment stake when typing a digit that would exceed max decimal places', async () => {
+        default_mock_store.modules.trade.amount = 5.34;
+        const user = userEvent.setup();
+        renderStakeInputDesktop();
+
+        const stake_input = screen.getByDisplayValue('5.34');
+
+        // Cursor is at the end of '5.34' (position 4).
+        // For USD (decimals=2), adding a 3rd decimal digit must be blocked
+        // so TextField cannot round it (e.g. 5.345 -> 5.35).
+        await user.type(stake_input, '5');
+        expect(stake_input).toHaveValue('5.34');
+
+        // Confirm it stays blocked on repeated presses
+        await user.type(stake_input, '5');
+        expect(stake_input).toHaveValue('5.34');
+    });
+
+    it('does not corrupt stake when cursor is repositioned within the decimal portion', async () => {
+        default_mock_store.modules.trade.amount = 5.34;
+        const user = userEvent.setup();
+        renderStakeInputDesktop();
+
+        const stake_input = screen.getByDisplayValue('5.34') as HTMLInputElement;
+
+        // Place cursor between '3' and '4' (position 3) and type '5'.
+        // Without the fix: 5.354 -> toFixed(2) -> 5.35 (wrong).
+        // With the fix: insertion is blocked, value stays 5.34.
+        stake_input.setSelectionRange(3, 3);
+        await user.type(stake_input, '5');
+        expect(stake_input).toHaveValue('5.34');
+    });
+
+    it('allows typing a digit when still within max decimal places', async () => {
+        default_mock_store.modules.trade.amount = 5.3; // only 1 decimal digit used
+        const user = userEvent.setup();
+        renderStakeInputDesktop();
+
+        const stake_input = screen.getByDisplayValue('5.3');
+
+        // Typing '4' appends a second decimal digit — this must NOT be blocked
+        await user.type(stake_input, '4');
+        expect(stake_input).toHaveValue('5.34');
     });
 });

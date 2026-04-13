@@ -417,11 +417,31 @@ const StakeInput = observer(({ onClose, is_open }: TStakeInput) => {
     }, [debouncedUpdateProposal]);
 
     const onBeforeInputChange = (e: React.FormEvent<HTMLInputElement>) => {
-        if (['.', ','].includes((e.nativeEvent as InputEvent)?.data ?? '') && (displayAmount?.length ?? 0) <= 10) {
+        const input_event = e.nativeEvent as InputEvent;
+        const typed_char = input_event?.data ?? '';
+
+        if (['.', ','].includes(typed_char) && (displayAmount?.length ?? 0) <= 10) {
             dispatch({
                 type: 'SET_MAX_LENGTH',
                 payload: decimals ? 11 + decimals : 10,
             });
+        }
+
+        // Prevent typing digits past the maximum allowed decimal places.
+        // Without this, TextFieldWithSteppers rounds the extra digit via toFixed(),
+        // causing the stake to silently increment (e.g. 5.34 + "5" => 5.35).
+        if (typed_char && /\d/.test(typed_char) && decimals > 0) {
+            const input = e.target as HTMLInputElement;
+            const current_value = input.value;
+            const separator_index = current_value.search(/[.,]/);
+            const cursor_pos = input.selectionStart ?? current_value.length;
+            if (
+                separator_index !== -1 &&
+                current_value.length - separator_index - 1 >= decimals &&
+                cursor_pos > separator_index
+            ) {
+                e.preventDefault();
+            }
         }
     };
 
