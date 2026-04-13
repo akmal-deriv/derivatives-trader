@@ -1,41 +1,20 @@
 import React from 'react';
 import Joyride, { CallBackProps, STATUS, Step } from 'react-joyride';
 
-import { Localize } from '@deriv-com/translations';
-
 import GuideTooltip from './guide-tooltip';
 import STEPS from './steps-config';
 
 type TGuideContainerProps = {
     should_run: boolean;
     onFinishGuide: () => void;
-    step_indices?: number[]; // If provided, show only these steps (e.g., [3] for single, [3, 4] for multiple)
     custom_steps?: Step[]; // If provided, use these steps instead of the default mobile STEPS
 };
 
 type TFinishedStatuses = CallBackProps['status'][];
 
-const GuideContainer = ({ should_run, onFinishGuide, step_indices, custom_steps }: TGuideContainerProps) => {
+const GuideContainer = ({ should_run, onFinishGuide, custom_steps }: TGuideContainerProps) => {
     const [step_index, setStepIndex] = React.useState(0);
-    const base_steps = custom_steps ?? STEPS;
-    const is_partial_guide = step_indices !== undefined && step_indices.length > 0;
-    const is_single_step = is_partial_guide && step_indices.length === 1;
-
-    // For partial guides, filter and customize steps
-    const steps = React.useMemo(() => {
-        if (is_partial_guide) {
-            const partial_steps = step_indices.map(index => {
-                const step = { ...base_steps[index] };
-                // Customize title for single-step trade params tooltip
-                if (is_single_step && index === 3) {
-                    step.title = <Localize i18n_default_text='Trade Parameters' />;
-                }
-                return step;
-            });
-            return partial_steps;
-        }
-        return base_steps;
-    }, [is_partial_guide, is_single_step, step_indices, base_steps]);
+    const steps = custom_steps ?? STEPS;
 
     const callbackHandle = (data: CallBackProps) => {
         const { status, step, index } = data;
@@ -49,7 +28,7 @@ const GuideContainer = ({ should_run, onFinishGuide, step_indices, custom_steps 
 
     return (
         <Joyride
-            continuous={!is_single_step}
+            continuous
             callback={callbackHandle}
             disableCloseOnEsc
             disableOverlayClose
@@ -63,7 +42,7 @@ const GuideContainer = ({ should_run, onFinishGuide, step_indices, custom_steps 
                 },
             }}
             run={should_run}
-            showSkipButton={!is_single_step}
+            showSkipButton
             steps={steps}
             spotlightPadding={0}
             scrollToFirstStep
@@ -77,9 +56,7 @@ const GuideContainer = ({ should_run, onFinishGuide, step_indices, custom_steps 
                 },
             }}
             stepIndex={step_index}
-            tooltipComponent={props => (
-                <GuideTooltip {...props} setStepIndex={setStepIndex} is_single_step={is_single_step} />
-            )}
+            tooltipComponent={props => <GuideTooltip {...props} setStepIndex={setStepIndex} />}
         />
     );
 };

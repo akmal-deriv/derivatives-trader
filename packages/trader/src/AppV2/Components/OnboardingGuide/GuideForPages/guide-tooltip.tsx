@@ -7,26 +7,10 @@ import { Localize } from '@deriv-com/translations';
 
 export interface GuideTooltipProps extends TooltipRenderProps {
     setStepIndex: React.Dispatch<React.SetStateAction<number>>;
-    is_single_step?: boolean;
 }
 
-const GuideTooltip = ({
-    isLastStep,
-    primaryProps,
-    skipProps,
-    step,
-    tooltipProps,
-    setStepIndex,
-    is_single_step,
-}: GuideTooltipProps) => {
-    // For single-step guides: show "Got it", for multi-step: show "Next"/"Done"
-    const button_label = is_single_step ? (
-        <Localize i18n_default_text='Got it' />
-    ) : isLastStep ? (
-        <Localize i18n_default_text='Done' />
-    ) : (
-        <Localize i18n_default_text='Next' />
-    );
+const GuideTooltip = ({ isLastStep, primaryProps, skipProps, step, tooltipProps, setStepIndex }: GuideTooltipProps) => {
+    const button_label = isLastStep ? <Localize i18n_default_text='Done' /> : <Localize i18n_default_text='Next' />;
     return (
         <div {...tooltipProps} className='guide-tooltip__wrapper'>
             <div>

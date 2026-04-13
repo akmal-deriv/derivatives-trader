@@ -40,14 +40,4 @@ describe('GuideTooltip', () => {
         expect(screen.getByText('Done')).toBeInTheDocument();
         expect(screen.queryByText('Next')).not.toBeInTheDocument();
     });
-
-    it('should render "Got it" for single-step guides', () => {
-        render(<GuideTooltip {...mock_props} is_single_step={true} />);
-
-        expect(screen.getByText('Title')).toBeInTheDocument();
-        expect(screen.getByText('Step content')).toBeInTheDocument();
-        expect(screen.getByText('Got it')).toBeInTheDocument();
-        expect(screen.queryByText('Next')).not.toBeInTheDocument();
-        expect(screen.queryByText('Done')).not.toBeInTheDocument();
-    });
 });

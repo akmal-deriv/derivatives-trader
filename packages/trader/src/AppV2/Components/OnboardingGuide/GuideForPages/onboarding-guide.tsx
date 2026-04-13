@@ -14,21 +14,6 @@ type TOnboardingGuideProps = {
     type?: 'trade_page' | 'positions_page';
 };
 
-// Configuration for partial guide flows (single or multiple steps)
-type TPartialGuideConfig = {
-    step_indices: number[]; // Which steps to show (e.g., [3] for single step, [3, 4] for two steps)
-    storage_key: string; // localStorage key to track if seen
-    show_modal?: boolean; // Whether to show initial modal (default: false for partial guides)
-};
-
-const PARTIAL_GUIDE_CONFIGS: Record<string, TPartialGuideConfig> = {
-    trade_page: {
-        step_indices: [3], // Trade Parameters step
-        storage_key: 'trade_param_guide',
-        show_modal: false,
-    },
-};
-
 const OnboardingGuide = ({ type = 'trade_page', is_dark_mode_on, callback }: TOnboardingGuideProps) => {
     const { isMobile } = useDevice();
     const [is_modal_open, setIsModalOpen] = React.useState(false);
@@ -42,27 +27,14 @@ const OnboardingGuide = ({ type = 'trade_page', is_dark_mode_on, callback }: TOn
         positions_page: false,
     });
 
-    // Get partial guide config for this page type
-    const partial_guide_config = PARTIAL_GUIDE_CONFIGS[type];
-    const [partial_guide_seen, setPartialGuideSeen] = useLocalStorageData<boolean>(
-        partial_guide_config?.storage_key || 'default_partial_guide',
-        false
-    );
-
     const is_trade_page_guide = type === 'trade_page';
-    // For returning users: show partial guide after main onboarding is completed
-    const should_show_partial_guide = partial_guide_config && guide_dtrader_v2?.[type] && !partial_guide_seen;
 
     const onFinishGuide = React.useCallback(() => {
         setShouldRunGuide(false);
         setGuideDtraderV2({ ...guide_dtrader_v2, [type]: true });
-        // Mark partial guide as seen if it exists for this page
-        if (partial_guide_config) {
-            setPartialGuideSeen(true);
-        }
         callback?.();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [setGuideDtraderV2, setPartialGuideSeen, partial_guide_config]);
+    }, [setGuideDtraderV2]);
 
     const onGuideSkip = () => {
         if (is_button_clicked_ref.current) return;
@@ -106,14 +78,10 @@ const OnboardingGuide = ({ type = 'trade_page', is_dark_mode_on, callback }: TOn
         if (!guide_dtrader_v2?.[type]) {
             guide_timeout_ref.current = setTimeout(() => setIsModalOpen(true), 800);
         }
-        // For returning users: show partial guide (single or multiple steps) directly
-        else if (should_show_partial_guide) {
-            guide_timeout_ref.current = setTimeout(() => setShouldRunGuide(true), 800);
-        }
 
         return () => clearTimeout(guide_timeout_ref.current);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [guide_dtrader_v2?.[type], should_show_partial_guide, isMobile]);
+    }, [guide_dtrader_v2?.[type], isMobile]);
 
     // Only show onboarding for mobile users
     if (!isMobile) return null;
@@ -133,13 +101,7 @@ const OnboardingGuide = ({ type = 'trade_page', is_dark_mode_on, callback }: TOn
                 <Modal.Header image={modal_content.image} title={modal_content.title} />
                 <Modal.Body>{modal_content.content}</Modal.Body>
             </Modal>
-            {is_trade_page_guide && (
-                <GuideContainer
-                    should_run={should_run_guide}
-                    onFinishGuide={onFinishGuide}
-                    step_indices={should_show_partial_guide ? partial_guide_config.step_indices : undefined}
-                />
-            )}
+            {is_trade_page_guide && <GuideContainer should_run={should_run_guide} onFinishGuide={onFinishGuide} />}
         </React.Fragment>
     );
 };

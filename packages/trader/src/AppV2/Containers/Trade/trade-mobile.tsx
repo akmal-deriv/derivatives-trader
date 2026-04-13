@@ -12,7 +12,6 @@ import CurrentSpot from 'AppV2/Components/CurrentSpot';
 import Guide from 'AppV2/Components/Guide';
 import MarketSelector from 'AppV2/Components/MarketSelector';
 import OnboardingGuide from 'AppV2/Components/OnboardingGuide/GuideForPages';
-import PresetsOnboardingGuide from 'AppV2/Components/OnboardingGuide/PresetsOnboardingGuide';
 import TradeErrorSnackbar from 'AppV2/Components/TradeErrorSnackbar';
 import { TradeParametersContainer } from 'AppV2/Components/TradeParameters';
 import useContractsFor from 'AppV2/Hooks/useContractsFor';
@@ -150,7 +149,6 @@ const Trade = observer(() => {
                     </div>
                     <TradeParametersContainer is_market_closed={is_market_closed} />
                     {is_logged_in && <OnboardingGuide type='trade_page' is_dark_mode_on={is_dark_mode_on} />}
-                    {is_logged_in && <PresetsOnboardingGuide />}
                 </React.Fragment>
             ) : (
                 <Loading.DTraderV2 />
