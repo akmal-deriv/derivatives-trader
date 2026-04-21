@@ -4,7 +4,7 @@ import { observer } from 'mobx-react-lite';
 
 import { useLocalStorageData } from '@deriv/api';
 import { Loading } from '@deriv/components';
-import { getSymbolDisplayName, trackAnalyticsEvent } from '@deriv/shared';
+import { getIsMigratedUser, getSymbolDisplayName, trackAnalyticsEvent } from '@deriv/shared';
 import { useStore } from '@deriv/stores';
 import { Loader } from '@deriv-com/ui';
 
@@ -13,6 +13,7 @@ import AccumulatorStats from 'AppV2/Components/AccumulatorStats';
 import ClosedMarketMessage from 'AppV2/Components/ClosedMarketMessage';
 import Guide from 'AppV2/Components/Guide';
 import OnboardingGuide, { OnboardingGuideDesktop } from 'AppV2/Components/OnboardingGuide/GuideForPages';
+import { MigrationOnboarding } from 'AppV2/Components/OnboardingGuide/MigrationOnboarding';
 import PurchaseButton from 'AppV2/Components/PurchaseButton';
 import TradeErrorSnackbar from 'AppV2/Components/TradeErrorSnackbar';
 import { TradeParameters } from 'AppV2/Components/TradeParameters';
@@ -63,6 +64,7 @@ const TradeDesktop = observer(() => {
         trade_page: false,
         positions_page: false,
     });
+    const is_migrated_user = React.useMemo(() => getIsMigratedUser(), []);
 
     // For handling edge cases of snackbar:
     const contract_types = getDisplayedContractTypes(trade_types_store, contract_type, trade_type_tab);
@@ -162,10 +164,13 @@ const TradeDesktop = observer(() => {
                             <TradeParamsFooter />
                         </div>
                     </div>
-                    {/* Mobile onboarding */}
-                    {!guide_dtrader_v2?.trade_page && is_logged_in && <OnboardingGuide type='trade_page' />}
-                    {/* Desktop onboarding - new users */}
-                    {is_logged_in && <OnboardingGuideDesktop type='trade_page' />}
+                    {/* Existing onboarding for non-migrated users */}
+                    {!is_migrated_user && !guide_dtrader_v2?.trade_page && is_logged_in && (
+                        <OnboardingGuide type='trade_page' />
+                    )}
+                    {!is_migrated_user && is_logged_in && <OnboardingGuideDesktop type='trade_page' />}
+                    {/* New onboarding for migrated users */}
+                    {is_migrated_user && is_logged_in && <MigrationOnboarding is_dark_mode_on={is_dark_mode_on} />}
                 </div>
             ) : (
                 <Loading.DTraderV2 />

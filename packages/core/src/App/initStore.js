@@ -2,7 +2,7 @@ import { configure } from 'mobx';
 
 import { clearAccountId, getAccountId, getAccountType, getApiCoreBaseUrl, getBrandDomains } from '@deriv/shared';
 
-import { checkWhoAmI } from 'Services';
+import { checkWhoAmI, fetchOnboardingStatus } from 'Services';
 import NetworkMonitor from 'Services/network-monitor';
 import RootStore from 'Stores';
 
@@ -132,6 +132,17 @@ const initStore = async notification_messages => {
                 // eslint-disable-next-line no-console
                 console.error('Failed to check account status:', e);
                 // Continue with original account_id — WebSocket retry will handle failures
+            }
+
+            // Check migration status for onboarding
+            try {
+                const onboarding_result = await fetchOnboardingStatus();
+                if (onboarding_result?.data?.migration?.status === 'fully_migrated') {
+                    localStorage.setItem('is_migrated_user', 'true');
+                }
+            } catch (e) {
+                // eslint-disable-next-line no-console
+                console.error('Failed to fetch onboarding status:', e);
             }
         }
     }

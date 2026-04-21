@@ -72,6 +72,14 @@ export const clearAccountId = (): void => {
 };
 
 /**
+ * Gets migrated status from localStorage (set during app init via onboarding-status API)
+ * @returns true if user is a fully migrated user
+ */
+export const getIsMigratedUser = (): boolean => {
+    return localStorage.getItem('is_migrated_user') === 'true';
+};
+
+/**
  * Gets the complete WebSocket URL with proper endpoint and query params
  * @returns Complete WebSocket URL
  */

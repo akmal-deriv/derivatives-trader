@@ -4,7 +4,7 @@ import { observer } from 'mobx-react-lite';
 
 import { useLocalStorageData } from '@deriv/api';
 import { Loading } from '@deriv/components';
-import { getSymbolDisplayName, trackAnalyticsEvent } from '@deriv/shared';
+import { getIsMigratedUser, getSymbolDisplayName, trackAnalyticsEvent } from '@deriv/shared';
 import { useStore } from '@deriv/stores';
 
 import AccumulatorStats from 'AppV2/Components/AccumulatorStats';
@@ -12,13 +12,14 @@ import CurrentSpot from 'AppV2/Components/CurrentSpot';
 import Guide from 'AppV2/Components/Guide';
 import MarketSelector from 'AppV2/Components/MarketSelector';
 import OnboardingGuide from 'AppV2/Components/OnboardingGuide/GuideForPages';
+import { MigrationOnboarding } from 'AppV2/Components/OnboardingGuide/MigrationOnboarding';
 import TradeErrorSnackbar from 'AppV2/Components/TradeErrorSnackbar';
 import { TradeParametersContainer } from 'AppV2/Components/TradeParameters';
 import useContractsFor from 'AppV2/Hooks/useContractsFor';
 import useDefaultSymbol from 'AppV2/Hooks/useDefaultSymbol';
+import { isDigitTradeType } from 'AppV2/Utils/digits';
 import { getChartHeight } from 'AppV2/Utils/layout-utils';
 import { getDisplayedContractTypes } from 'AppV2/Utils/trade-types-utils';
-import { isDigitTradeType } from 'AppV2/Utils/digits';
 import { useTraderStore } from 'Stores/useTraderStores';
 
 import { TradeChart } from '../Chart';
@@ -56,6 +57,7 @@ const Trade = observer(() => {
         trade_page: false,
         positions_page: false,
     });
+    const is_migrated_user = React.useMemo(() => getIsMigratedUser(), []);
 
     // For handling edge cases of snackbar:
     const contract_types = getDisplayedContractTypes(trade_types_store, contract_type, trade_type_tab);
@@ -148,7 +150,12 @@ const Trade = observer(() => {
                         {is_accumulator && <AccumulatorStats />}
                     </div>
                     <TradeParametersContainer is_market_closed={is_market_closed} />
-                    {is_logged_in && <OnboardingGuide type='trade_page' is_dark_mode_on={is_dark_mode_on} />}
+                    {/* Existing onboarding for non-migrated users */}
+                    {!is_migrated_user && is_logged_in && (
+                        <OnboardingGuide type='trade_page' is_dark_mode_on={is_dark_mode_on} />
+                    )}
+                    {/* New onboarding for migrated users */}
+                    {is_migrated_user && is_logged_in && <MigrationOnboarding is_dark_mode_on={is_dark_mode_on} />}
                 </React.Fragment>
             ) : (
                 <Loading.DTraderV2 />
