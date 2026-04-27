@@ -16,12 +16,6 @@ const VideoPreview = ({ contract_type, toggleVideoPlayer, video_src }: TVideoPre
     const [is_playing, setIsPlaying] = React.useState(false);
     const { isDesktop } = useDevice();
     const streamRef = React.useRef<StreamPlayerApi>();
-    const wrapper_ref = React.useRef<HTMLDivElement>(null);
-
-    React.useLayoutEffect(() => {
-        const iframe = wrapper_ref.current?.querySelector('iframe');
-        if (iframe) iframe.setAttribute('credentialless', '');
-    }, [video_src]);
 
     const handlePlayClick = () => {
         if (isDesktop) {
@@ -39,7 +33,6 @@ const VideoPreview = ({ contract_type, toggleVideoPlayer, video_src }: TVideoPre
     return (
         <div className='guide-video__wrapper'>
             <div
-                ref={wrapper_ref}
                 className={show_preview ? 'guide-video__preview' : 'guide-video__player'}
                 data-testid={show_preview ? 'dt_video_preview' : 'dt_video_player'}
                 {...(show_preview && { onClick: handlePlayClick, onKeyDown: handlePlayClick })}

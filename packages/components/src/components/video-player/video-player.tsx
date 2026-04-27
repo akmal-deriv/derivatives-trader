@@ -82,7 +82,6 @@ const VideoPlayer = ({
     const [volume, setVolume] = React.useState(0.5);
 
     const video_ref = React.useRef<StreamPlayerApi>();
-    const stream_wrapper_ref = React.useRef<HTMLDivElement>(null);
     const progress_bar_filled_ref = React.useRef<HTMLDivElement>(null);
     const progress_bar_ref = React.useRef<HTMLDivElement>(null);
     const progress_dot_ref = React.useRef<HTMLSpanElement>(null);
@@ -302,11 +301,6 @@ const VideoPlayer = ({
         [is_playing]
     );
 
-    React.useLayoutEffect(() => {
-        const iframe = stream_wrapper_ref.current?.querySelector('iframe');
-        if (iframe) iframe.setAttribute('credentialless', '');
-    }, [src]);
-
     React.useEffect(() => {
         const dragMoveHandlerThrottledWrapper = (e: TSupportedEvent) => dragMoveHandlerThrottled(e, dragMoveHandler);
 
@@ -366,27 +360,25 @@ const VideoPlayer = ({
             onMouseLeave={is_mobile || is_in_initial_period ? undefined : () => setShowControls(false)}
             data-testid={data_testid}
         >
-            <div ref={stream_wrapper_ref}>
-                <Stream
-                    autoplay={should_autoplay && !is_dragging.current}
-                    height={!is_v2 ? (height ?? (is_mobile ? '184.5px' : '270px')) : undefined}
-                    className={classNames('', { player: is_v2 })}
-                    width='100%'
-                    letterboxColor='transparent'
-                    muted={is_muted}
-                    preload='auto'
-                    responsive={is_v2 ? undefined : false}
-                    src={src}
-                    streamRef={video_ref}
-                    onEnded={onEnded}
-                    onPlay={() => setIsPlaying(true)}
-                    onLoadedMetaData={onLoadedMetaData}
-                    onSeeked={() => (should_check_time_ref.current = false)}
-                    onSeeking={() => (should_check_time_ref.current = false)}
-                    playbackRate={playback_rate}
-                    volume={volume}
-                />
-            </div>
+            <Stream
+                autoplay={should_autoplay && !is_dragging.current}
+                height={!is_v2 ? (height ?? (is_mobile ? '184.5px' : '270px')) : undefined}
+                className={classNames('', { player: is_v2 })}
+                width='100%'
+                letterboxColor='transparent'
+                muted={is_muted}
+                preload='auto'
+                responsive={is_v2 ? undefined : false}
+                src={src}
+                streamRef={video_ref}
+                onEnded={onEnded}
+                onPlay={() => setIsPlaying(true)}
+                onLoadedMetaData={onLoadedMetaData}
+                onSeeked={() => (should_check_time_ref.current = false)}
+                onSeeking={() => (should_check_time_ref.current = false)}
+                playbackRate={playback_rate}
+                volume={volume}
+            />
             {is_loading && show_loading && (
                 <div className='player__loader' style={{ height: height ?? (is_mobile ? '184.5px' : '270px') }}>
                     <div className='player__loader-circle' />
