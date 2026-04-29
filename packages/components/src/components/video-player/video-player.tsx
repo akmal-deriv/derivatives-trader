@@ -3,7 +3,6 @@ import classNames from 'classnames';
 import throttle from 'lodash.throttle';
 import { useDebounceCallback } from 'usehooks-ts';
 
-import { Stream, StreamPlayerApi } from '@cloudflare/stream-react';
 import { useIsRtl } from '@deriv/api';
 import { isSafariBrowser, mobileOSDetect } from '@deriv/shared';
 
@@ -19,10 +18,10 @@ const useSafeIsRtl = () => {
 };
 
 type TVideoPlayerProps = {
+    autoplay?: boolean;
     className?: string;
     data_testid?: string;
     height?: string;
-    hide_volume_control?: boolean;
     is_mobile?: boolean;
     is_v2?: boolean;
     increased_drag_area?: boolean;
@@ -40,14 +39,14 @@ const dragMoveHandlerThrottled = throttle(
 );
 
 const VideoPlayer = ({
+    autoplay = true,
     className,
     data_testid,
     height,
-    hide_volume_control = false,
     is_mobile,
     is_v2,
     increased_drag_area,
-    muted = false,
+    muted = true,
     src,
     show_loading = false,
     onModalClose,
@@ -56,14 +55,14 @@ const VideoPlayer = ({
     const is_rtl = useSafeIsRtl();
 
     const should_autoplay =
-        (!isSafariBrowser() || (is_mobile && mobileOSDetect() !== 'iOS' && mobileOSDetect() !== 'unknown')) ?? true;
+        autoplay &&
+        ((!isSafariBrowser() || (is_mobile && mobileOSDetect() !== 'iOS' && mobileOSDetect() !== 'unknown')) ?? true);
 
     const [current_time, setCurrentTime] = React.useState<number>();
     const [has_enlarged_dot, setHasEnlargedDot] = React.useState(false);
     const [is_animated, setIsAnimated] = React.useState(true);
     const [is_loading, setIsLoading] = React.useState(true);
     const [is_playing, setIsPlaying] = React.useState(false);
-    const [is_muted, setIsMuted] = React.useState(muted);
     const [playback_rate, setPlaybackRate] = React.useState(1);
     const [show_controls, setShowControls] = React.useState(should_show_controls ? true : !should_autoplay);
     const [is_in_initial_period, setIsInInitialPeriod] = React.useState(should_show_controls);
@@ -79,9 +78,16 @@ const VideoPlayer = ({
     }, [should_show_controls]);
     const [shift_X, setShiftX] = React.useState(0);
     const [video_duration, setVideoDuration] = React.useState<number>();
-    const [volume, setVolume] = React.useState(0.5);
 
-    const video_ref = React.useRef<StreamPlayerApi>();
+    const video_ref = React.useRef<HTMLVideoElement>(null);
+
+    // Call play() immediately on mount so iOS Safari honours it within the user gesture context.
+    // The HTML autoPlay attribute alone is blocked on iOS; an imperative call is required.
+    React.useEffect(() => {
+        if (autoplay) video_ref.current?.play()?.catch(() => null);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     const progress_bar_filled_ref = React.useRef<HTMLDivElement>(null);
     const progress_bar_ref = React.useRef<HTMLDivElement>(null);
     const progress_dot_ref = React.useRef<HTMLSpanElement>(null);
@@ -146,7 +152,7 @@ const VideoPlayer = ({
 
         const new_width = calculateNewWidth(e);
         progress_bar_filled_ref.current.style.setProperty('width', `${new_width}%`);
-        const calculated_time = Math.round((Number(video_ref.current.duration) * new_width) / 100);
+        const calculated_time = Math.round((video_ref.current.duration * new_width) / 100);
         const new_time = calculated_time >= video_ref.current.duration ? video_ref.current.duration : calculated_time;
         video_ref.current.currentTime = new_time;
         new_time_ref.current = new_time;
@@ -186,7 +192,7 @@ const VideoPlayer = ({
 
         const new_width = calculateNewWidth(e as React.MouseEvent<HTMLDivElement>);
         progress_bar_filled_ref.current.style.setProperty('width', `${new_width}%`);
-        const calculated_time = Math.round((Number(video_ref.current.duration) * new_width) / 100);
+        const calculated_time = Math.round((video_ref.current.duration * new_width) / 100);
         const new_time = calculated_time >= video_ref.current.duration ? video_ref.current.duration : calculated_time;
         video_ref.current.currentTime = new_time;
         new_time_ref.current = new_time;
@@ -199,8 +205,8 @@ const VideoPlayer = ({
     const debouncedRewind = useDebounceCallback(() => {
         if (!video_ref.current) return;
 
-        const is_rewind_to_the_end = Math.round(new_time_ref.current) === Math.round(video_ref.current?.duration);
-        if (!video_ref.current?.ended || !is_rewind_to_the_end) {
+        const is_rewind_to_the_end = Math.round(new_time_ref.current) === Math.round(video_ref.current.duration);
+        if (!video_ref.current.ended || !is_rewind_to_the_end) {
             cancelAnimationFrame(animation_ref.current);
             setIsAnimated(true);
             video_ref.current.currentTime = new_time_ref.current;
@@ -214,10 +220,10 @@ const VideoPlayer = ({
         if (!video_ref.current || !progress_bar_filled_ref.current) return;
 
         setVideoDuration(video_ref.current.duration);
-        setIsPlaying(should_autoplay);
+        setIsPlaying(autoplay);
         setIsLoading(false);
 
-        if (should_autoplay) animation_ref.current = requestAnimationFrame(repeat);
+        if (autoplay) animation_ref.current = requestAnimationFrame(repeat);
     };
 
     const onEnded = () => {
@@ -240,9 +246,7 @@ const VideoPlayer = ({
         if (should_check_time_ref.current) should_check_time_ref.current = false;
         setCurrentTime(video_ref.current.currentTime);
 
-        const new_width = parseFloat(
-            ((video_ref.current.currentTime / Number(video_ref.current.duration)) * 100).toFixed(3)
-        );
+        const new_width = parseFloat(((video_ref.current.currentTime / video_ref.current.duration) * 100).toFixed(3));
         progress_bar_filled_ref.current.style.setProperty('width', `${new_width >= 99 ? 100 : new_width}%`);
 
         animation_ref.current = requestAnimationFrame(repeat);
@@ -360,24 +364,22 @@ const VideoPlayer = ({
             onMouseLeave={is_mobile || is_in_initial_period ? undefined : () => setShowControls(false)}
             data-testid={data_testid}
         >
-            <Stream
-                autoplay={should_autoplay && !is_dragging.current}
+            <video
+                ref={video_ref}
+                src={src}
+                data-testid={data_testid ? `${data_testid}-video` : undefined}
                 height={!is_v2 ? (height ?? (is_mobile ? '184.5px' : '270px')) : undefined}
                 className={classNames('', { player: is_v2 })}
                 width='100%'
-                letterboxColor='transparent'
-                muted={is_muted}
+                muted={muted}
+                autoPlay={should_autoplay}
+                playsInline
                 preload='auto'
-                responsive={is_v2 ? undefined : false}
-                src={src}
-                streamRef={video_ref}
+                onLoadedMetadata={onLoadedMetaData}
                 onEnded={onEnded}
                 onPlay={() => setIsPlaying(true)}
-                onLoadedMetaData={onLoadedMetaData}
                 onSeeked={() => (should_check_time_ref.current = false)}
                 onSeeking={() => (should_check_time_ref.current = false)}
-                playbackRate={playback_rate}
-                volume={volume}
             />
             {is_loading && show_loading && (
                 <div className='player__loader' style={{ height: height ?? (is_mobile ? '184.5px' : '270px') }}>
@@ -399,23 +401,21 @@ const VideoPlayer = ({
                 current_time={current_time}
                 dragStartHandler={dragStartHandler}
                 has_enlarged_dot={has_enlarged_dot}
-                hide_volume_control={hide_volume_control}
                 is_animated={is_animated}
                 is_ended={is_ended.current}
                 is_playing={is_playing}
                 is_mobile={is_mobile}
-                is_muted={is_muted}
                 is_rtl={is_rtl}
                 is_v2={is_v2}
                 increased_drag_area={increased_drag_area}
                 onRewind={onRewind}
-                onVolumeChange={setVolume}
-                onPlaybackRateChange={setPlaybackRate}
+                onPlaybackRateChange={rate => {
+                    setPlaybackRate(rate);
+                    if (video_ref.current) video_ref.current.playbackRate = rate;
+                }}
                 show_controls={show_controls}
                 togglePlay={togglePlay}
-                toggleMute={setIsMuted}
                 video_duration={video_duration}
-                volume={volume}
                 progress_bar_filled_ref={progress_bar_filled_ref}
                 progress_bar_ref={progress_bar_ref}
                 progress_dot_ref={progress_dot_ref}

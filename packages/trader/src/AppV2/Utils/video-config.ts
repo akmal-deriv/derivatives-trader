@@ -1,3 +1,11 @@
+export const CLOUDFLARE_CUSTOMER_CODE = 'hhvo3ceuqt00w8g8';
+
+export const getVideoMp4Url = (video_id: string) =>
+    `https://customer-${CLOUDFLARE_CUSTOMER_CODE}.cloudflarestream.com/${video_id}/downloads/default.mp4`;
+
+export const getVideoThumbnailUrl = (video_id: string) =>
+    `https://customer-${CLOUDFLARE_CUSTOMER_CODE}.cloudflarestream.com/${video_id}/thumbnails/thumbnail.jpg`;
+
 type TDtraderVideoUrl = {
     [key: string]: TVideoVariants;
 };

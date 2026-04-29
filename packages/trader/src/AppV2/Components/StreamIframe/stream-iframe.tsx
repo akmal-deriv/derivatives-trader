@@ -4,14 +4,13 @@ import clsx from 'clsx';
 import { Skeleton } from '@deriv-com/quill-ui';
 
 import { ASPECT_RATIO } from 'AppV2/Utils/layout-utils';
+import { getVideoMp4Url } from 'AppV2/Utils/video-config';
 
-type TStreamIframeProps = Pick<React.ComponentProps<'iframe'>, 'height' | 'width' | 'onLoad'> & {
+type TStreamIframeProps = Pick<React.ComponentProps<'video'>, 'height' | 'width' | 'onLoad'> & {
     autoplay?: boolean;
     controls?: boolean;
-    letterbox_color?: string;
     loop?: boolean;
     muted?: boolean;
-    preload?: string;
     src: string;
     test_id?: string;
     title?: string;
@@ -20,41 +19,35 @@ type TStreamIframeProps = Pick<React.ComponentProps<'iframe'>, 'height' | 'width
 const StreamIframe = ({
     autoplay = true,
     controls = false,
-    letterbox_color = 'transparent',
     loop = true,
     muted = true,
-    preload = 'auto',
     src,
     test_id,
     title,
+    height,
+    width,
     ...props
 }: TStreamIframeProps) => {
     const [is_loading, setIsLoading] = React.useState(true);
-
-    const params = [
-        `letterboxColor=${encodeURIComponent(letterbox_color)}`,
-        `muted=${muted}`,
-        `preload=${preload}`,
-        `loop=${loop}`,
-        `autoplay=${autoplay}`,
-        `controls=${controls}`,
-    ].join('&');
+    const skeleton_height = height ? String(height) : `calc(100vw * ${ASPECT_RATIO})`;
 
     return (
         <div className={clsx('stream__wrapper', is_loading && 'stream__wrapper--is-loading')}>
-            {is_loading && <Skeleton.Square height={`calc(100vw * ${ASPECT_RATIO})`} />}
-            <iframe
-                allowFullScreen={false}
+            {is_loading && <Skeleton.Square height={skeleton_height} />}
+            <video
                 className='stream__iframe'
-                width='100%'
-                height='100%'
-                src={`https://iframe.cloudflarestream.com/${src}?${params}`}
+                width={width ?? '100%'}
+                height={height ?? '100%'}
+                src={getVideoMp4Url(src)}
                 data-testid={test_id}
                 title={title}
-                onLoad={() => setIsLoading(false)}
-                // @ts-expect-error -- credentialless is not yet in React's iframe type definitions
-                // eslint-disable-next-line react/no-unknown-property
-                credentialless=''
+                autoPlay={autoplay}
+                controls={controls}
+                loop={loop}
+                muted={muted}
+                playsInline
+                preload='auto'
+                onLoadedData={() => setIsLoading(false)}
                 {...props}
             />
         </div>

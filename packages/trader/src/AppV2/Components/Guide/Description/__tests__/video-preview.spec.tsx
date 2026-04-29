@@ -8,7 +8,7 @@ const mock_props = { contract_type: CONTRACT_LIST.ACCUMULATORS, toggleVideoPlaye
 
 jest.mock('@deriv-com/ui', () => ({
     ...jest.requireActual('@deriv-com/ui'),
-    useDevice: () => ({ isDesktop: false }),
+    useDevice: () => ({ isMobile: true }),
 }));
 
 describe('VideoPreview', () => {

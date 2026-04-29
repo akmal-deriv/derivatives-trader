@@ -21,6 +21,11 @@ jest.mock('@lottiefiles/dotlottie-react', () => ({
     DotLottieReact: jest.fn(() => <div>DotLottieReact</div>),
 }));
 
+jest.mock('@deriv-com/ui', () => ({
+    ...jest.requireActual('@deriv-com/ui'),
+    useDevice: () => ({ isMobile: true }),
+}));
+
 describe('DescriptionModal', () => {
     beforeAll(() => {
         HTMLDialogElement.prototype.show = jest.fn();

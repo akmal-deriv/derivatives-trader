@@ -27,14 +27,14 @@ describe('<ContractTypeDescriptionVideo />', () => {
     it('should render the component with video if selected_contract_type does support video', () => {
         render(mockContractTypeDescriptionVideo(mockStore({}), default_mocked_props));
 
-        expect(screen.getByTestId(/description_video/i)).toBeInTheDocument();
+        expect(screen.getByTestId('dt_description_video')).toBeInTheDocument();
     });
 
     it('should be able to find a proper video and render the component if is_dark_mode_on is true', () => {
         const mock_root_store = mockStore({ ui: { is_dark_mode_on: true } });
         render(mockContractTypeDescriptionVideo(mock_root_store, default_mocked_props));
 
-        expect(screen.getByTestId(/description_video/i)).toBeInTheDocument();
+        expect(screen.getByTestId('dt_description_video')).toBeInTheDocument();
     });
 
     it('should return null if selected_contract_type is falsy', () => {

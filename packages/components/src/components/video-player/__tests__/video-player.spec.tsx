@@ -20,17 +20,9 @@ jest.mock('@deriv/quill-icons', () => ({
     LegacyChevronDown1pxIcon: () => <div>IcChevronDown</div>,
 }));
 
-type TMockedStreamProps = {
-    onEnded: () => void;
-    onPlay: () => void;
-    onLoadedMetaData: () => void;
-    streamRef: React.MutableRefObject<HTMLVideoElement>;
-    src: string;
-};
-
 const default_playback_rate = 'Normal';
 const player_data_testid = 'dt_video_player';
-const video_data_testid = 'dt_video';
+const video_data_testid = 'dt_video_player-video';
 const icon_play = 'IcPlay';
 const icon_pause = 'IcPause';
 const icon_replay = 'IcReplay';
@@ -41,27 +33,6 @@ const mocked_props: React.ComponentProps<typeof VideoPlayer> = {
     src: 'test_src',
 };
 
-jest.mock('@cloudflare/stream-react', () => ({
-    ...jest.requireActual('@cloudflare/stream-react'),
-    Stream: jest.fn(({ onEnded, onPlay, onLoadedMetaData, streamRef, src }: TMockedStreamProps) => (
-        <video
-            data-testid={video_data_testid}
-            onClick={onEnded}
-            onLoadedData={onLoadedMetaData}
-            onPlay={onPlay}
-            src={src}
-            ref={() => {
-                streamRef.current = {
-                    duration: 50,
-                    currentTime: 0,
-                    pause: () => undefined,
-                    play: () => Promise.resolve(),
-                } as HTMLVideoElement;
-            }}
-        />
-    )),
-}));
-
 describe('<VideoPlayer />', () => {
     const original_user_agent = window.navigator.userAgent;
 
@@ -70,6 +41,23 @@ describe('<VideoPlayer />', () => {
             value: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             configurable: true,
         });
+        Object.defineProperty(window.HTMLMediaElement.prototype, 'duration', {
+            get() {
+                return 50;
+            },
+            configurable: true,
+        });
+        Object.defineProperty(window.HTMLMediaElement.prototype, 'currentTime', {
+            get() {
+                return 0;
+            },
+            set() {
+                // noop: JSDOM rejects NaN from getBoundingClientRect layout-less calculations
+            },
+            configurable: true,
+        });
+        window.HTMLMediaElement.prototype.play = () => Promise.resolve();
+        window.HTMLMediaElement.prototype.pause = () => undefined;
     });
 
     afterAll(() => {
@@ -82,7 +70,7 @@ describe('<VideoPlayer />', () => {
     it('should render the component on desktop', async () => {
         render(<VideoPlayer {...mocked_props} />);
         const video = screen.getByTestId(video_data_testid);
-        fireEvent.loadedData(video);
+        fireEvent.loadedMetadata(video);
         expect(screen.getByTestId(player_data_testid)).toBeInTheDocument();
 
         const playback_rate = screen.getByText(default_playback_rate);
@@ -104,7 +92,7 @@ describe('<VideoPlayer />', () => {
     it('should render the component for mobile browsers except for Safari', async () => {
         render(<VideoPlayer {...mocked_props} is_mobile />);
         const video = screen.getByTestId(video_data_testid);
-        fireEvent.loadedData(video);
+        fireEvent.loadedMetadata(video);
         expect(screen.getByTestId(player_data_testid)).toBeInTheDocument();
 
         const pause_button = screen.getByText(icon_pause);
@@ -112,24 +100,25 @@ describe('<VideoPlayer />', () => {
         expect(screen.queryByText(icon_pause)).not.toBeInTheDocument();
         expect(screen.getByText(icon_play)).toBeInTheDocument();
     });
-    it('should render the component on mobile for Safari', () => {
+    it('should render the component on mobile for Safari and autoplay when autoplay=true', () => {
         Object.defineProperty(window.navigator, 'userAgent', {
             value: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2.1 Safari/605.1.15',
             configurable: true,
         });
         render(<VideoPlayer {...mocked_props} is_mobile />);
         const video = screen.getByTestId(video_data_testid);
-        fireEvent.loadedData(video);
+        fireEvent.loadedMetadata(video);
         expect(screen.getByTestId(player_data_testid)).toBeInTheDocument();
 
-        const play_button = screen.getByText(icon_play);
-        expect(play_button).toBeInTheDocument();
+        // autoplay=true (default) — video plays via imperative .play() even on iOS Safari
+        const pause_button = screen.getByText(icon_pause);
+        expect(pause_button).toBeInTheDocument();
     });
     it('should not resume playing if user taps upon replay overlay while the video is not ended', async () => {
         render(<VideoPlayer {...mocked_props} />);
         const video = screen.getByTestId(video_data_testid);
-        fireEvent.loadedData(video);
-        await userEvent.click(video);
+        fireEvent.loadedMetadata(video);
+        fireEvent(video, new Event('ended'));
         expect(screen.getByText(icon_play)).toBeInTheDocument();
 
         const replay_button = screen.getByText(icon_replay);
@@ -142,7 +131,7 @@ describe('<VideoPlayer />', () => {
 
         render(<VideoPlayer {...mocked_props} />);
         const video = screen.getByTestId(video_data_testid);
-        fireEvent.loadedData(video);
+        fireEvent.loadedMetadata(video);
 
         expect(screen.getByTestId(player_data_testid)).toBeInTheDocument();
 

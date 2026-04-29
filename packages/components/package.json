@@ -51,7 +51,6 @@
         "webpack-cli": "^5.1.4"
     },
     "dependencies": {
-        "@cloudflare/stream-react": "^1.9.1",
         "@deriv-com/translations": "1.4.0",
         "@deriv-com/ui": "1.36.4",
         "@deriv/api": "^1.0.0",

@@ -9,6 +9,7 @@ import { Localize } from '@deriv-com/translations';
 import { useDevice } from '@deriv-com/ui';
 
 import { getDescriptionVideoIds } from 'AppV2/Utils/contract-description-utils';
+import { getVideoMp4Url } from 'AppV2/Utils/video-config';
 
 import GuideContent from './guide-content';
 
@@ -146,10 +147,9 @@ const GuideDescriptionModal = ({
                     <VideoPlayer
                         className='modal-player__wrapper'
                         data_testid='dt_video_player'
-                        src={video_src}
+                        src={getVideoMp4Url(video_src)}
                         onModalClose={toggleVideoPlayer}
                         muted={true}
-                        hide_volume_control={true}
                         is_mobile={true}
                         is_v2={true}
                         should_show_controls={true}
