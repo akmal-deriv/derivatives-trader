@@ -11,7 +11,7 @@ const DESKTOP_STEPS: Step[] = [
         offset: 0,
         spotlightPadding: 4,
         target: '.trade-types-selector__button',
-        title: <Localize i18n_default_text='Explore trade types (1/5)' />,
+        title: <Localize i18n_default_text='Explore trade types' />,
         placement: 'bottom-start' as Step['placement'],
         disableScrollParentFix: true,
     },
@@ -21,14 +21,14 @@ const DESKTOP_STEPS: Step[] = [
         placement: 'bottom-start' as Step['placement'],
         spotlightPadding: 8,
         target: '.cq-chart-title',
-        title: <Localize i18n_default_text='Choose a market (2/5)' />,
+        title: <Localize i18n_default_text='Choose a market' />,
     },
     {
         content: <Localize i18n_default_text='Track market trends with our interactive charts.' />,
         spotlightPadding: 8,
         offset: 4,
         target: '.trade__chart-tooltip',
-        title: <Localize i18n_default_text='Analyse with charts (3/5)' />,
+        title: <Localize i18n_default_text='Analyse with charts' />,
         placement: 'right-start' as Step['placement'],
         floaterProps: {
             disableFlip: true,
@@ -39,7 +39,7 @@ const DESKTOP_STEPS: Step[] = [
         offset: 4,
         spotlightPadding: 0,
         target: '.trade-params__options-wrapper',
-        title: <Localize i18n_default_text='Open your trade (4/5)' />,
+        title: <Localize i18n_default_text='Open your trade' />,
         placement: 'left' as Step['placement'],
         disableScrollParentFix: true,
         floaterProps: {
@@ -50,7 +50,7 @@ const DESKTOP_STEPS: Step[] = [
         content: <Localize i18n_default_text='View your positions here.' />,
         offset: 4,
         target: '[data-testid="dt_sidebar_positions"]',
-        title: <Localize i18n_default_text='Check your positions (5/5)' />,
+        title: <Localize i18n_default_text='Check your positions' />,
         placement: 'right' as Step['placement'],
     },
 ];

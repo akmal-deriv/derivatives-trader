@@ -14,7 +14,21 @@ type TFinishedStatuses = CallBackProps['status'][];
 
 const GuideContainer = ({ should_run, onFinishGuide, custom_steps }: TGuideContainerProps) => {
     const [step_index, setStepIndex] = React.useState(0);
-    const steps = custom_steps ?? STEPS;
+    const all_steps = custom_steps ?? STEPS;
+
+    // Drop steps whose target selector isn't in the DOM. Without this, Joyride
+    // silently fails to start when the first step's target is absent — e.g. the
+    // trade-types selector is hidden for clients in restricted account groups.
+    const steps = React.useMemo(() => {
+        if (!should_run) return all_steps;
+        return all_steps.filter(step =>
+            typeof step.target === 'string' ? !!document.querySelector(step.target) : true
+        );
+    }, [should_run, all_steps]);
+
+    React.useEffect(() => {
+        if (should_run && steps.length === 0) onFinishGuide();
+    }, [should_run, steps.length, onFinishGuide]);
 
     const callbackHandle = (data: CallBackProps) => {
         const { status, step, index } = data;
@@ -41,7 +55,7 @@ const GuideContainer = ({ should_run, onFinishGuide, custom_steps }: TGuideConta
                     },
                 },
             }}
-            run={should_run}
+            run={should_run && steps.length > 0}
             showSkipButton
             steps={steps}
             spotlightPadding={0}
