@@ -80,6 +80,13 @@
         scrollbar-width: none;
         scroll-behavior: smooth;
 
+        // Restricted accounts don't render the sticky grid selector, so the first
+        // chip would otherwise sit flush against the sidebar. Add a matching left
+        // padding to keep it visually aligned with the rest of the trade header.
+        &--restricted {
+            padding-inline-start: var(--core-spacing-800);
+        }
+
         @include mobile-screen {
             width: 100vw;
             inset-inline-start: calc(-1 * var(--core-spacing-400));

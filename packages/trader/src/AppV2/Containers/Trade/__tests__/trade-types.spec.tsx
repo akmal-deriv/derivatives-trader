@@ -5,6 +5,7 @@ import { mockStore } from '@deriv/stores';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
+import useIsTradeTypeSelectionRestricted from 'AppV2/Hooks/useIsTradeTypeSelectionRestricted';
 import { getTradeTypesList, sortCategoriesInTradeTypeOrder } from 'AppV2/Utils/trade-types-utils';
 
 import TraderProviders from '../../../../trader-providers';
@@ -13,6 +14,11 @@ import TradeTypes from '../trade-types';
 jest.mock('AppV2/Utils/trade-types-utils');
 
 jest.mock('AppV2/Components/Guide', () => jest.fn(() => <div>MockedGuide</div>));
+
+jest.mock('AppV2/Hooks/useIsTradeTypeSelectionRestricted', () => ({
+    __esModule: true,
+    default: jest.fn(() => false),
+}));
 
 jest.mock('@deriv/api', () => ({
     ...jest.requireActual('@deriv/api'),
@@ -28,6 +34,7 @@ jest.mock('@deriv-com/ui', () => ({
 
 const mockGetTradeTypesList = getTradeTypesList as jest.MockedFunction<typeof getTradeTypesList>;
 const mockSortCategoriesInTradeTypeOrder = sortCategoriesInTradeTypeOrder as jest.Mock;
+const mockUseIsTradeTypeSelectionRestricted = useIsTradeTypeSelectionRestricted as jest.Mock;
 
 const contract_types_list = {
     rise_fall: {
@@ -90,6 +97,9 @@ describe('TradeTypes', () => {
         (useDevice as jest.Mock).mockReturnValue({
             isMobile: true,
         });
+
+        // Reset restriction hook to unrestricted by default
+        mockUseIsTradeTypeSelectionRestricted.mockReturnValue(false);
     });
     beforeAll(() => {
         Object.defineProperty(HTMLElement.prototype, 'scrollBy', {
@@ -280,5 +290,57 @@ describe('TradeTypes', () => {
 
         // Cleanup
         localStorage.removeItem('pinned_trade_types');
+    });
+
+    describe('when trade type selection is restricted', () => {
+        const restricted_store = {
+            modules: {
+                trade: {
+                    contract_type: 'accumulator',
+                    contract_types_list,
+                },
+            },
+        };
+
+        const renderRestricted = (onTradeTypeSelect: jest.Mock = jest.fn()) =>
+            render(
+                <TraderProviders store={mockStore(restricted_store)}>
+                    <TradeTypes
+                        is_dark_mode_on={false}
+                        onTradeTypeSelect={onTradeTypeSelect}
+                        trade_types={mockGetTradeTypesList(restricted_store.modules.trade.contract_types_list)}
+                        contract_type='accumulator'
+                    />
+                </TraderProviders>
+            );
+
+        beforeEach(() => {
+            mockUseIsTradeTypeSelectionRestricted.mockReturnValue(true);
+        });
+
+        it('hides the TradeTypesSelector grid button and "View all"', () => {
+            renderRestricted();
+
+            expect(screen.queryByRole('button', { name: /view all trade types/i })).not.toBeInTheDocument();
+            expect(screen.queryByText('View all')).not.toBeInTheDocument();
+        });
+
+        it('renders only the currently selected trade type chip as a read-only indicator', () => {
+            renderRestricted();
+
+            // Selected chip is still visible.
+            expect(screen.getByText('Accumulator')).toBeInTheDocument();
+            // Other pinned chips are filtered out.
+            expect(screen.queryByText('Rise')).not.toBeInTheDocument();
+            expect(screen.queryByText('Vanilla Call')).not.toBeInTheDocument();
+        });
+
+        it('does not invoke onTradeTypeSelect when the remaining chip is clicked', async () => {
+            const onTradeTypeSelect = jest.fn();
+            renderRestricted(onTradeTypeSelect);
+
+            await userEvent.click(screen.getByText('Accumulator'));
+            expect(onTradeTypeSelect).not.toHaveBeenCalled();
+        });
     });
 });

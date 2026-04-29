@@ -15,6 +15,7 @@ import CarouselHeader from 'AppV2/Components/Carousel/carousel-header';
 import FireIcon from 'AppV2/Components/FireIcon';
 import TradeTypesSelectionGuide from 'AppV2/Components/OnboardingGuide/TradeTypesSelectionGuide';
 import TradeTypesSelector from 'AppV2/Components/TradeTypesSelector';
+import useIsTradeTypeSelectionRestricted from 'AppV2/Hooks/useIsTradeTypeSelectionRestricted';
 import { checkContractTypePrefix } from 'AppV2/Utils/contract-type';
 import {
     AVAILABLE_CONTRACTS,
@@ -60,6 +61,7 @@ const TradeTypes = ({ contract_type, onTradeTypeSelect, trade_types, is_dark_mod
     const { localize } = useTranslations();
     const { isBridgeAvailable } = useMobileBridge();
     const { isMobile } = useDevice();
+    const is_trade_type_selection_restricted = useIsTradeTypeSelectionRestricted();
     const [is_open, setIsOpen] = React.useState<boolean>(false);
     const [is_editing, setIsEditing] = React.useState<boolean>(false);
     const [is_guide_open, setIsGuideOpen] = React.useState<boolean>(false);
@@ -305,11 +307,22 @@ const TradeTypes = ({ contract_type, onTradeTypeSelect, trade_types, is_dark_mod
             : null;
 
         // Final filter to only include items that exist in current trade_types
-        return [...pinned_items, other_item].filter(item => item && trade_types_ids.includes(item.id)) as TItem[];
-    }, [trade_types_ids, getPinnedItems, other_trade_types, contract_type]);
+        const chips = [...pinned_items, other_item].filter(
+            item => item && trade_types_ids.includes(item.id)
+        ) as TItem[];
+
+        // When restricted, show only the currently selected chip as a read-only indicator.
+        if (is_trade_type_selection_restricted) {
+            return chips.filter(item => item.id === contract_type || checkContractTypePrefix([contract_type, item.id]));
+        }
+        return chips;
+    }, [trade_types_ids, getPinnedItems, other_trade_types, contract_type, is_trade_type_selection_restricted]);
 
     const should_show_view_all =
-        (trade_type_chips.length >= 2 || getItems(other_trade_types).length > 0) && !isBridgeAvailable && isMobile;
+        (trade_type_chips.length >= 2 || getItems(other_trade_types).length > 0) &&
+        !isBridgeAvailable &&
+        isMobile &&
+        !is_trade_type_selection_restricted;
     const show_trade_type_list_divider = !!other_trade_types[0]?.items?.length;
     const show_editing_divider = trade_types_array.length !== pinned_trade_types[0]?.items?.length;
     const trade_type_content_props = {
@@ -348,42 +361,53 @@ const TradeTypes = ({ contract_type, onTradeTypeSelect, trade_types, is_dark_mod
     }
 
     return (
-        <div className='trade__trade-types' ref={trade_types_ref}>
-            <TradeTypesSelector
-                available_contracts={AVAILABLE_CONTRACTS.filter(contract =>
-                    trade_types.some(tt => contract.for.includes(tt.value))
-                )}
-                selected_trade_type={contract_type}
-                onTradeTypeSelect={(type: string, tab: 'all' | 'most_traded') => {
-                    const trade_type_text = trade_types.find(tt => tt.value === type)?.text || type;
-                    const synthetic_event = {
-                        target: { textContent: trade_type_text },
-                        currentTarget: { textContent: trade_type_text },
-                    } as unknown as React.MouseEvent<HTMLElement>;
-                    onTradeTypeSelect(synthetic_event, 'trade_types_selector', getPinnedItems().length, tab);
-                }}
-                onGuideClick={() => {
-                    const selected = trade_types.find(({ value }) => value === contract_type);
-                    trackAnalyticsEvent('ce_trade_types_form_v2', {
-                        action: 'info_open',
-                        trade_type_name: selected?.text || contract_type,
-                        source: 'trade_types_menu',
-                    });
-                    setIsGuideOpen(true);
-                    setGuideKey(prev => prev + 1);
-                }}
-            />
+        <div
+            className={clsx('trade__trade-types', {
+                'trade__trade-types--restricted': is_trade_type_selection_restricted,
+            })}
+            ref={trade_types_ref}
+        >
+            {!is_trade_type_selection_restricted && (
+                <TradeTypesSelector
+                    available_contracts={AVAILABLE_CONTRACTS.filter(contract =>
+                        trade_types.some(tt => contract.for.includes(tt.value))
+                    )}
+                    selected_trade_type={contract_type}
+                    onTradeTypeSelect={(type: string, tab: 'all' | 'most_traded') => {
+                        const trade_type_text = trade_types.find(tt => tt.value === type)?.text || type;
+                        const synthetic_event = {
+                            target: { textContent: trade_type_text },
+                            currentTarget: { textContent: trade_type_text },
+                        } as unknown as React.MouseEvent<HTMLElement>;
+                        onTradeTypeSelect(synthetic_event, 'trade_types_selector', getPinnedItems().length, tab);
+                    }}
+                    onGuideClick={() => {
+                        const selected = trade_types.find(({ value }) => value === contract_type);
+                        trackAnalyticsEvent('ce_trade_types_form_v2', {
+                            action: 'info_open',
+                            trade_type_name: selected?.text || contract_type,
+                            source: 'trade_types_menu',
+                        });
+                        setIsGuideOpen(true);
+                        setGuideKey(prev => prev + 1);
+                    }}
+                />
+            )}
             {trade_type_chips.map(({ title, id, show_fire_icon }: TItem) => (
                 <Chip.Selectable
                     key={id}
-                    onChipSelect={e => {
-                        const synthetic_event = {
-                            ...e,
-                            target: { ...e.target, textContent: title },
-                            currentTarget: { ...e.currentTarget, textContent: title },
-                        } as React.MouseEvent<HTMLElement>;
-                        onTradeTypeSelect(synthetic_event, 'main_trade_page', getPinnedItems().length);
-                    }}
+                    onChipSelect={
+                        is_trade_type_selection_restricted
+                            ? undefined
+                            : e => {
+                                  const synthetic_event = {
+                                      ...e,
+                                      target: { ...e.target, textContent: title },
+                                      currentTarget: { ...e.currentTarget, textContent: title },
+                                  } as React.MouseEvent<HTMLElement>;
+                                  onTradeTypeSelect(synthetic_event, 'main_trade_page', getPinnedItems().length);
+                              }
+                    }
                     selected={isTradeTypeSelected(id)}
                 >
                     <Text size='sm'>
