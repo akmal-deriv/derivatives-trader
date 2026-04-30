@@ -1,6 +1,12 @@
 import React from 'react';
 
-import { LegacyPositionIcon, LegacyProfitTableIcon, LegacyReportsIcon, LegacyStatementIcon } from '@deriv/quill-icons';
+import {
+    LegacyPositionIcon,
+    LegacyProfitTableIcon,
+    LegacyReportsIcon,
+    LegacyStatementIcon,
+    LegacyTimeIcon,
+} from '@deriv/quill-icons';
 import { routes } from '@deriv/shared';
 import { localize } from '@deriv-com/translations';
 
@@ -45,6 +51,13 @@ const getModules = () => {
                     component: Reports,
                     getTitle: () => localize('Statement'),
                     icon_component: <LegacyStatementIcon />,
+                    protected: true,
+                },
+                {
+                    path: routes.previous_trades,
+                    component: Reports,
+                    getTitle: () => localize('Previous trades'),
+                    icon_component: <LegacyTimeIcon />,
                     protected: true,
                 },
             ],

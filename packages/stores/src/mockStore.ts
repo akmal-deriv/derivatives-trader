@@ -73,6 +73,7 @@ const mock = (): TStores & { is_mock: boolean } => {
             responsePayoutCurrencies: jest.fn(),
             init: jest.fn(),
             switchAccount: jest.fn(),
+            has_previous_trades: false,
         },
         common: {
             error: common_store_error,

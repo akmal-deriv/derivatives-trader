@@ -461,6 +461,79 @@ export const getMultiplierOpenPositionsColumnsTemplate = ({
     },
 ];
 
+export const getPreviousTradesColumnsTemplate = (currency: string, isDesktop: boolean) => [
+    {
+        key: 'icon',
+        title: isDesktop ? <Localize i18n_default_text='Type' /> : '',
+        col_index: 'icon',
+        renderCellContent: ({ row_obj }: TCellContentProps) => {
+            return <MarketSymbolIconRow key={row_obj.transaction_id} payload={row_obj} />;
+        },
+    },
+    {
+        title: <Localize i18n_default_text='Ref. ID' />,
+        col_index: 'refid',
+        renderCellContent: ({ cell_value, row_obj }: TCellContentProps) => {
+            return (
+                <Popover
+                    alignment={'top'}
+                    message={
+                        <Localize
+                            i18n_default_text='Transaction performed by (App ID: {{app_id}})'
+                            values={{ app_id: row_obj.app_id }}
+                        />
+                    }
+                >
+                    {cell_value}
+                </Popover>
+            );
+        },
+    },
+    {
+        title: <Localize i18n_default_text='Currency' />,
+        col_index: 'currency',
+        renderCellContent: () => <CurrencyWrapper currency={getCurrencyDisplayCode(currency)} />,
+    },
+    {
+        title: <Localize i18n_default_text='Transaction time' />,
+        col_index: 'transaction_time',
+        renderCellContent: ({ cell_value }: TCellContentProps) => {
+            if (!cell_value) return '-';
+            return (
+                <span>
+                    {formatDate(cell_value, 'DD MMM YYYY')}
+                    <br />
+                    {formatDate(cell_value, 'HH:mm:ss')} GMT
+                </span>
+            );
+        },
+    },
+    {
+        key: 'mode',
+        title: <Localize i18n_default_text='Transaction' />,
+        col_index: 'action_type',
+        renderCellContent: ({ cell_value, row_obj }: TCellContentProps) => (
+            <Label mode={getModeFromValue(String(cell_value))}>{row_obj.action}</Label>
+        ),
+    },
+    {
+        title: <Localize i18n_default_text='Credit/Debit' />,
+        col_index: 'amount',
+        renderCellContent: ({ cell_value }: TCellContentProps) => (
+            <div className={`amount--${getProfitOrLoss(String(cell_value))}`}>
+                <Money has_sign amount={String(cell_value).replace(/[,]+/g, '')} currency={currency} />
+            </div>
+        ),
+    },
+    {
+        title: <Localize i18n_default_text='Balance' />,
+        col_index: 'balance',
+        renderCellContent: ({ cell_value }: TCellContentProps) => (
+            <Money amount={String(cell_value).replace(/[,]+/g, '')} currency={currency} />
+        ),
+    },
+];
+
 export const getAccumulatorOpenPositionsColumnsTemplate = ({
     currency,
     onClickSell,

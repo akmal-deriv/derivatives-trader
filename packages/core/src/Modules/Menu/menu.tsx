@@ -5,16 +5,17 @@ import classNames from 'classnames';
 import { useMobileBridge } from '@deriv/api';
 import { Text, ToggleSwitch } from '@deriv/components';
 import {
+    IllustrativeEtfIcon,
+    StandaloneBriefcaseRegularIcon,
     StandaloneChevronLeftRegularIcon,
     StandaloneChevronRightRegularIcon,
     StandaloneClockThreeRegularIcon,
-    StandaloneFileChartColumnRegularIcon,
-    StandaloneFileLinesRegularIcon,
     StandaloneGlobeRegularIcon,
     StandaloneLifeRingRegularIcon,
     StandaloneMoonRegularIcon,
     StandaloneRightFromBracketRegularIcon,
     StandaloneSunBrightRegularIcon,
+    StandaloneTableLayoutRegularIcon,
 } from '@deriv/quill-icons';
 import { getHelpCentreUrl, routes } from '@deriv/shared';
 import { observer, useStore } from '@deriv/stores';
@@ -30,7 +31,7 @@ const MenuPage = observer(() => {
     const { sendBridgeEvent, isMobileApp } = useMobileBridge();
     const { ui, client } = useStore();
     const { is_dark_mode_on: is_dark_mode, setDarkMode: toggleTheme } = ui;
-    const { is_logged_in, logout: logoutClient } = client;
+    const { is_logged_in, has_previous_trades, logout: logoutClient } = client;
     const { localize } = useTranslations();
 
     const [show_language_selector, setShowLanguageSelector] = React.useState(false);
@@ -79,18 +80,27 @@ const MenuPage = observer(() => {
                             </div>
                             <div className='menu-page__item' onClick={() => history.push(routes.profit)}>
                                 <MenuLink
-                                    icon={<StandaloneFileChartColumnRegularIcon iconSize='sm' />}
+                                    icon={<StandaloneTableLayoutRegularIcon iconSize='sm' />}
                                     text={localize('Trade table')}
                                     suffix_icon={<StandaloneChevronRightRegularIcon iconSize='sm' />}
                                 />
                             </div>
                             <div className='menu-page__item' onClick={() => history.push(routes.statement)}>
                                 <MenuLink
-                                    icon={<StandaloneFileLinesRegularIcon iconSize='sm' />}
+                                    icon={<IllustrativeEtfIcon iconSize='sm' />}
                                     text={localize('Statement')}
                                     suffix_icon={<StandaloneChevronRightRegularIcon iconSize='sm' />}
                                 />
                             </div>
+                            {has_previous_trades && (
+                                <div className='menu-page__item' onClick={() => history.push(routes.previous_trades)}>
+                                    <MenuLink
+                                        icon={<StandaloneBriefcaseRegularIcon iconSize='sm' />}
+                                        text={localize('Previous trades')}
+                                        suffix_icon={<StandaloneChevronRightRegularIcon iconSize='sm' />}
+                                    />
+                                </div>
+                            )}
                         </div>
                     )}
 

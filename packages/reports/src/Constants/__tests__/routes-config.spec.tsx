@@ -10,6 +10,7 @@ jest.mock('@deriv/shared', () => ({
         positions: '/reports/positions',
         profit: '/reports/profit',
         statement: '/reports/statement',
+        previous_trades: '/reports/previous-trades',
     },
     makeLazyLoader: (loader: () => any, fallback: () => React.ReactNode) => {
         return (component: string) => {
@@ -18,6 +19,7 @@ jest.mock('@deriv/shared', () => ({
                 OpenPositions: () => <div>OpenPositions</div>,
                 ProfitTable: () => <div>ProfitTable</div>,
                 Statement: () => <div>Statement</div>,
+                PreviousTrades: () => <div>PreviousTrades</div>,
             };
             return components[component] || (() => <div>{component}</div>);
         };
@@ -38,15 +40,17 @@ jest.mock('../../Containers', () => ({
         OpenPositions: () => <div>OpenPositions</div>,
         ProfitTable: () => <div>ProfitTable</div>,
         Statement: () => <div>Statement</div>,
+        PreviousTrades: () => <div>PreviousTrades</div>,
     },
 }));
 
 // Mock icon components
 jest.mock('@deriv/quill-icons', () => ({
-    LegacyOpenPositionIcon: ({ iconSize }: { iconSize: string }) => <span>OpenPositionIcon-{iconSize}</span>,
-    LegacyProfitTableIcon: ({ iconSize }: { iconSize: string }) => <span>ProfitTableIcon-{iconSize}</span>,
+    IllustrativeEtfIcon: ({ iconSize }: { iconSize: string }) => <span>EtfIcon-{iconSize}</span>,
     LegacyReportsIcon: ({ iconSize }: { iconSize: string }) => <span>ReportsIcon-{iconSize}</span>,
-    LegacyStatementIcon: ({ iconSize }: { iconSize: string }) => <span>StatementIcon-{iconSize}</span>,
+    StandaloneBriefcaseRegularIcon: ({ iconSize }: { iconSize: string }) => <span>BriefcaseIcon-{iconSize}</span>,
+    StandaloneClockThreeRegularIcon: ({ iconSize }: { iconSize: string }) => <span>ClockIcon-{iconSize}</span>,
+    StandaloneTableLayoutRegularIcon: ({ iconSize }: { iconSize: string }) => <span>TableLayoutIcon-{iconSize}</span>,
 }));
 
 // Mock @deriv/components
@@ -110,7 +114,7 @@ describe('Routes Config', () => {
 
         it('should have correct number of nested routes', () => {
             expect(reportsRoute.routes).toBeDefined();
-            expect(reportsRoute.routes).toHaveLength(3);
+            expect(reportsRoute.routes).toHaveLength(4);
         });
 
         describe('Open Positions sub-route', () => {
@@ -205,6 +209,37 @@ describe('Routes Config', () => {
                 }
             });
         });
+
+        describe('Previous Trades sub-route', () => {
+            let previousTradesRoute: NonNullable<typeof reportsRoute.routes>[3];
+
+            beforeEach(() => {
+                previousTradesRoute = reportsRoute.routes![3];
+            });
+
+            it('should have correct configuration', () => {
+                expect(previousTradesRoute.path).toBe(routes.previous_trades);
+                expect(previousTradesRoute.default).toBeUndefined();
+                expect(previousTradesRoute.component).toBeDefined();
+                expect(previousTradesRoute.getTitle).toBeDefined();
+                expect(previousTradesRoute.icon_component).toBeDefined();
+            });
+
+            it('should have getTitle function that returns a localized string', () => {
+                const title = previousTradesRoute.getTitle!();
+                expect(typeof title).toBe('string');
+                expect(title).toBe('Previous trades');
+            });
+
+            it('should have an icon component that renders correctly', () => {
+                expect(previousTradesRoute.icon_component).toBeDefined();
+
+                if (previousTradesRoute.icon_component) {
+                    render(previousTradesRoute.icon_component);
+                    expect(React.isValidElement(previousTradesRoute.icon_component)).toBe(true);
+                }
+            });
+        });
     });
 
     describe('Default 404 route configuration', () => {
@@ -282,6 +317,7 @@ describe('Routes Config', () => {
                 expect(reportsRoute.routes[0].path).toBe(routes.positions);
                 expect(reportsRoute.routes[1].path).toBe(routes.profit);
                 expect(reportsRoute.routes[2].path).toBe(routes.statement);
+                expect(reportsRoute.routes[3].path).toBe(routes.previous_trades);
             }
         });
 

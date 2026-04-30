@@ -213,6 +213,7 @@ export type TClientStore = {
     is_logged_in: boolean;
     is_logging_in: boolean;
     is_client_store_initialized: boolean;
+    has_previous_trades: boolean;
     is_virtual: boolean;
     landing_company_shortcode: string;
     loginid?: string;

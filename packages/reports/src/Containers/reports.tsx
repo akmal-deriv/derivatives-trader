@@ -4,9 +4,9 @@ import { RouteComponentProps } from 'react-router-dom';
 import { Div100vhContainer, FadeWrapper, Loading, PageOverlay, SelectNative, VerticalTab } from '@deriv/components';
 import { getSelectedRoute, trackAnalyticsEvent } from '@deriv/shared';
 import { observer, useStore } from '@deriv/stores';
+import { isAllowedRedirectDomain } from '@deriv/utils';
 import { useTranslations } from '@deriv-com/translations';
 import { useDevice } from '@deriv-com/ui';
-import { isAllowedRedirectDomain } from '@deriv/utils';
 
 import { TRoute } from 'Types';
 
@@ -22,7 +22,7 @@ const Reports = observer(({ history, location, routes }: TReports) => {
     const { localize } = useTranslations();
     const { client, common, ui } = useStore();
 
-    const { is_logged_in, is_logging_in } = client;
+    const { is_logged_in, is_logging_in, has_previous_trades } = client;
     const { current_language } = common;
     const { routeBackInApp } = common;
     const { is_reports_visible, setReportsTabIndex, toggleReports } = ui;
@@ -34,6 +34,11 @@ const Reports = observer(({ history, location, routes }: TReports) => {
 
     // Ref to prevent duplicate analytics calls
     const analyticsCalledRef = React.useRef<boolean>(false);
+
+    const visible_routes = React.useMemo(
+        () => (has_previous_trades ? routes : routes.filter(route => route.path !== '/reports/previous-trades')),
+        [routes, has_previous_trades]
+    );
 
     React.useEffect(() => {
         // Capture redirect parameter on mount
@@ -156,7 +161,7 @@ const Reports = observer(({ history, location, routes }: TReports) => {
     };
 
     const menu_options = () => {
-        return routes.map(route => ({
+        return visible_routes.map(route => ({
             default: route.default,
             icon: route.icon_component,
             label: route.getTitle(),
@@ -170,7 +175,7 @@ const Reports = observer(({ history, location, routes }: TReports) => {
         }));
     };
 
-    const selected_route = getSelectedRoute({ routes, pathname: location.pathname });
+    const selected_route = getSelectedRoute({ routes: visible_routes, pathname: location.pathname });
 
     if (!is_logged_in && is_logging_in) {
         return <Loading is_fullscreen />;

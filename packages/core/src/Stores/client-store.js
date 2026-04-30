@@ -54,6 +54,7 @@ export default class ClientStore extends BaseStore {
 
     has_cookie_account = false;
     tab_visibility_handler = null;
+    has_previous_trades = false;
 
     constructor(root_store) {
         const local_storage_properties = [];
@@ -75,6 +76,7 @@ export default class ClientStore extends BaseStore {
             should_redirect_user_to_login: observable,
             has_cookie_account: observable,
             is_new_session: observable,
+            has_previous_trades: observable,
 
             balance: computed,
             currency: computed,
@@ -112,6 +114,7 @@ export default class ClientStore extends BaseStore {
             logout: action.bound,
             setLogout: action.bound,
             setShouldRedirectToLogin: action.bound,
+            setHasPreviousTrades: action.bound,
             init: action.bound,
             resetVirtualBalance: action.bound,
             is_crypto: action.bound,
@@ -593,6 +596,7 @@ export default class ClientStore extends BaseStore {
         this.user_id = null;
         this.external_id = null;
         this.current_account = null;
+        this.setHasPreviousTrades(false);
 
         LocalStore.set('marked_notifications', JSON.stringify([]));
         localStorage.setItem('active_loginid', this.loginid);
@@ -618,6 +622,10 @@ export default class ClientStore extends BaseStore {
 
     setShouldRedirectToLogin(should_redirect_user_to_login) {
         this.should_redirect_user_to_login = should_redirect_user_to_login;
+    }
+
+    setHasPreviousTrades(has_previous_trades) {
+        this.has_previous_trades = has_previous_trades;
     }
 
     async logout() {
