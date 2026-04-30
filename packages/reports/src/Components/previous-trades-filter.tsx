@@ -11,6 +11,7 @@ import {
     CurrencyGbpIcon,
     CurrencyLtcIcon,
     CurrencyNoneIcon,
+    CurrencyUsdcIcon,
     CurrencyUsdIcon,
     CurrencyUsdtIcon,
     LegacyCalendar1pxIcon,
@@ -40,7 +41,7 @@ type TPreviousTradesFilter = {
     selectedLoginid: string;
 };
 
-const currencyIconMap: Record<string, React.ComponentType<{ iconSize: string; className?: string }>> = {
+const currencyIconMap = {
     usd: CurrencyUsdIcon,
     eur: CurrencyEurIcon,
     gbp: CurrencyGbpIcon,
@@ -49,7 +50,10 @@ const currencyIconMap: Record<string, React.ComponentType<{ iconSize: string; cl
     eth: CurrencyEthIcon,
     ltc: CurrencyLtcIcon,
     usdt: CurrencyUsdtIcon,
-};
+    tusdt: CurrencyUsdtIcon,
+    eusdt: CurrencyUsdtIcon,
+    usdc: CurrencyUsdcIcon,
+} as Record<string, React.ComponentType<{ iconSize: string; className?: string }>>;
 
 const RadioOption = ({ label, selected, value }: { label: string; selected: boolean; value: string }) => (
     <span className='previous-trades__radio-option'>
