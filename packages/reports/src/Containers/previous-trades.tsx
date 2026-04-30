@@ -1,5 +1,6 @@
 import React from 'react';
 import { withRouter } from 'react-router';
+import debounce from 'lodash.debounce';
 
 import { DataList, DataTable } from '@deriv/components';
 import { initMoment, toMoment } from '@deriv/shared';
@@ -15,6 +16,10 @@ import PlaceholderComponent from '../Components/placeholder-component';
 import PreviousTradesFilter from '../Components/previous-trades-filter';
 import type { TTransactionItem } from '../Services/previous-trades';
 import { fetchPreviousTrades, fetchPreviousTradesAccounts } from '../Services/previous-trades';
+
+const LIMIT = 100;
+const SCROLL_THRESHOLD = 1500;
+const SCROLL_DEBOUNCE_MS = 150;
 
 type TPreviousTradesProps = {
     component_icon: React.ReactElement;
@@ -46,7 +51,15 @@ const PreviousTrades = observer(({ component_icon }: TPreviousTradesProps) => {
 
     const [raw_data, setRawData] = React.useState<TTransactionItem[]>([]);
     const [is_loading, setIsLoading] = React.useState(true);
+    const [has_loaded_all, setHasLoadedAll] = React.useState(false);
     const [error, setError] = React.useState<string>('');
+    const is_mounted_ref = React.useRef(true);
+
+    React.useEffect(() => {
+        return () => {
+            is_mounted_ref.current = false;
+        };
+    }, []);
 
     React.useEffect(() => {
         initMoment(current_language);
@@ -73,29 +86,33 @@ const PreviousTrades = observer(({ component_icon }: TPreviousTradesProps) => {
         });
     }, [is_logged_in]);
 
-    // Fetch statement data when filters change
+    // Reset and fetch first page whenever filters change
     React.useEffect(() => {
         if (!is_logged_in || selected_loginid === null) return;
 
         let cancelled = false;
         setIsLoading(true);
         setError('');
+        setHasLoadedAll(false);
+        setRawData([]);
 
         fetchPreviousTrades({
             date_from,
             date_to,
             loginid: selected_loginid || undefined,
+            limit: LIMIT,
+            offset: 0,
         }).then(response => {
             if (cancelled) return;
 
             if ('error' in response) {
-                if (response.error.status === 'user_not_found') {
-                    setRawData([]);
-                } else {
+                if (response.error.status !== 'user_not_found') {
                     setError(response.error.message || response.error.status || 'An error occurred');
                 }
             } else {
-                setRawData(response.transactions || []);
+                const transactions = response.transactions || [];
+                setRawData(transactions);
+                setHasLoadedAll(transactions.length < LIMIT);
             }
             setIsLoading(false);
         });
@@ -104,6 +121,59 @@ const PreviousTrades = observer(({ component_icon }: TPreviousTradesProps) => {
             cancelled = true;
         };
     }, [is_logged_in, date_from, date_to, selected_loginid]);
+
+    // Fetch next page — offset is derived from accumulated data length, same as statement
+    const fetchNextBatch = React.useCallback(() => {
+        if (has_loaded_all || is_loading) return;
+
+        setIsLoading(true);
+
+        fetchPreviousTrades({
+            date_from,
+            date_to,
+            loginid: selected_loginid || undefined,
+            limit: LIMIT,
+            offset: raw_data.length,
+        }).then(response => {
+            if (!is_mounted_ref.current) return;
+            if ('error' in response) {
+                setHasLoadedAll(true);
+            } else {
+                const transactions = response.transactions || [];
+                setRawData(prev => [...prev, ...transactions]);
+                setHasLoadedAll(transactions.length < LIMIT);
+            }
+            setIsLoading(false);
+        });
+    }, [has_loaded_all, is_loading, date_from, date_to, selected_loginid, raw_data.length]);
+
+    // Keep a stable ref so the debounced handler always calls the latest fetchNextBatch
+    const fetchNextBatchRef = React.useRef(fetchNextBatch);
+    React.useEffect(() => {
+        fetchNextBatchRef.current = fetchNextBatch;
+    }, [fetchNextBatch]);
+
+    const fetchOnScroll = React.useMemo(
+        () =>
+            debounce((left: number) => {
+                if (left < SCROLL_THRESHOLD) fetchNextBatchRef.current();
+            }, SCROLL_DEBOUNCE_MS),
+        []
+    );
+
+    React.useEffect(() => {
+        return () => {
+            fetchOnScroll.cancel();
+        };
+    }, [fetchOnScroll]);
+
+    const handleScroll = React.useCallback(
+        (event: React.UIEvent<HTMLDivElement>) => {
+            const { scrollTop, scrollHeight, clientHeight } = event.target as HTMLElement;
+            fetchOnScroll(scrollHeight - scrollTop - clientHeight);
+        },
+        [fetchOnScroll]
+    );
 
     const data = React.useMemo(() => raw_data.map(formatTransaction), [raw_data]);
 
@@ -182,7 +252,7 @@ const PreviousTrades = observer(({ component_icon }: TPreviousTradesProps) => {
                 />
             );
         }
-        if (data.length === 0 || is_empty) {
+        if (data.length === 0) {
             return (
                 <PlaceholderComponent
                     is_loading={is_loading}
@@ -205,6 +275,7 @@ const PreviousTrades = observer(({ component_icon }: TPreviousTradesProps) => {
                         getRowAction={() => ''}
                         getRowSize={() => 63}
                         content_loader={ReportsTableRowLoader}
+                        onScroll={handleScroll}
                     >
                         <PlaceholderComponent is_loading={is_loading} />
                     </DataTable>
@@ -215,6 +286,7 @@ const PreviousTrades = observer(({ component_icon }: TPreviousTradesProps) => {
                         rowRenderer={mobileRowRenderer}
                         getRowAction={() => ''}
                         row_gap={8}
+                        onScroll={handleScroll}
                     >
                         <PlaceholderComponent is_loading={is_loading} />
                     </DataList>

@@ -492,7 +492,9 @@ export const getPreviousTradesColumnsTemplate = (currency: string, isDesktop: bo
     {
         title: <Localize i18n_default_text='Currency' />,
         col_index: 'currency',
-        renderCellContent: () => <CurrencyWrapper currency={getCurrencyDisplayCode(currency)} />,
+        renderCellContent: ({ row_obj }: TCellContentProps) => (
+            <CurrencyWrapper currency={getCurrencyDisplayCode(row_obj.currency || currency)} />
+        ),
     },
     {
         title: <Localize i18n_default_text='Transaction time' />,
@@ -519,17 +521,21 @@ export const getPreviousTradesColumnsTemplate = (currency: string, isDesktop: bo
     {
         title: <Localize i18n_default_text='Credit/Debit' />,
         col_index: 'amount',
-        renderCellContent: ({ cell_value }: TCellContentProps) => (
+        renderCellContent: ({ cell_value, row_obj }: TCellContentProps) => (
             <div className={`amount--${getProfitOrLoss(String(cell_value))}`}>
-                <Money has_sign amount={String(cell_value).replace(/[,]+/g, '')} currency={currency} />
+                <Money
+                    has_sign
+                    amount={String(cell_value).replace(/[,]+/g, '')}
+                    currency={row_obj.currency || currency}
+                />
             </div>
         ),
     },
     {
         title: <Localize i18n_default_text='Balance' />,
         col_index: 'balance',
-        renderCellContent: ({ cell_value }: TCellContentProps) => (
-            <Money amount={String(cell_value).replace(/[,]+/g, '')} currency={currency} />
+        renderCellContent: ({ cell_value, row_obj }: TCellContentProps) => (
+            <Money amount={String(cell_value).replace(/[,]+/g, '')} currency={row_obj.currency || currency} />
         ),
     },
 ];

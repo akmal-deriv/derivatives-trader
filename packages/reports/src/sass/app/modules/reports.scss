@@ -763,7 +763,7 @@ $side-padding: 1.2em;
         align-items: center;
         gap: 0.8rem;
 
-        @include mobile-or-tablet-screen {
+        @include mobile-screen {
             width: 100%;
             max-width: 100%;
             justify-content: flex-start;
