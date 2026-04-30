@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 import { VideoPlayer } from '@deriv/components';
 import { LabelPairedPlayMdFillIcon } from '@deriv/quill-icons';
 import { CaptionText } from '@deriv-com/quill-ui';
@@ -14,18 +16,43 @@ type TVideoPreview = {
 
 const VideoPreview = ({ contract_type, toggleVideoPlayer, video_src }: TVideoPreview) => {
     const { isMobile } = useDevice();
+    const [is_started, setIsStarted] = useState(false);
 
     if (!isMobile) {
+        if (is_started) {
+            return (
+                <div className='guide-video__wrapper'>
+                    <div className='guide-video__player' data-testid='dt_video_player'>
+                        <VideoPlayer
+                            src={getVideoMp4Url(video_src)}
+                            is_mobile={false}
+                            should_show_controls
+                            autoplay
+                            height='252px'
+                        />
+                    </div>
+                </div>
+            );
+        }
+
         return (
             <div className='guide-video__wrapper'>
-                <div className='guide-video__player' data-testid='dt_video_player'>
-                    <VideoPlayer
-                        src={getVideoMp4Url(video_src)}
-                        is_mobile={false}
-                        should_show_controls
-                        autoplay={false}
-                        height='252px'
+                <div
+                    className='guide-video__preview'
+                    data-testid='dt_video_preview'
+                    role='button'
+                    tabIndex={0}
+                    onClick={() => setIsStarted(true)}
+                    onKeyDown={e => e.key === 'Enter' && setIsStarted(true)}
+                >
+                    <img
+                        src={getVideoThumbnailUrl(video_src)}
+                        alt='video thumbnail'
+                        className='guide-video__preview__thumbnail'
                     />
+                    <div className='guide-video__preview__icon__wrapper'>
+                        <LabelPairedPlayMdFillIcon className='guide-video__preview__icon' />
+                    </div>
                 </div>
             </div>
         );
