@@ -125,6 +125,26 @@ const SocketCache = (() => {
         return response;
     };
 
+    const getByMsgType = msg_type => {
+        reloadDataObj();
+
+        const key = Object.keys(data_obj).find(k => getData(k).msg_type === msg_type);
+
+        if (!key) return undefined;
+
+        const response_obj = getData(key);
+
+        let response;
+        if (moment().isBefore(response_obj.expires)) {
+            response = response_obj.value;
+        } else {
+            // remove if expired
+            remove(key);
+        }
+
+        return response;
+    };
+
     const has = key => {
         return !!get(key);
     };
@@ -150,6 +170,7 @@ const SocketCache = (() => {
     return {
         set,
         get,
+        getByMsgType,
         has,
         remove,
         clear,
