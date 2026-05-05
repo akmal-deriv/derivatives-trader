@@ -4,7 +4,6 @@ import { localize } from '@deriv-com/translations';
 import WS from './ws-methods';
 
 import ServerTime from '_common/base/server_time';
-import BinarySocket from '_common/base/socket_base';
 
 let client_store, common_store, gtm_store;
 
@@ -163,7 +162,6 @@ const BinarySocketGeneral = (() => {
         client_store.responseAuthorize(authorize_data);
         client_store.setIsAuthorize(true); // Set BEFORE anything that depends on it
         subscribeBalance(); // Continue balance subscription
-        BinarySocket.sendBuffered(); // Now buffered calls see is_authorize = true
     };
 
     return {

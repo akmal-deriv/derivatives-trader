@@ -1,5 +1,5 @@
 const DerivAPIBasic = require('@deriv/deriv-api/dist/DerivAPIBasic');
-const { getCompleteWebSocketURL, getAccountId, getAccountType, cloneObject, State } = require('@deriv/shared');
+const { getCompleteWebSocketURL, getAccountId, cloneObject, State } = require('@deriv/shared');
 const SocketCache = require('./socket_cache');
 const APIMiddleware = require('./api_middleware');
 
@@ -17,12 +17,6 @@ const BinarySocketBase = (() => {
     let is_switching_socket = false;
     let reconnect_handlers = []; // Array to store multiple reconnection handlers
     let reconnect_attempt_count = 0; // Track number of reconnect attempts
-
-    const availability = {
-        is_up: true,
-        is_updating: false,
-        is_down: false,
-    };
 
     const getSocketUrl = (is_mock_server = false) => {
         if (is_mock_server) {
@@ -46,15 +40,6 @@ const BinarySocketBase = (() => {
         close();
         is_switching_socket = true;
         openNewConnection();
-    };
-
-    const handleAccountTypeChange = new_account_type => {
-        const current_account_type = getAccountType();
-
-        if (current_account_type !== new_account_type) {
-            localStorage.setItem('account_type', new_account_type);
-            closeAndOpenNewConnection();
-        }
     };
 
     const hasReadyState = (...states) => binary_socket && states.some(s => binary_socket.readyState === s);
@@ -174,20 +159,6 @@ const BinarySocketBase = (() => {
         });
     };
 
-    const isSiteUp = status => /^up$/i.test(status);
-
-    const isSiteUpdating = status => /^updating$/i.test(status);
-
-    const isSiteDown = status => /^down$/i.test(status);
-
-    // if status is up or updating, consider site available
-    // if status is down, consider site unavailable
-    const setAvailability = status => {
-        availability.is_up = isSiteUp(status);
-        availability.is_updating = isSiteUpdating(status);
-        availability.is_down = isSiteDown(status);
-    };
-
     const excludeAuthorize = type => !(type === 'authorize' && !client_store.is_logged_in);
 
     const wait = (...responses) => deriv_api?.expectResponse(...responses.filter(excludeAuthorize));
@@ -209,60 +180,9 @@ const BinarySocketBase = (() => {
 
     const getTicksHistory = request_object => deriv_api.send(request_object);
 
-    const buyAndSubscribe = request => {
-        return new Promise(resolve => {
-            let called = false;
-            const subscriber = subscribe(request, response => {
-                if (!called) {
-                    called = true;
-                    subscriber.unsubscribe();
-                    resolve(response);
-                }
-            });
-        });
-    };
-
     const buy = ({ proposal_id, price }) => deriv_api.send({ buy: proposal_id, price });
 
     const sell = (contract_id, bid_price) => deriv_api.send({ sell: contract_id, price: bid_price });
-
-    // Cashier functionality has been removed
-
-    const newAccountVirtual = (verification_code, client_password, residence, device_data) =>
-        deriv_api.send({
-            new_account_virtual: 1,
-            verification_code,
-            client_password,
-            residence,
-            ...device_data,
-        });
-
-    const setAccountCurrency = (currency, passthrough) =>
-        deriv_api.send({
-            set_account_currency: currency,
-            ...(passthrough && { passthrough }),
-        });
-
-    const newAccountReal = values =>
-        deriv_api.send({
-            new_account_real: 1,
-            ...values,
-        });
-
-    const newAccountRealMaltaInvest = values => deriv_api.send({ new_account_maltainvest: 1, ...values });
-
-    const mt5NewAccount = values =>
-        deriv_api.send({
-            mt5_new_account: 1,
-            ...values,
-        });
-
-    const getFinancialAssessment = () =>
-        deriv_api.send({
-            get_financial_assessment: 1,
-        });
-
-    const setFinancialAndTradingAssessment = payload => deriv_api.send({ set_financial_assessment: 1, ...payload });
 
     const profitTable = (limit, offset, date_boundaries) =>
         deriv_api.send({ profit_table: 1, description: 1, limit, offset, ...date_boundaries });
@@ -270,84 +190,7 @@ const BinarySocketBase = (() => {
     const statement = (limit, offset, other_properties) =>
         deriv_api.send({ statement: 1, description: 1, limit, offset, ...other_properties });
 
-    const tradingPlatformPasswordChange = payload =>
-        deriv_api.send({
-            trading_platform_password_change: 1,
-            ...payload,
-        });
-
-    const tradingPlatformInvestorPasswordChange = payload =>
-        deriv_api.send({
-            trading_platform_investor_password_change: 1,
-            ...payload,
-        });
-
-    const tradingPlatformInvestorPasswordReset = payload =>
-        deriv_api.send({
-            trading_platform_investor_password_reset: 1,
-            ...payload,
-        });
-
-    const tradingPlatformPasswordReset = payload =>
-        deriv_api.send({
-            trading_platform_password_reset: 1,
-            ...payload,
-        });
-
-    const tradingPlatformAvailableAccounts = platform =>
-        deriv_api.send({
-            trading_platform_available_accounts: 1,
-            platform,
-        });
-
-    const paymentAgentList = (country, currency) =>
-        deriv_api.send({ paymentagent_list: country, ...(currency && { currency }) });
-
-    const allPaymentAgentList = country => deriv_api.send({ paymentagent_list: country });
-
-    const paymentAgentDetails = (passthrough, req_id) =>
-        deriv_api.send({ paymentagent_details: 1, passthrough, req_id });
-
-    const paymentAgentWithdraw = ({ amount, currency, dry_run = 0, loginid, verification_code }) =>
-        deriv_api.send({
-            amount,
-            currency,
-            dry_run,
-            paymentagent_loginid: loginid,
-            paymentagent_withdraw: 1,
-            verification_code,
-        });
-
-    // Crypto withdraw functionality has been removed
-
-    const cryptoConfig = () =>
-        deriv_api.send({
-            crypto_config: 1,
-        });
-
-    const paymentAgentTransfer = ({ amount, currency, description, transfer_to, dry_run = 0 }) =>
-        deriv_api.send({
-            amount,
-            currency,
-            description,
-            transfer_to,
-            paymentagent_transfer: 1,
-            dry_run,
-        });
-
     const activeSymbols = (mode = 'brief') => deriv_api.activeSymbols(mode);
-
-    const transferBetweenAccounts = (account_from, account_to, currency, amount) =>
-        deriv_api.send({
-            transfer_between_accounts: 1,
-            accounts: 'all',
-            ...(account_from && {
-                account_from,
-                account_to,
-                currency,
-                amount,
-            }),
-        });
 
     const forgetStream = id => deriv_api.forget(id);
 
@@ -366,67 +209,14 @@ const BinarySocketBase = (() => {
 
     const cancelContract = contract_id => deriv_api.send({ cancel: contract_id });
 
-    const fetchLoginHistory = limit =>
-        deriv_api.send({
-            login_history: 1,
-            limit,
-        });
-
-    // P2P functionality has been removed
-    const accountStatistics = () => deriv_api.send({ account_statistics: 1 });
-
-    const tradingServers = platform => deriv_api.send({ platform, trading_servers: 1 });
-
-    const tradingPlatformNewAccount = values =>
-        deriv_api.send({
-            trading_platform_new_account: 1,
-            ...values,
-        });
-
-    const triggerMt5DryRun = ({ email }) =>
-        deriv_api.send({
-            account_type: 'financial',
-            dry_run: 1,
-            email,
-            leverage: 100,
-            mainPassword: 'Test1234',
-            mt5_account_type: 'financial_stp',
-            mt5_new_account: 1,
-            name: 'test real labuan financial stp',
-        });
-
-    const getPhoneSettings = () => deriv_api.send({ phone_settings: 1 });
-
-    const getServiceToken = (platform, server) => {
-        const temp_service = platform;
-
-        return deriv_api.send({
-            service_token: 1,
-            service: temp_service,
-            server,
-        });
-    };
-
-    const changeEmail = api_request => deriv_api.send(api_request);
-
     return {
         init,
         openNewConnection,
         forgetStream,
         wait,
-        availability,
         hasReadyState,
-        isSiteDown,
-        isSiteUpdating,
-        clear: () => {
-            // do nothing.
-        },
-        sendBuffered: () => {
-            // do nothing.
-        },
         getSocket: () => binary_socket,
         get: () => deriv_api,
-        getAvailability: () => availability,
         setOnDisconnect: onDisconnect => {
             config.onDisconnect = onDisconnect;
         },
@@ -455,52 +245,22 @@ const BinarySocketBase = (() => {
         storage: delegateToObject({}, () => deriv_api.storage),
         blockRequest,
         buy,
-        buyAndSubscribe,
         sell,
         cancelContract,
         close,
-        cryptoConfig,
         contractUpdate,
         contractUpdateHistory,
-        getFinancialAssessment,
-        setFinancialAndTradingAssessment,
-        mt5NewAccount,
-        newAccountVirtual,
-        newAccountReal,
-        newAccountRealMaltaInvest,
-        getPhoneSettings,
         profitTable,
         statement,
         getTicksHistory,
-        tradingPlatformPasswordChange,
-        tradingPlatformPasswordReset,
-        tradingPlatformAvailableAccounts,
-        tradingPlatformInvestorPasswordChange,
-        tradingPlatformInvestorPasswordReset,
         activeSymbols,
-        paymentAgentList,
-        allPaymentAgentList,
-        paymentAgentDetails,
-        paymentAgentWithdraw,
-        paymentAgentTransfer,
-        setAccountCurrency,
-        setAvailability,
         subscribeBalance,
         subscribeProposal,
         subscribeProposalOpenContract,
         subscribeTicks,
         subscribeTicksHistory,
         subscribeTransaction,
-        transferBetweenAccounts,
-        fetchLoginHistory,
         closeAndOpenNewConnection,
-        handleAccountTypeChange,
-        accountStatistics,
-        tradingServers,
-        tradingPlatformNewAccount,
-        triggerMt5DryRun,
-        getServiceToken,
-        changeEmail,
     };
 })();
 

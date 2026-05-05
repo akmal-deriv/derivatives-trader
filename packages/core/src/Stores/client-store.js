@@ -47,7 +47,6 @@ export default class ClientStore extends BaseStore {
     is_client_store_initialized = false;
     has_logged_out = false;
     should_redirect_user_to_login = false;
-    is_new_session = false;
 
     currencies_list = {};
     selected_currency = '';
@@ -75,7 +74,6 @@ export default class ClientStore extends BaseStore {
             has_logged_out: observable,
             should_redirect_user_to_login: observable,
             has_cookie_account: observable,
-            is_new_session: observable,
             has_previous_trades: observable,
 
             balance: computed,
@@ -304,15 +302,6 @@ export default class ClientStore extends BaseStore {
         await WS.authorized.topupVirtual();
     }
 
-    isAccountOfType = type => {
-        const client_account_type = getClientAccountType(this.loginid);
-        return (
-            (type === 'virtual' && client_account_type === 'virtual') ||
-            (type === 'real' && client_account_type !== 'virtual') ||
-            type === client_account_type
-        );
-    };
-
     async init(external_id) {
         // Remove any legacy token parameters from URL
         this.removeTokenFromUrl();
@@ -425,17 +414,6 @@ export default class ClientStore extends BaseStore {
         }
 
         this.setIsClientStoreInitialized();
-
-        // Ensure balance subscription is active
-        if (this.is_logged_in && this.loginid) {
-            setTimeout(() => {
-                import('../Services/socket-general').then(({ default: BinarySocketGeneral }) => {
-                    if (BinarySocketGeneral.ensureBalanceSubscription) {
-                        BinarySocketGeneral.ensureBalanceSubscription();
-                    }
-                });
-            }, 200);
-        }
 
         // Set up visibility change listener to check whoami when tab becomes visible
         this.setupVisibilityListener();
