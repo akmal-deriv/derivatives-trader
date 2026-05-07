@@ -5,9 +5,9 @@ import { getSupportedContracts, getUnsupportedContracts } from '@deriv/shared';
 import { TCoreStores } from '@deriv/stores/types';
 
 import {
+    getArchivedStatementColumnsTemplate,
     getMultiplierOpenPositionsColumnsTemplate,
     getOpenPositionsColumnsTemplate,
-    getPreviousTradesColumnsTemplate,
     getProfitTableColumnsTemplate,
     getStatementTableColumnsTemplate,
     TKeys,
@@ -72,7 +72,7 @@ export type TInputDateRange = {
 export type TColIndex =
     | ReturnType<typeof getStatementTableColumnsTemplate>[number]['col_index']
     | ReturnType<typeof getProfitTableColumnsTemplate>[number]['col_index']
-    | ReturnType<typeof getPreviousTradesColumnsTemplate>[number]['col_index']
+    | ReturnType<typeof getArchivedStatementColumnsTemplate>[number]['col_index']
     | ReturnType<typeof getOpenPositionsColumnsTemplate>[number]['col_index']
     | ReturnType<typeof getMultiplierOpenPositionsColumnsTemplate>[number]['col_index'];
 

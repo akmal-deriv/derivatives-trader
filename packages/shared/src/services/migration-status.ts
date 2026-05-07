@@ -14,7 +14,7 @@ export type TMigrationStatusError = {
  * Fetch v1 migration status via REST API.
  * Returns { status: 'complete' | 'pending' | 'failed' } or { error }.
  * Status === 'complete' means the user has historical v1 data and the
- * Previous Trades feature should be visible.
+ * Archived Statement feature should be visible.
  */
 export const fetchMigrationStatus = async (): Promise<TMigrationStatusResponse | TMigrationStatusError> => {
     try {

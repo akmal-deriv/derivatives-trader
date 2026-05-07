@@ -34,7 +34,7 @@ type TAccountOption = {
     currency?: string;
 };
 
-type TPreviousTradesFilter = {
+type TArchivedStatementFilter = {
     accounts: TAccountOption[];
     handleDateChange: (values: TDateChangeValues) => void;
     handleLoginidChange: (loginid: string) => void;
@@ -56,17 +56,17 @@ const currencyIconMap = {
 } as Record<string, React.ComponentType<{ iconSize: string; className?: string }>>;
 
 const RadioOption = ({ label, selected, value }: { label: string; selected: boolean; value: string }) => (
-    <span className='previous-trades__radio-option'>
+    <span className='archived-statement__radio-option'>
         <LegacyCalendar1pxIcon
             iconSize='xs'
-            className='previous-trades__option-prefix-icon'
+            className='archived-statement__option-prefix-icon'
             fill='var(--color-text-primary)'
         />
-        <span className='previous-trades__radio-button-wrapper'>
+        <span className='archived-statement__radio-button-wrapper'>
             <RadioButton
                 defaultChecked={selected}
                 value={value}
-                name='previous-trades-time-filter'
+                name='archived-statement-time-filter'
                 onChange={() => {}}
                 radioButtonPosition='left'
                 size='sm'
@@ -75,7 +75,7 @@ const RadioOption = ({ label, selected, value }: { label: string; selected: bool
                 {label}
             </RadioButton>
         </span>
-        <span className='previous-trades__radio-label-fallback'>{label}</span>
+        <span className='archived-statement__radio-label-fallback'>{label}</span>
     </span>
 );
 
@@ -100,12 +100,12 @@ const computeDatesForFilter = (
     return { ...dates, is_batch: true };
 };
 
-const PreviousTradesFilter = ({
+const ArchivedStatementFilter = ({
     accounts,
     handleDateChange,
     handleLoginidChange,
     selectedLoginid,
-}: TPreviousTradesFilter) => {
+}: TArchivedStatementFilter) => {
     const { localize } = useTranslations();
     const { isMobile } = useDevice();
 
@@ -123,7 +123,7 @@ const PreviousTradesFilter = ({
         () => setShowCalendar(false),
         event => {
             const target = event.target as HTMLElement;
-            if (target.closest('.previous-trades__time-dropdown')) return false;
+            if (target.closest('.archived-statement__time-dropdown')) return false;
             if (target.closest('.dc-dropdown__list')) return false;
             return true;
         }
@@ -185,27 +185,27 @@ const PreviousTradesFilter = ({
             <React.Fragment>
                 {accounts.length > 0 && (
                     <Chip.Standard
-                        className='previous-trades__chip'
+                        className='archived-statement__chip'
                         dropdown
                         isDropdownOpen={is_account_sheet_open}
                         onClick={() => setIsAccountSheetOpen(!is_account_sheet_open)}
                         size='md'
                     >
-                        <span className='previous-trades__chip-content'>
+                        <span className='archived-statement__chip-content'>
                             <SelectedCurrencyIcon iconSize='xs' />
                             <Text size='sm'>{selected_account?.text || ''}</Text>
                         </span>
                     </Chip.Standard>
                 )}
                 <Chip.Standard
-                    className='previous-trades__chip'
+                    className='archived-statement__chip'
                     dropdown
                     isDropdownOpen={is_time_sheet_open}
                     onClick={() => setIsTimeSheetOpen(!is_time_sheet_open)}
                     selected={!!(custom_date_label || (selected_time && selected_time !== '0'))}
                     size='md'
                 >
-                    <span className='previous-trades__chip-content'>
+                    <span className='archived-statement__chip-content'>
                         <LegacyCalendar1pxIcon iconSize='xs' fill='var(--color-text-primary)' />
                         <Text size='sm'>{time_label}</Text>
                     </span>
@@ -219,9 +219,9 @@ const PreviousTradesFilter = ({
                 >
                     <ActionSheet.Portal shouldCloseOnDrag>
                         <ActionSheet.Header title={<Localize i18n_default_text='Filter by time' />} />
-                        <ActionSheet.Content className='previous-trades__filter-sheet'>
+                        <ActionSheet.Content className='archived-statement__filter-sheet'>
                             <RadioGroup
-                                className='previous-trades__filter-sheet-radio'
+                                className='archived-statement__filter-sheet-radio'
                                 onToggle={(e: React.ChangeEvent<HTMLInputElement>) => {
                                     applyTimeFilter(e.target.value);
                                     setIsTimeSheetOpen(false);
@@ -240,7 +240,7 @@ const PreviousTradesFilter = ({
                             </RadioGroup>
                             <button
                                 type='button'
-                                className='previous-trades__custom-sheet-button'
+                                className='archived-statement__custom-sheet-button'
                                 onClick={() => {
                                     setIsTimeSheetOpen(false);
                                     setChosenRange([]);
@@ -281,7 +281,7 @@ const PreviousTradesFilter = ({
                 >
                     <ActionSheet.Portal shouldCloseOnDrag>
                         <ActionSheet.Content>
-                            <div className='previous-trades__account-list'>
+                            <div className='archived-statement__account-list'>
                                 {accounts.map(account => {
                                     const Icon =
                                         currencyIconMap[(account.currency || '').toLowerCase()] || CurrencyNoneIcon;
@@ -290,18 +290,18 @@ const PreviousTradesFilter = ({
                                         <button
                                             type='button'
                                             key={account.value}
-                                            className={`previous-trades__account-card${is_active ? ' previous-trades__account-card--active' : ''}`}
+                                            className={`archived-statement__account-card${is_active ? ' archived-statement__account-card--active' : ''}`}
                                             onClick={() => {
                                                 handleLoginidChange(account.value);
                                                 setIsAccountSheetOpen(false);
                                             }}
                                         >
                                             <Icon iconSize='md' />
-                                            <span className='previous-trades__account-card-text'>
-                                                <span className='previous-trades__account-card-loginid'>
+                                            <span className='archived-statement__account-card-text'>
+                                                <span className='archived-statement__account-card-loginid'>
                                                     {account.text}
                                                 </span>
-                                                <span className='previous-trades__account-card-currency'>
+                                                <span className='archived-statement__account-card-currency'>
                                                     {account.currency || ''}
                                                 </span>
                                             </span>
@@ -362,7 +362,7 @@ const PreviousTradesFilter = ({
             value: 'custom',
             text: (
                 <span
-                    className='previous-trades__custom-option'
+                    className='archived-statement__custom-option'
                     role='button'
                     tabIndex={0}
                     onClick={e => {
@@ -379,13 +379,13 @@ const PreviousTradesFilter = ({
                 >
                     <LegacyCalendar1pxIcon
                         iconSize='xs'
-                        className='previous-trades__option-prefix-icon'
+                        className='archived-statement__option-prefix-icon'
                         fill='var(--color-text-primary)'
                     />
-                    <span className='previous-trades__custom-option-labels'>
+                    <span className='archived-statement__custom-option-labels'>
                         <span>{localize('Custom')}</span>
                         {custom_date_label && (
-                            <span className='previous-trades__custom-option-sublabel'>{custom_date_label}</span>
+                            <span className='archived-statement__custom-option-sublabel'>{custom_date_label}</span>
                         )}
                     </span>
                     <LegacyChevronRight1pxIcon iconSize='xs' fill='var(--color-text-primary)' />
@@ -399,7 +399,7 @@ const PreviousTradesFilter = ({
         return {
             ...account,
             text: (
-                <span className='previous-trades__dropdown-item'>
+                <span className='archived-statement__dropdown-item'>
                     <Icon iconSize='xs' />
                     <span>{account.text}</span>
                 </span>
@@ -410,29 +410,29 @@ const PreviousTradesFilter = ({
     return (
         <React.Fragment>
             {accounts.length > 0 && (
-                <div className='previous-trades__dropdown-wrapper'>
+                <div className='archived-statement__dropdown-wrapper'>
                     <Dropdown
-                        className='previous-trades__account-dropdown'
-                        classNameDisplay='previous-trades__dropdown-display'
+                        className='archived-statement__account-dropdown'
+                        classNameDisplay='archived-statement__dropdown-display'
                         list={account_list_with_icons}
                         value={selectedLoginid}
                         onChange={(e: { target: { value: string } }) => handleLoginidChange(e.target.value)}
                     />
                 </div>
             )}
-            <div className='previous-trades__dropdown-wrapper'>
+            <div className='archived-statement__dropdown-wrapper'>
                 <Dropdown
-                    className={classNames('previous-trades__time-dropdown', {
-                        'previous-trades__time-dropdown--selected':
+                    className={classNames('archived-statement__time-dropdown', {
+                        'archived-statement__time-dropdown--selected':
                             custom_date_label || (selected_time && selected_time !== '0'),
                     })}
-                    classNameDisplay='previous-trades__dropdown-display'
+                    classNameDisplay='archived-statement__dropdown-display'
                     list={time_filter_list}
                     value={selected_time}
                     onChange={(e: { target: { value: string } }) => applyTimeFilter(e.target.value)}
                 />
                 {show_calendar && (
-                    <div className='previous-trades__calendar-popover' ref={calendar_popover_ref}>
+                    <div className='archived-statement__calendar-popover' ref={calendar_popover_ref}>
                         <DatePicker
                             allowPartialRange
                             className='date-picker__action-sheet'
@@ -461,4 +461,4 @@ const PreviousTradesFilter = ({
     );
 };
 
-export default PreviousTradesFilter;
+export default ArchivedStatementFilter;

@@ -201,6 +201,53 @@ $side-padding: 1.2em;
         }
     }
 
+    &__archived-banner {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        min-height: 4rem;
+        padding: 0.8rem 1.6rem;
+        margin-bottom: 1.6rem;
+        gap: 1.6rem;
+        background-color: var(--semantic-color-monochrome-surface-normal-lowest);
+        border-radius: 0.8rem;
+
+        @include mobile-screen {
+            flex-direction: column;
+            align-items: stretch;
+            justify-content: center;
+            height: auto;
+            padding: 1.6rem;
+            margin: 1.6rem 0 calc(var(--component-navigationBar-sizing-body-heightBottom) + 1.6rem);
+            gap: 0.4rem;
+            border-top: 1px solid var(--color-surface-border);
+            border-radius: 0;
+            background-color: var(--semantic-color-slate-solid-surface-frame-low);
+        }
+    }
+
+    &__archived-banner-text {
+        --text-color: var(--component-textIcon-normal-default);
+    }
+
+    &__archived-link {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        text-decoration: none;
+        white-space: nowrap;
+        color: var(--color-text-secondary);
+
+        &:hover {
+            opacity: 0.8;
+        }
+
+        @include mobile-screen {
+            justify-content: flex-end;
+            white-space: normal;
+        }
+    }
+
     &__content {
         width: 100%;
         max-height: 100%;
@@ -630,8 +677,8 @@ $side-padding: 1.2em;
     }
 }
 
-/** @define previous-trades; weak */
-.previous-trades {
+/** @define archived-statement; weak */
+.archived-statement {
     .table__cell {
         display: grid;
     }
@@ -753,8 +800,12 @@ $side-padding: 1.2em;
 
     &__header-text {
         font-size: 1.4rem;
-        color: var(--color-text-secondary);
+        color: var(--component-textIcon-normal-default);
         line-height: 1.5;
+
+        @include mobile-screen {
+            padding: 0.8rem 0;
+        }
     }
 
     &__filter {
@@ -783,21 +834,21 @@ $side-padding: 1.2em;
         }
 
         /* postcss-bem-linter: ignore */
-        .previous-trades__dropdown-wrapper {
+        .archived-statement__dropdown-wrapper {
             position: relative;
             display: flex;
             align-items: center;
         }
 
         /* postcss-bem-linter: ignore */
-        .previous-trades__dropdown-item {
+        .archived-statement__dropdown-item {
             display: inline-flex;
             align-items: center;
             gap: 0.8rem;
         }
 
         /* postcss-bem-linter: ignore */
-        .previous-trades__radio-option {
+        .archived-statement__radio-option {
             display: inline-flex;
             align-items: center;
             gap: 1.2rem;
@@ -806,25 +857,25 @@ $side-padding: 1.2em;
 
         /* Hide RadioButton wrapper in trigger; show plain fallback label */
         /* postcss-bem-linter: ignore */
-        .dc-dropdown__display-text .previous-trades__radio-button-wrapper {
+        .dc-dropdown__display-text .archived-statement__radio-button-wrapper {
             display: none;
         }
 
         /* Hide fallback label in dropdown list items; RadioButton renders the label */
         /* postcss-bem-linter: ignore */
-        .dc-list__item-text .previous-trades__radio-label-fallback {
+        .dc-list__item-text .archived-statement__radio-label-fallback {
             display: none;
         }
 
         /* Hide calendar prefix icon when shown inside dropdown list (only show in trigger) */
         /* postcss-bem-linter: ignore */
-        .dc-list__item-text .previous-trades__option-prefix-icon {
+        .dc-list__item-text .archived-statement__option-prefix-icon {
             display: none;
         }
 
         /* postcss-bem-linter: ignore */
-        .previous-trades__time-dropdown {
-            .previous-trades__dropdown-display {
+        .archived-statement__time-dropdown {
+            .archived-statement__dropdown-display {
                 justify-content: flex-start;
             }
             .dc-dropdown__display-text {
@@ -832,7 +883,7 @@ $side-padding: 1.2em;
                 width: auto;
                 text-align: left;
             }
-            .previous-trades__radio-option {
+            .archived-statement__radio-option {
                 gap: 0.6rem;
             }
             /* postcss-bem-linter: ignore */
@@ -853,7 +904,7 @@ $side-padding: 1.2em;
         }
 
         /* postcss-bem-linter: ignore */
-        .previous-trades__custom-option {
+        .archived-statement__custom-option {
             display: flex;
             align-items: center;
             gap: 0.6rem;
@@ -869,14 +920,14 @@ $side-padding: 1.2em;
         }
 
         /* postcss-bem-linter: ignore */
-        .previous-trades__custom-option-labels {
+        .archived-statement__custom-option-labels {
             display: flex;
             flex-direction: column;
             align-items: flex-start;
         }
 
         /* postcss-bem-linter: ignore */
-        .previous-trades__custom-option-sublabel {
+        .archived-statement__custom-option-sublabel {
             font-size: 1.2rem;
             color: var(--color-text-secondary);
         }
@@ -884,36 +935,36 @@ $side-padding: 1.2em;
         /* In the trigger pill, collapse the labels back to a single line */
         /* postcss-bem-linter: ignore */
         .dc-dropdown__display {
-            .previous-trades__custom-option-labels > span:first-child {
+            .archived-statement__custom-option-labels > span:first-child {
                 display: none;
             }
-            .previous-trades__custom-option-sublabel {
+            .archived-statement__custom-option-sublabel {
                 font-size: inherit;
                 color: inherit;
             }
-            .previous-trades__custom-option > svg:last-child {
+            .archived-statement__custom-option > svg:last-child {
                 display: none;
             }
         }
 
         /* Don't bold the active custom item in the list */
         /* postcss-bem-linter: ignore */
-        .dc-dropdown__list .previous-trades__custom-option,
-        .dc-dropdown__list .previous-trades__custom-option-labels > span,
-        .dc-dropdown__list .previous-trades__custom-option-sublabel {
+        .dc-dropdown__list .archived-statement__custom-option,
+        .dc-dropdown__list .archived-statement__custom-option-labels > span,
+        .dc-dropdown__list .archived-statement__custom-option-sublabel {
             font-weight: normal;
         }
 
         /* postcss-bem-linter: ignore */
-        .previous-trades__time-dropdown--selected {
-            .previous-trades__dropdown-display {
+        .archived-statement__time-dropdown--selected {
+            .archived-statement__dropdown-display {
                 background-color: var(--component-chip-bg-selected);
                 border-color: var(--component-chip-bg-selected);
 
                 .dc-dropdown__display-text,
-                .previous-trades__custom-option,
-                .previous-trades__custom-option > span,
-                .previous-trades__radio-label-fallback {
+                .archived-statement__custom-option,
+                .archived-statement__custom-option > span,
+                .archived-statement__radio-label-fallback {
                     color: var(--component-chip-item-color-default);
                 }
                 svg {
@@ -926,7 +977,7 @@ $side-padding: 1.2em;
         }
 
         /* postcss-bem-linter: ignore */
-        .previous-trades__account-dropdown {
+        .archived-statement__account-dropdown {
             /* postcss-bem-linter: ignore */
             .dc-list__item-text {
                 justify-content: flex-start;
@@ -940,7 +991,7 @@ $side-padding: 1.2em;
         }
 
         /* postcss-bem-linter: ignore */
-        .previous-trades__dropdown-display {
+        .archived-statement__dropdown-display {
             border-radius: 2.4rem !important;
             height: 3.2rem;
             border-color: var(--color-interactive-disabled);
@@ -1002,7 +1053,7 @@ $side-padding: 1.2em;
 
         /* When chip is selected (black background), flip text and icon colors */
         &[data-state='selected'] {
-            .previous-trades__chip-content {
+            .archived-statement__chip-content {
                 color: var(--component-textIcon-inverse-prominent);
 
                 p {
@@ -1090,7 +1141,7 @@ $side-padding: 1.2em;
 }
 
 /* Mirrors packages/trader/src/AppV2/Components/DatePicker/date-picker.scss so
-   the mobile date-range picker on the Previous Trades route gets the same
+   the mobile date-range picker on the Archived Statement route gets the same
    in-between range highlight + endpoint pill styling as Closed positions.
    The trader stylesheet isn't loaded on the reports route, so we duplicate
    the rules here. Keep these in sync if the trader version changes. */
@@ -1686,7 +1737,7 @@ $side-padding: 1.2em;
 .open-positions,
 .statement,
 .profit-table,
-.previous-trades {
+.archived-statement {
     /* postcss-bem-linter: ignore */
     .data-list__body,
     .data-list__footer {
@@ -1728,13 +1779,13 @@ $side-padding: 1.2em;
 .empty-trade-history {
     position: absolute;
     top: 20%;
-    inset-inline-start: 10%;
+    inset-inline: 0;
     width: 50%;
     display: flex;
     flex-flow: column nowrap;
     align-items: center;
     justify-content: center;
-    margin: auto;
+    margin-inline: auto;
 
     @include mobile-or-tablet-screen {
         position: static;

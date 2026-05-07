@@ -54,9 +54,9 @@ const getModules = () => {
                     protected: true,
                 },
                 {
-                    path: routes.previous_trades,
+                    path: routes.archived_statement,
                     component: Reports,
-                    getTitle: () => localize('Previous trades'),
+                    getTitle: () => localize('Archived statement'),
                     icon_component: <LegacyTimeIcon />,
                     protected: true,
                 },

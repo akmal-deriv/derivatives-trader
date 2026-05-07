@@ -6,7 +6,7 @@ import { useDevice } from '@deriv-com/ui';
 import { act, render, screen, waitFor } from '@testing-library/react';
 
 import ReportsProviders from '../../reports-providers';
-import PreviousTrades from '../previous-trades';
+import ArchivedStatement from '../archived-statement';
 
 jest.mock('@deriv-com/ui', () => ({
     useDevice: jest.fn(() => ({
@@ -37,11 +37,11 @@ jest.mock('@deriv/shared', () => ({
     trackAnalyticsEvent: jest.fn(),
 }));
 
-const mockFetchPreviousTrades = jest.fn();
-const mockFetchPreviousTradesAccounts = jest.fn();
-jest.mock('../../Services/previous-trades', () => ({
-    fetchPreviousTrades: (...args: unknown[]) => mockFetchPreviousTrades(...args),
-    fetchPreviousTradesAccounts: (...args: unknown[]) => mockFetchPreviousTradesAccounts(...args),
+const mockFetchArchivedStatement = jest.fn();
+const mockFetchArchivedStatementAccounts = jest.fn();
+jest.mock('../../Services/archived-statement', () => ({
+    fetchArchivedStatement: (...args: unknown[]) => mockFetchArchivedStatement(...args),
+    fetchArchivedStatementAccounts: (...args: unknown[]) => mockFetchArchivedStatementAccounts(...args),
 }));
 
 const mockStatementData = {
@@ -72,19 +72,19 @@ const mockAccountsData = {
     },
 };
 
-describe('PreviousTrades', () => {
+describe('ArchivedStatement', () => {
     let store = mockStore({});
     const emptyMessage = 'You have no previous trade history.';
     const headerText = 'Previous trade history before the system upgrade.';
     const dataList = 'dt_data_list';
     const dataTable = 'dt_data_table';
 
-    const renderPreviousTrades = async () => {
+    const renderArchivedStatement = async () => {
         await act(async () => {
             render(
                 <ReportsProviders store={store}>
                     <MemoryRouter>
-                        <PreviousTrades />
+                        <ArchivedStatement />
                     </MemoryRouter>
                 </ReportsProviders>
             );
@@ -93,9 +93,9 @@ describe('PreviousTrades', () => {
 
     beforeEach(() => {
         store = mockStore({ client: { is_logged_in: true } });
-        mockFetchPreviousTrades.mockReset();
-        mockFetchPreviousTradesAccounts.mockReset();
-        mockFetchPreviousTradesAccounts.mockResolvedValue(mockAccountsData);
+        mockFetchArchivedStatement.mockReset();
+        mockFetchArchivedStatementAccounts.mockReset();
+        mockFetchArchivedStatementAccounts.mockResolvedValue(mockAccountsData);
         (useDevice as jest.Mock).mockReturnValue({
             isDesktop: true,
             isMobile: false,
@@ -103,26 +103,26 @@ describe('PreviousTrades', () => {
     });
 
     test('renders empty state message when API returns empty transactions', async () => {
-        mockFetchPreviousTrades.mockResolvedValue({ transactions: [], count: 0 });
-        await renderPreviousTrades();
+        mockFetchArchivedStatement.mockResolvedValue({ transactions: [], count: 0 });
+        await renderArchivedStatement();
         await waitFor(() => {
             expect(screen.getByText(emptyMessage)).toBeInTheDocument();
         });
     });
 
     test('renders error message on fetch failure', async () => {
-        mockFetchPreviousTrades.mockResolvedValue({
+        mockFetchArchivedStatement.mockResolvedValue({
             error: { code: 500, status: 'Internal Server Error' },
         });
-        await renderPreviousTrades();
+        await renderArchivedStatement();
         await waitFor(() => {
             expect(screen.getByText('Internal Server Error')).toBeInTheDocument();
         });
     });
 
     test('renders DataTable on desktop when data is available', async () => {
-        mockFetchPreviousTrades.mockResolvedValue(mockStatementData);
-        await renderPreviousTrades();
+        mockFetchArchivedStatement.mockResolvedValue(mockStatementData);
+        await renderArchivedStatement();
         await waitFor(() => {
             expect(screen.getByTestId(dataTable)).toBeInTheDocument();
         });
@@ -130,32 +130,32 @@ describe('PreviousTrades', () => {
 
     test('renders DataList on mobile when data is available', async () => {
         (useDevice as jest.Mock).mockReturnValue({ isMobile: true });
-        mockFetchPreviousTrades.mockResolvedValue(mockStatementData);
-        await renderPreviousTrades();
+        mockFetchArchivedStatement.mockResolvedValue(mockStatementData);
+        await renderArchivedStatement();
         await waitFor(() => {
             expect(screen.getByTestId(dataList)).toBeInTheDocument();
         });
     });
 
     test('renders header text', async () => {
-        mockFetchPreviousTrades.mockResolvedValue(mockStatementData);
-        await renderPreviousTrades();
+        mockFetchArchivedStatement.mockResolvedValue(mockStatementData);
+        await renderArchivedStatement();
         await waitFor(() => {
             expect(screen.getByText(headerText)).toBeInTheDocument();
         });
     });
 
     test('fetches accounts on mount', async () => {
-        mockFetchPreviousTrades.mockResolvedValue({ transactions: [], count: 0 });
-        await renderPreviousTrades();
-        expect(mockFetchPreviousTradesAccounts).toHaveBeenCalled();
+        mockFetchArchivedStatement.mockResolvedValue({ transactions: [], count: 0 });
+        await renderArchivedStatement();
+        expect(mockFetchArchivedStatementAccounts).toHaveBeenCalled();
     });
 
     test('passes selected loginid to statement fetch', async () => {
-        mockFetchPreviousTrades.mockResolvedValue({ transactions: [], count: 0 });
-        await renderPreviousTrades();
+        mockFetchArchivedStatement.mockResolvedValue({ transactions: [], count: 0 });
+        await renderArchivedStatement();
         await waitFor(() => {
-            expect(mockFetchPreviousTrades).toHaveBeenCalledWith(expect.objectContaining({ loginid: 'CR12345678' }));
+            expect(mockFetchArchivedStatement).toHaveBeenCalledWith(expect.objectContaining({ loginid: 'CR12345678' }));
         });
     });
 });

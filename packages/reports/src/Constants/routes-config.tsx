@@ -50,9 +50,9 @@ const initRoutesConfig = (): TRouteConfig[] => {
                     icon_component: <IllustrativeEtfIcon iconSize='sm' />,
                 },
                 {
-                    path: routes.previous_trades,
-                    component: lazyLoadReportComponent('PreviousTrades'),
-                    getTitle: () => localize('Previous trades'),
+                    path: routes.archived_statement,
+                    component: lazyLoadReportComponent('ArchivedStatement'),
+                    getTitle: () => localize('Archived statement'),
                     icon_component: <StandaloneBriefcaseRegularIcon iconSize='sm' />,
                 },
             ],

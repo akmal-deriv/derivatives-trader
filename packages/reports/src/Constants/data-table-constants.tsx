@@ -4,11 +4,11 @@ import moment from 'moment';
 
 import { ArrowIndicator, ContractCard, ContractCardSell, Label, Money, Popover } from '@deriv/components';
 import {
+    formatDate,
     getCardLabels,
     getCurrencyDisplayCode,
     getGrowthRatePercentage,
     getTotalProfit,
-    formatDate,
 } from '@deriv/shared';
 import { useStore } from '@deriv/stores';
 import { Localize } from '@deriv-com/translations';
@@ -461,7 +461,7 @@ export const getMultiplierOpenPositionsColumnsTemplate = ({
     },
 ];
 
-export const getPreviousTradesColumnsTemplate = (currency: string, isDesktop: boolean) => [
+export const getArchivedStatementColumnsTemplate = (currency: string, isDesktop: boolean) => [
     {
         key: 'icon',
         title: isDesktop ? <Localize i18n_default_text='Type' /> : '',

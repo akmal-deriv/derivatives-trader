@@ -6,7 +6,6 @@ import { useMobileBridge } from '@deriv/api';
 import { Text, ToggleSwitch } from '@deriv/components';
 import {
     IllustrativeEtfIcon,
-    StandaloneBriefcaseRegularIcon,
     StandaloneChevronLeftRegularIcon,
     StandaloneChevronRightRegularIcon,
     StandaloneClockThreeRegularIcon,
@@ -31,7 +30,7 @@ const MenuPage = observer(() => {
     const { sendBridgeEvent, isMobileApp } = useMobileBridge();
     const { ui, client } = useStore();
     const { is_dark_mode_on: is_dark_mode, setDarkMode: toggleTheme } = ui;
-    const { is_logged_in, has_previous_trades, logout: logoutClient } = client;
+    const { is_logged_in, logout: logoutClient } = client;
     const { localize } = useTranslations();
 
     const [show_language_selector, setShowLanguageSelector] = React.useState(false);
@@ -92,15 +91,6 @@ const MenuPage = observer(() => {
                                     suffix_icon={<StandaloneChevronRightRegularIcon iconSize='sm' />}
                                 />
                             </div>
-                            {has_previous_trades && (
-                                <div className='menu-page__item' onClick={() => history.push(routes.previous_trades)}>
-                                    <MenuLink
-                                        icon={<StandaloneBriefcaseRegularIcon iconSize='sm' />}
-                                        text={localize('Previous trades')}
-                                        suffix_icon={<StandaloneChevronRightRegularIcon iconSize='sm' />}
-                                    />
-                                </div>
-                            )}
                         </div>
                     )}
 

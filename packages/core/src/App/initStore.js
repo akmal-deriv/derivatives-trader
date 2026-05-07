@@ -155,12 +155,12 @@ const initStore = async notification_messages => {
     root_store.client.init(external_id);
     root_store.common.init();
 
-    // Fetch migration status to determine if "Previous trades" feature should be visible.
+    // Fetch migration status to determine if "Archived statements" feature should be visible.
     // Done here so menu and reports can read the result synchronously without flicker.
     if (account_id) {
         fetchMigrationStatus().then(response => {
             if ('status' in response) {
-                root_store.client.setHasPreviousTrades(response.status === 'complete');
+                root_store.client.setHasArchivedStatement(response.status === 'complete');
             }
         });
     }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { withRouter } from 'react-router';
+import { RouteComponentProps, withRouter } from 'react-router';
 import debounce from 'lodash.debounce';
 
 import { DataList, DataTable } from '@deriv/components';
@@ -8,24 +8,24 @@ import { observer, useStore } from '@deriv/stores';
 import { Localize, useTranslations } from '@deriv-com/translations';
 import { useDevice } from '@deriv-com/ui';
 
-import { getPreviousTradesColumnsTemplate } from 'Constants/data-table-constants';
+import { getArchivedStatementColumnsTemplate } from 'Constants/data-table-constants';
 
+import ArchivedStatementFilter from '../Components/archived-statement-filter';
 import { ReportsTableRowLoader } from '../Components/Elements/ContentLoader';
 import EmptyTradeHistoryMessage from '../Components/empty-trade-history-message';
 import PlaceholderComponent from '../Components/placeholder-component';
-import PreviousTradesFilter from '../Components/previous-trades-filter';
-import type { TTransactionItem } from '../Services/previous-trades';
-import { fetchPreviousTrades, fetchPreviousTradesAccounts } from '../Services/previous-trades';
+import type { TTransactionItem } from '../Services/archived-statement';
+import { fetchArchivedStatement, fetchArchivedStatementAccounts } from '../Services/archived-statement';
 
 const LIMIT = 100;
 const SCROLL_THRESHOLD = 1500;
 const SCROLL_DEBOUNCE_MS = 150;
 
-type TPreviousTradesProps = {
+type TArchivedStatementProps = RouteComponentProps & {
     component_icon: React.ReactElement;
 };
 
-type TGetColumnsTemplate = ReturnType<typeof getPreviousTradesColumnsTemplate>;
+type TGetColumnsTemplate = ReturnType<typeof getArchivedStatementColumnsTemplate>;
 
 type TDataListCell = React.ComponentProps<typeof DataList.Cell>;
 
@@ -36,7 +36,7 @@ const formatTransaction = (transaction: TTransactionItem) => ({
     balance: transaction.balance_after || '0',
 });
 
-const PreviousTrades = observer(({ component_icon }: TPreviousTradesProps) => {
+const ArchivedStatement = observer(({ component_icon }: TArchivedStatementProps) => {
     const { localize } = useTranslations();
     const { client, common } = useStore();
     const { currency, is_logged_in } = client;
@@ -69,7 +69,7 @@ const PreviousTrades = observer(({ component_icon }: TPreviousTradesProps) => {
     React.useEffect(() => {
         if (!is_logged_in) return;
 
-        fetchPreviousTradesAccounts().then(response => {
+        fetchArchivedStatementAccounts().then(response => {
             if ('error' in response) {
                 setSelectedLoginid('');
                 return;
@@ -96,7 +96,7 @@ const PreviousTrades = observer(({ component_icon }: TPreviousTradesProps) => {
         setHasLoadedAll(false);
         setRawData([]);
 
-        fetchPreviousTrades({
+        fetchArchivedStatement({
             date_from,
             date_to,
             loginid: selected_loginid || undefined,
@@ -128,7 +128,7 @@ const PreviousTrades = observer(({ component_icon }: TPreviousTradesProps) => {
 
         setIsLoading(true);
 
-        fetchPreviousTrades({
+        fetchArchivedStatement({
             date_from,
             date_to,
             loginid: selected_loginid || undefined,
@@ -194,7 +194,7 @@ const PreviousTrades = observer(({ component_icon }: TPreviousTradesProps) => {
     };
 
     const filter_component = (
-        <PreviousTradesFilter
+        <ArchivedStatementFilter
             accounts={account_options}
             handleDateChange={handleDateChange}
             handleLoginidChange={setSelectedLoginid}
@@ -202,7 +202,7 @@ const PreviousTrades = observer(({ component_icon }: TPreviousTradesProps) => {
         />
     );
 
-    const columns: TGetColumnsTemplate = getPreviousTradesColumnsTemplate(currency, !isMobile);
+    const columns: TGetColumnsTemplate = getArchivedStatementColumnsTemplate(currency, !isMobile);
 
     const columns_map = Object.fromEntries(columns.map(column => [column.col_index, column])) as Record<
         TGetColumnsTemplate[number]['col_index'],
@@ -269,7 +269,7 @@ const PreviousTrades = observer(({ component_icon }: TPreviousTradesProps) => {
             <div className='reports__content'>
                 {!isMobile ? (
                     <DataTable
-                        className='previous-trades'
+                        className='archived-statement'
                         data_source={data}
                         columns={columns}
                         getRowAction={() => ''}
@@ -281,7 +281,7 @@ const PreviousTrades = observer(({ component_icon }: TPreviousTradesProps) => {
                     </DataTable>
                 ) : (
                     <DataList
-                        className='previous-trades'
+                        className='archived-statement'
                         data_source={data}
                         rowRenderer={mobileRowRenderer}
                         getRowAction={() => ''}
@@ -297,15 +297,15 @@ const PreviousTrades = observer(({ component_icon }: TPreviousTradesProps) => {
 
     return (
         <React.Fragment>
-            <div className='previous-trades__header'>
-                <span className='previous-trades__header-text'>
+            <div className='archived-statement__header'>
+                <span className='archived-statement__header-text'>
                     <Localize i18n_default_text='Previous trade history before the system upgrade.' />
                 </span>
-                <div className='previous-trades__filter'>{filter_component}</div>
+                <div className='archived-statement__filter'>{filter_component}</div>
             </div>
             {renderContent()}
         </React.Fragment>
     );
 });
 
-export default withRouter(PreviousTrades);
+export default withRouter(ArchivedStatement);

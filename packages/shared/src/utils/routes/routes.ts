@@ -16,7 +16,7 @@ export const routes = {
     positions: '/reports/positions',
     profit: '/reports/profit',
     statement: '/reports/statement',
-    previous_trades: '/reports/previous-trades',
+    archived_statement: '/reports/archived-statement',
 };
 
 export const DISABLE_LANDSCAPE_BLOCKER_ROUTES = [

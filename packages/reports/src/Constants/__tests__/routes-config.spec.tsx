@@ -1,6 +1,8 @@
 import React from 'react';
+
 import { routes } from '@deriv/shared';
 import { render } from '@testing-library/react';
+
 import getRoutesConfig from '../routes-config';
 
 // Mock shared utilities
@@ -10,7 +12,7 @@ jest.mock('@deriv/shared', () => ({
         positions: '/reports/positions',
         profit: '/reports/profit',
         statement: '/reports/statement',
-        previous_trades: '/reports/previous-trades',
+        archived_statement: '/reports/archived-statement',
     },
     makeLazyLoader: (loader: () => any, fallback: () => React.ReactNode) => {
         return (component: string) => {
@@ -19,7 +21,7 @@ jest.mock('@deriv/shared', () => ({
                 OpenPositions: () => <div>OpenPositions</div>,
                 ProfitTable: () => <div>ProfitTable</div>,
                 Statement: () => <div>Statement</div>,
-                PreviousTrades: () => <div>PreviousTrades</div>,
+                ArchivedStatement: () => <div>ArchivedStatement</div>,
             };
             return components[component] || (() => <div>{component}</div>);
         };
@@ -40,7 +42,7 @@ jest.mock('../../Containers', () => ({
         OpenPositions: () => <div>OpenPositions</div>,
         ProfitTable: () => <div>ProfitTable</div>,
         Statement: () => <div>Statement</div>,
-        PreviousTrades: () => <div>PreviousTrades</div>,
+        ArchivedStatement: () => <div>ArchivedStatement</div>,
     },
 }));
 
@@ -210,33 +212,33 @@ describe('Routes Config', () => {
             });
         });
 
-        describe('Previous Trades sub-route', () => {
-            let previousTradesRoute: NonNullable<typeof reportsRoute.routes>[3];
+        describe('Archived Statements sub-route', () => {
+            let archivedStatementRoute: NonNullable<typeof reportsRoute.routes>[3];
 
             beforeEach(() => {
-                previousTradesRoute = reportsRoute.routes![3];
+                archivedStatementRoute = reportsRoute.routes![3];
             });
 
             it('should have correct configuration', () => {
-                expect(previousTradesRoute.path).toBe(routes.previous_trades);
-                expect(previousTradesRoute.default).toBeUndefined();
-                expect(previousTradesRoute.component).toBeDefined();
-                expect(previousTradesRoute.getTitle).toBeDefined();
-                expect(previousTradesRoute.icon_component).toBeDefined();
+                expect(archivedStatementRoute.path).toBe(routes.archived_statement);
+                expect(archivedStatementRoute.default).toBeUndefined();
+                expect(archivedStatementRoute.component).toBeDefined();
+                expect(archivedStatementRoute.getTitle).toBeDefined();
+                expect(archivedStatementRoute.icon_component).toBeDefined();
             });
 
             it('should have getTitle function that returns a localized string', () => {
-                const title = previousTradesRoute.getTitle!();
+                const title = archivedStatementRoute.getTitle!();
                 expect(typeof title).toBe('string');
-                expect(title).toBe('Previous trades');
+                expect(title).toBe('Archived statement');
             });
 
             it('should have an icon component that renders correctly', () => {
-                expect(previousTradesRoute.icon_component).toBeDefined();
+                expect(archivedStatementRoute.icon_component).toBeDefined();
 
-                if (previousTradesRoute.icon_component) {
-                    render(previousTradesRoute.icon_component);
-                    expect(React.isValidElement(previousTradesRoute.icon_component)).toBe(true);
+                if (archivedStatementRoute.icon_component) {
+                    render(archivedStatementRoute.icon_component);
+                    expect(React.isValidElement(archivedStatementRoute.icon_component)).toBe(true);
                 }
             });
         });
@@ -317,7 +319,7 @@ describe('Routes Config', () => {
                 expect(reportsRoute.routes[0].path).toBe(routes.positions);
                 expect(reportsRoute.routes[1].path).toBe(routes.profit);
                 expect(reportsRoute.routes[2].path).toBe(routes.statement);
-                expect(reportsRoute.routes[3].path).toBe(routes.previous_trades);
+                expect(reportsRoute.routes[3].path).toBe(routes.archived_statement);
             }
         });
 

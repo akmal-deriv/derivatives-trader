@@ -39,11 +39,11 @@ type TFetchParams = {
     offset?: number;
 };
 
-type TPreviousTradesError = {
+type TArchivedStatementError = {
     error: { code?: number; status?: string; message?: string };
 };
 
-const requestJson = async <T>(url: string, errorPrefix: string): Promise<T | TPreviousTradesError> => {
+const requestJson = async <T>(url: string, errorPrefix: string): Promise<T | TArchivedStatementError> => {
     try {
         const response = await fetch(url, { method: 'GET', credentials: 'include' });
         const result = await response.json();
@@ -69,17 +69,19 @@ const requestJson = async <T>(url: string, errorPrefix: string): Promise<T | TPr
 /**
  * Fetch v1 accounts grouped by loginid via REST API
  */
-export const fetchPreviousTradesAccounts = (): Promise<TAccountsResponse | TPreviousTradesError> =>
+export const fetchArchivedStatementAccounts = (): Promise<TAccountsResponse | TArchivedStatementError> =>
     requestJson<TAccountsResponse>(
         `${getApiCoreBaseUrl()}/options/v1/legacy-history/accounts`,
-        '[PreviousTrades Accounts Error]'
+        '[ArchivedStatement Accounts Error]'
     );
 
 /**
- * Fetch previous v1 statement history via REST API
+ * Fetch archived v1 statement history via REST API
  * @param params - Query parameters for filtering and pagination
  */
-export const fetchPreviousTrades = (params: TFetchParams = {}): Promise<TStatementResponse | TPreviousTradesError> => {
+export const fetchArchivedStatement = (
+    params: TFetchParams = {}
+): Promise<TStatementResponse | TArchivedStatementError> => {
     const searchParams = new URLSearchParams();
     if (params.date_from) searchParams.append('date_from', String(params.date_from));
     if (params.date_to) searchParams.append('date_to', String(params.date_to));
@@ -90,5 +92,5 @@ export const fetchPreviousTrades = (params: TFetchParams = {}): Promise<TStateme
     const queryString = searchParams.toString();
     const url = `${getApiCoreBaseUrl()}/options/v1/legacy-history/statement${queryString ? `?${queryString}` : ''}`;
 
-    return requestJson<TStatementResponse>(url, '[PreviousTrades Error]');
+    return requestJson<TStatementResponse>(url, '[ArchivedStatement Error]');
 };

@@ -1,15 +1,17 @@
 import React from 'react';
-import { RouteComponentProps, withRouter } from 'react-router-dom';
+import { NavLink, RouteComponentProps, withRouter } from 'react-router-dom';
 
 import { Clipboard, DataList, DataTable, Text } from '@deriv/components';
 import { TSource } from '@deriv/components/src/components/data-table/table-row';
 import { TRow } from '@deriv/components/src/components/types/common.types';
+import { LegacyChevronRight1pxIcon } from '@deriv/quill-icons';
 import {
     capitalizeFirstLetter,
     extractInfoFromShortcode,
     getContractPath,
     getUnsupportedContracts,
     initMoment,
+    routes,
 } from '@deriv/shared';
 import { observer, useStore } from '@deriv/stores';
 import { Localize, useTranslations } from '@deriv-com/translations';
@@ -139,20 +141,8 @@ const Statement = observer(({ component_icon }: TStatement) => {
     const { client, common } = useStore();
     const { current_language } = common;
     const { statement } = useReportsStore();
-    const { currency, is_virtual } = client;
-    const {
-        action_type,
-        data,
-        date_from,
-        date_to,
-        error,
-        handleScroll,
-        has_selected_date,
-        is_empty,
-        is_loading,
-        onMount,
-        onUnmount,
-    } = statement;
+    const { currency, has_archived_statement, is_virtual } = client;
+    const { data, error, handleScroll, has_selected_date, is_empty, is_loading, onMount, onUnmount } = statement;
     const { isMobile } = useDevice();
 
     React.useEffect(() => {
@@ -218,8 +208,24 @@ const Statement = observer(({ component_icon }: TStatement) => {
         </React.Fragment>
     );
 
+    const archivedStatementBanner = has_archived_statement && (
+        <div className='statement__archived-banner'>
+            <Text size='xs' className='statement__archived-banner-text'>
+                <Localize i18n_default_text='Statements generated before the system upgrade are archived separately.' />
+            </Text>
+            <NavLink to={routes.archived_statement} className='statement__archived-link'>
+                <Text size='xs' color='less-prominent'>
+                    <Localize i18n_default_text='View archived statement' />
+                </Text>
+                <LegacyChevronRight1pxIcon iconSize='xs' fill='var(--color-text-secondary)' />
+            </NavLink>
+        </div>
+    );
+
+    // Archived statement banner sits above the filter on desktop, below the table on mobile.
     return (
         <React.Fragment>
+            {!isMobile && archivedStatementBanner}
             <ReportsMeta
                 className='reports__meta--statement'
                 filter_component={<FilterComponent />}
@@ -274,6 +280,7 @@ const Statement = observer(({ component_icon }: TStatement) => {
                     </div>
                 )}
             </React.Fragment>
+            {isMobile && archivedStatementBanner}
         </React.Fragment>
     );
 });
