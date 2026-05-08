@@ -218,7 +218,7 @@ $side-padding: 1.2em;
             justify-content: center;
             height: auto;
             padding: 1.6rem;
-            margin: 1.6rem 0 calc(var(--component-navigationBar-sizing-body-heightBottom) + 1.6rem);
+            margin: auto 0 calc(var(--component-navigationBar-sizing-body-heightBottom) + 1.6rem);
             gap: 0.4rem;
             border-top: 1px solid var(--color-surface-border);
             border-radius: 0;
@@ -1790,6 +1790,7 @@ $side-padding: 1.2em;
     @include mobile-or-tablet-screen {
         position: static;
         width: 50%;
+        flex: 1;
     }
 
     &__icon {
