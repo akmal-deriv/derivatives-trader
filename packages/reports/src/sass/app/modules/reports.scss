@@ -708,6 +708,7 @@ $side-padding: 1.2em;
 
     @include mobile-or-tablet-screen {
         flex: 1;
+        margin-bottom: calc(var(--component-navigationBar-sizing-body-heightBottom) + 1.6rem);
 
         &__data-list-body {
             height: 100%;
