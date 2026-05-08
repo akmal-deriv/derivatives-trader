@@ -3,7 +3,7 @@ import { RouteComponentProps, withRouter } from 'react-router';
 import debounce from 'lodash.debounce';
 
 import { DataList, DataTable } from '@deriv/components';
-import { initMoment, toMoment } from '@deriv/shared';
+import { initMoment, toMoment, toTitleCase } from '@deriv/shared';
 import { observer, useStore } from '@deriv/stores';
 import { Localize, useTranslations } from '@deriv-com/translations';
 import { useDevice } from '@deriv-com/ui';
@@ -29,10 +29,13 @@ type TGetColumnsTemplate = ReturnType<typeof getArchivedStatementColumnsTemplate
 
 type TDataListCell = React.ComponentProps<typeof DataList.Cell>;
 
-const formatTransaction = (transaction: TTransactionItem) => ({
+const formatTransaction = (
+    transaction: TTransactionItem,
+    localize: ReturnType<typeof useTranslations>['localize']
+) => ({
     ...transaction,
     refid: transaction.transaction_id,
-    action: transaction.action_type.charAt(0).toUpperCase() + transaction.action_type.slice(1),
+    action: localize(toTitleCase(transaction.action_type ?? '')),
     balance: transaction.balance_after || '0',
 });
 
@@ -175,7 +178,11 @@ const ArchivedStatement = observer(({ component_icon }: TArchivedStatementProps)
         [fetchOnScroll]
     );
 
-    const data = React.useMemo(() => raw_data.map(formatTransaction), [raw_data]);
+    // current_language is in the deps so action labels re-translate when the user switches language.
+    const data = React.useMemo(
+        () => raw_data.map(transaction => formatTransaction(transaction, localize)),
+        [raw_data, localize, current_language]
+    );
 
     const is_empty = !is_loading && data.length === 0;
 
