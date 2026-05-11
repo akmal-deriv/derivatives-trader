@@ -141,7 +141,9 @@ $side-padding: 1.2em;
         }
     }
     .dc-vertical-tab__content--floating {
+        // Reset end-side margin (right in LTR, left in RTL — the viewport edge).
         margin-inline-end: 0;
+        margin-inline-start: 2.4rem;
     }
     .table__head {
         height: auto;
@@ -245,6 +247,12 @@ $side-padding: 1.2em;
         @include mobile-screen {
             justify-content: flex-end;
             white-space: normal;
+        }
+
+        @include rtl {
+            svg {
+                transform: scaleX(-1);
+            }
         }
     }
 

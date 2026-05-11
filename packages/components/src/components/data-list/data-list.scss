@@ -5,6 +5,13 @@
     display: flex;
     flex-direction: column;
 
+    @include rtl {
+        .data-list__row--wrapper,
+        .data-list__row {
+            direction: rtl;
+        }
+    }
+
     &__body {
         flex: 1;
 
