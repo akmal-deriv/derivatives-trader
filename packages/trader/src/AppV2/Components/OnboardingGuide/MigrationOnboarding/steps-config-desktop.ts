@@ -8,18 +8,26 @@ export type TDesktopStepConfig = {
     image_dark: string;
 };
 
-const getDesktopSteps = (): TDesktopStepConfig[] => {
+export type TStepsConfigOptions = {
+    is_eu?: boolean;
+};
+
+const getDesktopSteps = ({ is_eu = false }: TStepsConfigOptions = {}): TDesktopStepConfig[] => {
     const img = (name: string) => getUrlBase(`/public/images/common/${name}`);
 
     return [
         {
             title: localize('Welcome to new Deriv Trader'),
             description: localize('A faster, more intuitive trading experience.'),
-            image_light: img('migration-onboarding-step-1-light.png'),
-            image_dark: img('migration-onboarding-step-1-dark.png'),
+            image_light: is_eu
+                ? img('migration-onboarding-step-1-eu-light.png')
+                : img('migration-onboarding-step-1-light.png'),
+            image_dark: is_eu
+                ? img('migration-onboarding-step-1-eu-dark.png')
+                : img('migration-onboarding-step-1-dark.png'),
         },
         {
-            title: localize('Options account now in USD'),
+            title: is_eu ? localize('Options account now in EUR') : localize('Options account now in USD'),
             description: localize(
                 'If you have funds, they are in your Wallet. Transfer them to your Options account to trade.'
             ),
@@ -29,14 +37,22 @@ const getDesktopSteps = (): TDesktopStepConfig[] => {
         {
             title: localize('Intuitive contract buying'),
             description: localize('Choose your trade direction first, then tap the Buy button to place your trade.'),
-            image_light: img('migration-onboarding-step-3-light.png'),
-            image_dark: img('migration-onboarding-step-3-dark.png'),
+            image_light: is_eu
+                ? img('migration-onboarding-step-3-eu-light.png')
+                : img('migration-onboarding-step-3-light.png'),
+            image_dark: is_eu
+                ? img('migration-onboarding-step-3-eu-dark.png')
+                : img('migration-onboarding-step-3-dark.png'),
         },
         {
             title: localize('Quick parameter setup'),
             description: localize('Configure your trade parameters quickly using the new preset options.'),
-            image_light: img('migration-onboarding-step-4-light.png'),
-            image_dark: img('migration-onboarding-step-4-dark.png'),
+            image_light: is_eu
+                ? img('migration-onboarding-step-4-eu-light.png')
+                : img('migration-onboarding-step-4-light.png'),
+            image_dark: is_eu
+                ? img('migration-onboarding-step-4-eu-dark.png')
+                : img('migration-onboarding-step-4-dark.png'),
         },
         {
             title: localize('All new chart experience'),

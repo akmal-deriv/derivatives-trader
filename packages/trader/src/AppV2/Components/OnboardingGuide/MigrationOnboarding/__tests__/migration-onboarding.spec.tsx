@@ -3,11 +3,15 @@ import React from 'react';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
+import useIsEuAccount from 'AppV2/Hooks/useIsEuAccount';
+
 import MigrationOnboarding from '../migration-onboarding';
 
 const localStorage_key = 'migration_onboarding_completed';
 const welcome_title = 'Welcome to new Deriv Trader';
 const step5_title = 'All new chart experience';
+const step2_usd_title = 'Options account now in USD';
+const step2_eur_title = 'Options account now in EUR';
 
 jest.mock('@deriv-com/ui', () => ({
     ...jest.requireActual('@deriv-com/ui'),
@@ -20,9 +24,17 @@ jest.mock('@deriv-com/quill-ui', () => ({
     ),
 }));
 
+jest.mock('AppV2/Hooks/useIsEuAccount', () => ({
+    __esModule: true,
+    default: jest.fn(() => ({ is_eu: false, is_ready: true })),
+}));
+
+const mockUseIsEuAccount = useIsEuAccount as jest.Mock;
+
 describe('MigrationOnboarding', () => {
     beforeEach(() => {
         localStorage.clear();
+        mockUseIsEuAccount.mockReturnValue({ is_eu: false, is_ready: true });
     });
 
     it('should render the guide after 800ms', async () => {
@@ -200,5 +212,64 @@ describe('MigrationOnboarding', () => {
         expect(active_segments).toHaveLength(1);
 
         jest.useRealTimers();
+    });
+
+    it('should not open the guide while EU detection is not ready', async () => {
+        mockUseIsEuAccount.mockReturnValue({ is_eu: false, is_ready: false });
+        jest.useFakeTimers({ legacyFakeTimers: true });
+        render(<MigrationOnboarding />);
+
+        act(() => {
+            jest.advanceTimersByTime(800);
+        });
+
+        await waitFor(() => {
+            expect(screen.queryByText(welcome_title)).not.toBeInTheDocument();
+        });
+
+        jest.useRealTimers();
+    });
+
+    it('should show the USD step 2 title for non-EU users', async () => {
+        const user = userEvent.setup({ delay: null });
+        jest.useFakeTimers({ legacyFakeTimers: true });
+        render(<MigrationOnboarding />);
+
+        act(() => {
+            jest.advanceTimersByTime(800);
+        });
+
+        await waitFor(() => {
+            expect(screen.getByText(welcome_title)).toBeInTheDocument();
+        });
+
+        jest.useRealTimers();
+
+        await user.click(screen.getByText('Next'));
+
+        expect(screen.getByText(step2_usd_title)).toBeInTheDocument();
+        expect(screen.queryByText(step2_eur_title)).not.toBeInTheDocument();
+    });
+
+    it('should show the EUR step 2 title for EU users', async () => {
+        mockUseIsEuAccount.mockReturnValue({ is_eu: true, is_ready: true });
+        const user = userEvent.setup({ delay: null });
+        jest.useFakeTimers({ legacyFakeTimers: true });
+        render(<MigrationOnboarding />);
+
+        act(() => {
+            jest.advanceTimersByTime(800);
+        });
+
+        await waitFor(() => {
+            expect(screen.getByText(welcome_title)).toBeInTheDocument();
+        });
+
+        jest.useRealTimers();
+
+        await user.click(screen.getByText('Next'));
+
+        expect(screen.getByText(step2_eur_title)).toBeInTheDocument();
+        expect(screen.queryByText(step2_usd_title)).not.toBeInTheDocument();
     });
 });

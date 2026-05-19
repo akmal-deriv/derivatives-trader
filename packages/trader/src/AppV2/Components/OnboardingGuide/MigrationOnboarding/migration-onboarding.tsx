@@ -6,6 +6,8 @@ import { Button } from '@deriv-com/quill-ui';
 import { Localize } from '@deriv-com/translations';
 import { useDevice } from '@deriv-com/ui';
 
+import useIsEuAccount from 'AppV2/Hooks/useIsEuAccount';
+
 import StepContent from './step-content';
 import StepProgressBar from './step-progress-bar';
 import getDesktopSteps from './steps-config-desktop';
@@ -19,13 +21,17 @@ type TMigrationOnboardingProps = {
 
 const MigrationOnboarding = ({ is_dark_mode_on }: TMigrationOnboardingProps) => {
     const { isMobile } = useDevice();
+    const { is_eu, is_ready } = useIsEuAccount();
     const [current_step, setCurrentStep] = React.useState(0);
     const [is_open, setIsOpen] = React.useState(false);
     const guide_timeout_ref = React.useRef<ReturnType<typeof setTimeout>>();
 
     const [guide_completed, setGuideCompleted] = useLocalStorageData<boolean>('migration_onboarding_completed', false);
 
-    const steps = React.useMemo(() => (isMobile ? getMobileSteps() : getDesktopSteps()), [isMobile]);
+    const steps = React.useMemo(
+        () => (isMobile ? getMobileSteps({ is_eu }) : getDesktopSteps({ is_eu })),
+        [isMobile, is_eu]
+    );
     const total_steps = steps.length;
     const is_last_step = current_step === total_steps - 1;
     const is_first_step = current_step === 0;
@@ -50,13 +56,15 @@ const MigrationOnboarding = ({ is_dark_mode_on }: TMigrationOnboardingProps) => 
     };
 
     React.useEffect(() => {
-        if (!guide_completed) {
+        // Wait for the account API before opening so EU users don't see the
+        // non-EU (USD) variant flash first while account data is still loading.
+        if (!guide_completed && is_ready) {
             guide_timeout_ref.current = setTimeout(() => setIsOpen(true), 800);
         }
 
         return () => clearTimeout(guide_timeout_ref.current);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [guide_completed]);
+    }, [guide_completed, is_ready]);
 
     if (!is_open) return null;
 
