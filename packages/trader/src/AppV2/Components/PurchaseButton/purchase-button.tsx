@@ -2,6 +2,7 @@ import React from 'react';
 import clsx from 'clsx';
 import { observer } from 'mobx-react-lite';
 
+import { Skeleton } from '@deriv/components';
 import { StandaloneStopwatchRegularIcon } from '@deriv/quill-icons';
 import {
     getCardLabelsV2,
@@ -21,6 +22,7 @@ import { useTranslations } from '@deriv-com/translations';
 import { useDevice } from '@deriv-com/ui';
 
 import useContractsFor from 'AppV2/Hooks/useContractsFor';
+import { useRiskDisclosure } from 'AppV2/Hooks/useRiskDisclosure';
 import { checkIsServiceModalError, SERVICE_ERROR } from 'AppV2/Utils/layout-utils';
 import { getTradeTypeTabsList } from 'AppV2/Utils/trade-params-utils';
 import { getDisplayedContractTypes } from 'AppV2/Utils/trade-types-utils';
@@ -52,6 +54,12 @@ const PurchaseButton = observer(({ onPurchaseSuccess }: TPurchaseButtonProps = {
     } = useStore();
     const { is_logged_in } = client;
     const { trade_types: trade_types_list } = useContractsFor();
+    const {
+        is_eligible: is_risk_disclosure_eligible,
+        is_fully_accepted: is_risk_disclosure_accepted,
+        is_evaluating: is_risk_disclosure_evaluating,
+        open: openRiskDisclosure,
+    } = useRiskDisclosure();
     const {
         basis,
         basis_list,
@@ -196,6 +204,41 @@ const PurchaseButton = observer(({ onPurchaseSuccess }: TPurchaseButtonProps = {
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [proposal_info]);
+
+    const should_show_review_disclosure = is_risk_disclosure_eligible && !is_risk_disclosure_accepted;
+
+    // While the disclosure-eligibility API is in flight, show a skeleton so we
+    // don't flash Buy before swapping to Review.
+    if (is_risk_disclosure_evaluating) {
+        return (
+            <div
+                className={clsx('purchase-button__wrapper', {
+                    'purchase-button__wrapper__un-auth': !is_logged_in,
+                })}
+            >
+                <Skeleton className='purchase-button__skeleton' height={48} borderRadius={28} />
+            </div>
+        );
+    }
+
+    if (should_show_review_disclosure) {
+        return (
+            <div
+                className={clsx('purchase-button__wrapper', {
+                    'purchase-button__wrapper__un-auth': !is_logged_in,
+                })}
+            >
+                <Button
+                    variant='secondary'
+                    color='black-white'
+                    size='lg'
+                    label={localize('Review risk disclosure')}
+                    fullWidth
+                    onClick={openRiskDisclosure}
+                />
+            </div>
+        );
+    }
 
     return (
         <React.Fragment>
