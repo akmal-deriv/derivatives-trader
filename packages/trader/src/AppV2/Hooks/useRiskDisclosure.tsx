@@ -10,7 +10,7 @@ import {
 } from '@deriv/shared';
 import { observer, useStore } from '@deriv/stores';
 
-import { RISK_DISCLOSURE_RESIDENCE } from 'AppV2/Utils/risk-disclosure-constants';
+import { RISK_DISCLOSURE_ACCEPTED_KEY, RISK_DISCLOSURE_RESIDENCE } from 'AppV2/Utils/risk-disclosure-constants';
 
 type TRiskDisclosureContext = {
     is_open: boolean;
@@ -67,11 +67,17 @@ export const RiskDisclosureProvider = observer(({ children }: TProviderProps) =>
             return;
         }
 
+        try {
+            localStorage.setItem(`${RISK_DISCLOSURE_ACCEPTED_KEY}_${loginid}`, 'true');
+        } catch {
+            // storage disabled — ignore
+        }
+
         setIsFullyAccepted(true);
         setAcceptancePayload({});
         setIsLoading(false);
         close();
-    }, [acceptance_payload, close]);
+    }, [acceptance_payload, close, loginid]);
 
     React.useEffect(() => {
         evaluation_ran_for_loginid.current = null;
@@ -84,6 +90,20 @@ export const RiskDisclosureProvider = observer(({ children }: TProviderProps) =>
             setIsOpen(false);
             setIsEvaluating(false);
             return;
+        }
+
+        // Short-circuit: this device already recorded THIS user accepting.
+        // Scoped by loginid so a different account on the same device still
+        // sees the disclosure (regulatory requirement — each user must
+        // individually acknowledge).
+        try {
+            if (localStorage.getItem(`${RISK_DISCLOSURE_ACCEPTED_KEY}_${loginid}`) === 'true') {
+                setIsFullyAccepted(true);
+                setIsEvaluating(false);
+                return;
+            }
+        } catch {
+            // storage disabled — fall through to the normal API evaluation
         }
 
         let cancelled = false;

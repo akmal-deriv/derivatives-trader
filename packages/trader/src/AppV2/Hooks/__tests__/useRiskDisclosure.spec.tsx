@@ -3,6 +3,8 @@ import React from 'react';
 import { mockStore, StoreProvider } from '@deriv/stores';
 import { act, renderHook, waitFor } from '@testing-library/react';
 
+import { RISK_DISCLOSURE_ACCEPTED_KEY } from 'AppV2/Utils/risk-disclosure-constants';
+
 import { RiskDisclosureProvider, useRiskDisclosure } from '../useRiskDisclosure';
 
 const mockFetchProfileIdentity = jest.fn();
@@ -20,7 +22,7 @@ const buildStore = (overrides?: { is_logged_in?: boolean; is_virtual?: boolean; 
     const store = mockStore({});
     store.client.is_logged_in = overrides?.is_logged_in ?? true;
     store.client.is_virtual = overrides?.is_virtual ?? false;
-    store.client.loginid = overrides?.loginid ?? 'CR1';
+    store.client.loginid = overrides?.loginid ?? 'ROT1';
     return store;
 };
 
@@ -39,6 +41,7 @@ const makeWrapper = (store: ReturnType<typeof mockStore>) => {
 describe('useRiskDisclosure', () => {
     beforeEach(() => {
         jest.clearAllMocks();
+        localStorage.clear();
     });
 
     it('returns NOOP values when used outside provider', () => {
@@ -183,6 +186,37 @@ describe('useRiskDisclosure', () => {
         expect(result.current.is_open).toBe(true);
         expect(result.current.error).toBeInstanceOf(Error);
         expect(result.current.error?.message).toBe('boom');
+    });
+
+    it('writes risk_disclosure_accepted=true to localStorage after a successful POST', async () => {
+        mockFetchProfileIdentity.mockResolvedValueOnce({ data: { residence: 'es' } });
+        mockFetchRiskDisclosure.mockResolvedValueOnce({
+            risk_disclosure_accepted: field(null),
+            additional_risk_disclosure_accepted: field(null),
+        });
+        mockPostRiskDisclosure.mockResolvedValueOnce({});
+
+        const store = buildStore();
+        const { result } = renderHook(() => useRiskDisclosure(), { wrapper: makeWrapper(store) });
+        await waitFor(() => expect(result.current.is_eligible).toBe(true));
+
+        act(() => result.current.open());
+        await act(async () => {
+            await result.current.accept();
+        });
+
+        expect(localStorage.getItem(`${RISK_DISCLOSURE_ACCEPTED_KEY}_ROT1`)).toBe('true');
+    });
+
+    it('skips API calls and stays fully accepted when localStorage flag is set', async () => {
+        localStorage.setItem(`${RISK_DISCLOSURE_ACCEPTED_KEY}_ROT1`, 'true');
+
+        const store = buildStore();
+        const { result } = renderHook(() => useRiskDisclosure(), { wrapper: makeWrapper(store) });
+        await waitFor(() => expect(result.current.is_fully_accepted).toBe(true));
+
+        expect(mockFetchProfileIdentity).not.toHaveBeenCalled();
+        expect(mockFetchRiskDisclosure).not.toHaveBeenCalled();
     });
 
     it('fails open if the profile request returns an error', async () => {
