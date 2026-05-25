@@ -44,7 +44,6 @@ const defaultAccounts = [
         currency: 'USD',
         group: 'real',
         status: 'active' as const,
-        timestamp: '2024-01-01',
     },
     {
         account_id: 'VRTC456',
@@ -53,7 +52,6 @@ const defaultAccounts = [
         currency: 'USD',
         group: 'demo',
         status: 'active' as const,
-        timestamp: '2024-01-01',
     },
 ];
 

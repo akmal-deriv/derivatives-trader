@@ -186,7 +186,7 @@ describe('useRestAPI', () => {
                     },
                 ],
                 meta: {
-                    endpoint: '/v1/derivatives/account',
+                    endpoint: '/cfd/v1/options/accounts',
                     method: 'GET',
                     timing: 0,
                 },

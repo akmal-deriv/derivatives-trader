@@ -4,4 +4,4 @@ import WS from './ws-methods';
 export { BinarySocketGeneral, WS };
 export * from './logout';
 export * from './whoami';
-export * from './onboarding-status';
+export * from './migration-status';

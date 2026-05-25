@@ -17,7 +17,7 @@ export const useRestAPI = () => {
 
     /**
      * Generic fetch wrapper with default config
-     * @param endpoint - API endpoint path (e.g., '/v1/derivatives/account')
+     * @param endpoint - API endpoint path (e.g., '/cfd/v1/options/accounts')
      * @param options - Optional fetch options
      * @returns Promise with typed response
      */

@@ -2,14 +2,14 @@ import { configure } from 'mobx';
 
 import {
     clearAccountId,
-    fetchMigrationStatus,
+    fetchLegacyHistoryMigrationStatus,
     getAccountId,
     getAccountType,
     getApiCoreBaseUrl,
     getBrandDomains,
 } from '@deriv/shared';
 
-import { checkWhoAmI, fetchOnboardingStatus } from 'Services';
+import { checkWhoAmI, fetchMigrationStatus } from 'Services';
 import NetworkMonitor from 'Services/network-monitor';
 import RootStore from 'Stores';
 
@@ -101,7 +101,7 @@ const initStore = async notification_messages => {
 
             // Check if the target account is trading_disabled — fall back to demo if so
             try {
-                const response = await fetch(`${getApiCoreBaseUrl()}/v1/derivatives/account`, {
+                const response = await fetch(`${getApiCoreBaseUrl()}/cfd/v1/options/accounts`, {
                     credentials: 'include',
                 });
                 if (response.ok) {
@@ -128,15 +128,17 @@ const initStore = async notification_messages => {
                 // Continue with original account_id — WebSocket retry will handle failures
             }
 
-            // Check migration status for onboarding
-            try {
-                const onboarding_result = await fetchOnboardingStatus();
-                if (onboarding_result?.data?.migration?.status === 'fully_migrated') {
-                    localStorage.setItem('is_migrated_user', 'true');
+            // Check migration status for onboarding. Identifies the client by Ory external_id.
+            if (external_id) {
+                try {
+                    const migration_result = await fetchMigrationStatus({ client_id: external_id });
+                    if (migration_result?.data?.metadata?.status === 'fully_migrated') {
+                        localStorage.setItem('is_migrated_user', 'true');
+                    }
+                } catch (e) {
+                    // eslint-disable-next-line no-console
+                    console.error('Failed to fetch migration status:', e);
                 }
-            } catch (e) {
-                // eslint-disable-next-line no-console
-                console.error('Failed to fetch onboarding status:', e);
             }
         }
     }
@@ -158,7 +160,7 @@ const initStore = async notification_messages => {
     // Fetch migration status to determine if "Archived statements" feature should be visible.
     // Done here so menu and reports can read the result synchronously without flicker.
     if (account_id) {
-        fetchMigrationStatus().then(response => {
+        fetchLegacyHistoryMigrationStatus().then(response => {
             if ('status' in response) {
                 root_store.client.setHasArchivedStatement(response.status === 'complete');
             }

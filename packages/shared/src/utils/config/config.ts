@@ -72,7 +72,7 @@ export const clearAccountId = (): void => {
 };
 
 /**
- * Gets migrated status from localStorage (set during app init via onboarding-status API)
+ * Gets migrated status from localStorage (set during app init via migration-status API)
  * @returns true if user is a fully migrated user
  */
 export const getIsMigratedUser = (): boolean => {

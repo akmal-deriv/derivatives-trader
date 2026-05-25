@@ -87,7 +87,6 @@ const mockAccounts: TDerivativesAccount[] = [
         balance: '10000.00',
         currency: 'USD',
         status: 'active',
-        timestamp: '2023-01-01T00:00:00Z',
         group: 'real',
     },
     {
@@ -96,7 +95,6 @@ const mockAccounts: TDerivativesAccount[] = [
         balance: '5000.00',
         currency: 'USD',
         status: 'active',
-        timestamp: '2023-01-01T00:00:00Z',
         group: 'demo',
     },
     {
@@ -105,7 +103,6 @@ const mockAccounts: TDerivativesAccount[] = [
         balance: '2500.50',
         currency: 'EUR',
         status: 'active',
-        timestamp: '2023-01-01T00:00:00Z',
         group: 'real',
     },
 ];
@@ -429,7 +426,6 @@ describe('AccountSwitcher', () => {
                     balance: '0.00',
                     currency: 'USD',
                     status: 'active',
-                    timestamp: '2023-01-01T00:00:00Z',
                     group: 'real',
                 },
             ];
@@ -456,7 +452,6 @@ describe('AccountSwitcher', () => {
                     balance: '999999999.99',
                     currency: 'USD',
                     status: 'active',
-                    timestamp: '2023-01-01T00:00:00Z',
                     group: 'real',
                 },
             ];
