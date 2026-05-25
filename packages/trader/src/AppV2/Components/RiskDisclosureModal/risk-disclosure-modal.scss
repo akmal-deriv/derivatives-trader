@@ -1,4 +1,30 @@
+// Snackbars must sit above the modal background (z-index: 9999 from quill-ui).
+.quill-snackbar {
+    z-index: 10000;
+
+    @include rtl {
+        direction: rtl;
+
+        .quill-snackbar__message--container {
+            padding-right: 0;
+            padding-left: var(--semantic-spacing-general-sm);
+        }
+    }
+}
+
 .risk-disclosure-modal {
+    @include rtl {
+        .quill-modal__content-title {
+            direction: rtl;
+            text-align: right;
+        }
+
+        .quill-modal__close-icon {
+            right: unset;
+            left: var(--core-spacing-800);
+        }
+    }
+
     &__body {
         display: flex;
         flex-direction: column;
@@ -7,20 +33,23 @@
         @include rtl {
             direction: rtl;
             text-align: right;
+
+            .quill-textarea {
+                direction: rtl;
+                text-align: right;
+            }
         }
 
+        // quill's textarea container shrinks to content by default.
         .quill-textarea__container {
-            width: 100% !important;
-            max-width: none !important;
-        }
-
-        .quill-textarea__wrapper {
-            width: 100% !important;
-            max-width: none !important;
-        }
-
-        textarea {
             width: 100%;
+        }
+    }
+
+    &__textarea {
+        width: 100%;
+
+        .quill-textarea {
             min-height: 8rem;
         }
     }

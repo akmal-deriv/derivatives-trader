@@ -21,6 +21,7 @@ import { Button, useNotifications, useSnackbar } from '@deriv-com/quill-ui';
 import { useTranslations } from '@deriv-com/translations';
 import { useDevice } from '@deriv-com/ui';
 
+import RiskDisclosureModal from 'AppV2/Components/RiskDisclosureModal';
 import useContractsFor from 'AppV2/Hooks/useContractsFor';
 import { useRiskDisclosure } from 'AppV2/Hooks/useRiskDisclosure';
 import { checkIsServiceModalError, SERVICE_ERROR } from 'AppV2/Utils/layout-utils';
@@ -54,12 +55,13 @@ const PurchaseButton = observer(({ onPurchaseSuccess }: TPurchaseButtonProps = {
     } = useStore();
     const { is_logged_in } = client;
     const { trade_types: trade_types_list } = useContractsFor();
+    const risk_disclosure = useRiskDisclosure();
     const {
         is_eligible: is_risk_disclosure_eligible,
         is_fully_accepted: is_risk_disclosure_accepted,
         is_evaluating: is_risk_disclosure_evaluating,
         open: openRiskDisclosure,
-    } = useRiskDisclosure();
+    } = risk_disclosure;
     const {
         basis,
         basis_list,
@@ -223,20 +225,31 @@ const PurchaseButton = observer(({ onPurchaseSuccess }: TPurchaseButtonProps = {
 
     if (should_show_review_disclosure) {
         return (
-            <div
-                className={clsx('purchase-button__wrapper', {
-                    'purchase-button__wrapper__un-auth': !is_logged_in,
-                })}
-            >
-                <Button
-                    variant='secondary'
-                    color='black-white'
-                    size='lg'
-                    label={localize('Review risk disclosure')}
-                    fullWidth
-                    onClick={openRiskDisclosure}
+            <>
+                <div
+                    className={clsx('purchase-button__wrapper', {
+                        'purchase-button__wrapper__un-auth': !is_logged_in,
+                    })}
+                >
+                    <Button
+                        variant='secondary'
+                        color='black-white'
+                        size='lg'
+                        label={localize('Review risk disclosure')}
+                        fullWidth
+                        className='purchase-button--review-disclosure'
+                        onClick={openRiskDisclosure}
+                    />
+                </div>
+                <RiskDisclosureModal
+                    is_open={risk_disclosure.is_open}
+                    is_loading={risk_disclosure.is_loading}
+                    is_fully_accepted={risk_disclosure.is_fully_accepted}
+                    error={risk_disclosure.error}
+                    onClose={risk_disclosure.close}
+                    onAccept={risk_disclosure.accept}
                 />
-            </div>
+            </>
         );
     }
 

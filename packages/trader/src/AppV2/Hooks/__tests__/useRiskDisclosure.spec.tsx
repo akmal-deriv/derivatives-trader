@@ -5,7 +5,7 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 
 import { RISK_DISCLOSURE_ACCEPTED_KEY } from 'AppV2/Utils/risk-disclosure-constants';
 
-import { RiskDisclosureProvider, useRiskDisclosure } from '../useRiskDisclosure';
+import { useRiskDisclosure } from '../useRiskDisclosure';
 
 const mockFetchProfileIdentity = jest.fn();
 const mockFetchRiskDisclosure = jest.fn();
@@ -30,9 +30,7 @@ const field = (value: boolean | null) => ({ value, created_at: null, updated_at:
 
 const makeWrapper = (store: ReturnType<typeof mockStore>) => {
     const Wrapper = ({ children }: { children: React.ReactNode }) => (
-        <StoreProvider store={store}>
-            <RiskDisclosureProvider>{children}</RiskDisclosureProvider>
-        </StoreProvider>
+        <StoreProvider store={store}>{children}</StoreProvider>
     );
     Wrapper.displayName = 'TestRiskDisclosureWrapper';
     return Wrapper;
@@ -42,17 +40,6 @@ describe('useRiskDisclosure', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         localStorage.clear();
-    });
-
-    it('returns NOOP values when used outside provider', () => {
-        const store = buildStore();
-        const Wrapper = ({ children }: { children: React.ReactNode }) => (
-            <StoreProvider store={store}>{children}</StoreProvider>
-        );
-        Wrapper.displayName = 'NoProviderWrapper';
-        const { result } = renderHook(() => useRiskDisclosure(), { wrapper: Wrapper });
-        expect(result.current.is_open).toBe(false);
-        expect(result.current.is_eligible).toBe(false);
     });
 
     it('skips evaluation when user is not logged in', async () => {

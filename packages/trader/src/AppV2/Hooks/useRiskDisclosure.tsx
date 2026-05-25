@@ -8,11 +8,11 @@ import {
     postRiskDisclosure,
     TRiskDisclosurePostBody,
 } from '@deriv/shared';
-import { observer, useStore } from '@deriv/stores';
+import { useStore } from '@deriv/stores';
 
 import { RISK_DISCLOSURE_ACCEPTED_KEY, RISK_DISCLOSURE_RESIDENCE } from 'AppV2/Utils/risk-disclosure-constants';
 
-type TRiskDisclosureContext = {
+export type TUseRiskDisclosure = {
     is_open: boolean;
     is_loading: boolean;
     is_fully_accepted: boolean;
@@ -24,16 +24,8 @@ type TRiskDisclosureContext = {
     accept: () => Promise<void>;
 };
 
-const RiskDisclosureContext = React.createContext<TRiskDisclosureContext | null>(null);
-
-type TProviderProps = {
-    children: React.ReactNode;
-};
-
-// Per the OpenAPI spec, POST /v1/client/risk-disclosure accepts both
-// `risk_disclosure` and `additional_risk_disclosure_accepted` as optional
-// booleans in a single request body.
-export const RiskDisclosureProvider = observer(({ children }: TProviderProps) => {
+// Caller must be wrapped in observer() — this hook reads MobX observables.
+export const useRiskDisclosure = (): TUseRiskDisclosure => {
     const { client } = useStore();
     const { is_logged_in, is_virtual, loginid } = client;
 
@@ -70,7 +62,7 @@ export const RiskDisclosureProvider = observer(({ children }: TProviderProps) =>
         try {
             localStorage.setItem(`${RISK_DISCLOSURE_ACCEPTED_KEY}_${loginid}`, 'true');
         } catch {
-            // storage disabled — ignore
+            // storage disabled
         }
 
         setIsFullyAccepted(true);
@@ -92,10 +84,6 @@ export const RiskDisclosureProvider = observer(({ children }: TProviderProps) =>
             return;
         }
 
-        // Short-circuit: this device already recorded THIS user accepting.
-        // Scoped by loginid so a different account on the same device still
-        // sees the disclosure (regulatory requirement — each user must
-        // individually acknowledge).
         try {
             if (localStorage.getItem(`${RISK_DISCLOSURE_ACCEPTED_KEY}_${loginid}`) === 'true') {
                 setIsFullyAccepted(true);
@@ -103,7 +91,7 @@ export const RiskDisclosureProvider = observer(({ children }: TProviderProps) =>
                 return;
             }
         } catch {
-            // storage disabled — fall through to the normal API evaluation
+            // storage disabled
         }
 
         let cancelled = false;
@@ -143,39 +131,17 @@ export const RiskDisclosureProvider = observer(({ children }: TProviderProps) =>
         };
     }, [is_logged_in, is_virtual, loginid]);
 
-    const value = React.useMemo<TRiskDisclosureContext>(
-        () => ({
-            is_open,
-            is_loading,
-            is_fully_accepted,
-            is_eligible: is_eligible_residence,
-            is_evaluating,
-            error,
-            open,
-            close,
-            accept,
-        }),
-        [is_open, is_loading, is_fully_accepted, is_eligible_residence, is_evaluating, error, open, close, accept]
-    );
-
-    return <RiskDisclosureContext.Provider value={value}>{children}</RiskDisclosureContext.Provider>;
-});
-
-const NOOP_VALUE: TRiskDisclosureContext = {
-    is_open: false,
-    is_loading: false,
-    is_fully_accepted: false,
-    is_eligible: false,
-    is_evaluating: false,
-    error: null,
-    open: () => undefined,
-    close: () => undefined,
-    accept: async () => undefined,
-};
-
-export const useRiskDisclosure = (): TRiskDisclosureContext => {
-    const ctx = React.useContext(RiskDisclosureContext);
-    return ctx ?? NOOP_VALUE;
+    return {
+        is_open,
+        is_loading,
+        is_fully_accepted,
+        is_eligible: is_eligible_residence,
+        is_evaluating,
+        error,
+        open,
+        close,
+        accept,
+    };
 };
 
 export default useRiskDisclosure;
