@@ -67,8 +67,8 @@ describe('useRiskDisclosure', () => {
     it('marks the user eligible (without auto-opening) when residence is "es" and a flag is not accepted', async () => {
         mockFetchProfileIdentity.mockResolvedValueOnce({ data: { residence: 'es' } });
         mockFetchRiskDisclosure.mockResolvedValueOnce({
-            risk_disclosure_accepted: field(null),
-            additional_risk_disclosure_accepted: field(true),
+            spain_risk_disclosure_accepted: field(null),
+            additional_spain_risk_disclosure_accepted: field(true),
         });
         const store = buildStore();
         const { result } = renderHook(() => useRiskDisclosure(), { wrapper: makeWrapper(store) });
@@ -80,8 +80,8 @@ describe('useRiskDisclosure', () => {
     it('marks the user fully accepted when both flags are already accepted', async () => {
         mockFetchProfileIdentity.mockResolvedValueOnce({ data: { residence: 'es' } });
         mockFetchRiskDisclosure.mockResolvedValueOnce({
-            risk_disclosure_accepted: field(true),
-            additional_risk_disclosure_accepted: field(true),
+            spain_risk_disclosure_accepted: field(true),
+            additional_spain_risk_disclosure_accepted: field(true),
         });
         const store = buildStore();
         const { result } = renderHook(() => useRiskDisclosure(), { wrapper: makeWrapper(store) });
@@ -92,8 +92,8 @@ describe('useRiskDisclosure', () => {
     it('opens the modal only when open() is called', async () => {
         mockFetchProfileIdentity.mockResolvedValueOnce({ data: { residence: 'es' } });
         mockFetchRiskDisclosure.mockResolvedValueOnce({
-            risk_disclosure_accepted: field(null),
-            additional_risk_disclosure_accepted: field(null),
+            spain_risk_disclosure_accepted: field(null),
+            additional_spain_risk_disclosure_accepted: field(null),
         });
         const store = buildStore();
         const { result } = renderHook(() => useRiskDisclosure(), { wrapper: makeWrapper(store) });
@@ -107,8 +107,8 @@ describe('useRiskDisclosure', () => {
     it('posts only the field currently not accepted on accept', async () => {
         mockFetchProfileIdentity.mockResolvedValueOnce({ data: { residence: 'es' } });
         mockFetchRiskDisclosure.mockResolvedValueOnce({
-            risk_disclosure_accepted: field(true),
-            additional_risk_disclosure_accepted: field(null),
+            spain_risk_disclosure_accepted: field(true),
+            additional_spain_risk_disclosure_accepted: field(null),
         });
         mockPostRiskDisclosure.mockResolvedValueOnce({});
 
@@ -122,16 +122,16 @@ describe('useRiskDisclosure', () => {
         });
 
         expect(mockPostRiskDisclosure).toHaveBeenCalledTimes(1);
-        expect(mockPostRiskDisclosure).toHaveBeenCalledWith({ additional_risk_disclosure_accepted: true });
+        expect(mockPostRiskDisclosure).toHaveBeenCalledWith({ additional_spain_risk_disclosure_accepted: true });
         expect(result.current.is_fully_accepted).toBe(true);
         expect(result.current.is_open).toBe(false);
     });
 
-    it('sends a single POST with both fields when neither is accepted', async () => {
+    it('sends only spain_risk_disclosure when neither field is accepted', async () => {
         mockFetchProfileIdentity.mockResolvedValueOnce({ data: { residence: 'es' } });
         mockFetchRiskDisclosure.mockResolvedValueOnce({
-            risk_disclosure_accepted: field(null),
-            additional_risk_disclosure_accepted: field(null),
+            spain_risk_disclosure_accepted: field(null),
+            additional_spain_risk_disclosure_accepted: field(null),
         });
         mockPostRiskDisclosure.mockResolvedValueOnce({});
 
@@ -145,10 +145,7 @@ describe('useRiskDisclosure', () => {
         });
 
         expect(mockPostRiskDisclosure).toHaveBeenCalledTimes(1);
-        expect(mockPostRiskDisclosure).toHaveBeenCalledWith({
-            risk_disclosure: true,
-            additional_risk_disclosure_accepted: true,
-        });
+        expect(mockPostRiskDisclosure).toHaveBeenCalledWith({ spain_risk_disclosure: true });
         expect(result.current.is_fully_accepted).toBe(true);
         expect(result.current.is_open).toBe(false);
     });
@@ -156,8 +153,8 @@ describe('useRiskDisclosure', () => {
     it('keeps the modal open on POST failure and exposes the error', async () => {
         mockFetchProfileIdentity.mockResolvedValueOnce({ data: { residence: 'es' } });
         mockFetchRiskDisclosure.mockResolvedValueOnce({
-            risk_disclosure_accepted: field(null),
-            additional_risk_disclosure_accepted: field(null),
+            spain_risk_disclosure_accepted: field(null),
+            additional_spain_risk_disclosure_accepted: field(null),
         });
         mockPostRiskDisclosure.mockResolvedValueOnce({ error: { message: 'boom' } });
 
@@ -178,8 +175,8 @@ describe('useRiskDisclosure', () => {
     it('writes risk_disclosure_accepted=true to localStorage after a successful POST', async () => {
         mockFetchProfileIdentity.mockResolvedValueOnce({ data: { residence: 'es' } });
         mockFetchRiskDisclosure.mockResolvedValueOnce({
-            risk_disclosure_accepted: field(null),
-            additional_risk_disclosure_accepted: field(null),
+            spain_risk_disclosure_accepted: field(null),
+            additional_spain_risk_disclosure_accepted: field(null),
         });
         mockPostRiskDisclosure.mockResolvedValueOnce({});
 

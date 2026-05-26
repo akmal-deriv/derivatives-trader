@@ -23,13 +23,13 @@ export type TProfileIdentityResponse = {
 };
 
 export type TRiskDisclosureResponse = {
-    risk_disclosure_accepted: TRiskDisclosureField;
-    additional_risk_disclosure_accepted: TRiskDisclosureField;
+    spain_risk_disclosure_accepted: TRiskDisclosureField;
+    additional_spain_risk_disclosure_accepted: TRiskDisclosureField;
 };
 
 export type TRiskDisclosurePostBody = {
-    risk_disclosure?: true;
-    additional_risk_disclosure_accepted?: true;
+    spain_risk_disclosure?: true;
+    additional_spain_risk_disclosure_accepted?: true;
 };
 
 export type TRiskDisclosureError = {

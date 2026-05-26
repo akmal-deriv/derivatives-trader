@@ -109,13 +109,15 @@ export const useRiskDisclosure = (): TUseRiskDisclosure => {
                 if (cancelled || isRiskDisclosureError(disclosure)) return;
                 evaluation_ran_for_loginid.current = loginid;
 
-                const is_risk_accepted = isRiskFieldAccepted(disclosure.risk_disclosure_accepted);
-                const is_additional_accepted = isRiskFieldAccepted(disclosure.additional_risk_disclosure_accepted);
+                const is_risk_accepted = isRiskFieldAccepted(disclosure.spain_risk_disclosure_accepted);
+                const is_additional_accepted = isRiskFieldAccepted(
+                    disclosure.additional_spain_risk_disclosure_accepted
+                );
                 setIsFullyAccepted(is_risk_accepted && is_additional_accepted);
 
                 const next_payload: TRiskDisclosurePostBody = {};
-                if (!is_risk_accepted) next_payload.risk_disclosure = true;
-                if (!is_additional_accepted) next_payload.additional_risk_disclosure_accepted = true;
+                if (!is_risk_accepted) next_payload.spain_risk_disclosure = true;
+                else if (!is_additional_accepted) next_payload.additional_spain_risk_disclosure_accepted = true;
                 setAcceptancePayload(next_payload);
 
                 setIsEligibleResidence(true);
