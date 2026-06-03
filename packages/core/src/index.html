@@ -166,6 +166,57 @@
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
         <link rel="preconnect" href="https://www.googletagmanager.com" />
 
+        <!-- Conditionally preload SmartCharts (Flutter Web) renderer files so each browser fetches
+             only the set it will load. Flutter runs skwasm (skwasm.wasm + main.dart.wasm, ~2 MB) only
+             on cross-origin-isolated Chromium with WasmGC; Firefox/Safari and any non-isolated context
+             fall back to canvaskit (main.dart.js + canvaskit.wasm, ~8.5 MB). main.dart.mjs is needed by
+             both. -->
+        <script>
+            (function () {
+                var usesSkwasm = false;
+                try {
+                    // Intl.v8BreakIterator is Chromium-only — the gate Firefox/Safari fail.
+                    var gcProbe = new Uint8Array([0, 97, 115, 109, 1, 0, 0, 0, 1, 5, 1, 95, 1, 120, 0]);
+                    usesSkwasm =
+                        window.crossOriginIsolated === true &&
+                        typeof Intl.v8BreakIterator !== 'undefined' &&
+                        WebAssembly.validate(gcProbe);
+                } catch (e) {
+                    /* unsupported environment — fall back to canvaskit path */
+                }
+
+                var files = usesSkwasm
+                    ? [
+                          {
+                              as: 'fetch',
+                              type: 'application/wasm',
+                              href: '/js/smartcharts/chart/canvaskit/skwasm.wasm',
+                          },
+                          { as: 'fetch', type: 'application/wasm', href: '/js/smartcharts/chart/main.dart.wasm' },
+                      ]
+                    : [
+                          { as: 'script', href: '/js/smartcharts/chart/main.dart.js' },
+                          {
+                              as: 'fetch',
+                              type: 'application/wasm',
+                              href: '/js/smartcharts/chart/canvaskit/canvaskit.wasm',
+                          },
+                      ];
+
+                files.push({ as: 'script', href: '/js/smartcharts/chart/main.dart.mjs' });
+
+                files.forEach(function (f) {
+                    var link = document.createElement('link');
+                    link.rel = 'preload';
+                    link.crossOrigin = 'anonymous';
+                    link.as = f.as;
+                    if (f.type) link.type = f.type;
+                    link.href = f.href;
+                    document.head.appendChild(link);
+                });
+            })();
+        </script>
+
         <!-- Load all fonts in single request with all required weights and language subsets -->
         <!-- Includes weights: 300,400,500,700 | Subsets: Latin, Cyrillic (Russian), Vietnamese -->
         <link
