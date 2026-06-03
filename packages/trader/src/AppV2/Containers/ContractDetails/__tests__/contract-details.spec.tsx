@@ -1,7 +1,7 @@
 import React from 'react';
-import moment from 'moment';
 
 import {
+    dayjs,
     hasContractEntered,
     isAccumulatorContract,
     isMultiplierContract,
@@ -155,7 +155,7 @@ const default_mock_store = {
         toggleCancellationWarning: jest.fn(),
     },
     common: {
-        server_time: moment('2023-11-21 10:59:59'),
+        server_time: dayjs('2023-11-21 10:59:59'),
     },
     contract_trade: {
         getContractById: jest.fn(),

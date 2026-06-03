@@ -1,6 +1,6 @@
 import React from 'react';
-import moment from 'moment';
 
+import { dayjs } from '@deriv/shared';
 import { mockStore } from '@deriv/stores';
 import { TCoreStores } from '@deriv/stores/types';
 import { render, screen } from '@testing-library/react';
@@ -94,7 +94,7 @@ describe('DurationActionSheetContainer', () => {
                 },
             },
             common: {
-                server_time: moment('2024-10-10T11:23:10.895Z'),
+                server_time: dayjs('2024-10-10T11:23:10.895Z'),
             },
         });
     });

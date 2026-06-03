@@ -1,7 +1,8 @@
 import React from 'react';
+
+import { dayjs, getCardLabels, isValidToSell, mockContractInfo } from '@deriv/shared';
 import { render, screen } from '@testing-library/react';
-import { mockContractInfo, getCardLabels, isValidToSell } from '@deriv/shared';
-import moment from 'moment';
+
 import CardFooter from '../contract-card-footer';
 
 type TCardFooter = React.ComponentProps<typeof CardFooter>;
@@ -28,7 +29,7 @@ describe('<CardFooter />', () => {
         onClickCancel: jest.fn(),
         onClickSell: jest.fn(),
         onFooterEntered: jest.fn(),
-        server_time: moment(new Date()).utc(),
+        server_time: dayjs(new Date()).utc(),
         should_show_transition: false,
     };
 

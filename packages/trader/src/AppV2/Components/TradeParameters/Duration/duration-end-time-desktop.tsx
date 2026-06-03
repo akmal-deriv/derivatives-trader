@@ -1,8 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { observer } from 'mobx-react-lite';
-import moment from 'moment';
 
-import { hasIntradayDurationUnit, setTime, toMoment, useIsMounted } from '@deriv/shared';
+import { dayjs, hasIntradayDurationUnit, setTime, toMoment, useIsMounted } from '@deriv/shared';
 import { useStore } from '@deriv/stores';
 import { Button, DatePicker, TextField } from '@deriv-com/quill-ui';
 import { Localize, useTranslations } from '@deriv-com/translations';
@@ -14,7 +13,6 @@ import { getBoundaries } from 'Stores/Modules/Trading/Helpers/end-time';
 import { useTraderStore } from 'Stores/useTraderStores';
 
 import { getEarlyCloseTileContent, type TMarketEvent } from './early-close-dot';
-
 import TimeGridPicker from './time-grid-picker';
 
 import './time-grid-picker.scss';
@@ -72,15 +70,15 @@ const DurationEndTimeDesktop: React.FC<DurationEndTimeDesktopProps> = observer((
     const getInitialDate = useCallback(() => {
         // Priority 1: If user has explicitly saved an endtime, use the stored expiry_date
         if (expiry_type === 'endtime' && expiry_date) {
-            const expiryMoment = moment(expiry_date);
-            if (expiryMoment.isSameOrAfter(moment(), 'day')) {
+            const expiryMoment = dayjs(expiry_date);
+            if (expiryMoment.isSameOrAfter(dayjs(), 'day')) {
                 return expiryMoment.toDate();
             }
         }
         // Priority 2: If expiry_date exists and is today or a future date, use it
         if (expiry_date) {
-            const expiryMoment = moment(expiry_date);
-            if (expiryMoment.isSameOrAfter(moment(), 'day')) {
+            const expiryMoment = dayjs(expiry_date);
+            if (expiryMoment.isSameOrAfter(dayjs(), 'day')) {
                 return expiryMoment.toDate();
             }
         }
@@ -189,7 +187,7 @@ const DurationEndTimeDesktop: React.FC<DurationEndTimeDesktopProps> = observer((
     const handleActiveStartDateChange = useCallback(
         ({ activeStartDate }: { activeStartDate: Date | null }) => {
             if (activeStartDate) {
-                onChangeCalendarMonth(moment(activeStartDate).format('YYYY-MM-DD'));
+                onChangeCalendarMonth(dayjs(activeStartDate).format('YYYY-MM-DD'));
             }
         },
         [onChangeCalendarMonth]
@@ -199,19 +197,19 @@ const DurationEndTimeDesktop: React.FC<DurationEndTimeDesktopProps> = observer((
     const start_times = useMemo(() => {
         if (is_24_hours_contract) {
             // For today, earliest selectable time is adjusted_start_time (server time + 5 min)
-            return [moment(adjusted_start_time, 'HH:mm')];
+            return [dayjs(adjusted_start_time, 'HH:mm')];
         }
         if (market_open_times?.length > 0) {
-            return market_open_times.map((time: string) => moment(time, 'HH:mm'));
+            return market_open_times.map((time: string) => dayjs(time, 'HH:mm'));
         }
-        return [moment().add(5, 'minutes')];
+        return [dayjs().add(5, 'minutes')];
     }, [market_open_times, is_24_hours_contract, adjusted_start_time]);
 
     const end_times = useMemo(() => {
         if (market_open_times?.length > 0) {
-            return market_open_times.map((time: string) => moment(time, 'HH:mm').add(1, 'day'));
+            return market_open_times.map((time: string) => dayjs(time, 'HH:mm').add(1, 'day'));
         }
-        return [moment().add(1, 'day').hour(23).minute(59)];
+        return [dayjs().add(1, 'day').hour(23).minute(59)];
     }, [market_open_times]);
 
     // Date picker handlers
@@ -232,7 +230,7 @@ const DurationEndTimeDesktop: React.FC<DurationEndTimeDesktopProps> = observer((
             }
 
             if (newDate) {
-                const formattedDate = moment(newDate).format('YYYY-MM-DD');
+                const formattedDate = dayjs(newDate).format('YYYY-MM-DD');
                 lastSelectedDateRef.current = formattedDate;
                 setSelectedDate(newDate);
                 setIsDatePickerOpen(false);
@@ -290,7 +288,7 @@ const DurationEndTimeDesktop: React.FC<DurationEndTimeDesktopProps> = observer((
 
     // Save handler - saves both date AND time to store
     const handleSave = useCallback(() => {
-        const formattedDate = moment(selectedDate).format('YYYY-MM-DD');
+        const formattedDate = dayjs(selectedDate).format('YYYY-MM-DD');
         const timeToSave = selectedTime;
         const formattedTime =
             timeToSave.includes(':') && timeToSave.split(':').length === 2 ? `${timeToSave}:00` : timeToSave;
@@ -318,17 +316,17 @@ const DurationEndTimeDesktop: React.FC<DurationEndTimeDesktopProps> = observer((
     }, [duration_units_list, server_time, start_time, duration_min_max]);
 
     const getMaxDate = useCallback(() => {
-        return moment().add(1, 'year').toDate();
+        return dayjs().add(1, 'year').toDate();
     }, []);
 
     // Format date for display
     const getFormattedDate = useCallback(() => {
-        return moment(selectedDate).format('DD/MM/YYYY');
+        return dayjs(selectedDate).format('DD/MM/YYYY');
     }, [selectedDate]);
 
     // Dynamic expiry message
     const getExpiryMessage = useCallback(() => {
-        const formattedDate = moment(selectedDate).format('DD/MM/YYYY');
+        const formattedDate = dayjs(selectedDate).format('DD/MM/YYYY');
         return localize('Contract will expire on {{formatted_date}} at {{time}} GMT.', {
             formatted_date: formattedDate,
             time: selectedTime,

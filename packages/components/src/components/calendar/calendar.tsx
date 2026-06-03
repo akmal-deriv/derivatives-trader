@@ -1,9 +1,11 @@
 import React from 'react';
-import { getStartOfMonth, toMoment } from '@deriv/shared';
+
+import { type ConfigType, type Dayjs, getStartOfMonth, toMoment } from '@deriv/shared';
+
+import { getDate, type TCalendarUnit } from './helpers/constants';
 import Body from './calendar-body';
 import Footer from './calendar-footer';
 import Header from './calendar-header';
-import { getDate } from './helpers/constants';
 
 type TCalendarProps = {
     date_format?: string;
@@ -29,7 +31,7 @@ type TCalendarProps = {
     }>;
     has_range_selection?: boolean;
     keep_open?: boolean;
-    onHover?: (selected_date: moment.MomentInput | null) => void;
+    onHover?: (selected_date: ConfigType | null) => void;
     should_show_today?: boolean;
 };
 
@@ -64,7 +66,7 @@ const Calendar = React.memo(
             const [calendar_date, setCalendarDate] = React.useState<string>(
                 toMoment(value || start_date).format(date_format)
             ); // calendar date reference
-            const [selected_date, setSelectedDate] = React.useState<moment.MomentInput>(value); // selected date
+            const [selected_date, setSelectedDate] = React.useState<ConfigType>(value); // selected date
             const [view, setView] = React.useState(calendar_view || 'date');
             const [hovered_date, setHoveredDate] = React.useState<string | null>('');
 
@@ -77,7 +79,7 @@ const Calendar = React.memo(
                 },
             }));
 
-            const navigateTo = (new_date: moment.MomentInput) => {
+            const navigateTo = (new_date: ConfigType) => {
                 setCalendarDate(toMoment(new_date).format(date_format));
 
                 if (onChangeCalendarMonth) {
@@ -135,7 +137,7 @@ const Calendar = React.memo(
                 }
             };
 
-            const updateSelected = (e: React.MouseEvent<HTMLSpanElement>, type: moment.unitOfTime.StartOf) => {
+            const updateSelected = (e: React.MouseEvent<HTMLSpanElement>, type: TCalendarUnit) => {
                 if (e) e.stopPropagation();
 
                 if (type === 'day') {
@@ -176,9 +178,12 @@ const Calendar = React.memo(
                 }
             };
 
-            const isPeriodDisabled = (date: moment.Moment | string, unit: moment.unitOfTime.StartOf) => {
-                const start_of_period = toMoment(date).clone().startOf(unit);
-                const end_of_period = toMoment(date).clone().endOf(unit);
+            const isPeriodDisabled = (date: Dayjs | string, unit: TCalendarUnit) => {
+                // Cast to OpUnitType — dayjs accepts 'isoWeek'/'quarter' at runtime via plugins
+                // but the union type narrowing requires a cast.
+                const op_unit = unit as Parameters<Dayjs['startOf']>[0];
+                const start_of_period = toMoment(date).startOf(op_unit);
+                const end_of_period = toMoment(date).endOf(op_unit);
                 return end_of_period.isBefore(toMoment(min_date)) || start_of_period.isAfter(toMoment(max_date));
             };
 

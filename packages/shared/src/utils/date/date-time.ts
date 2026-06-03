@@ -1,146 +1,107 @@
 import { localize } from '@deriv-com/translations';
-import moment from 'moment';
 
-type TExtendedMoment = typeof moment & {
-    createFromInputFallback: (config: { _d: Date }) => void;
-};
-
-// Disables moment's fallback to native Date object
-// moment will return `Invalid Date` if date cannot be parsed
-(moment as TExtendedMoment).createFromInputFallback = function (config) {
-    config._d = new Date(NaN); // eslint-disable-line no-underscore-dangle
-};
-
-// Localize moment instance with specific object
-export const initMoment = (lang: string) => {
-    const hasEnMomentLocale = ['EN', 'AR', 'BN', 'SI', 'KM']; // 'AR', 'BN' & 'SI' langs have non-numeric dates ('২০২৪-০৫-০৭'), our current usage of moment requires us to make all dates numeric
-    if (!lang) return moment;
-    let locale = lang.toLowerCase().replace('_', '-');
-    if (hasEnMomentLocale.includes(lang)) locale = 'en-gb';
-    return import(`moment/locale/${locale}`).then(() => moment.locale(locale)).catch(() => moment);
-};
+import dayjs, { type ConfigType, type Dayjs, type Duration, type ManipulateType, setLocale } from './dayJs-config';
 
 /**
- * Convert epoch to moment object
- * @param  {Number} epoch
- * @return {moment} the moment object of provided epoch
+ * @deprecated Prefer `setLocale` from `@deriv/shared` directly. Kept as an alias for legacy callers.
  */
-export const epochToMoment = (epoch: number) => moment.unix(epoch).utc();
+export const initMoment = setLocale;
 
 /**
- * Convert date string or epoch to moment object
- * @param  {Number} value   the date in epoch format
- * @param  {String} value   the date in string format
- * @return {moment} the moment object of 'now' or the provided date epoch or string
+ * Convert epoch (seconds) to a UTC Dayjs object.
  */
-export const toMoment = (value?: moment.MomentInput): moment.Moment => {
-    if (!value) return moment().utc(); // returns 'now' moment object
-    if (value instanceof moment && (value as moment.Moment).isValid() && (value as moment.Moment).isUTC())
-        return value as moment.Moment; // returns if already a moment object
-    if (typeof value === 'number') return epochToMoment(value); // returns epochToMoment() if not a date
+export const epochToMoment = (epoch: number): Dayjs => dayjs.unix(epoch).utc();
 
-    if (/invalid/i.test(moment(value).toString())) {
-        const today_moment = moment();
-        const days_in_month = today_moment.utc().daysInMonth();
-        const value_as_number = moment.utc(value, 'DD MMM YYYY').valueOf() / (1000 * 60 * 60 * 24);
-        return value_as_number > days_in_month
-            ? moment.utc(today_moment.add(value as string | number, 'd'), 'DD MMM YYYY')
-            : moment.utc(value, 'DD MMM YYYY'); // returns target date
+/**
+ * Convert any date input (epoch, ISO string, "DD MMM YYYY" string, or existing Dayjs) to a UTC Dayjs object.
+ */
+export const toMoment = (value?: ConfigType): Dayjs => {
+    if (!value) return dayjs().utc();
+    if (dayjs.isDayjs(value)) {
+        if (value.isValid() && value.isUTC()) return value;
     }
-    return moment.utc(value);
+    if (typeof value === 'number') return epochToMoment(value);
+
+    // Strings matching "28 May 2026" pattern must be parsed with the format hint
+    // so the day is interpreted as UTC, not via native Date() (which treats them as local).
+    if (typeof value === 'string' && /^\d{1,2}\s[A-Za-z]{3,}\s\d{4}$/.test(value)) {
+        return dayjs.utc(value, 'DD MMM YYYY');
+    }
+
+    // Try standard utc parse first
+    const parsed = dayjs.utc(value);
+    if (parsed.isValid()) return parsed;
+
+    // Last-resort: format hint
+    return dayjs.utc(value as string, 'DD MMM YYYY');
 };
 
-export const toLocalFormat = (time: moment.MomentInput) => moment.utc(time).local().format('YYYY-MM-DD HH:mm:ss Z');
+export const toLocalFormat = (time: ConfigType) => toMoment(time).local().format('YYYY-MM-DD HH:mm:ss Z');
 
 /**
- * Set specified time on moment object
- * @param  {moment} moment_obj  the moment to set the time on
- * @param  {String} time        24 hours format, may or may not include seconds
- * @return {moment} a new moment object of result
+ * Set a 24-hour time string ("HH:mm" or "HH:mm:ss") on a Dayjs object. Returns a new Dayjs.
  */
-export const setTime = (moment_obj: moment.Moment, time: string | null) => {
+export const setTime = (moment_obj: Dayjs, time: string | null): Dayjs => {
     const [hour, minute, second] = time ? time.split(':') : [0, 0, 0];
-    moment_obj
+    return moment_obj
         .hour(+hour)
         .minute(+minute || 0)
         .second(+second || 0);
-    return moment_obj;
 };
 
 /**
- * return the unix value of provided epoch and time
- * @param  {Number} epoch  the date to update with provided time
- * @param  {String} time   the time to set on the date
- * @return {Number} unix value of the result
+ * Return the unix value (seconds) of provided epoch + time.
  */
 export const convertToUnix = (epoch: number | string, time: string) => setTime(toMoment(epoch), time).unix();
 
-export const toGMTFormat = (time?: moment.MomentInput) =>
-    moment(time || undefined)
+export const toGMTFormat = (time?: ConfigType) =>
+    dayjs(time || undefined)
         .utc()
         .format('YYYY-MM-DD HH:mm:ss [GMT]');
 
-export const formatDate = (date?: moment.MomentInput, date_format = 'YYYY-MM-DD', should_format_null = true) =>
+export const formatDate = (date?: ConfigType, date_format = 'YYYY-MM-DD', should_format_null = true) =>
     !should_format_null && date === null ? undefined : toMoment(date).format(date_format);
 
 export const formatTime = (epoch: number | string, time_format = 'HH:mm:ss [GMT]') =>
     toMoment(epoch).format(time_format);
 
 /**
- * return the number of days from today to date specified
- * @param  {String} date   the date to calculate number of days from today
- * @return {Number} an integer of the number of days
+ * Number of days from today to date specified.
  */
-export const daysFromTodayTo = (date?: string | moment.Moment) => {
-    const diff = toMoment(date).startOf('day').diff(toMoment().startOf('day'), 'days');
+export const daysFromTodayTo = (date?: ConfigType) => {
+    const diff = toMoment(date).startOf('day').diff(toMoment().startOf('day'), 'day');
     return !date || diff < 0 ? '' : diff;
 };
 
 /**
- * return the number of days since the date specified
- * @param  {String} date   the date to calculate number of days since
- * @return {Number} an integer of the number of days
+ * Number of months between two specified dates.
  */
+export const diffInMonths = (now: ConfigType, then: Dayjs) => then.diff(toMoment(now), 'month');
 
 /**
- * return the number of months between two specified dates
+ * Duration between two epochs (seconds).
  */
-export const diffInMonths = (now: moment.MomentInput, then: moment.Moment) => then.diff(now, 'month');
-/**
- * return moment duration between two dates
- * @param  {Number} epoch start time
- * @param  {Number} epoch end time
- * @return {moment.duration} moment duration between start time and end time
- */
-export const getDiffDuration = (start_time: number, end_time: number) =>
-    moment.duration(moment.unix(end_time).diff(moment.unix(start_time)));
+export const getDiffDuration = (start_time: number, end_time: number): Duration =>
+    dayjs.duration(dayjs.unix(end_time).diff(dayjs.unix(start_time)));
 
-/** returns the DD MM YYYY format */
-export const getDateFromNow = (
-    days: string | number,
-    unit?: moment.unitOfTime.DurationConstructor,
-    format?: string
-) => {
-    const date = moment(new Date());
-    return date.add(days, unit).format(format);
-};
-
-/** returns the DD MM YYYY format */
+/** Returns the formatted date `days` from today using `unit` and `format`. */
+export const getDateFromNow = (days: string | number, unit?: ManipulateType, format?: string) =>
+    dayjs()
+        .add(Number(days), unit ?? 'day')
+        .format(format);
 
 /**
- * return formatted duration `2 days 01:23:59`
- * @param  {moment.duration} moment duration object
- * @return {String} formatted display string
+ * Format a duration like `2 days 01:23:59`.
  */
-export const formatDuration = (duration: moment.Duration, format?: string) => {
-    const d = Math.floor(duration.asDays()); // duration.days() does not include months/years
+export const formatDuration = (duration: Duration, format?: string) => {
+    const d = Math.floor(duration.asDays());
     const h = duration.hours();
     const m = duration.minutes();
     const s = duration.seconds();
-    const formatted_str = moment(0)
+    const formatted_str = dayjs(0)
         .hour(h)
         .minute(m)
-        .seconds(s)
+        .second(s)
         .format(format || 'HH:mm:ss');
 
     return {
@@ -150,138 +111,79 @@ export const formatDuration = (duration: moment.Duration, format?: string) => {
 };
 
 /**
- * return true if the time_str is in "HH:MM" format, else return false
- * @param {String} time_str time
+ * Validate a "HH:MM" or "HH:MM:SS" time string.
  */
 export const isTimeValid = (time_str: string) =>
     /^([0-9]|[0-1][0-9]|2[0-3]):([0-9]|[0-5][0-9])(:([0-9]|[0-5][0-9]))?$/.test(time_str);
 
 /**
- * return true if the time_str's hour is between 0 and 23, else return false
- * @param {String} time_str time
+ * Validate that the time string's hour is in 0..23.
  */
 export const isHourValid = (time_str: string) =>
     isTimeValid(time_str) && /^([01][0-9]|2[0-3])$/.test(time_str.split(':')[0]);
 
 /**
- * return true if the time_str's minute is between 0 and 59, else return false
- * @param {String} time_str time
+ * Validate that the time string's minute is in 0..59.
  */
 export const isMinuteValid = (time_str: string) => isTimeValid(time_str) && /^[0-5][0-9]$/.test(time_str.split(':')[1]);
 
-/**
- * return true if the date is typeof string and a valid moment date, else return false
- * @param {String|moment} date date
- */
+export const addDays = (date: ConfigType, num_of_days: number): Dayjs => toMoment(date).add(num_of_days, 'day');
+
+export const addMonths = (date: ConfigType, num_of_months: number): Dayjs => toMoment(date).add(num_of_months, 'month');
+
+export const addYears = (date: ConfigType, num_of_years: number): Dayjs => toMoment(date).add(num_of_years, 'year');
+
+export const subDays = (date: ConfigType, num_of_days: number): Dayjs => toMoment(date).subtract(num_of_days, 'day');
+
+export const subMonths = (date: ConfigType, num_of_months: number): Dayjs =>
+    toMoment(date).subtract(num_of_months, 'month');
+
+export const subYears = (date: ConfigType, num_of_years: number): Dayjs =>
+    toMoment(date).subtract(num_of_years, 'year');
 
 /**
- * add the specified number of days to the given date
- * @param {String} date        date
- * @param {Number} num_of_days number of days to add
+ * Returns the earlier of two dates.
  */
-export const addDays = (date: string | moment.Moment, num_of_days: number) =>
-    toMoment(date).clone().add(num_of_days, 'day');
+export const minDate = (date_1: ConfigType, date_2: ConfigType): Dayjs => {
+    const d1 = toMoment(date_1);
+    const d2 = toMoment(date_2);
+    return d1.isBefore(d2) ? d1 : d2;
+};
+
+export const getStartOfMonth = (date: ConfigType) => toMoment(date).startOf('month').format('YYYY-MM-DD');
 
 /**
- * add the specified number of weeks to the given date
- * @param {String} date        date
- * @param {Number} num_of_weeks number of days to add
+ * Format milliseconds with a given format string. Defaults to UTC.
+ *
+ * Important: numeric input is interpreted as **milliseconds** (matching the original moment
+ * semantics and the function name). Do NOT route through `toMoment()` — its numeric branch
+ * goes via `epochToMoment` which calls `dayjs.unix()` and would treat the value as seconds.
  */
-
-/**
- * add the specified number of months to the given date
- * @param {String} date        date
- * @param {Number} num_of_months number of months to add
- */
-export const addMonths = (date: moment.MomentInput, num_of_months: number) =>
-    toMoment(date).clone().add(num_of_months, 'month');
-
-/**
- * add the specified number of years to the given date
- * @param {String} date        date
- * @param {Number} num_of_years number of years to add
- */
-export const addYears = (date: moment.MomentInput, num_of_years: number) =>
-    toMoment(date).clone().add(num_of_years, 'year');
-
-/**
- * subtract the specified number of days from the given date
- * @param {String} date        date
- * @param {Number} num_of_days number of days to subtract
- */
-export const subDays = (date: moment.MomentInput, num_of_days: number) =>
-    toMoment(date).clone().subtract(num_of_days, 'day');
-
-/**
- * subtract the specified number of months from the given date
- * @param {String} date        date
- * @param {Number} num_of_months number of months to subtract
- */
-export const subMonths = (date: moment.MomentInput, num_of_months: number) =>
-    toMoment(date).clone().subtract(num_of_months, 'month');
-
-/**
- * subtract the specified number of years from the given date
- * @param {String} date        date
- * @param {Number} num_of_years number of years to subtract
- */
-export const subYears = (date: moment.MomentInput, num_of_years: number) =>
-    toMoment(date).clone().subtract(num_of_years, 'year');
-
-/**
- * returns the minimum moment between the two passing parameters
- * @param {moment|string|epoch} first datetime parameter
- * @param {moment|string|epoch} second datetime parameter
- */
-export const minDate = (date_1: moment.MomentInput, date_2: moment.MomentInput) =>
-    moment.min(toMoment(date_1), toMoment(date_2));
-
-/**
- * returns a new date
- * @param {moment|string|epoch} date date
- */
-export const getStartOfMonth = (date: moment.MomentInput) =>
-    toMoment(date).clone().startOf('month').format('YYYY-MM-DD');
-
-/**
- * returns miliseconds into UTC formatted string
- * @param {Number} miliseconds miliseconds
- * @param {String} str_format formatting using moment e.g - YYYY-MM-DD HH:mm
- */
-export const formatMilliseconds = (miliseconds: moment.MomentInput, str_format: string, is_local_time = false) => {
-    if (is_local_time) {
-        return moment(miliseconds).format(str_format);
-    }
-    return moment.utc(miliseconds).format(str_format);
+export const formatMilliseconds = (miliseconds: ConfigType, str_format: string, is_local_time = false) => {
+    if (is_local_time) return dayjs(miliseconds).format(str_format);
+    return dayjs.utc(miliseconds).format(str_format);
 };
 
 /**
- * returns a new date string
- * @param {moment|string|epoch} date parameter
- * @param {String} from_date_format initial date format
- * @param {String} to_date_format to date format
+ * Reformat a date from one format string to another.
  */
-export const convertDateFormat = (date: moment.MomentInput, from_date_format: string, to_date_format: string) =>
-    moment(date, from_date_format).format(to_date_format);
+export const convertDateFormat = (date: ConfigType, from_date_format: string, to_date_format: string) =>
+    dayjs(date, from_date_format).format(to_date_format);
 
 /**
- *  Convert 24 hours format time to 12 hours formatted time.
- * @param  {String} time 24 hours format, may or may not include seconds
- * @return {String} equivalent 12-hour time
+ * Convert "HH:mm" 24-hour time to "h:mm am/pm" 12-hour time.
  */
 export const convertTimeFormat = (time: string) => {
-    const time_moment_obj = moment(time, 'HH:mm');
-    const time_hour = time_moment_obj.format('HH');
-    const time_min = time_moment_obj.format('mm');
+    const t = dayjs(time, 'HH:mm');
+    const time_hour = t.format('HH');
+    const time_min = t.format('mm');
     const formatted_time = `${Number(time_hour) % 12 || 12}:${time_min}`;
     const time_suffix = `${Number(time_hour) >= 12 ? 'pm' : 'am'}`;
     return `${formatted_time} ${time_suffix}`;
 };
 
 /**
- *  Get a formatted time since a timestamp.
- * @param  {Number} timestamp in ms
- * @return {String} '10s ago', or '1m ago', or '1h ago', or '1d ago'
+ * Get a localized "time since" string.
  */
 export const getTimeSince = (timestamp: number) => {
     if (!timestamp) return '';
@@ -300,10 +202,7 @@ export const getTimeSince = (timestamp: number) => {
 };
 
 /**
- * Get tomorrow's date in YYYY-MM-DD format
- * @param {moment.MomentInput} server_time - Server time to calculate tomorrow from
- * @return {string} Tomorrow's date in YYYY-MM-DD format
+ * Get tomorrow's date in YYYY-MM-DD format.
  */
-export const getTomorrowDate = (server_time: moment.MomentInput): string => {
-    return toMoment(server_time).clone().add(1, 'day').format('YYYY-MM-DD');
-};
+export const getTomorrowDate = (server_time: ConfigType): string =>
+    toMoment(server_time).add(1, 'day').format('YYYY-MM-DD');

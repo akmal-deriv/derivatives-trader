@@ -1,8 +1,8 @@
 import React from 'react';
-import { Moment } from 'moment';
 
 import {
     CONTRACT_TYPES,
+    type Dayjs,
     isTimeValid,
     isTouchContract,
     isTurbosContract,
@@ -463,7 +463,7 @@ export const getSmallestDuration = (
 
 export const getDatePickerStartDate = (
     duration_units_list: { value: string }[],
-    server_time: Moment,
+    server_time: Dayjs,
     start_time: string | null,
     duration_min_max: Record<string, { min: number; max: number }>
 ) => {
@@ -479,7 +479,7 @@ export const getDatePickerStartDate = (
         return dateObj;
     };
 
-    const toDate = (value: string | number | Date | Moment): Date => {
+    const toDate = (value: string | number | Date | Dayjs): Date => {
         if (!value) return new Date();
 
         if (value instanceof Date && !isNaN(value.getTime())) {
@@ -503,20 +503,20 @@ export const getDatePickerStartDate = (
         return parsedDate;
     };
 
-    const getMinDuration = (server_time: string | number | Date | Moment, duration_units_list: { value: string }[]) => {
+    const getMinDuration = (server_time: string | number | Date | Dayjs, duration_units_list: { value: string }[]) => {
         const server_date = toDate(server_time);
         return hasIntradayDurationUnit(duration_units_list)
             ? new Date(server_date)
             : new Date(server_date.getTime() + (duration_min_max?.daily?.min || 0) * 1000);
     };
 
-    const getMomentContractStartDateTime = () => {
+    const getDayjsContractStartDateTime = () => {
         const minDurationDate = getMinDuration(server_time, duration_units_list);
         const time = isTimeValid(start_time ?? '') ? start_time : (server_time?.toISOString().substr(11, 8) ?? '');
         return setMinTime(minDurationDate, time ?? '');
     };
 
-    const min_date = new Date(getMomentContractStartDateTime());
+    const min_date = new Date(getDayjsContractStartDateTime());
     return min_date;
 };
 

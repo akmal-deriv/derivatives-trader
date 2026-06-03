@@ -1,8 +1,7 @@
 import React, { useCallback, useLayoutEffect, useMemo, useState } from 'react';
 import { observer } from 'mobx-react-lite';
-import moment from 'moment';
 
-import { hasIntradayDurationUnit, trackAnalyticsEvent } from '@deriv/shared';
+import { dayjs, hasIntradayDurationUnit, trackAnalyticsEvent } from '@deriv/shared';
 import { Text } from '@deriv-com/quill-ui';
 import { Localize, localize } from '@deriv-com/translations';
 
@@ -286,7 +285,7 @@ const DurationDesktop: React.FC<DurationDesktopProps> = observer(({ is_minimized
     useLayoutEffect(() => {
         if (duration_unit === 'd' && expiry_type !== 'endtime' && duration_units_list.length > 0) {
             const has_intraday = hasIntradayDurationUnit(duration_units_list);
-            const default_date = has_intraday ? moment() : moment().add(1, 'days');
+            const default_date = has_intraday ? dayjs() : dayjs().add(1, 'days');
             onChangeMultiple({
                 expiry_type: 'endtime',
                 expiry_date: default_date.format('YYYY-MM-DD'),
@@ -529,13 +528,13 @@ const DurationDesktop: React.FC<DurationDesktopProps> = observer(({ is_minimized
     const getDisplayValue = useCallback(() => {
         if (expiry_type === 'endtime') {
             if (expiry_time && expiry_date) {
-                const date = moment(expiry_date);
+                const date = dayjs(expiry_date);
                 const formattedDate = date.format('D MMM');
                 const formattedTime = expiry_time.substring(0, 5);
                 return `${formattedDate}, ${formattedTime}`;
             }
             if (expiry_date) {
-                const date = moment(expiry_date);
+                const date = dayjs(expiry_date);
                 const formattedDate = date.format('D MMM');
                 return formattedDate;
             }
@@ -576,8 +575,7 @@ const DurationDesktop: React.FC<DurationDesktopProps> = observer(({ is_minimized
             // When duration_units_list hasn't loaded yet, default to today (most 'd' contracts
             // have intraday units) to avoid a visible tomorrow→today flicker.
             const has_intraday = duration_units_list.length === 0 || hasIntradayDurationUnit(duration_units_list);
-            const expiryDate = has_intraday ? moment() : moment().add(1, 'days');
-            expiryDate.set({ hour: 23, minute: 59 });
+            const expiryDate = (has_intraday ? dayjs() : dayjs().add(1, 'day')).hour(23).minute(59);
             const formattedDate = expiryDate.format('D MMM');
             const formattedTime = expiryDate.format('HH:mm');
             return `${formattedDate}, ${formattedTime}`;

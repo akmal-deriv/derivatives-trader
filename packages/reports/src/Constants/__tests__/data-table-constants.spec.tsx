@@ -1,6 +1,8 @@
 import React from 'react';
+
+import { dayjs } from '@deriv/shared';
 import { render, screen } from '@testing-library/react';
-import moment from 'moment';
+
 import {
     getAccumulatorOpenPositionsColumnsTemplate,
     getMultiplierOpenPositionsColumnsTemplate,
@@ -12,6 +14,7 @@ import { TCellContentProps } from 'Types';
 
 // Mock external dependencies
 jest.mock('@deriv/shared', () => ({
+    ...jest.requireActual('@deriv/shared'),
     getCurrencyDisplayCode: jest.fn(currency => currency),
     getTotalProfit: jest.fn(contract_info => {
         const { bid_price, buy_price } = contract_info;
@@ -267,7 +270,7 @@ describe('getMultiplierOpenPositionsColumnsTemplate', () => {
         onClickCancel: jest.fn(),
         onClickSell: jest.fn(),
         getPositionById: jest.fn(),
-        server_time: moment('2024-01-01T12:00:00Z'),
+        server_time: dayjs('2024-01-01T12:00:00Z'),
         isDesktop: true,
     };
 

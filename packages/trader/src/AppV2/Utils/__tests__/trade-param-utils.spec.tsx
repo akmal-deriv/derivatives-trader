@@ -1,7 +1,6 @@
 import React, { ReactElement } from 'react';
-import moment from 'moment';
 
-import { CONTRACT_TYPES, TRADE_TYPES } from '@deriv/shared';
+import { CONTRACT_TYPES, dayjs, TRADE_TYPES } from '@deriv/shared';
 import { mockStore } from '@deriv/stores';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -409,23 +408,25 @@ describe('getDatePickerStartDate', () => {
     ];
 
     beforeAll(() => {
-        jest.spyOn(global.Date, 'now').mockImplementation(() => new Date('2024-10-08T08:00:00Z').getTime());
+        // dayjs calls `new Date()` internally rather than `Date.now()`, so a `Date.now` spy
+        // alone won't freeze its clock. `jest.useFakeTimers().setSystemTime(...)` freezes both.
+        jest.useFakeTimers().setSystemTime(new Date('2024-10-08T08:00:00Z'));
     });
 
     afterAll(() => {
-        jest.restoreAllMocks();
+        jest.useRealTimers();
     });
 
     it('should return the minimum date considering intraday duration', () => {
         const start_time = null;
-        const result = getDatePickerStartDate(durationUnits, moment(), start_time, duration_min_max);
+        const result = getDatePickerStartDate(durationUnits, dayjs(), start_time, duration_min_max);
         expect(result).toBeInstanceOf(Date);
         expect(result.toISOString()).toContain('2024-10-08');
     });
 
     it('should set the correct time when a start time is provided', () => {
         const start_time = '12:30:00';
-        const result = getDatePickerStartDate(durationUnits, moment(), start_time, duration_min_max);
+        const result = getDatePickerStartDate(durationUnits, dayjs(), start_time, duration_min_max);
         expect(result).toBeInstanceOf(Date);
         expect(result.getHours()).toBe(12);
         expect(result.getMinutes()).toBe(30);
@@ -433,7 +434,7 @@ describe('getDatePickerStartDate', () => {
 
     it('should add min duration to the current time when no intraday duration exists', () => {
         const nonIntradayUnits = [{ value: 'd', text: 'Days' }];
-        const result = getDatePickerStartDate(nonIntradayUnits, moment(), null, duration_min_max);
+        const result = getDatePickerStartDate(nonIntradayUnits, dayjs(), null, duration_min_max);
         expect(result).toBeInstanceOf(Date);
         expect(result.toISOString()).toContain('2024-10-09');
     });

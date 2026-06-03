@@ -1,8 +1,7 @@
 import React from 'react';
 import { BrowserRouter } from 'react-router-dom';
-import moment from 'moment';
 
-import { trackAnalyticsEvent } from '@deriv/shared';
+import { dayjs, trackAnalyticsEvent } from '@deriv/shared';
 import { mockStore } from '@deriv/stores';
 import { render, screen } from '@testing-library/react';
 
@@ -72,7 +71,7 @@ jest.mock('../Routes/router', () => {
 
 const mockRootStore = mockStore({
     common: {
-        server_time: moment(new Date()).utc(),
+        server_time: dayjs(new Date()).utc(),
     },
     client: {
         is_logged_in: false,
@@ -156,7 +155,7 @@ describe('App', () => {
 
     it('should not fire analytics event while login is in progress', () => {
         const loggingInStore = mockStore({
-            common: { server_time: moment(new Date()).utc() },
+            common: { server_time: dayjs(new Date()).utc() },
             client: { is_logged_in: false, is_logging_in: true },
             ui: { setPromptHandler: jest.fn() },
         });

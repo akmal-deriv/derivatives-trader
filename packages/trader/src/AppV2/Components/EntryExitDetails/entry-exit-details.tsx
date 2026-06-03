@@ -1,8 +1,8 @@
 import { useMemo } from 'react';
-import moment from 'moment';
 
 import {
     addComma,
+    dayjs,
     formatDate,
     formatTime,
     getEndTime,
@@ -38,7 +38,7 @@ const getDateTimeFromEpoch = (epoch: number | string | undefined | null) => {
             return undefined;
         }
 
-        const momentDate = moment(date);
+        const momentDate = dayjs(date);
         const formattedDate = formatDate(momentDate, 'DD MMM YYYY');
         const formattedTime = formatTime(epochNumber, 'HH:mm:ss [GMT]');
 

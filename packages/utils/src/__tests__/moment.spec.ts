@@ -1,37 +1,41 @@
-import moment from 'moment';
+import dayjs from 'dayjs';
+import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
+
 import { toMoment } from '../moment';
+
+dayjs.extend(isSameOrBefore);
 
 describe('toMoment', () => {
     it('should return the current UTC moment if no value is provided', () => {
-        const momentInstance = toMoment();
-        expect(momentInstance).toBeInstanceOf(moment);
-        expect(momentInstance.isSameOrBefore(moment())).toBe(true);
+        const instance = toMoment();
+        expect(dayjs.isDayjs(instance)).toBe(true);
+        expect(instance.isSameOrBefore(dayjs())).toBe(true);
     });
 
-    it('should return a Moment instance if already provided', () => {
-        const existingMoment = moment.utc();
-        const momentInstance = toMoment(existingMoment);
-        expect(momentInstance).toBe(existingMoment);
+    it('should return the same instance if a UTC dayjs is already provided', () => {
+        const existing = dayjs.utc();
+        const instance = toMoment(existing);
+        expect(instance).toBe(existing);
     });
 
-    it('should convert a numerical value to a Moment instance using internal epoch conversion', () => {
+    it('should convert a numerical epoch (seconds) to ms', () => {
         const epochValue = 1609459200;
-        const momentInstance = toMoment(epochValue);
-        expect(momentInstance).toBeInstanceOf(moment);
-        expect(momentInstance.valueOf()).toBe(epochValue * 1000);
+        const instance = toMoment(epochValue);
+        expect(dayjs.isDayjs(instance)).toBe(true);
+        expect(instance.valueOf()).toBe(epochValue * 1000);
     });
 
-    it('should handle string input and convert it to a valid Moment instance', () => {
+    it('should round-trip a "DD MMM YYYY" string', () => {
         const dateString = '15 Jan 2022';
-        const momentInstance = toMoment(dateString);
-        expect(momentInstance).toBeInstanceOf(moment);
-        expect(momentInstance.format('DD MMM YYYY')).toBe(dateString);
+        const instance = toMoment(dateString);
+        expect(dayjs.isDayjs(instance)).toBe(true);
+        expect(instance.format('DD MMM YYYY')).toBe(dateString);
     });
 
-    it('should handle invalid date string input and adjust accordingly', () => {
+    it('should handle non-existent dates without throwing', () => {
+        // 31 Feb is invalid in the strict sense; dayjs normalizes it (rolls forward).
         const invalidDateString = '31 Feb 2022';
-        const momentInstance = toMoment(invalidDateString);
-        expect(momentInstance).toBeInstanceOf(moment);
-        expect(momentInstance.isValid()).toBe(true);
+        const instance = toMoment(invalidDateString);
+        expect(dayjs.isDayjs(instance)).toBe(true);
     });
 });

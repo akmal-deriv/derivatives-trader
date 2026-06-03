@@ -1,8 +1,6 @@
 import React, { useEffect, useMemo } from 'react';
 
-import moment from 'moment';
-
-import { toMoment, useIsMounted } from '@deriv/shared';
+import { dayjs, toMoment, useIsMounted } from '@deriv/shared';
 import { DatePicker } from '@deriv-com/quill-ui';
 
 import { ContractType } from 'Stores/Modules/Trading/Helpers/contract-type';
@@ -62,7 +60,7 @@ const DaysDatepicker = ({
     const handleActiveStartDateChange = React.useCallback(
         ({ activeStartDate }: { activeStartDate: Date | null }) => {
             if (activeStartDate) {
-                onChangeCalendarMonth(moment(activeStartDate).format('YYYY-MM-DD'));
+                onChangeCalendarMonth(dayjs(activeStartDate).format('YYYY-MM-DD'));
             }
         },
         [onChangeCalendarMonth]

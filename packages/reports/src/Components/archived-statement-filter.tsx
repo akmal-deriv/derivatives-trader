@@ -1,6 +1,5 @@
 import React from 'react';
 import classNames from 'classnames';
-import moment from 'moment';
 
 import { Dropdown, useOnClickOutside } from '@deriv/components';
 import {
@@ -17,14 +16,14 @@ import {
     LegacyCalendar1pxIcon,
     LegacyChevronRight1pxIcon,
 } from '@deriv/quill-icons';
-import { toMoment } from '@deriv/shared';
+import { type Dayjs, dayjs, toMoment } from '@deriv/shared';
 import { ActionSheet, Button, Chip, DatePicker, RadioButton, RadioGroup, Text } from '@deriv-com/quill-ui';
 import { Localize, useTranslations } from '@deriv-com/translations';
 import { useDevice } from '@deriv-com/ui';
 
 type TDateChangeValues = {
-    to?: moment.Moment;
-    from?: moment.Moment;
+    to?: Dayjs;
+    from?: Dayjs;
     is_batch?: boolean;
 };
 
@@ -79,12 +78,10 @@ const RadioOption = ({ label, selected, value }: { label: string; selected: bool
     </span>
 );
 
-const computeDatesForFilter = (
-    value: string
-): { from?: moment.Moment; to?: moment.Moment; is_batch: boolean } | null => {
+const computeDatesForFilter = (value: string): { from?: Dayjs; to?: Dayjs; is_batch: boolean } | null => {
     if (value === '0') return { to: toMoment().endOf('day'), is_batch: true };
 
-    const date_map: Record<string, { from: moment.Moment; to: moment.Moment }> = {
+    const date_map: Record<string, { from: Dayjs; to: Dayjs }> = {
         Today: { from: toMoment().startOf('day'), to: toMoment().endOf('day') },
         Yesterday: {
             from: toMoment().subtract(1, 'days').startOf('day'),
@@ -161,8 +158,8 @@ const ArchivedStatementFilter = ({
 
     const applyRange = () => {
         if (!Array.isArray(chosen_range) || !chosen_range[0]) return;
-        const from = moment(chosen_range[0] as Date);
-        const to = chosen_range[1] ? moment(chosen_range[1] as Date).endOf('day') : from.clone().endOf('day');
+        const from = dayjs(chosen_range[0] as Date);
+        const to = chosen_range[1] ? dayjs(chosen_range[1] as Date).endOf('day') : from.endOf('day');
         const label = from.isSame(to, 'day')
             ? from.format('DD MMM YYYY')
             : `${from.format('DD MMM YYYY')} - ${to.format('DD MMM YYYY')}`;

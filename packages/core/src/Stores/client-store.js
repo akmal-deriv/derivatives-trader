@@ -1,9 +1,9 @@
 import Cookies from 'js-cookie';
 import { action, computed, makeObservable, observable, reaction, runInAction, when } from 'mobx';
-import moment from 'moment';
 
 import {
     clearAccountId,
+    dayjs,
     filterUrlQuery,
     getAccountId,
     getAccountType,
@@ -274,7 +274,7 @@ export default class ClientStore extends BaseStore {
                 email: authorize.email || '',
                 landing_company_shortcode: authorize.landing_company_name || '',
                 residence: authorize.country || '',
-                session_start: parseInt(moment().utc().valueOf() / 1000),
+                session_start: parseInt(dayjs().utc().valueOf() / 1000),
             };
 
             this.setLoginId(authorize.loginid);

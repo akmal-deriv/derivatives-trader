@@ -1,5 +1,5 @@
+import dayjs from '../../date/dayJs-config';
 import * as Duration from '../duration';
-import moment from 'moment';
 
 describe('buildDurationConfig', () => {
     const contract = {
@@ -100,7 +100,7 @@ describe('getExpiryType', () => {
     });
 
     it('Return daily if expiry date is tomorrow', () => {
-        store.expiry_date = moment().utc().add(1, 'days').toString();
+        store.expiry_date = dayjs().utc().add(1, 'day').toString();
         store.expiry_type = 'endtime';
         store.expiry_type = 'duration';
         store.duration_unit = 'd';

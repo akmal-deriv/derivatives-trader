@@ -1,8 +1,7 @@
 import React from 'react';
-import moment from 'moment';
 
 import { InputField, useOnClickOutside } from '@deriv/components';
-import { daysFromTodayTo, toMoment } from '@deriv/shared';
+import { type ConfigType, type Dayjs, daysFromTodayTo, toMoment } from '@deriv/shared';
 import { observer, useStore } from '@deriv/stores';
 import { useTranslations } from '@deriv-com/translations';
 import { useDevice } from '@deriv-com/ui';
@@ -12,7 +11,7 @@ import CompositeCalendarMobile from './composite-calendar-mobile';
 import SideList from './side-list';
 
 type TCompositeCalendar = {
-    onChange: (values: { to?: moment.Moment; from?: moment.Moment; is_batch?: boolean }) => void;
+    onChange: (values: { to?: Dayjs; from?: Dayjs; is_batch?: boolean }) => void;
     to: number;
     from: number;
 };
@@ -20,13 +19,13 @@ type TCompositeCalendar = {
 const TwoMonthPickerLazy = React.lazy(() => import(/* webpackChunkName: "two-month-picker" */ './two-month-picker'));
 
 const TwoMonthPickerLoadable = (props: {
-    onChange: (date: moment.Moment) => void;
-    isPeriodDisabled: (date: moment.Moment) => boolean;
+    onChange: (date: Dayjs) => void;
+    isPeriodDisabled: (date: Dayjs) => boolean;
     value: number;
 }) => (
     <React.Suspense fallback={null}>
         <TwoMonthPickerLazy
-            onChange={(date: moment.MomentInput) => props.onChange(toMoment(date))}
+            onChange={(date: ConfigType) => props.onChange(toMoment(date))}
             isPeriodDisabled={props.isPeriodDisabled}
             value={toMoment(props.value)}
         />
@@ -121,20 +120,20 @@ const CompositeCalendar = observer((props: TCompositeCalendar) => {
         validateClickOutside
     );
 
-    const setToDate = (date: moment.Moment) => {
+    const setToDate = (date: Dayjs) => {
         onChange({ to: toMoment(date).endOf('day') });
     };
 
-    const setFromDate = (date: moment.Moment) => {
+    const setFromDate = (date: Dayjs) => {
         onChange({ from: toMoment(date) });
         hideCalendar();
     };
 
-    const isPeriodDisabledTo = (date: moment.Moment) => {
+    const isPeriodDisabledTo = (date: Dayjs) => {
         return date.unix() < from || date.unix() > toMoment().endOf('day').unix();
     };
 
-    const isPeriodDisabledFrom = (date: moment.Moment) => date.unix() > to;
+    const isPeriodDisabledFrom = (date: Dayjs) => date.unix() > to;
 
     if (!isMobile) {
         return (

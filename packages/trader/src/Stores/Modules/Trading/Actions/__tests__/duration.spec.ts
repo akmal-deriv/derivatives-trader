@@ -1,6 +1,4 @@
-import moment from 'moment';
-
-import { TRADE_TYPES } from '@deriv/shared';
+import { dayjs, TRADE_TYPES } from '@deriv/shared';
 import { mockStore } from '@deriv/stores';
 
 import { ContractType } from '../../Helpers/contract-type';
@@ -148,7 +146,7 @@ const trade_store = {
         ...mockStore({}),
         common: {
             ...mockStore({}).common,
-            server_time: moment(new Date()).utc(),
+            server_time: dayjs(new Date()).utc(),
         },
     },
     strike_price_choices: { barrier: barrier_1, barrier_choices },

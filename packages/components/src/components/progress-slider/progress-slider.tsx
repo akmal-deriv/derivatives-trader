@@ -1,11 +1,13 @@
-import classNames from 'classnames';
 import React from 'react';
-import { getTimePercentage } from '@deriv/shared';
-import ProgressTicks from './progress-ticks';
+import classNames from 'classnames';
+
+import { type Dayjs, getTimePercentage } from '@deriv/shared';
+
 import RemainingTime from '../remaining-time';
 import Text from '../text';
-import moment from 'moment';
 import { TGetCardLables } from '../types';
+
+import ProgressTicks from './progress-ticks';
 
 type TProgressSliderProps = {
     className?: string;
@@ -13,7 +15,7 @@ type TProgressSliderProps = {
     expiry_time?: number;
     getCardLabels: TGetCardLables;
     is_loading: boolean;
-    server_time: moment.Moment;
+    server_time: Dayjs;
     start_time?: number;
     ticks_count?: number;
 };

@@ -1,14 +1,14 @@
 import React, { useCallback, useMemo } from 'react';
 import classNames from 'classnames';
-import moment from 'moment';
 
+import { type Dayjs, dayjs } from '@deriv/shared';
 import { Localize } from '@deriv-com/translations';
 
 interface TimeGridPickerProps {
     selectedTime: string;
     onTimeChange: (time: string) => void;
-    startTimes?: moment.Moment[];
-    endTimes?: moment.Moment[];
+    startTimes?: Dayjs[];
+    endTimes?: Dayjs[];
 }
 
 const TimeGridPicker: React.FC<TimeGridPickerProps> = ({ selectedTime, onTimeChange, startTimes, endTimes }) => {
@@ -33,7 +33,7 @@ const TimeGridPicker: React.FC<TimeGridPickerProps> = ({ selectedTime, onTimeCha
                 return false;
             }
 
-            const timeToCheck = moment().hour(hourNum).minute(minuteNum);
+            const timeToCheck = dayjs().hour(hourNum).minute(minuteNum);
 
             for (let i = 0; i < startTimes.length; i++) {
                 if (timeToCheck.isBetween(startTimes[i], endTimes[i], 'minute', '[]')) {

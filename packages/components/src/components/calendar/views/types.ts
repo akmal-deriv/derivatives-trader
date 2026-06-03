@@ -1,6 +1,10 @@
+import { type ConfigType, type Dayjs } from '@deriv/shared';
+
+import { type TCalendarUnit } from '../helpers/constants';
+
 export type CommonPropTypes = {
-    calendar_date: moment.MomentInput;
-    isPeriodDisabled: (date: moment.Moment, unit: moment.unitOfTime.StartOf) => boolean;
-    selected_date: moment.MomentInput;
-    updateSelected: (e: React.MouseEvent<HTMLSpanElement>, type: moment.unitOfTime.StartOf) => void;
+    calendar_date: ConfigType;
+    isPeriodDisabled: (date: Dayjs, unit: TCalendarUnit) => boolean;
+    selected_date: ConfigType;
+    updateSelected: (e: React.MouseEvent<HTMLSpanElement>, type: TCalendarUnit) => void;
 };

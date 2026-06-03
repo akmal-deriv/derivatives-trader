@@ -20,6 +20,7 @@ import {
     cloneObject,
     CONTRACT_TYPES,
     convertDurationLimit,
+    type Dayjs,
     extractInfoFromShortcode,
     findFirstOpenMarket,
     formatMoney,
@@ -289,7 +290,7 @@ export default class TradeStore extends BaseStore {
     start_date = 0; // 0 refers to 'now'
     start_dates_list: Array<{ text: string; value: number }> = [];
     start_time: string | null = null;
-    sessions: Array<{ open: moment.Moment; close: moment.Moment }> = [];
+    sessions: Array<{ open: Dayjs; close: Dayjs }> = [];
 
     market_open_times: string[] = [];
     // End Date Time

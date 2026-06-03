@@ -5,11 +5,12 @@ import { localize } from '@deriv-com/translations';
 
 import { TRouteConfig } from 'Types';
 
-import ContractDetailsSwitch from './ContractDetailsSwitch';
-import PositionsSwitch from './PositionsSwitch';
-
 // Lazy load route components for better code splitting
 const Trade = lazy(() => import(/* webpackChunkName: "trader-trade" */ 'AppV2/Containers/Trade'));
+const PositionsSwitch = lazy(() => import(/* webpackChunkName: "trader-positions-switch" */ './PositionsSwitch'));
+const ContractDetailsSwitch = lazy(
+    () => import(/* webpackChunkName: "trader-contract-details-switch" */ './ContractDetailsSwitch')
+);
 
 type TRouteConfigExtended = Omit<TRouteConfig, 'routes'> & {
     path: string;

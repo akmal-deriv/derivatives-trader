@@ -31,6 +31,23 @@ module.exports = function (env) {
                 maxAsyncRequests: 30,
                 maxInitialRequests: 30,
                 cacheGroups: {
+                    // Vendor CSS into its own file so it loads ahead of app CSS
+                    vendorStyles: {
+                        test: module =>
+                            module.type === 'css/mini-extract' && /[\\/]node_modules[\\/]/.test(module.identifier()),
+                        name: 'vendor',
+                        chunks: 'all',
+                        priority: 30,
+                        enforce: true,
+                    },
+                    // Quill UI is the largest UI dep in trader — group into one stable chunk
+                    quillUI: {
+                        test: /[\\/]node_modules[\\/]@deriv-com[\\/]quill-ui[\\/]/,
+                        name: 'quill-ui-vendor',
+                        priority: 40,
+                        enforce: true,
+                        reuseExistingChunk: true,
+                    },
                     default: {
                         minChunks: 2,
                         minSize: 75000,
@@ -68,7 +85,6 @@ module.exports = function (env) {
                 '@deriv-com/translations': '@deriv-com/translations',
                 '@deriv-com/smartcharts-champion': '@deriv-com/smartcharts-champion',
                 '@deriv-com/analytics': '@deriv-com/analytics',
-                moment: 'moment',
                 dayjs: 'dayjs',
             },
             /^@deriv\/shared\/.+$/,

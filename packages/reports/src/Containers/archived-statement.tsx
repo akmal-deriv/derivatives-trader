@@ -3,7 +3,7 @@ import { RouteComponentProps, withRouter } from 'react-router';
 import debounce from 'lodash.debounce';
 
 import { DataList, DataTable } from '@deriv/components';
-import { initMoment, toMoment, toTitleCase } from '@deriv/shared';
+import { type Dayjs, initMoment, toMoment, toTitleCase } from '@deriv/shared';
 import { observer, useStore } from '@deriv/stores';
 import { Localize, useTranslations } from '@deriv-com/translations';
 import { useDevice } from '@deriv-com/ui';
@@ -186,7 +186,7 @@ const ArchivedStatement = observer(({ component_icon }: TArchivedStatementProps)
 
     const is_empty = !is_loading && data.length === 0;
 
-    const handleDateChange = (date_values: { to?: moment.Moment; from?: moment.Moment; is_batch?: boolean }) => {
+    const handleDateChange = (date_values: { to?: Dayjs; from?: Dayjs; is_batch?: boolean }) => {
         const { from, to, is_batch } = date_values;
 
         if (from) {

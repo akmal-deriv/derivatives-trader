@@ -1,4 +1,8 @@
-const moment = require('moment');
+const dayjs = require('dayjs');
+const utc = require('dayjs/plugin/utc');
+
+dayjs.extend(utc);
+
 const BinarySocket = require('./socket_base');
 const PromiseUtils = require('@deriv-com/utils').PromiseUtils;
 
@@ -39,7 +43,7 @@ const ServerTime = (() => {
 
         const updateTime = () => {
             const time_since_response = performance.now() - performance_response_time;
-            server_time = moment(server_time_at_response + time_since_response).utc();
+            server_time = dayjs(server_time_at_response + time_since_response).utc();
 
             if (typeof onTimeUpdated === 'function') {
                 onTimeUpdated();

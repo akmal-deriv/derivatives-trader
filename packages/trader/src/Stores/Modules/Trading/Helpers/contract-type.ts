@@ -3,6 +3,7 @@ import {
     buildBarriersConfig,
     buildDurationConfig,
     cloneObject,
+    type Dayjs,
     getCleanedUpCategories,
     getContractCategoriesConfig,
     getContractSubtype,
@@ -406,8 +407,8 @@ export const ContractType = (() => {
 
     const getValidTime = (
         sessions: ReturnType<typeof getSessions>['sessions'],
-        compare_moment: moment.Moment,
-        start_moment?: moment.Moment
+        compare_moment: Dayjs,
+        start_moment?: Dayjs
     ) => {
         if (sessions && !isSessionAvailable(sessions, compare_moment)) {
             // first see if changing the minute brings it to the right session
@@ -605,7 +606,7 @@ export const ContractType = (() => {
         start_date: number,
         start_time?: string | null
     ) => {
-        let end_time: moment.Moment | string | null = null;
+        let end_time: Dayjs | string | null = null;
 
         if (expiry_type === 'endtime') {
             let market_close_time = '23:59:59';
@@ -619,9 +620,7 @@ export const ContractType = (() => {
             if (!start_date && ServerTime.get()?.isBefore(buildMoment(expiry_date), 'day')) {
                 end_time = market_close_time;
             } else {
-                const start_moment = start_date
-                    ? buildMoment(start_date, start_time)
-                    : (ServerTime.get() as moment.Moment);
+                const start_moment = start_date ? buildMoment(start_date, start_time) : (ServerTime.get() as Dayjs);
                 const end_moment = buildMoment(expiry_date, expiry_time);
 
                 end_time = end_moment.format('HH:mm');
@@ -631,15 +630,14 @@ export const ContractType = (() => {
                         sessions && !isSessionAvailable(sessions, start_moment.clone().add(5, 'minutes'));
                     end_time = start_moment.clone().add(is_end_of_day || is_end_of_session ? 0 : 5, 'minutes');
                     // Set the end_time to be multiple of 5 to be equal as the SELECTED_TIME that shown to the client.
-                    end_time = setMinuteMultipleByFive(end_time as moment.Moment).format('HH:mm');
+                    end_time = setMinuteMultipleByFive(end_time as Dayjs).format('HH:mm');
                 }
             }
         }
         return { expiry_time: end_time };
     };
 
-    const setMinuteMultipleByFive = (moment_obj: moment.Moment) =>
-        moment_obj.minute(Math.ceil(moment_obj.minute() / 5) * 5);
+    const setMinuteMultipleByFive = (moment_obj: Dayjs) => moment_obj.minute(Math.ceil(moment_obj.minute() / 5) * 5);
 
     const getTradeTypes = (contract_type: string) => ({
         trade_types: getPropertyValue(available_contract_types, [contract_type, 'config', 'trade_types']),

@@ -1,25 +1,33 @@
-import moment from 'moment';
+import dayjs, { type ConfigType, type Dayjs } from 'dayjs';
+import customParseFormat from 'dayjs/plugin/customParseFormat';
+import utc from 'dayjs/plugin/utc';
+
+dayjs.extend(utc);
+dayjs.extend(customParseFormat);
 
 /**
- * Function that converts a numerical epoch value into a Moment instance
+ * Convert epoch (seconds) to a UTC Dayjs object.
  */
-const epochToMoment = (epoch: number) => moment.unix(epoch).utc();
+const epochToMoment = (epoch: number): Dayjs => dayjs.unix(epoch).utc();
 
 /**
- * Function that takes a primitive type and converts it into a Moment instance
+ * Convert a primitive (epoch, ISO, or "DD MMM YYYY" string) to a UTC Dayjs object.
+ * Public API kept as `toMoment` because it's already used across the codebase.
  */
-export const toMoment = (value?: moment.MomentInput): moment.Moment => {
-    if (!value) return moment().utc(); // returns 'now' moment object
-    if (moment.isMoment(value) && value.isValid() && value.isUTC()) return value; // returns if already a moment object
-    if (typeof value === 'number') return epochToMoment(value); // returns epochToMoment() if not a date
-
-    if (/invalid/i.test(moment(value).toString())) {
-        const today_moment = moment();
-        const days_in_month = today_moment.utc().daysInMonth();
-        const value_as_number = moment.utc(value, 'DD MMM YYYY').valueOf() / (1000 * 60 * 60 * 24);
-        return value_as_number > days_in_month
-            ? moment.utc(today_moment.add(value.valueOf(), 'd'), 'DD MMM YYYY')
-            : moment.utc(value, 'DD MMM YYYY'); // returns target date
+export const toMoment = (value?: ConfigType): Dayjs => {
+    if (!value) return dayjs().utc();
+    if (dayjs.isDayjs(value)) {
+        if (value.isValid() && value.isUTC()) return value;
     }
-    return moment.utc(value);
+    if (typeof value === 'number') return epochToMoment(value);
+
+    // Strings matching "28 May 2026" pattern need the format hint to parse as UTC.
+    if (typeof value === 'string' && /^\d{1,2}\s[A-Za-z]{3,}\s\d{4}$/.test(value)) {
+        return dayjs.utc(value, 'DD MMM YYYY');
+    }
+
+    const parsed = dayjs.utc(value);
+    if (parsed.isValid()) return parsed;
+
+    return dayjs.utc(value as string, 'DD MMM YYYY');
 };

@@ -1,14 +1,6 @@
 import { action, makeObservable, observable } from 'mobx';
 
-import {
-    initMoment,
-    isMobile,
-    mapErrorMessage,
-    routes,
-    setLocale,
-    toMoment,
-    UNSUPPORTED_LANGUAGES,
-} from '@deriv/shared';
+import { isMobile, mapErrorMessage, routes, setLocale, toMoment, UNSUPPORTED_LANGUAGES } from '@deriv/shared';
 import { getAllowedLanguages, getInitialLanguage } from '@deriv-com/translations';
 
 import BaseStore from './base-store';
@@ -118,9 +110,8 @@ export default class CommonStore extends BaseStore {
         }
         window.history.pushState({ path: new_url.toString() }, '', new_url.toString());
 
-        // Update i18n and moment locale
+        // Update i18n and dayjs locale
         try {
-            await initMoment(key);
             await setLocale(key);
             this.changeCurrentLanguage(key);
         } catch (e) {

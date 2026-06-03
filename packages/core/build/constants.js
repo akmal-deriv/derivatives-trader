@@ -4,7 +4,8 @@ const CopyPlugin = require('copy-webpack-plugin');
 const HtmlWebPackPlugin = require('html-webpack-plugin');
 const HtmlWebpackTagsPlugin = require('html-webpack-tags-plugin');
 const PreloadWebpackPlugin = require('preload-webpack-plugin');
-const { IgnorePlugin, DefinePlugin } = require('webpack');
+const { DefinePlugin } = require('webpack');
+const { createDayjsLocalePlugin } = require('../../shared/build/dayjs-locale-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 const path = require('path');
@@ -150,7 +151,7 @@ const plugins = ({ base, is_test_env }) => {
         new HtmlWebPackPlugin(htmlOutputConfig(IS_RELEASE)),
         new HtmlWebpackTagsPlugin(htmlInjectConfig()),
         new PreloadWebpackPlugin(htmlPreloadConfig()),
-        new IgnorePlugin({ resourceRegExp: /^\.\/locale$/, contextRegExp: /moment$/ }),
+        createDayjsLocalePlugin(),
         new MiniCssExtractPlugin(cssConfig()),
         new CircularDependencyPlugin({ exclude: /node_modules/, failOnError: true }),
         ...(IS_RELEASE

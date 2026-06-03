@@ -1,7 +1,9 @@
 import React from 'react';
 import classNames from 'classnames';
+
 import { Collapsible, ContractCard, useHover } from '@deriv/components';
 import {
+    type Dayjs,
     getCardLabels,
     getContractTypeDisplay,
     getEndTime,
@@ -13,6 +15,7 @@ import {
 } from '@deriv/shared';
 import { observer, useStore } from '@deriv/stores';
 import { useDevice } from '@deriv-com/ui';
+
 import MarketClosedContractOverlay from './market-closed-contract-overlay';
 import { SwipeableContractDrawer } from './swipeable-components';
 
@@ -25,7 +28,7 @@ type TContractDrawerCardProps = {
     is_collapsed: boolean;
     is_market_closed: boolean;
     result?: string;
-    server_time?: moment.Moment;
+    server_time?: Dayjs;
     toggleContractAuditDrawer: () => void;
 } & Pick<
     TContractCardBodyProps,

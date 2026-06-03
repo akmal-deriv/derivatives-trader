@@ -2,7 +2,7 @@ import React from 'react';
 
 import { RemainingTime } from '@deriv/components';
 import { LabelPairedStopwatchCaptionRegularIcon } from '@deriv/quill-icons';
-import { getCardLabels } from '@deriv/shared';
+import { type Dayjs, getCardLabels } from '@deriv/shared';
 import { TPortfolioPosition } from '@deriv/stores/types';
 import { Tag } from '@deriv-com/quill-ui';
 
@@ -30,7 +30,7 @@ export const ContractCardStatusTimer = ({
                     as='span'
                     end_time={date_expiry}
                     getCardLabels={getCardLabels}
-                    start_time={serverTime as moment.Moment}
+                    start_time={serverTime as Dayjs}
                     key='remaining-time'
                 />
             );
@@ -39,7 +39,7 @@ export const ContractCardStatusTimer = ({
     };
     const displayedDuration = getDisplayedDuration();
 
-    if (!date_expiry || (serverTime as moment.Moment)?.unix() > +date_expiry || isSold) {
+    if (!date_expiry || (serverTime as Dayjs)?.unix() > +date_expiry || isSold) {
         return <Tag className='status' label={getCardLabels().CLOSED} variant='custom' color='custom' size='sm' />;
     }
     return displayedDuration ? (

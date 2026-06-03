@@ -94,7 +94,7 @@
         "lodash.debounce": "^4.0.8",
         "lodash.throttle": "^4.1.1",
         "mobx": "^6.6.1",
-        "moment": "^2.29.2",
+        "dayjs": "^1.11.11",
         "null-loader": "^4.0.1",
         "object.fromentries": "^2.0.0",
         "prop-types": "^15.7.2",

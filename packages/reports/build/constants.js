@@ -1,6 +1,6 @@
 const CircularDependencyPlugin = require('circular-dependency-plugin');
 const { CleanWebpackPlugin } = require('clean-webpack-plugin');
-const IgnorePlugin = require('webpack').IgnorePlugin;
+const { createDayjsLocalePlugin } = require('../../shared/build/dayjs-locale-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 const path = require('path');
@@ -115,7 +115,7 @@ const MINIMIZERS = !IS_RELEASE
 
 const plugins = (base, is_test_env) => [
     new CleanWebpackPlugin(),
-    new IgnorePlugin({ resourceRegExp: /^\.\/locale$/, contextRegExp: /moment$/ }),
+    createDayjsLocalePlugin(),
     new MiniCssExtractPlugin(cssConfig()),
     new CircularDependencyPlugin({ exclude: /node_modules/, failOnError: true }),
     ...(IS_RELEASE

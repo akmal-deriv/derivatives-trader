@@ -18,7 +18,7 @@ const PageUnavailable = React.lazy(() => import(/* webpackChunkName: "unavailabl
 
 const MenuPage = React.lazy(() => import(/* webpackChunkName: "menu" */ 'Modules/Menu'));
 
-const Trader = React.lazy(() => import(/* webpackChunkName: "trader" */ '@deriv/trader'));
+const Trader = React.lazy(() => import(/* webpackChunkName: "trader", webpackPreload: true */ '@deriv/trader'));
 
 const Reports = React.lazy(() => import(/* webpackChunkName: "reports" */ '@deriv/reports'));
 

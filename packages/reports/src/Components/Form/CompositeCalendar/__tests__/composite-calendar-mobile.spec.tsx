@@ -1,7 +1,7 @@
 import React from 'react';
 
 import { toMoment } from '@deriv/shared';
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import CompositeCalendarMobile from '../composite-calendar-mobile';
@@ -178,7 +178,7 @@ describe('CompositeCalendarMobile', () => {
         const newDate = toMoment().format('DD MMM YYYY');
 
         await act(async () => {
-            await userEvent.type(inputForStartDate, newDate);
+            fireEvent.change(inputForStartDate, { target: { value: newDate } });
         });
 
         await waitFor(() => {
@@ -203,7 +203,7 @@ describe('CompositeCalendarMobile', () => {
         const newDate = toMoment().format('DD MMM YYYY');
 
         await act(async () => {
-            await userEvent.type(inputForEndDate, newDate);
+            fireEvent.change(inputForEndDate, { target: { value: newDate } });
         });
 
         await waitFor(() => {

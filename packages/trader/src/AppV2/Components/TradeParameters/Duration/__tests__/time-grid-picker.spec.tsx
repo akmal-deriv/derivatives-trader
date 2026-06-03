@@ -1,6 +1,6 @@
 import React from 'react';
-import moment from 'moment';
 
+import { dayjs } from '@deriv/shared';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
@@ -83,8 +83,8 @@ describe('TimeGridPicker', () => {
         });
 
         it('disables times outside market hours using isBetween logic', () => {
-            const startTimes = [moment().hour(9).minute(0)];
-            const endTimes = [moment().hour(17).minute(0)];
+            const startTimes = [dayjs().hour(9).minute(0)];
+            const endTimes = [dayjs().hour(17).minute(0)];
 
             render(<TimeGridPicker {...defaultProps} startTimes={startTimes} endTimes={endTimes} />);
 
@@ -98,8 +98,8 @@ describe('TimeGridPicker', () => {
         });
 
         it('handles boundary times correctly with isBetween inclusive', () => {
-            const startTimes = [moment().hour(9).minute(0)];
-            const endTimes = [moment().hour(17).minute(0)];
+            const startTimes = [dayjs().hour(9).minute(0)];
+            const endTimes = [dayjs().hour(17).minute(0)];
 
             render(
                 <TimeGridPicker {...defaultProps} selectedTime='09:00' startTimes={startTimes} endTimes={endTimes} />
@@ -113,8 +113,8 @@ describe('TimeGridPicker', () => {
         });
 
         it('handles multiple market sessions', () => {
-            const startTimes = [moment().hour(9).minute(0), moment().hour(14).minute(0)];
-            const endTimes = [moment().hour(12).minute(0), moment().hour(17).minute(0)];
+            const startTimes = [dayjs().hour(9).minute(0), dayjs().hour(14).minute(0)];
+            const endTimes = [dayjs().hour(12).minute(0), dayjs().hour(17).minute(0)];
 
             render(<TimeGridPicker {...defaultProps} startTimes={startTimes} endTimes={endTimes} />);
 
@@ -128,8 +128,8 @@ describe('TimeGridPicker', () => {
         });
 
         it('does not call onTimeChange when clicking disabled hour', async () => {
-            const startTimes = [moment().hour(9).minute(0)];
-            const endTimes = [moment().hour(17).minute(0)];
+            const startTimes = [dayjs().hour(9).minute(0)];
+            const endTimes = [dayjs().hour(17).minute(0)];
 
             render(<TimeGridPicker {...defaultProps} startTimes={startTimes} endTimes={endTimes} />);
 
@@ -140,8 +140,8 @@ describe('TimeGridPicker', () => {
         });
 
         it('disables minutes outside market hours for selected hour', () => {
-            const startTimes = [moment().hour(9).minute(30)];
-            const endTimes = [moment().hour(17).minute(45)];
+            const startTimes = [dayjs().hour(9).minute(30)];
+            const endTimes = [dayjs().hour(17).minute(45)];
 
             render(
                 <TimeGridPicker {...defaultProps} selectedTime='09:00' startTimes={startTimes} endTimes={endTimes} />

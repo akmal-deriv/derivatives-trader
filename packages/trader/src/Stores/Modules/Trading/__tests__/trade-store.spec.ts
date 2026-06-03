@@ -1,8 +1,7 @@
 import { configure } from 'mobx';
-import moment from 'moment';
 
 import { TActiveSymbolsResponse } from '@deriv/api';
-import { TRADE_TYPES } from '@deriv/shared';
+import { dayjs, TRADE_TYPES } from '@deriv/shared';
 import { mockStore } from '@deriv/stores';
 
 import { TRootStore } from 'Types';
@@ -11,23 +10,12 @@ import TradeStore from '../trade-store';
 
 configure({ safeDescriptors: false });
 
-// Mock moment to return consistent time
-jest.mock('moment', () => {
-    const actualMoment = jest.requireActual('moment');
-    return (date?: any) => {
-        if (!date) {
-            return actualMoment('2024-02-26T11:59:59.488Z');
-        }
-        return actualMoment(date);
-    };
-});
-
 // Mock ServerTime
 jest.mock('_common/base/server_time', () => {
-    const mockMoment = jest.requireActual('moment');
+    const actualDayjs = jest.requireActual('dayjs');
     return {
-        get: () => mockMoment('2024-02-26T11:59:59.488Z'),
-        timePromise: () => Promise.resolve(mockMoment('2024-02-26T11:59:59.488Z')),
+        get: () => actualDayjs('2024-02-26T11:59:59.488Z'),
+        timePromise: () => Promise.resolve(actualDayjs('2024-02-26T11:59:59.488Z')),
     };
 });
 
@@ -105,7 +93,7 @@ describe('TradeStore', () => {
     beforeEach(() => {
         mockRootStore = mockStore({
             common: {
-                server_time: moment('2024-02-26T11:59:59.488Z'),
+                server_time: dayjs('2024-02-26T11:59:59.488Z'),
                 setServicesError: jest.fn(),
                 setSelectedContractType: jest.fn(),
                 showError: jest.fn(),

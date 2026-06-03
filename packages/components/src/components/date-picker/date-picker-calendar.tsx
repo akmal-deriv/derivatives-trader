@@ -3,6 +3,8 @@ import ReactDOM from 'react-dom';
 import { CSSTransition } from 'react-transition-group';
 import classNames from 'classnames';
 
+import { type ConfigType } from '@deriv/shared';
+
 import { useBlockScroll } from '../../hooks';
 import Calendar from '../calendar';
 
@@ -33,7 +35,7 @@ type TDatePickerCalendarProps = {
         descrip: string;
     }>;
     has_range_selection?: boolean;
-    onHover?: (selected_date: moment.MomentInput | null) => void;
+    onHover?: (selected_date: ConfigType | null) => void;
     should_show_today?: boolean;
 };
 

@@ -8,9 +8,9 @@
     },
     "dependencies": {
         "bowser": "^2.9.0",
+        "dayjs": "^1.11.11",
         "lodash.groupby": "^4.6.0",
-        "lodash.pickby": "^4.6.0",
-        "moment": "^2.29.2"
+        "lodash.pickby": "^4.6.0"
     },
     "devDependencies": {
         "@types/lodash.groupby": "^4.6.7",

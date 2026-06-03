@@ -1,6 +1,6 @@
 import React from 'react';
 import type { RouteComponentProps } from 'react-router';
-import type { Moment } from 'moment';
+import type { Dayjs } from 'dayjs';
 
 import type {
     TActiveSymbolsResponse,
@@ -274,7 +274,7 @@ type TCommonStore = {
     is_network_online: boolean;
     routeBackInApp: (history: Pick<RouteComponentProps, 'history'>, additional_platform_path?: string[]) => void;
     routeTo: (pathname: string) => void;
-    server_time: Moment;
+    server_time: Dayjs;
     changeCurrentLanguage: (new_language: string) => void;
     changeSelectedLanguage: (key: string) => void;
     current_language: string;

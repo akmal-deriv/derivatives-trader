@@ -1,10 +1,9 @@
-import moment from 'moment';
-
 import { TTicksStreamResponse } from '@deriv/api';
 
 import { getSupportedContracts } from '../constants/contract';
 import { isAccumulatorContract, isOpen, isUserSold } from '../contract';
 import { TContractInfo, TContractStore } from '../contract/contract-types';
+import dayjs from '../date/dayJs-config';
 import { isEmptyObject } from '../object';
 
 type TickSpotData = NonNullable<TTicksStreamResponse['tick']>;
@@ -13,7 +12,7 @@ export const isContractElapsed = (contract_info: TContractInfo, tick?: null | Ti
     if (isEmptyObject(tick) || isEmptyObject(contract_info)) return false;
     const end_time = getEndTime(contract_info) || 0;
     if (end_time && tick && tick.epoch) {
-        const seconds = moment.duration(moment.unix(tick.epoch).diff(moment.unix(end_time))).asSeconds();
+        const seconds = dayjs.duration(dayjs.unix(tick.epoch).diff(dayjs.unix(end_time))).asSeconds();
         return seconds >= 2;
     }
     return false;

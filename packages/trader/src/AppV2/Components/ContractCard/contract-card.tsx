@@ -5,6 +5,7 @@ import clsx from 'clsx';
 
 import { IconTradeTypes, Money, RemainingTime } from '@deriv/components';
 import {
+    type Dayjs,
     getCardLabels,
     getCurrentTick,
     getMarketName,
@@ -226,7 +227,7 @@ const ContractCard = ({
                                                     end_time={cancellation_date_expiry}
                                                     format='mm:ss'
                                                     getCardLabels={getCardLabels}
-                                                    start_time={serverTime as moment.Moment}
+                                                    start_time={serverTime as Dayjs}
                                                 />
                                             </CaptionText>
                                         )}

@@ -1,5 +1,7 @@
 import React from 'react';
-import { toMoment, daysFromTodayTo } from '@deriv/shared';
+
+import { daysFromTodayTo, toMoment } from '@deriv/shared';
+
 import Text from '../text';
 
 type TRelativeDatepickerProps = {
@@ -19,7 +21,9 @@ const RelativeDatepicker = ({ onChange, min_date = 0, max_date, title }: TRelati
         onChange(+(daysFromTodayTo(e.target.value) ?? 0));
     };
 
-    const min_date_moment = toMoment().add(min_date, 'd').format('YYYY-MM-DD');
+    const min_date_moment = toMoment()
+        .add(min_date ?? 0, 'd')
+        .format('YYYY-MM-DD');
     const max_date_moment = max_date ? toMoment().add(max_date, 'd').format('YYYY-MM-DD') : '';
     return (
         <div className='dc-relative-datepicker' onClick={clickHandler}>

@@ -1,16 +1,15 @@
 import React from 'react';
-import moment from 'moment';
 
-import { toMoment } from '@deriv/shared';
-import { Localize } from '@deriv-com/translations';
+import { type Dayjs, dayjs, toMoment } from '@deriv/shared';
 import { ActionSheet, DatePicker } from '@deriv-com/quill-ui';
+import { Localize } from '@deriv-com/translations';
 
 import { DEFAULT_DATE_FORMATTING_CONFIG } from 'AppV2/Utils/positions-utils';
 
 type TDateRangePicker = {
     applyHandler: () => void;
     handleDateChange: (
-        values: { to?: moment.Moment; from?: moment.Moment; is_batch?: boolean },
+        values: { to?: Dayjs; from?: Dayjs; is_batch?: boolean },
         otherParams?: {
             date_range?: Record<string, string | number>;
             shouldFilterContractTypes?: boolean;
@@ -36,7 +35,7 @@ const DateRangePicker = ({
             handleDateChange(
                 {
                     from: toMoment(chosenRange[0]),
-                    to: chosenRange[1] ? toMoment(chosenRange[1]) : moment(chosenRange[0]).endOf('day'),
+                    to: chosenRange[1] ? toMoment(chosenRange[1]) : dayjs(chosenRange[0] as Date | string).endOf('day'),
                 },
                 { shouldFilterContractTypes: true }
             );

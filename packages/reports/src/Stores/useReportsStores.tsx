@@ -1,14 +1,17 @@
 import React from 'react';
+
+import { type Dayjs } from '@deriv/shared';
 import { useStore } from '@deriv/stores';
+
+import { formatProfitTableTransactions } from './Modules/Profit/Helpers/format-response';
 import ProfitStores from './Modules/Profit/profit-store';
 import StatementStores from './Modules/Statement/statement-store';
-import { formatProfitTableTransactions } from './Modules/Profit/Helpers/format-response';
 
 type TOverrideProfitStore = Omit<ProfitStores, 'data' | 'date_from' | 'totals' | 'handleDateChange'> & {
     date_from: number;
     data: ReturnType<typeof formatProfitTableTransactions>[];
     handleDateChange: (
-        values: { to?: moment.Moment; from?: moment.Moment; is_batch?: boolean },
+        values: { to?: Dayjs; from?: Dayjs; is_batch?: boolean },
         otherParams?: {
             date_range?: Record<string, string | number>;
             shouldFilterContractTypes?: boolean;

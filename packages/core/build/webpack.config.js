@@ -92,9 +92,9 @@ module.exports = function (env) {
                         enforce: true,
                         reuseExistingChunk: true,
                     },
-                    // Split date/time libraries
+                    // Split dayjs (and its locales/plugins) into a stable long-lived chunk
                     datetime: {
-                        test: /[\\/]node_modules[\\/](moment|dayjs)[\\/]/,
+                        test: /[\\/]node_modules[\\/]dayjs[\\/]/,
                         name: 'datetime-vendor',
                         priority: 28,
                         enforce: true,

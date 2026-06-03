@@ -1,9 +1,9 @@
 import React from 'react';
 import classNames from 'classnames';
-import moment from 'moment';
 
 import { ArrowIndicator, ContractCard, ContractCardSell, Label, Money, Popover } from '@deriv/components';
 import {
+    type Dayjs,
     formatDate,
     getCardLabels,
     getCurrencyDisplayCode,
@@ -52,7 +52,7 @@ type TMultiplierOpenPositionstemplateProps = Pick<
     'getPositionById' | 'onClickCancel' | 'onClickSell'
 > & {
     currency: string;
-    server_time: moment.Moment;
+    server_time: Dayjs;
     isDesktop: boolean;
 };
 

@@ -1,9 +1,8 @@
 import React from 'react';
-import moment from 'moment';
 
-import { toMoment } from '@deriv/shared';
-import { Localize } from '@deriv-com/translations';
+import { type Dayjs, toMoment } from '@deriv/shared';
 import { ActionSheet, Chip, RadioGroup, Text } from '@deriv-com/quill-ui';
+import { Localize } from '@deriv-com/translations';
 
 import DateRangePicker from 'AppV2/Components/DatePicker';
 
@@ -12,7 +11,7 @@ import CustomDateFilterButton from './custom-time-filter-button';
 type TTimeFilter = {
     customTimeRangeFilter?: string;
     handleDateChange: (
-        values: { to?: moment.Moment; from?: moment.Moment; is_batch?: boolean },
+        values: { to?: Dayjs; from?: Dayjs; is_batch?: boolean },
         otherParams?: {
             date_range?: Record<string, string | number>;
             shouldFilterContractTypes?: boolean;
@@ -24,7 +23,7 @@ type TTimeFilter = {
     timeFilter?: string;
 };
 
-type TDateChangeArguments = Record<string, { from: moment.Moment; to: moment.Moment }>;
+type TDateChangeArguments = Record<string, { from: Dayjs; to: Dayjs }>;
 
 const timeFilterList = [
     {

@@ -1,8 +1,10 @@
 import React from 'react';
-import { mockContractInfo, TContractInfo } from '@deriv/shared';
+import { MemoryRouter } from 'react-router-dom';
+
+import { type Dayjs, mockContractInfo, TContractInfo } from '@deriv/shared';
 import { mockStore } from '@deriv/stores';
 import { render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+
 import ReportsProviders from '../../reports-providers';
 import ProgressSliderStream from '../progress-slider-stream';
 
@@ -35,7 +37,7 @@ describe('ProgressSliderStream', () => {
     });
 
     it('should be empty if server_time is undefined', () => {
-        mocked_store.common.server_time = undefined as unknown as moment.Moment;
+        mocked_store.common.server_time = undefined as unknown as Dayjs;
         const { container } = render(mockedProgressSliderStream());
         expect(container).toBeEmptyDOMElement();
     });

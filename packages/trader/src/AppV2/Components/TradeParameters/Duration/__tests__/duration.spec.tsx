@@ -1,5 +1,4 @@
-import moment from 'moment';
-
+import { dayjs } from '@deriv/shared';
 import { mockStore } from '@deriv/stores';
 import { TCoreStores } from '@deriv/stores/types';
 import { useSnackbar } from '@deriv-com/quill-ui';
@@ -77,7 +76,7 @@ describe('Duration', () => {
                 },
             },
             common: {
-                server_time: moment('2024-10-10T11:23:10.895Z'),
+                server_time: dayjs('2024-10-10T11:23:10.895Z'),
             },
         });
     });
@@ -279,7 +278,7 @@ describe('Duration - Mobile', () => {
                 },
             },
             common: {
-                server_time: moment('2024-10-10T11:23:10.895Z'),
+                server_time: dayjs('2024-10-10T11:23:10.895Z'),
             },
         });
     });

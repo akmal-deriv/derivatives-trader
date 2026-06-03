@@ -4,6 +4,7 @@ import classNames from 'classnames';
 
 import { LabelPairedQuestionCaptionBoldIcon } from '@deriv/quill-icons';
 import {
+    type Dayjs,
     getCurrentTick,
     getGrowthRatePercentage,
     getLocalizedTurbosSubtype,
@@ -38,7 +39,7 @@ export type TContractCardHeaderProps = {
     is_sell_requested: boolean;
     is_valid_to_sell?: boolean;
     onClickSell: (contract_id?: number) => void;
-    server_time: moment.Moment;
+    server_time: Dayjs;
     id?: number;
     is_sold?: boolean;
 };

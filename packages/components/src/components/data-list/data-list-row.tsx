@@ -2,7 +2,7 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import classNames from 'classnames';
 
-import { clickAndKeyEventHandler, useIsMounted } from '@deriv/shared';
+import { clickAndKeyEventHandler, type Dayjs, useIsMounted } from '@deriv/shared';
 
 import { useDebounce } from '../../hooks/use-debounce';
 import { TSource } from '../data-table/table-row';
@@ -14,7 +14,7 @@ type TMobileRowRenderer = {
     row?: TRow;
     is_footer?: boolean;
     columns_map?: Record<TColIndex, TDataListCell['column']>;
-    server_time?: moment.Moment;
+    server_time?: Dayjs;
     onClickCancel: (contract_id?: number) => void;
     onClickSell: (contract_id?: number) => void;
     measure?: () => void;

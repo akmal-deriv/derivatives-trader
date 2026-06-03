@@ -1,6 +1,7 @@
 import React from 'react';
 import { ProgressBar, ProgressSliderMobile, DataList, ContractCard, PositionsDrawerCard } from '@deriv/components';
 import {
+    type Dayjs,
     isAccumulatorContract,
     isMultiplierContract,
     isVanillaContract,
@@ -15,7 +16,6 @@ import {
 } from '@deriv/shared';
 import { useStore } from '@deriv/stores';
 import { TColIndex } from 'Types';
-import moment from 'moment';
 
 type TRangeFloatZeroToOne = React.ComponentProps<typeof ProgressBar>['value'];
 type TPortfolioStore = ReturnType<typeof useStore>['portfolio'];
@@ -36,7 +36,7 @@ export type TMobileRowRenderer = TUiStore & {
     is_footer?: boolean;
     columns_map: Record<TColIndex, TDataListCell['column']>;
     getContractById: ReturnType<typeof useStore>['contract_trade']['getContractById'];
-    server_time: moment.Moment;
+    server_time: Dayjs;
     onClickCancel: (contract_id?: number) => void;
     onClickRemove: TPortfolioStore['removePositionById'];
     onClickSell: (contract_id?: number) => void;

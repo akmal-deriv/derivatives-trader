@@ -1,15 +1,17 @@
 import React from 'react';
 import classNames from 'classnames';
-import { toMoment } from '@deriv/shared';
+
 import { LegacyCalendar1pxIcon } from '@deriv/quill-icons';
+import { type Dayjs, toMoment } from '@deriv/shared';
+
 import Text from '../text';
 
 type TDatePickerNativeProps = Omit<React.HTMLAttributes<HTMLInputElement>, 'onSelect' | 'onChange'> & {
     value: string | null;
     label?: string;
     placeholder?: string;
-    max_date?: moment.Moment | string;
-    min_date?: moment.Moment | string;
+    max_date?: Dayjs | string;
+    min_date?: Dayjs | string;
     display_format?: string;
     data_testid?: string;
     name?: string;
