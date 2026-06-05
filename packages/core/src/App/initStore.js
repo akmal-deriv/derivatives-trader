@@ -95,7 +95,12 @@ export const initStore = async notification_messages => {
     root_store.common.init();
     root_store.ui.init(notification_messages);
 
-    return { root_store, external_id, account_id: getAccountId() };
+    const current_account_id = getAccountId();
+    if (current_account_id) {
+        root_store.client.setIsLoggingIn(true);
+    }
+
+    return { root_store, external_id, account_id: current_account_id };
 };
 
 // Runs in the background after React has rendered the app shell. Performs the remaining REST

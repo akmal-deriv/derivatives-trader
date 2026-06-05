@@ -1,6 +1,8 @@
 import React from 'react';
+import { matchPath, useLocation } from 'react-router-dom';
 
 import { useMobileBridge, useTrackJS } from '@deriv/api';
+import { routes } from '@deriv/shared';
 import { observer, useStore } from '@deriv/stores';
 import { ThemeProvider } from '@deriv-com/quill-ui';
 import { getInitialLanguage, useTranslations } from '@deriv-com/translations';
@@ -25,6 +27,9 @@ const AppContent: React.FC<{ passthrough: any }> = observer(({ passthrough }) =>
     const { is_dark_mode_on } = store.ui;
 
     const { isMobile } = useDevice();
+    const location = useLocation();
+
+    const hide_header = !!matchPath(location.pathname, { path: routes.contract, exact: true });
 
     const { switchLanguage } = useTranslations();
     const { isBridgeAvailable, sendBridgeEvent } = useMobileBridge();
@@ -70,7 +75,7 @@ const AppContent: React.FC<{ passthrough: any }> = observer(({ passthrough }) =>
     return (
         <ThemeProvider theme={is_dark_mode_on ? 'dark' : 'light'}>
             <LandscapeBlocker />
-            {isMobile && <Header />}
+            {isMobile && !hide_header && <Header />}
             <ErrorBoundary root_store={store}>
                 <AppContents>
                     <Routes {...({ passthrough } as any)} />
