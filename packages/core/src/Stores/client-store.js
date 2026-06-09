@@ -248,7 +248,8 @@ export default class ClientStore extends BaseStore {
                 user_id,
             };
             Cookies.set('region', getRegion(landing_company_shortcode, residence), { domain });
-            Cookies.set('client_information', client_information, { domain });
+            // js-cookie v3 no longer auto-serializes objects (v2 did); stringify explicitly so readers (e.g. analytics) can JSON.parse it
+            Cookies.set('client_information', JSON.stringify(client_information), { domain });
             this.has_cookie_account = true;
         } else {
             removeCookies('region', 'client_information');
@@ -481,15 +482,23 @@ export default class ClientStore extends BaseStore {
     async getAnalyticsConfig(isLoggedOut = false) {
         const broker = this.loginid?.match(/[a-zA-Z]+/g)?.join('');
 
+        // js-cookie v3 removed Cookies.getJSON(); replicate its v2 behavior (parse JSON, fall back to the raw string on failure)
+        const utm_data_cookie = Cookies.get('utm_data');
+        let utm_data;
+        try {
+            utm_data = utm_data_cookie === undefined ? undefined : JSON.parse(utm_data_cookie);
+        } catch (e) {
+            utm_data = utm_data_cookie;
+        }
         const ppc_campaign_cookies =
-            Cookies.getJSON('utm_data') === 'null'
+            utm_data === 'null'
                 ? {
                       utm_source: 'no source',
                       utm_medium: 'no medium',
                       utm_campaign: 'no campaign',
                       utm_content: 'no content',
                   }
-                : Cookies.getJSON('utm_data');
+                : utm_data;
 
         const residence_country = !isLoggedOut ? this.residence : '';
         const login_status = !isLoggedOut && this.is_logged_in;

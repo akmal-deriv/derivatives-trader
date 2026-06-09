@@ -207,7 +207,8 @@ CookieStorage.prototype = {
         if (!this.initialized) this.read();
         this.value = val;
         if (expireDate) this.expires = expireDate;
-        Cookies.set(this.cookie_name, this.value, {
+        // js-cookie v3 no longer auto-serializes objects (v2 did); stringify explicitly to keep the JSON.parse round-trip in read()
+        Cookies.set(this.cookie_name, JSON.stringify(this.value), {
             expires: this.expires,
             path: this.path,
             domain: this.domain,
@@ -221,7 +222,8 @@ CookieStorage.prototype = {
     set(key: string, val: string) {
         if (!this.initialized) this.read();
         this.value[key] = val;
-        Cookies.set(this.cookie_name, this.value, {
+        // js-cookie v3 no longer auto-serializes objects (v2 did); stringify explicitly to keep the JSON.parse round-trip in read()
+        Cookies.set(this.cookie_name, JSON.stringify(this.value), {
             expires: new Date(this.expires),
             path: this.path,
             domain: this.domain,
