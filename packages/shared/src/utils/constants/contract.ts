@@ -617,7 +617,15 @@ export const getSupportedContracts = (is_high_low?: boolean) =>
             name: 'Ends Outside',
             position: 'top',
         },
+        [CONTRACT_TYPES.EXPIRYMISSE]: {
+            name: 'Ends Outside',
+            position: 'top',
+        },
         [CONTRACT_TYPES.END.IN]: {
+            name: 'Ends Between',
+            position: 'bottom',
+        },
+        [CONTRACT_TYPES.EXPIRYRANGEE]: {
             name: 'Ends Between',
             position: 'bottom',
         },

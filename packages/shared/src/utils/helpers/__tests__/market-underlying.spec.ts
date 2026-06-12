@@ -135,6 +135,12 @@ describe('market-underlying', () => {
             expect(getTradeTypeName(position.contract_type)).toBe('Rise');
             expect(getTradeTypeName(CONTRACT_TYPES.PUT)).toBe('Fall');
         });
+        it('should return the correct display name for End contracts including the "or equal" barrier variants', () => {
+            expect(getTradeTypeName(CONTRACT_TYPES.END.IN)).toBe('Ends Between');
+            expect(getTradeTypeName(CONTRACT_TYPES.EXPIRYRANGEE)).toBe('Ends Between');
+            expect(getTradeTypeName(CONTRACT_TYPES.END.OUT)).toBe('Ends Outside');
+            expect(getTradeTypeName(CONTRACT_TYPES.EXPIRYMISSE)).toBe('Ends Outside');
+        });
         it('should return the correct Up or Down contract type display name when show_button_name is true', () => {
             expect(getTradeTypeName(CONTRACT_TYPES.TURBOS.LONG, { showButtonName: true })).toBe('Up');
             expect(getTradeTypeName(CONTRACT_TYPES.TURBOS.SHORT, { showButtonName: true })).toBe('Down');
