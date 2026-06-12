@@ -619,9 +619,13 @@ export default class TradeStore extends BaseStore {
                         tradeStoreObj.contract_type = urlContractType;
                         sessionStorage.setItem('trade_store', JSON.stringify(tradeStoreObj));
                         this.contract_type = urlContractType;
-                    } else {
+                    } else if (!Object.keys(getContractTypesConfig()).includes(urlContractType)) {
+                        // Unknown/invalid trade type in the URL (a genuine dead-end deep link) — show the modal.
                         this.root_store.ui.toggleUrlUnavailableModal(true);
                     }
+                    // else: a real trade type the current market doesn't offer (e.g. arriving on Gold then
+                    // selecting Matches/Differs). Keep the current market and let useContractsFor switch the
+                    // trade type to one the market supports — instead of the misleading "URL unavailable" modal.
                 }
             }
         );

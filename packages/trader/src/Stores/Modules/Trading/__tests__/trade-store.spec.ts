@@ -796,4 +796,50 @@ describe('TradeStore', () => {
             });
         });
     });
+
+    describe('URL trade_type reconciliation (contract_types_list_v2 when-reaction)', () => {
+        const setUrlTradeType = (trade_type: string) => window.history.pushState({}, '', `/?trade_type=${trade_type}`);
+
+        afterEach(() => window.history.pushState({}, '', '/'));
+
+        it('does NOT show the URL-unavailable modal for a real trade type the current market lacks (e.g. Matches/Differs on Gold)', () => {
+            setUrlTradeType(TRADE_TYPES.MATCH_DIFF);
+            // For a forex market like Gold, Matches/Differs appears only as an unavailable category
+            // string (no selectable { value }) — mirroring the real contracts_for-derived shape.
+            tradeStore.contract_types_list_v2 = {
+                'Ups & Downs': {
+                    name: 'Ups & Downs',
+                    categories: [{ value: TRADE_TYPES.RISE_FALL, text: 'Rise/Fall' }],
+                },
+                Digits: { name: 'Digits', categories: [TRADE_TYPES.MATCH_DIFF] },
+            } as unknown as typeof tradeStore.contract_types_list_v2;
+
+            expect(mockRootStore.ui.toggleUrlUnavailableModal).not.toHaveBeenCalled();
+        });
+
+        it('shows the URL-unavailable modal for an unknown/invalid trade type', () => {
+            setUrlTradeType('not_a_real_trade_type');
+            tradeStore.contract_types_list_v2 = {
+                'Ups & Downs': {
+                    name: 'Ups & Downs',
+                    categories: [{ value: TRADE_TYPES.RISE_FALL, text: 'Rise/Fall' }],
+                },
+            } as typeof tradeStore.contract_types_list_v2;
+
+            expect(mockRootStore.ui.toggleUrlUnavailableModal).toHaveBeenCalledWith(true);
+        });
+
+        it('applies a valid URL trade type that the current market supports', () => {
+            setUrlTradeType(TRADE_TYPES.RISE_FALL);
+            tradeStore.contract_types_list_v2 = {
+                'Ups & Downs': {
+                    name: 'Ups & Downs',
+                    categories: [{ value: TRADE_TYPES.RISE_FALL, text: 'Rise/Fall' }],
+                },
+            } as typeof tradeStore.contract_types_list_v2;
+
+            expect(tradeStore.contract_type).toBe(TRADE_TYPES.RISE_FALL);
+            expect(mockRootStore.ui.toggleUrlUnavailableModal).not.toHaveBeenCalled();
+        });
+    });
 });
