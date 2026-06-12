@@ -6,8 +6,6 @@ on:
 
 jobs:
   claude-review:
-    runs-on:
-      group: github-hosted-code-reviewer
     uses: deriv-com/shared-actions/.github/workflows/claude-pr-review.yml@master
     permissions:
       contents: read
