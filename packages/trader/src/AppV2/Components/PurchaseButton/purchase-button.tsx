@@ -77,6 +77,7 @@ const PurchaseButton = observer(({ onPurchaseSuccess }: TPurchaseButtonProps = {
         is_vanilla,
         proposal_info,
         purchase_info,
+        onHoverPurchase,
         onPurchaseV2,
         onChange,
         symbol,
@@ -119,6 +120,14 @@ const PurchaseButton = observer(({ onPurchaseSuccess }: TPurchaseButtonProps = {
     const cardLabels = getCardLabelsV2();
     const is_modal_error = checkIsServiceModalError({ services_error });
     const is_accu_sell_disabled = !is_valid_to_sell || active_accu_contract?.is_sell_requested;
+
+    React.useEffect(
+        () => () => {
+            if (is_multiplier) onHoverPurchase(false, contract_type);
+        },
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        []
+    );
 
     const getButtonType = (index: number, trade_type: string) => {
         const tab_index = getTradeTypeTabsList(contract_type).findIndex(tab => tab.contract_type === trade_type);
@@ -292,6 +301,7 @@ const PurchaseButton = observer(({ onPurchaseSuccess }: TPurchaseButtonProps = {
                             (info.has_error && !is_insufficient_balance) ||
                             (!!purchase_info.error && !is_modal_error && !is_insufficient_balance) ||
                             is_switching_account;
+                        const is_button_disabled = is_disabled && !is_loading;
 
                         return (
                             <React.Fragment key={trade_type}>
@@ -314,7 +324,15 @@ const PurchaseButton = observer(({ onPurchaseSuccess }: TPurchaseButtonProps = {
                                     )}
                                     isLoading={is_loading}
                                     isOpaque
-                                    disabled={is_disabled && !is_loading}
+                                    disabled={is_button_disabled}
+                                    onMouseEnter={() => {
+                                        if (!is_multiplier || is_button_disabled) return;
+                                        onHoverPurchase(true, trade_type);
+                                    }}
+                                    onMouseLeave={() => {
+                                        if (!is_multiplier) return;
+                                        onHoverPurchase(false, trade_type);
+                                    }}
                                     onClick={() => {
                                         if (is_insufficient_balance) {
                                             const error =

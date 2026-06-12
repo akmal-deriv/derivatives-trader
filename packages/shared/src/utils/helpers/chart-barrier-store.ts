@@ -32,6 +32,7 @@ export class ChartBarrierStore {
     hideBarrierLine?: boolean;
     hideOffscreenLine?: boolean;
     title?: string;
+    useInlineLabel?: boolean;
     onChartBarrierChange: TOnChartBarrierChange | null;
 
     constructor(
@@ -62,6 +63,7 @@ export class ChartBarrierStore {
             hideBarrierLine: observable,
             hideOffscreenLine: observable,
             title: observable,
+            useInlineLabel: observable,
             updateBarriers: action.bound,
             updateBarrierShade: action.bound,
             updateColor: action.bound,

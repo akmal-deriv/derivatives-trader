@@ -92,21 +92,25 @@ export const setLimitOrderBarriers = ({
                     });
                 }
             } else {
+                const barrier_color =
+                    key === LIMIT_ORDER_TYPES.TAKE_PROFIT
+                        ? BARRIER_COLORS.GREEN
+                        : key === LIMIT_ORDER_TYPES.STOP_LOSS
+                          ? BARRIER_COLORS.RED
+                          : BARRIER_COLORS.ORANGE;
                 const obj_barrier = {
                     key,
                     title: localize(`${obj_limit_order.display_name}`),
-                    color: key === LIMIT_ORDER_TYPES.TAKE_PROFIT ? BARRIER_COLORS.GREEN : BARRIER_COLORS.ORANGE,
-                    foregroundColor:
-                        key === LIMIT_ORDER_TYPES.TAKE_PROFIT ? BARRIER_COLORS.GREEN : BARRIER_COLORS.ORANGE,
+                    color: barrier_color,
+                    foregroundColor: barrier_color,
                     backgroundColor: 'transparent',
                     draggable: false,
-                    lineStyle:
-                        key === LIMIT_ORDER_TYPES.STOP_OUT ? BARRIER_LINE_STYLES.DOTTED : BARRIER_LINE_STYLES.SOLID,
+                    lineStyle: BARRIER_LINE_STYLES.SOLID,
                     hidePriceLines: shouldHidePriceLines,
                     hideOffscreenLine: true,
                     showOffscreenArrows: true,
                     isSingleBarrier: true,
-                    opacityOnOverlap: key === LIMIT_ORDER_TYPES.STOP_OUT && 0.15,
+                    useInlineLabel: true,
                 };
                 barrier = new ChartBarrierStore(obj_limit_order.value);
 
