@@ -326,11 +326,11 @@ const PurchaseButton = observer(({ onPurchaseSuccess }: TPurchaseButtonProps = {
                                     isOpaque
                                     disabled={is_button_disabled}
                                     onMouseEnter={() => {
-                                        if (!is_multiplier || is_button_disabled) return;
+                                        if (isMobile || !is_multiplier || is_button_disabled) return;
                                         onHoverPurchase(true, trade_type);
                                     }}
                                     onMouseLeave={() => {
-                                        if (!is_multiplier) return;
+                                        if (isMobile || !is_multiplier) return;
                                         onHoverPurchase(false, trade_type);
                                     }}
                                     onClick={() => {
