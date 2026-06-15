@@ -33,3 +33,18 @@ packages/*/treemap.html
 # Bundle analysis files (webpack-bundle-analyzer)
 packages/*/bundle-report.html
 packages/*/bundle-stats.json
+
+# Playwright
+/playwright/node_modules/
+/playwright/.cache/
+/playwright/.auth/
+playwright/playwright-report/
+playwright/test-results/
+playwright/agent/.healing/
+.playwright-mcp/
+/performance/
+test-results/
+# Playwright env files (real credentials — never commit plaintext)
+playwright/.env.*
+# Allow encrypted env files to be committed
+!playwright/.env.*.enc

@@ -3,6 +3,10 @@ on:
   push:
     branches:
     - master
+    paths-ignore:
+      - "playwright/**"
+      - "playwright.config.ts"
+      - ".claude/**"
 
 jobs:
   build_test_and_publish:
@@ -15,6 +19,8 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+      with:
+        submodules: false
     - name: Setup Node
       uses: "./.github/actions/setup_node"
     - name: Install Dependencies

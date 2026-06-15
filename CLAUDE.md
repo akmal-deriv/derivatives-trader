@@ -331,3 +331,9 @@ const LazyModule = React.lazy(() => import('./Module'));
 - ~210K lines of code
 - React 18 + MobX 6 + TypeScript 5 + Webpack 5 + Jest 29
 - Last updated: 2025-01-16
+
+---
+
+# Playwright E2E Tests
+
+All Playwright rules, conventions, and skill-loading instructions live in `playwright/CLAUDE.md`.
