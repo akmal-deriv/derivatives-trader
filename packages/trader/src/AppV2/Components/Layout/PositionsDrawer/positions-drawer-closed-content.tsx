@@ -2,11 +2,11 @@ import React from 'react';
 
 import { Loading, Money, Text } from '@deriv/components';
 import { TReportsStore, useReportsStore } from '@deriv/reports/src/Stores/useReportsStores';
-import { getIsAutomationEnabled } from '@deriv/shared';
 import { observer, useStore } from '@deriv/stores';
 import { Localize, localize } from '@deriv-com/translations';
 
 import { ContractCardsSections } from 'AppV2/Components/ContractCard';
+import useIsAutomationEnabled from 'AppV2/Hooks/useIsAutomationEnabled';
 import useTradeModeFilter from 'AppV2/Hooks/useTradeModeFilter';
 import { filterByTradeMode } from 'AppV2/Utils/positions-utils';
 
@@ -27,7 +27,7 @@ export const PositionsDrawerClosedContent = observer(() => {
     const { data, handleDateChange, handleScroll, is_empty, is_loading, onMount, onUnmount, clearTable } =
         useReportsStore().profit_table;
     const { tradeModeFilter } = useTradeModeFilter();
-    const is_automation_enabled = getIsAutomationEnabled();
+    const is_automation_enabled = useIsAutomationEnabled();
 
     const closedPositions: TClosedPosition[] = React.useMemo(
         () =>

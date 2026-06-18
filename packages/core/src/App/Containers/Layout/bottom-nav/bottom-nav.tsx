@@ -3,7 +3,7 @@ import { matchPath, useHistory, useLocation } from 'react-router';
 import classNames from 'classnames';
 import { observer } from 'mobx-react-lite';
 
-import { useMobileBridge } from '@deriv/api';
+import { useDerivativesAccount, useMobileBridge } from '@deriv/api';
 import {
     StandaloneBarsRegularIcon,
     StandaloneClockThreeFillIcon,
@@ -30,10 +30,17 @@ const BottomNav = observer(({ className }: BottomNavProps) => {
     const location = useLocation();
     const { client, portfolio, common } = useStore();
     const { active_positions_count } = portfolio;
-    const { currency, is_logged_in } = client;
+    const { currency, is_logged_in, loginid } = client;
     const { current_language } = common;
     const { sendBridgeEvent } = useMobileBridge();
-    const is_automation_enabled = getIsAutomationEnabled();
+    const { data: derivatives_account } = useDerivativesAccount(loginid, is_logged_in);
+    // Show Automate only when (a) enabled for the country (`?automation=true`,
+    // set at the edge) and (b) not a restricted EU (DIEL) account. Mirrors the
+    // trader-side `useIsAutomationEnabled`; duplicated because core can't import
+    // the trader hook.
+    const automation_group = derivatives_account?.data?.find(account => account.account_id === loginid)?.group;
+    const is_automation_enabled =
+        getIsAutomationEnabled() && (!is_logged_in || automation_group !== 'DIEL Default Group');
 
     const bottomNavItems = React.useMemo(
         () => [

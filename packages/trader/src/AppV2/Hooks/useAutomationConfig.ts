@@ -1,5 +1,7 @@
 import React from 'react';
 
+import { useTranslations } from '@deriv-com/translations';
+
 import {
     getParamDescription,
     getStrategyDescription,
@@ -19,6 +21,10 @@ const useAutomationConfig = () => {
     const automation_store = useAutomationStore();
     const { config } = automation_store;
     const { strategies: server_strategies } = useAutoStrategies();
+    // Subscribe to the active language so consumers re-render on a language
+    // switch — our `localize()`-derived descriptions are plain strings and won't
+    // refresh otherwise (they'd be stale until a page reload).
+    const { currentLang } = useTranslations();
 
     const strategy_options: TStrategyOption[] = React.useMemo(
         () =>
@@ -31,7 +37,10 @@ const useAutomationConfig = () => {
                     // Prefer our localized copy; fall back to the (English-only) BE text.
                     description: getStrategyDescription(s.strategy_id) ?? s.description,
                 })),
-        [server_strategies]
+        // `currentLang` isn't read in the body but recomputes the localized
+        // descriptions when the language switches.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [server_strategies, currentLang]
     );
 
     const selected_strategy = React.useMemo(

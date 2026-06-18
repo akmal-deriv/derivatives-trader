@@ -4,7 +4,7 @@ import { observer } from 'mobx-react-lite';
 
 import { useLocalStorageData } from '@deriv/api';
 import { Loading } from '@deriv/components';
-import { getIsAutomationEnabled, getIsMigratedUser, getSymbolDisplayName, trackAnalyticsEvent } from '@deriv/shared';
+import { getIsMigratedUser, getSymbolDisplayName, trackAnalyticsEvent } from '@deriv/shared';
 import { useStore } from '@deriv/stores';
 import { Loader } from '@deriv-com/ui';
 
@@ -31,6 +31,7 @@ import useAutomationTradeTypeFallback from 'AppV2/Hooks/useAutomationTradeTypeFa
 // import MarketSelector from 'AppV2/Components/MarketSelector';
 import useContractsFor from 'AppV2/Hooks/useContractsFor';
 import useDefaultSymbol from 'AppV2/Hooks/useDefaultSymbol';
+import useIsAutomationEnabled from 'AppV2/Hooks/useIsAutomationEnabled';
 import useTabletLandscape from 'AppV2/Hooks/useTabletLandscape';
 import { getDisplayedContractTypes } from 'AppV2/Utils/trade-types-utils';
 import { useTraderStore } from 'Stores/useTraderStores';
@@ -67,7 +68,7 @@ const TradeDesktop = observer(() => {
 
     const { trade_types } = useContractsFor();
     const supported_automation_trade_types = useAutomationSupportedTradeTypes();
-    const is_automation_enabled = getIsAutomationEnabled();
+    const is_automation_enabled = useIsAutomationEnabled();
 
     // When the feature is off for this user, reset a stale persisted automation
     // tab so the panel and the automation fallback hooks don't act on it.

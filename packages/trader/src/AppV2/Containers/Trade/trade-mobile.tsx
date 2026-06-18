@@ -4,7 +4,7 @@ import { observer } from 'mobx-react-lite';
 
 import { useLocalStorageData } from '@deriv/api';
 import { Loading } from '@deriv/components';
-import { getIsAutomationEnabled, getIsMigratedUser, getSymbolDisplayName, trackAnalyticsEvent } from '@deriv/shared';
+import { getIsMigratedUser, getSymbolDisplayName, trackAnalyticsEvent } from '@deriv/shared';
 import { useStore } from '@deriv/stores';
 
 import AccumulatorStats from 'AppV2/Components/AccumulatorStats';
@@ -18,6 +18,7 @@ import TradeErrorSnackbar from 'AppV2/Components/TradeErrorSnackbar';
 import { TradeParametersContainer } from 'AppV2/Components/TradeParameters';
 import useContractsFor from 'AppV2/Hooks/useContractsFor';
 import useDefaultSymbol from 'AppV2/Hooks/useDefaultSymbol';
+import useIsAutomationEnabled from 'AppV2/Hooks/useIsAutomationEnabled';
 import { isDigitTradeType } from 'AppV2/Utils/digits';
 import { getChartHeight } from 'AppV2/Utils/layout-utils';
 import { getDisplayedContractTypes } from 'AppV2/Utils/trade-types-utils';
@@ -52,7 +53,7 @@ const Trade = observer(() => {
         trade_type_tab,
     } = useTraderStore();
     const { trade_types } = useContractsFor();
-    const is_automation_enabled = getIsAutomationEnabled();
+    const is_automation_enabled = useIsAutomationEnabled();
     useDefaultSymbol(); // This will initialize and set the default symbol
     const [guide_dtrader_v2] = useLocalStorageData<Record<string, boolean>>('guide_dtrader_v2', {
         trade_types_selection: false,

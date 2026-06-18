@@ -2,7 +2,7 @@ import React from 'react';
 
 import { Loading } from '@deriv/components';
 import { TReportsStore, useReportsStore } from '@deriv/reports/src/Stores/useReportsStores';
-import { getIsAutomationEnabled, TContractInfo } from '@deriv/shared';
+import { TContractInfo } from '@deriv/shared';
 import { observer, useStore } from '@deriv/stores';
 import { TPortfolioPosition } from '@deriv/stores/types';
 
@@ -10,6 +10,7 @@ import { ContractCardList, ContractCardsSections } from 'AppV2/Components/Contra
 import { EmptyPositions, TEmptyPositionsProps } from 'AppV2/Components/EmptyPositions';
 import { ContractTypeFilter, TimeFilter, TradeModeFilter } from 'AppV2/Components/Filter';
 import TotalProfitLoss from 'AppV2/Components/TotalProfitLoss';
+import useIsAutomationEnabled from 'AppV2/Hooks/useIsAutomationEnabled';
 import useTimeFilter from 'AppV2/Hooks/useTimeFilter';
 import useTradeModeFilter from 'AppV2/Hooks/useTradeModeFilter';
 import useTradeTypeFilter from 'AppV2/Hooks/useTradeTypeFilter';
@@ -29,7 +30,7 @@ const PositionsContent = observer(({ hasButtonsDemo, isClosedTab, setHasButtonsD
     const { contractTypeFilter, setContractTypeFilter } = useTradeTypeFilter({ isClosedTab });
     const { timeFilter, setTimeFilter, customTimeRangeFilter, setCustomTimeRangeFilter } = useTimeFilter();
     const { tradeModeFilter, setTradeModeFilter } = useTradeModeFilter();
-    const is_automation_enabled = getIsAutomationEnabled();
+    const is_automation_enabled = useIsAutomationEnabled();
     const [filteredPositions, setFilteredPositions] = React.useState<(TPortfolioPosition | TClosedPosition)[]>([]);
     const [noMatchesFound, setNoMatchesFound] = React.useState(false);
 

@@ -19,6 +19,7 @@ jest.mock('@deriv/api', () => ({
         sendBridgeEvent: jest.fn((eventName, callback) => callback && callback()),
         isBridgeAvailable: false,
     })),
+    useDerivativesAccount: jest.fn(() => ({ data: undefined })),
 }));
 
 describe('BottomNav', () => {

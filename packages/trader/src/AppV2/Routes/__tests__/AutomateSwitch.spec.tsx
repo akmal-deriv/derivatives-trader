@@ -1,20 +1,20 @@
 import { Router } from 'react-router-dom';
 import { createMemoryHistory } from 'history';
 
-import { getIsAutomationEnabled } from '@deriv/shared';
 import { mockStore, StoreProvider } from '@deriv/stores';
 import { useDevice } from '@deriv-com/ui';
 import { render, screen } from '@testing-library/react';
 
 import { TRADE_PANEL_TABS } from 'AppV2/Components/AutomationPanel/automation-config';
+import useIsAutomationEnabled from 'AppV2/Hooks/useIsAutomationEnabled';
 
 import AutomateSwitch from '../AutomateSwitch';
 
 const mockSetActiveTradePanelTab = jest.fn();
 
-jest.mock('@deriv/shared', () => ({
-    ...jest.requireActual('@deriv/shared'),
-    getIsAutomationEnabled: jest.fn(),
+jest.mock('AppV2/Hooks/useIsAutomationEnabled', () => ({
+    __esModule: true,
+    default: jest.fn(),
 }));
 
 jest.mock('@deriv-com/ui', () => ({
@@ -50,8 +50,8 @@ describe('AutomateSwitch', () => {
     };
 
     beforeEach(() => {
-        // Default: feature enabled for this user/country.
-        (getIsAutomationEnabled as jest.Mock).mockReturnValue(true);
+        // Default: automation available (country-enabled and not a restricted account).
+        (useIsAutomationEnabled as jest.Mock).mockReturnValue(true);
     });
 
     afterEach(() => {
@@ -78,8 +78,8 @@ describe('AutomateSwitch', () => {
         expect(mockSetActiveTradePanelTab).toHaveBeenCalledWith(TRADE_PANEL_TABS.AUTOMATION);
     });
 
-    it('should redirect to index and not render the page when the feature is disabled (even on mobile)', () => {
-        (getIsAutomationEnabled as jest.Mock).mockReturnValue(false);
+    it('should redirect to index and not render the page when automation is unavailable (even on mobile)', () => {
+        (useIsAutomationEnabled as jest.Mock).mockReturnValue(false);
         const { history } = renderComponent(true);
         expect(screen.queryByTestId('automate-page')).not.toBeInTheDocument();
         expect(history.location.pathname).toBe('/');
