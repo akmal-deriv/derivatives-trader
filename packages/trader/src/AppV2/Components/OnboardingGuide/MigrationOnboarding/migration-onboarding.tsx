@@ -8,6 +8,8 @@ import { useDevice } from '@deriv-com/ui';
 
 import useIsEuAccount from 'AppV2/Hooks/useIsEuAccount';
 
+import { notifyIntroOnboardingComplete } from '../intro-onboarding-event';
+
 import StepContent from './step-content';
 import StepProgressBar from './step-progress-bar';
 import getDesktopSteps from './steps-config-desktop';
@@ -39,6 +41,8 @@ const MigrationOnboarding = ({ is_dark_mode_on }: TMigrationOnboardingProps) => 
     const onComplete = React.useCallback(() => {
         setIsOpen(false);
         setGuideCompleted(true);
+        // Let the automation onboarding chain straight after, without a refresh.
+        notifyIntroOnboardingComplete();
     }, [setGuideCompleted]);
 
     const onNext = () => {

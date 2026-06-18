@@ -12,9 +12,10 @@ import type { TWebSocket } from 'Types';
 
 import TraderProviders from '../trader-providers';
 
+import AutomationStopSnackbar from './Components/AutomationPanel/automation-stop-snackbar';
 import ServicesErrorSnackbar from './Components/ServicesErrorSnackbar';
-import Notifications from './Containers/Notifications';
 import AppShell from './Containers/AppShell/app-shell';
+import Notifications from './Containers/Notifications';
 
 import 'Sass/app.scss';
 
@@ -79,6 +80,7 @@ const App = ({ passthrough }: Apptypes) => {
                             <Notifications />
                             <AppShell />
                             <ServicesErrorSnackbar />
+                            <AutomationStopSnackbar />
                         </SnackbarProvider>
                     </NotificationsProvider>
                 </ModulesProvider>

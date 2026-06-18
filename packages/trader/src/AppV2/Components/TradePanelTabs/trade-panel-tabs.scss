@@ -1,0 +1,47 @@
+.trade-params__option.segmented-control-single .item,
+.trade-params__option.segmented-control-single .item * {
+    z-index: auto;
+}
+
+.trade-panel-tabs {
+    display: flex;
+    justify-content: center;
+
+    &__tooltip {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    &__toggle.segmented-control-single {
+        // Figma specs: 48x128, border-radius 24, padding 4
+        grid-auto-flow: row;
+        grid-auto-columns: unset;
+        grid-auto-rows: 1fr;
+        width: 4.8rem;
+        height: 9.2rem;
+        border-radius: 2.4rem;
+        padding: 0.4rem;
+
+        .item {
+            border-radius: 2rem;
+            color: var(--component-textIcon-normal-default);
+
+            &.selected {
+                color: var(--component-segmentedControl-label-single-color-selected);
+            }
+
+            // Automation tab (2nd item) — orange when active
+            &:nth-child(2).selected,
+            &:nth-child(2).animated {
+                svg,
+                svg * {
+                    fill: var(--semantic-color-orange-solid-textIcon-normal-mid) !important;
+                    color: var(--semantic-color-orange-solid-textIcon-normal-mid) !important;
+                }
+            }
+        }
+    }
+}

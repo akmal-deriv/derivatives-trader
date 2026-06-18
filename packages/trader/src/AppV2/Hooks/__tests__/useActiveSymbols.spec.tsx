@@ -1,4 +1,5 @@
 import React from 'react';
+import { MemoryRouter } from 'react-router-dom';
 
 import { useQuery } from '@deriv/api';
 import { CONTRACT_TYPES, TRADE_TYPES } from '@deriv/shared';
@@ -52,7 +53,11 @@ jest.mock('AppV2/Hooks/useContractsFor', () => ({
 let mocked_store: ReturnType<typeof mockStore>;
 describe('useActiveSymbols', () => {
     const wrapper = ({ children }: { children: JSX.Element }) => {
-        return <TraderProviders store={mocked_store}>{children}</TraderProviders>;
+        return (
+            <MemoryRouter>
+                <TraderProviders store={mocked_store}>{children}</TraderProviders>
+            </MemoryRouter>
+        );
     };
     beforeEach(() => {
         mocked_store = {

@@ -2,22 +2,24 @@ import React from 'react';
 import { useHistory, useLocation } from 'react-router-dom';
 
 import { LabelPairedArrowLeftSmBoldIcon } from '@deriv/quill-icons';
-import { isEmptyObject } from '@deriv/shared';
+import { isEmptyObject, routes } from '@deriv/shared';
 import { observer, useStore } from '@deriv/stores';
-import { Localize } from '@deriv-com/translations';
 import { IconButton, Text } from '@deriv-com/quill-ui';
+import { Localize } from '@deriv-com/translations';
 
 const ContractDetailsHeader = observer(() => {
     const { state } = useLocation();
     const history = useHistory();
-    const { common } = useStore();
+    const { common, contract_replay } = useStore();
     const { routeBackInApp } = common;
+    const contract_info = contract_replay?.contract_store?.contract_info;
+    const is_automation_contract = !!(contract_info && 'auto_run_id' in contract_info && contract_info.auto_run_id);
 
     const handleBack = () => {
         const is_from_table_row = !isEmptyObject(state) ? state.from_table_row : false;
-        return is_from_table_row
-            ? history.goBack()
-            : routeBackInApp(history as unknown as Parameters<typeof routeBackInApp>[0]);
+        if (is_from_table_row) return history.goBack();
+        if (is_automation_contract) return history.push(routes.trader_automate);
+        return routeBackInApp(history as unknown as Parameters<typeof routeBackInApp>[0]);
     };
 
     return (

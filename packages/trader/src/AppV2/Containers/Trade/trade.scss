@@ -6,6 +6,7 @@
     padding-left: 0;
     transition: padding-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     box-sizing: border-box;
+    background-color: var(--semantic-color-slate-solid-surface-frame-mid);
 
     @include mobile-screen {
         height: unset;
@@ -16,11 +17,11 @@
 
     &--flyout-open {
         @include desktop-screen {
-            padding-left: 30.4rem;
+            padding-left: 32rem;
         }
 
         @include tablet-screen {
-            padding-left: 30.4rem;
+            padding-left: 32rem;
         }
     }
 
@@ -30,8 +31,7 @@
         justify-content: space-between;
         height: 6.5rem;
         padding-right: 1.6rem;
-        background-color: var(--semantic-color-slate-solid-surface-frame-low);
-        border-bottom: 1px solid var(--semantic-color-monochrome-border-normal-mid);
+        background-color: var(--semantic-color-slate-solid-surface-frame-mid);
         position: relative;
 
         &:after {
@@ -61,16 +61,19 @@
     }
     &__grid {
         display: grid;
-        grid-template-columns: 1fr minmax(0, 28rem);
+        grid-template-columns: 1fr minmax(0, 28rem) 4.8rem;
+        grid-template-rows: minmax(0, 1fr);
         position: relative;
         height: calc(100vh - 6.4rem);
+        gap: var(--core-spacing-400);
+        padding: var(--core-spacing-400);
+        padding-top: 0;
     }
 
     &__trade-types {
         position: relative;
         width: calc(100vw - 7.2rem - 28rem);
         padding-right: 5.6rem;
-        background-color: var(--semantic-color-slate-solid-surface-frame-low);
         display: flex;
         align-items: center;
         gap: var(--core-spacing-400);
@@ -100,11 +103,18 @@
         button:not(.trade-types-selector__button):not(.trade-types-selector__guide-button):not(
                 .trade-types-selector__item
             ) {
-            background-color: transparent !important;
+            background-color: var(--semantic-color-slate-solid-surface-frame-low);
             cursor: pointer;
 
+            // Outlined selected state — transparent fill, prominent border
+            // and text. Shared by manual trading and the automate tab.
             &.quill-chip[data-state='selected'] {
-                background-color: var(--component-chip-bg-selected) !important;
+                background-color: transparent !important;
+                border-color: var(--component-textIcon-normal-prominent) !important;
+
+                > p {
+                    color: var(--component-textIcon-normal-prominent) !important;
+                }
             }
         }
 
@@ -140,9 +150,15 @@
 
         &-tooltip {
             position: relative;
+            background-color: var(--semantic-color-slate-solid-surface-frame-low);
+            border-radius: var(--core-borderRadius-400);
+            overflow: hidden;
 
             @include mobile-screen {
                 position: unset;
+                background-color: unset;
+                border-radius: unset;
+                overflow: unset;
             }
         }
 
@@ -168,6 +184,28 @@
         &:has(.trade-params__options__wrapper--horizontal:not(:only-child)) {
             min-height: 10.4rem;
         }
+    }
+}
+
+// Pre-automation layout: applied when the automation feature is off. The
+// `automation-enabled` root class is set at app init from the flag, so the
+// base rules above are the automation (on) state and these restore the
+// original layout when it's off.
+body:not(.automation-enabled) {
+    .trade {
+        background-color: transparent;
+    }
+
+    .trade__header {
+        background-color: var(--semantic-color-slate-solid-surface-frame-low);
+        border-bottom: 1px solid var(--semantic-color-monochrome-border-normal-mid);
+    }
+
+    .trade__grid {
+        grid-template-columns: 1fr minmax(0, 28rem);
+        grid-template-rows: unset;
+        gap: unset;
+        padding: unset;
     }
 }
 

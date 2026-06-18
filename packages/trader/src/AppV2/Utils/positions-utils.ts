@@ -1,6 +1,7 @@
 import { CONTRACT_TYPES, getSupportedContracts, getTotalProfit, isHighLow, isMultiplierContract } from '@deriv/shared';
 import { TPortfolioPosition } from '@deriv/stores/types';
 
+import { TRADE_MODE } from 'AppV2/Components/Filter/trade-mode-filter';
 import { TClosedPosition } from 'AppV2/Containers/Positions/positions-content';
 
 import { CONTRACT_LIST } from './trade-types-utils';
@@ -28,6 +29,23 @@ export const filterPositions = (positions: (TPortfolioPosition | TClosedPosition
         if (!config) return false;
         return splittedFilter.includes('main_title' in config ? config.main_title : config.name);
     });
+};
+
+/**
+ * Filters closed positions by trade mode (manual vs. automation). The BE sets
+ * `auto_run_id` on contracts opened via an automation run; manual trades omit
+ * the field entirely. Empty/falsy filter or any unrecognised value returns
+ * the positions untouched.
+ */
+export const filterByTradeMode = <T extends { contract_info: { auto_run_id?: string } }>(
+    positions: T[],
+    tradeModeFilter: string
+): T[] => {
+    if (tradeModeFilter !== TRADE_MODE.AUTOMATION && tradeModeFilter !== TRADE_MODE.MANUAL) {
+        return positions;
+    }
+    const is_automation_mode = tradeModeFilter === TRADE_MODE.AUTOMATION;
+    return positions.filter(({ contract_info }) => !!contract_info.auto_run_id === is_automation_mode);
 };
 const contractTypesConfig = {
     [CONTRACT_LIST.ACCUMULATORS]: [CONTRACT_TYPES.ACCUMULATOR],

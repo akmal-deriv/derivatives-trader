@@ -57,6 +57,12 @@ jest.mock('../Components/ServicesErrorSnackbar', () => {
     return MockServicesErrorSnackbar;
 });
 
+jest.mock('../Components/AutomationPanel/automation-stop-snackbar', () => {
+    const MockAutomationStopSnackbar = () => <div data-testid='automation-stop-snackbar' />;
+    MockAutomationStopSnackbar.displayName = 'MockAutomationStopSnackbar';
+    return MockAutomationStopSnackbar;
+});
+
 jest.mock('../Containers/Notifications', () => {
     const MockNotifications = () => <div data-testid='notifications' />;
     MockNotifications.displayName = 'MockNotifications';

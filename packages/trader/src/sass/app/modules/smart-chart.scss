@@ -390,6 +390,11 @@ $solid-blue-700: #2c9aff;
 .smartcharts {
     .cq-chart-title {
         top: unset;
+        margin: 1rem;
+    }
+
+    .cq-menu-btn {
+        padding: 0;
     }
 }
 

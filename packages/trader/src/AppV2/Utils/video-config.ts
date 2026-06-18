@@ -94,6 +94,18 @@ export const ACCUMULATOR_MANUAL_VIDEO_ID = {
     },
 };
 
+// Automation onboarding videos
+export const AUTOMATION_ONBOARDING_VIDEO_ID = {
+    desktop: {
+        light: 'c4b8c07440ec81e7d3058885e257d10e', // automation-onboarding-desktop-light.mp4
+        dark: '86fbd6b7dfecef9179d70c750a7ffad9', // automation-onboarding-desktop-dark.mp4
+    },
+    mobile: {
+        light: '8dd11c29f00a148ec29917ff35024516', // automation-onboarding-mobile-light.mp4
+        dark: 'd3566c4429888cc14b1256441162ada9', // automation-onboarding-mobile-dark.mp4
+    },
+};
+
 export const getDescriptionVideoId = (contract_type = '', is_dark_theme = false) =>
     DESCRIPTION_VIDEO_ID[contract_type]?.[is_dark_theme ? 'dark' : 'light'];
 
@@ -104,3 +116,7 @@ export const getOnboardingVideoId = (page_type: 'trade_page' | 'positions_page',
 // Helper function to get accumulator manual video ID
 export const getAccumulatorManualVideoId = (device: 'desktop' | 'mobile', is_dark_theme = false) =>
     ACCUMULATOR_MANUAL_VIDEO_ID[device]?.[is_dark_theme ? 'dark' : 'light'];
+
+// Helper function to get the automation onboarding video ID
+export const getAutomationOnboardingVideoId = (device: 'desktop' | 'mobile', is_dark_theme = false) =>
+    AUTOMATION_ONBOARDING_VIDEO_ID[device]?.[is_dark_theme ? 'dark' : 'light'];

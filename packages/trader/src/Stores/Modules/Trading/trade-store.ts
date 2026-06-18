@@ -61,6 +61,7 @@ import {
 import { safeParse } from '@deriv/utils';
 import { localize } from '@deriv-com/translations';
 
+import { TRADE_PANEL_TABS, type TTradePanelTab } from 'AppV2/Components/AutomationPanel/automation-config';
 import { isDigitContractType, isDigitTradeType } from 'AppV2/Utils/digits';
 import { getMultiplierValidationRules, getValidationRules } from 'Stores/Modules/Trading/Constants/validation-rules';
 import { ContractType } from 'Stores/Modules/Trading/Helpers/contract-type';
@@ -229,6 +230,15 @@ type TValidationParams = ReturnType<typeof getProposalInfo>['validation_params']
 const store_name = 'trade_store';
 const g_subscribers_map: Partial<Record<string, ReturnType<typeof WS.subscribeTicksHistory>>> = {}; // blame amin.m
 
+// Validates the persisted tab value — a plain `as` cast would let any
+// stale/tampered localStorage value through and hide both the purchase
+// button and the automation actions.
+const getInitialTradePanelTab = (): TTradePanelTab => {
+    const stored = localStorage.getItem('active_trade_panel_tab');
+    const valid_values = Object.values(TRADE_PANEL_TABS) as readonly string[];
+    return valid_values.includes(stored ?? '') ? (stored as TTradePanelTab) : TRADE_PANEL_TABS.TRADE;
+};
+
 export default class TradeStore extends BaseStore {
     // Control values
     is_trade_component_mounted = false;
@@ -255,6 +265,7 @@ export default class TradeStore extends BaseStore {
     non_available_contract_types_list: TContractTypesList = {};
     trade_type_tab = '';
     trade_types: { [key: string]: string } = {};
+    active_trade_panel_tab: TTradePanelTab = getInitialTradePanelTab();
     contract_types_list_v2: TContractTypesList = {};
 
     // Amount
@@ -514,6 +525,9 @@ export default class TradeStore extends BaseStore {
             ticks_history_stats: observable.ref, // Object - use ref
             trade_type_tab: observable,
             trade_types: observable.ref, // Object - use ref
+            active_trade_panel_tab: observable,
+            is_automation_tab: computed,
+            setActiveTradePanelTab: action.bound,
             open_payout_wheelpicker: observable,
             togglePayoutWheelPicker: action.bound,
             v2_params_initial_values: observable.ref, // Object - use ref
@@ -2363,6 +2377,10 @@ export default class TradeStore extends BaseStore {
         return this.contract_type === TRADE_TYPES.MULTIPLIER;
     }
 
+    get is_automation_tab() {
+        return this.active_trade_panel_tab === TRADE_PANEL_TABS.AUTOMATION;
+    }
+
     get is_turbos() {
         return isTurbosContract(this.contract_type);
     }
@@ -2483,6 +2501,11 @@ export default class TradeStore extends BaseStore {
 
     setTradeTypeTab(label = '') {
         this.trade_type_tab = label;
+    }
+
+    setActiveTradePanelTab(tab: TTradePanelTab) {
+        this.active_trade_panel_tab = tab;
+        localStorage.setItem('active_trade_panel_tab', tab);
     }
 
     /**

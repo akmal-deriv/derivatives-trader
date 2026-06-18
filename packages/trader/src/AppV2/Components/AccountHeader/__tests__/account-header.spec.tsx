@@ -873,7 +873,11 @@ describe('AccountHeader', () => {
         });
 
         describe('Chart loading behavior', () => {
-            it('should show skeleton loader when chart is loading', () => {
+            // The account header is independent of the chart: a market change sets
+            // is_chart_loading=true (and on the chartless automate tab nothing ever
+            // resets it), so the header must keep rendering the account info rather
+            // than getting stuck on a skeleton.
+            it('should show account info regardless of chart loading state', () => {
                 const chart_loading_store = mockStore({
                     client: {
                         balance: '10,000.00',
@@ -888,26 +892,6 @@ describe('AccountHeader', () => {
                 });
 
                 renderComponent(chart_loading_store);
-
-                expect(screen.getByTestId('dt_skeleton')).toBeInTheDocument();
-                expect(screen.queryByText('Real account')).not.toBeInTheDocument();
-            });
-
-            it('should show account info when chart is not loading', () => {
-                const chart_not_loading_store = mockStore({
-                    client: {
-                        balance: '10,000.00',
-                        currency: 'USD',
-                        is_logged_in: true,
-                        is_virtual: false,
-                        logout: jest.fn(),
-                    },
-                    ui: {
-                        is_chart_loading: false,
-                    },
-                });
-
-                renderComponent(chart_not_loading_store);
 
                 expect(screen.queryByTestId('dt_skeleton')).not.toBeInTheDocument();
                 expect(screen.getByText('Real account')).toBeInTheDocument();

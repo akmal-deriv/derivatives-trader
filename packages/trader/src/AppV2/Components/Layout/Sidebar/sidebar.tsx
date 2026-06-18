@@ -22,7 +22,7 @@ import { getBrandUrl, getHelpCentreUrl, routes } from '@deriv/shared';
 import { observer, useStore } from '@deriv/stores';
 import { Localize, localize, useTranslations } from '@deriv-com/translations';
 
-import { PositionsDrawerContent, PositionsDrawerFooter } from '../PositionsDrawer';
+import PositionsDrawerTabs from '../PositionsDrawer/positions-drawer-tabs';
 
 import AccountSelector from './account-selector';
 import LanguageSelector from './language-selector';
@@ -211,9 +211,9 @@ const Sidebar = observer(() => {
                 };
             case 'positions':
                 return {
-                    title: <Localize i18n_default_text='Open positions' />,
-                    content: <PositionsDrawerContent />,
-                    footer: <PositionsDrawerFooter />,
+                    title: <Localize i18n_default_text='Positions' />,
+                    content: <PositionsDrawerTabs />,
+                    footer: null,
                 };
             default:
                 return null;

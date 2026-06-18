@@ -1,7 +1,7 @@
 /** @define dc-flyout */
 .dc-flyout {
     $SIDEBAR_WIDTH: 7.2rem;
-    $FLYOUT_WIDTH: 30.4rem;
+    $FLYOUT_WIDTH: 32rem;
     $HEADER_HEIGHT: 6.4rem;
     $FOOTER_HEIGHT: 6rem;
 
@@ -65,11 +65,6 @@
         align-items: center;
         justify-content: space-between;
         cursor: pointer;
-
-        svg {
-            width: 1.6rem;
-            height: 1.6rem;
-        }
 
         &:hover {
             opacity: 0.8;

@@ -1,0 +1,38 @@
+.automation-actions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--core-spacing-800);
+
+    &__status {
+        padding: 0 var(--core-spacing-300);
+    }
+
+    &__error {
+        padding: var(--core-spacing-400);
+        border-radius: var(--core-borderRadius-400);
+        background-color: var(--semantic-color-red-solid-surface-frame-low, rgba(255, 77, 110, 0.08));
+        color: var(--color-trade-sell-text, #cc2e3d);
+    }
+
+    &__run {
+        &-button {
+            border-radius: 28px;
+        }
+
+        &-actions {
+            display: flex;
+            gap: var(--core-spacing-400);
+
+            > button {
+                flex: 1 1 0;
+                min-width: 0;
+                border-radius: 28px;
+            }
+        }
+
+        &-stop {
+            background-color: var(--semantic-color-yellow-solid-surface-normal-highest) !important;
+            border-color: var(--semantic-color-yellow-solid-surface-normal-highest) !important;
+        }
+    }
+}

@@ -15,7 +15,32 @@
     &__body {
         display: flex;
         flex-direction: column;
-        justify-content: space-between;
+        gap: var(--semantic-spacing-gap-sm);
+        min-width: 0;
+        flex-grow: 1;
+    }
+
+    &__header {
+        display: flex;
+        align-items: center;
+        gap: var(--core-spacing-400);
+        min-width: 0;
+    }
+
+    &__market-icon {
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+
+        svg {
+            width: 2.4rem;
+            height: 2.4rem;
+        }
+    }
+
+    &__details-col {
+        display: flex;
+        flex-direction: column;
         gap: var(--semantic-spacing-gap-sm);
         min-width: 0;
         flex-grow: 1;
@@ -29,6 +54,7 @@
     }
     .tag__wrapper {
         gap: var(--core-spacing-200);
+        justify-content: flex-start;
     }
     .risk-management,
     .timer {
@@ -134,8 +160,8 @@
         .profit {
             color: var(--core-color-solid-red-700);
         }
-        button:not(:disabled),
-        button.loading {
+        button:not(:disabled):not(.contract-card__sell-btn),
+        button.loading:not(.contract-card__sell-btn) {
             background-color: var(--core-color-solid-cherry-700);
         }
         .status {
@@ -147,8 +173,8 @@
         .profit {
             color: var(--core-color-solid-green-700);
         }
-        button:not(:disabled),
-        button.loading {
+        button:not(:disabled):not(.contract-card__sell-btn),
+        button.loading:not(.contract-card__sell-btn) {
             background-color: var(--core-color-solid-emerald-700);
         }
         .status {

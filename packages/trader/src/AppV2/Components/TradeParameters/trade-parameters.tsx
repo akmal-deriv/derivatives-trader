@@ -25,9 +25,9 @@ import Strike from './Strike';
 import TakeProfit from './TakeProfit';
 import TradeTypeTabs from './TradeTypeTabs';
 
-export type TTradeParametersProps = { is_minimized?: boolean };
+export type TTradeParametersProps = { is_minimized?: boolean; is_automation?: boolean };
 
-const TradeParameters = observer(({ is_minimized }: TTradeParametersProps) => {
+const TradeParameters = observer(({ is_minimized, is_automation }: TTradeParametersProps) => {
     const { contract_type, has_cancellation, symbol } = useTraderStore();
     const isVisible = (component_key: string) =>
         isTradeParamVisible({ component_key, contract_type, has_cancellation, symbol });
@@ -59,13 +59,15 @@ const TradeParameters = observer(({ is_minimized }: TTradeParametersProps) => {
                 )}
             >
                 {is_minimized === undefined && isVisible('trade_type_tabs') && <TradeTypeTabs />}
-                {isVisible('last_digit') && <LastDigitPrediction is_minimized={is_minimized} />}
+                {isVisible('last_digit') && (
+                    <LastDigitPrediction is_minimized={is_minimized} is_automation={is_automation} />
+                )}
                 {isVisible('duration') && <Duration is_minimized={is_minimized} />}
                 {isVisible('strike') && <Strike is_minimized={is_minimized} />}
                 {isVisible('barrier') && <Barrier is_minimized={is_minimized} />}
                 {isVisible('growth_rate') && <GrowthRate is_minimized={is_minimized} />}
                 {isVisible('multiplier') && <Multiplier is_minimized={is_minimized} />}
-                {isVisible('stake') && <Stake is_minimized={is_minimized} />}
+                {isVisible('stake') && <Stake is_minimized={is_minimized} is_automation={is_automation} />}
                 {isVisible('payout_per_point') && <PayoutPerPoint is_minimized={is_minimized} />}
                 {isVisible('take_profit') && <TakeProfit is_minimized={is_minimized} />}
                 {isVisible('risk_management') && <RiskManagement is_minimized={is_minimized} />}

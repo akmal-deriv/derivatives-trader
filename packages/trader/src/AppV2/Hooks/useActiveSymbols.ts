@@ -1,9 +1,12 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 
 import { useQuery } from '@deriv/api';
+import { routes } from '@deriv/shared';
 import { useStore } from '@deriv/stores';
 import { localize } from '@deriv-com/translations';
 
+import { isMultiplierOnlySymbol } from 'AppV2/Utils/symbol-categories-utils';
 import { useTraderStore } from 'Stores/useTraderStores';
 
 // Cache configuration for active symbols query
@@ -18,6 +21,10 @@ const useActiveSymbols = () => {
     const { common } = useStore();
     const { showError } = common;
     const { setActiveSymbolsV2 } = useTraderStore();
+    const { pathname } = useLocation();
+    // The mobile automation tab (its own route) can't trade Multipliers, so
+    // hide Multiplier-only markets from its market list.
+    const exclude_multiplier_only = pathname === routes.trader_automate;
 
     // Fetch all active symbols without contract_type filter.
     // Previously, contract_type was included in the payload which caused
@@ -46,7 +53,9 @@ const useActiveSymbols = () => {
         }
     }, [queryError, showError]);
 
-    // Update MobX store when data is received (for trade-store internal operations)
+    // Update MobX store when data is received (for trade-store internal operations).
+    // Always stores the full, unfiltered list — the filter below only affects
+    // what this hook returns for display.
     useEffect(() => {
         if (!response) return;
 
@@ -62,8 +71,13 @@ const useActiveSymbols = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [response]);
 
+    const activeSymbols = useMemo(() => {
+        const all_symbols = response?.active_symbols || [];
+        return exclude_multiplier_only ? all_symbols.filter(symbol => !isMultiplierOnlySymbol(symbol)) : all_symbols;
+    }, [response, exclude_multiplier_only]);
+
     return {
-        activeSymbols: response?.active_symbols || [],
+        activeSymbols,
         isLoading,
     };
 };

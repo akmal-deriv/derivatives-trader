@@ -196,6 +196,8 @@ type PriceProposalOpenContractsResponse = Omit<BasePriceProposalOpenContractsRes
         entry_spot_time?: number;
         exit_spot_time?: number;
         underlying_symbol?: string;
+        // Autotrader field — present when the contract was purchased by an automated run
+        auto_run_id?: string;
     };
 };
 
@@ -228,6 +230,7 @@ type ProfitTableResponse = Omit<BaseProfitTableResponse, 'profit_table'> & {
         transactions?: Array<
             Omit<NonNullable<NonNullable<BaseProfitTableResponse['profit_table']>['transactions']>[0], 'symbol'> & {
                 underlying_symbol?: string;
+                auto_run_id?: string;
             }
         >;
     };
@@ -331,7 +334,174 @@ type TransactionsStreamResponse = Omit<BaseTransactionsStreamResponse, 'transact
     };
 };
 
+// --- Autotrader API types ---
+
+type TAutoRunStatus = 'running' | 'paused' | 'stopped';
+type TAutoStopReason = 'user_stopped' | 'condition_triggered' | 'error';
+export type TAutoStopReasonCode = string;
+type TAutoContractStatus = 'open' | 'won' | 'lost';
+
+export type TAutoContractItem = {
+    contract_id: number;
+    buy_price: number;
+    purchase_time: number;
+    sell_price?: number;
+    sell_time?: number;
+    contract_status?: TAutoContractStatus;
+};
+
+export type TAutoRun = {
+    run_id: string;
+    strategy_id: string;
+    strategy_parameters: Record<string, unknown>;
+    contract_template: TAutoContractTemplate;
+    contracts: TAutoContractItem[];
+    total_stake: number;
+    total_payout: number;
+    status: TAutoRunStatus;
+    start_time: number;
+    stop_time?: number;
+    stop_reason?: TAutoStopReason;
+    /** Present when `stop_reason === 'condition_triggered'`. */
+    stop_reason_code?: TAutoStopReasonCode;
+};
+
+/** A single property inside the strategy parameters JSON Schema. */
+export type TAutoStrategyParameterProperty = {
+    description?: string;
+    type?: string;
+    minimum?: number;
+    maximum?: number;
+    default?: unknown;
+};
+
+/** JSON Schema that describes the strategy_parameters object for auto_start. */
+export type TAutoStrategyParametersSchema = {
+    $schema?: string;
+    type?: string;
+    properties: Record<string, TAutoStrategyParameterProperty>;
+    required?: string[];
+    additionalProperties?: boolean;
+};
+
+export type TAutoStrategyDescriptor = {
+    strategy_id: string;
+    display_name: string;
+    description?: string;
+    supported_contract_types: string[];
+    parameters: TAutoStrategyParametersSchema;
+};
+
+export type TAutoContractTemplate = {
+    contract_type: string;
+    currency: string;
+    underlying_symbol: string;
+    amount?: number;
+    basis?: 'stake' | 'payout';
+    duration?: number;
+    duration_unit?: 's' | 'm' | 'h' | 'd' | 't';
+    date_expiry?: number;
+    barrier?: string;
+    barrier2?: string;
+    growth_rate?: number;
+    multiplier?: number;
+    selected_tick?: number;
+    limit_order?: {
+        stop_loss?: number;
+        take_profit?: number;
+    };
+};
+
+type AutoListStrategiesRequest = { auto_list_strategies: 1 };
+type AutoListStrategiesResponse = {
+    auto_list_strategies: {
+        strategies: TAutoStrategyDescriptor[];
+    };
+    msg_type: 'auto_list_strategies';
+};
+
+type AutoStartRequest = {
+    auto_start: 1;
+    strategy_id: string;
+    strategy_parameters: Record<string, unknown>;
+    contract_template: TAutoContractTemplate;
+    subscribe?: number;
+};
+type AutoStartResponse = {
+    auto_start: TAutoRun;
+    subscription?: { id: string };
+    msg_type: 'auto_start';
+};
+
+type AutoListRequest = { auto_list: 1 };
+type AutoListResponse = {
+    auto_list: { runs: TAutoRun[] };
+    msg_type: 'auto_list';
+};
+
+type AutoGetRequest = {
+    auto_get: 1;
+    run_id: string;
+    subscribe?: number;
+};
+type AutoGetResponse = {
+    auto_get: TAutoRun;
+    subscription?: { id: string };
+    msg_type: 'auto_get';
+};
+
+type AutoStopRequest = { auto_stop: 1; run_id: string };
+type AutoStopResponse = {
+    auto_stop: TAutoRun;
+    msg_type: 'auto_stop';
+};
+
+type AutoPauseRequest = { auto_pause: 1; run_id: string };
+type AutoPauseResponse = {
+    auto_pause: TAutoRun;
+    msg_type: 'auto_pause';
+};
+
+type AutoResumeRequest = {
+    auto_resume: 1;
+    run_id: string;
+    subscribe?: number;
+};
+type AutoResumeResponse = {
+    auto_resume: TAutoRun;
+    subscription?: { id: string };
+    msg_type: 'auto_resume';
+};
+
 type TSocketEndpoints = {
+    auto_list_strategies: {
+        request: AutoListStrategiesRequest;
+        response: AutoListStrategiesResponse;
+    };
+    auto_start: {
+        request: AutoStartRequest;
+        response: AutoStartResponse;
+    };
+    auto_list: {
+        request: AutoListRequest;
+        response: AutoListResponse;
+    };
+    auto_get: {
+        request: AutoGetRequest;
+        response: AutoGetResponse;
+    };
+    auto_stop: {
+        request: AutoStopRequest;
+        response: AutoStopResponse;
+    };
+    auto_pause: {
+        request: AutoPauseRequest;
+        response: AutoPauseResponse;
+    };
+    auto_resume: {
+        request: AutoResumeRequest;
+        response: AutoResumeResponse;
+    };
     active_symbols: {
         request: ActiveSymbolsRequest;
         response: ActiveSymbolsResponse;
@@ -616,6 +786,28 @@ export type TForgetAllResponse = TSocketResponse<'forget_all'>;
 
 export type TLogOutRequest = TSocketRequest<'logout'>;
 export type TLogOutResponse = TSocketResponse<'logout'>;
+
+// Autotrader type aliases
+export type TAutoListStrategiesRequest = TSocketRequest<'auto_list_strategies'>;
+export type TAutoListStrategiesResponse = TSocketResponse<'auto_list_strategies'>;
+
+export type TAutoStartRequest = TSocketRequest<'auto_start'>;
+export type TAutoStartResponse = TSocketResponse<'auto_start'>;
+
+export type TAutoListRequest = TSocketRequest<'auto_list'>;
+export type TAutoListResponse = TSocketResponse<'auto_list'>;
+
+export type TAutoGetRequest = TSocketRequest<'auto_get'>;
+export type TAutoGetResponse = TSocketResponse<'auto_get'>;
+
+export type TAutoStopRequest = TSocketRequest<'auto_stop'>;
+export type TAutoStopResponse = TSocketResponse<'auto_stop'>;
+
+export type TAutoPauseRequest = TSocketRequest<'auto_pause'>;
+export type TAutoPauseResponse = TSocketResponse<'auto_pause'>;
+
+export type TAutoResumeRequest = TSocketRequest<'auto_resume'>;
+export type TAutoResumeResponse = TSocketResponse<'auto_resume'>;
 
 /**
  * REST API Types for Derivatives Account Endpoint

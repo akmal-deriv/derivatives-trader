@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom';
 import { useSwipeable } from 'react-swipeable';
 import clsx from 'clsx';
 
-import { IconTradeTypes, Money, RemainingTime } from '@deriv/components';
+import { Money, RemainingTime } from '@deriv/components';
 import {
     type Dayjs,
     getCardLabels,
@@ -18,12 +18,17 @@ import {
     TContractInfo,
 } from '@deriv/shared';
 import { isHigherLowerContractInfo } from '@deriv/shared/src/utils/helpers/market-underlying';
-import { CaptionText, Tag, Text } from '@deriv-com/quill-ui';
+import { Button, CaptionText, Tag, Text } from '@deriv-com/quill-ui';
 import { useTranslations } from '@deriv-com/translations';
+import { useDevice } from '@deriv-com/ui';
 
 import { TClosedPosition } from 'AppV2/Containers/Positions/positions-content';
 import { getProfit } from 'AppV2/Utils/positions-utils';
+import IcAutomationTrading from 'Assets/SvgComponents/settings/ic-automation-trading.svg';
+import IcManualTrading from 'Assets/SvgComponents/settings/ic-manual-trading.svg';
 import { TRootStore } from 'Types';
+
+import SymbolIconsMapper from '../SymbolIconsMapper/symbol-icons-mapper';
 
 import { ContractCardStatusTimer, TContractCardStatusTimerProps } from './contract-card-status-timer';
 
@@ -63,6 +68,7 @@ const ContractCard = ({
     serverTime,
 }: TContractCardProps) => {
     const { currentLang } = useTranslations();
+    const { isMobile } = useDevice();
     const is_rtl = currentLang === 'AR';
     const [isDeleted, setIsDeleted] = React.useState(false);
     const [isClosing, setIsClosing] = React.useState(false);
@@ -153,11 +159,40 @@ const ContractCard = ({
                 to={redirectTo}
             >
                 <div className={`${className}__body`}>
+                    <div className={`${className}__header`}>
+                        <div className={`${className}__market-icon`}>
+                            <SymbolIconsMapper symbol={symbol} />
+                        </div>
+                        <div className={`${className}__details-col`}>
+                            <div className={`${className}__details`}>
+                                <Text size='sm' className='symbol'>
+                                    {symbolName}
+                                </Text>
+                                {'auto_run_id' in contractInfo && contractInfo.auto_run_id ? (
+                                    <IcAutomationTrading
+                                        width={20}
+                                        height={16}
+                                        className='quill-typography__color--subtle'
+                                    />
+                                ) : (
+                                    <IcManualTrading
+                                        width={14}
+                                        height={14}
+                                        className='quill-typography__color--subtle'
+                                    />
+                                )}
+                            </div>
+                            <div className={`${className}__details`}>
+                                <Text className='trade-type' size='sm'>
+                                    {tradeTypeName}
+                                </Text>
+                                <Text size='sm' color='quill-typography__color--subtle'>
+                                    <Money amount={buy_price} currency={currency} show_currency />
+                                </Text>
+                            </div>
+                        </div>
+                    </div>
                     <div className={`${className}__details`}>
-                        <IconTradeTypes
-                            type={is_higher_lower ? `${contract_type}_barrier` : contract_type}
-                            iconSize='sm'
-                        />
                         <div className='tag__wrapper'>
                             {show_risk_management_labels &&
                                 risk_management_labels.map(label => (
@@ -178,24 +213,24 @@ const ContractCard = ({
                                 />
                             )}
                         </div>
-                    </div>
-                    <div className={`${className}__details`}>
-                        <Text className='trade-type' size='sm'>
-                            {tradeTypeName}
-                        </Text>
-                        <Text size='sm' color='quill-typography__color--subtle'>
-                            <Money amount={buy_price} currency={currency} show_currency />
-                        </Text>
-                    </div>
-                    <div className={`${className}__details`}>
-                        <Text size='sm' className='symbol' color='quill-typography__color--subtle'>
-                            {symbolName}
-                        </Text>
                         <Text className='profit' size='sm'>
                             <Money amount={totalProfit} currency={currency} has_sign show_currency />
                         </Text>
                     </div>
                 </div>
+                {!isMobile && hasActionButtons && (
+                    <Button
+                        className={`${className}__sell-btn`}
+                        color='black-white'
+                        size='md'
+                        variant='secondary'
+                        fullWidth
+                        disabled={!validToSell}
+                        isLoading={isCloseButtonPressed}
+                        onClick={handleClose}
+                        label={validToSell ? getCardLabels().CLOSE : getCardLabels().RESALE_NOT_OFFERED}
+                    />
+                )}
                 {hasActionButtons && (
                     <div className='buttons'>
                         {validToCancel && (

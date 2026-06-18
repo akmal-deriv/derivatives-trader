@@ -5,6 +5,8 @@ import { Modal } from '@deriv-com/quill-ui';
 import { Localize } from '@deriv-com/translations';
 import { useDevice } from '@deriv-com/ui';
 
+import { notifyIntroOnboardingComplete } from '../intro-onboarding-event';
+
 import GuideContainer from './guide-container';
 import OnboardingVideo from './onboarding-video';
 
@@ -33,6 +35,8 @@ const OnboardingGuide = ({ type = 'trade_page', is_dark_mode_on, callback }: TOn
         setShouldRunGuide(false);
         setGuideDtraderV2({ ...guide_dtrader_v2, [type]: true });
         callback?.();
+        // Chain the automation onboarding straight after the trade-page intro.
+        if (is_trade_page_guide) notifyIntroOnboardingComplete();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [setGuideDtraderV2]);
 

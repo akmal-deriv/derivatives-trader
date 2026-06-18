@@ -4,13 +4,14 @@ import { observer } from 'mobx-react-lite';
 
 import { useLocalStorageData } from '@deriv/api';
 import { Loading } from '@deriv/components';
-import { getIsMigratedUser, getSymbolDisplayName, trackAnalyticsEvent } from '@deriv/shared';
+import { getIsAutomationEnabled, getIsMigratedUser, getSymbolDisplayName, trackAnalyticsEvent } from '@deriv/shared';
 import { useStore } from '@deriv/stores';
 
 import AccumulatorStats from 'AppV2/Components/AccumulatorStats';
 import CurrentSpot from 'AppV2/Components/CurrentSpot';
 import Guide from 'AppV2/Components/Guide';
 import MarketSelector from 'AppV2/Components/MarketSelector';
+import { AutomationOnboarding } from 'AppV2/Components/OnboardingGuide/AutomationOnboarding';
 import OnboardingGuide from 'AppV2/Components/OnboardingGuide/GuideForPages';
 import { MigrationOnboarding } from 'AppV2/Components/OnboardingGuide/MigrationOnboarding';
 import TradeErrorSnackbar from 'AppV2/Components/TradeErrorSnackbar';
@@ -51,13 +52,15 @@ const Trade = observer(() => {
         trade_type_tab,
     } = useTraderStore();
     const { trade_types } = useContractsFor();
+    const is_automation_enabled = getIsAutomationEnabled();
     useDefaultSymbol(); // This will initialize and set the default symbol
     const [guide_dtrader_v2] = useLocalStorageData<Record<string, boolean>>('guide_dtrader_v2', {
         trade_types_selection: false,
         trade_page: false,
         positions_page: false,
     });
-    const is_migrated_user = React.useMemo(() => getIsMigratedUser(), []);
+
+    const is_migrated_user = getIsMigratedUser();
 
     // For handling edge cases of snackbar:
     const contract_types = getDisplayedContractTypes(trade_types_store, contract_type, trade_type_tab);
@@ -156,6 +159,8 @@ const Trade = observer(() => {
                     )}
                     {/* New onboarding for migrated users */}
                     {is_migrated_user && is_logged_in && <MigrationOnboarding is_dark_mode_on={is_dark_mode_on} />}
+                    {/* Automation intro — self-gates on the intro onboarding being done */}
+                    {is_logged_in && is_automation_enabled && <AutomationOnboarding />}
                 </React.Fragment>
             ) : (
                 <Loading.DTraderV2 />

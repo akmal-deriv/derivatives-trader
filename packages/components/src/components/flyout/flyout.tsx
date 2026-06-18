@@ -1,7 +1,7 @@
 import React from 'react';
 import classNames from 'classnames';
 
-import { LegacyMinimize2pxIcon } from '@deriv/quill-icons';
+import { LabelPairedXmarkSmRegularIcon } from '@deriv/quill-icons';
 
 import Text from '../text/text';
 
@@ -29,7 +29,7 @@ const Flyout = ({ is_open, onClose, title, header_content, footer_content, child
             <div className='dc-flyout__header'>
                 {header_content || (
                     <React.Fragment>
-                        <Text color='primary' weight='bold' size='xs' id='flyout-title'>
+                        <Text weight='bold' size='s' id='flyout-title'>
                             {title}
                         </Text>
                         <button
@@ -38,7 +38,7 @@ const Flyout = ({ is_open, onClose, title, header_content, footer_content, child
                             aria-label='Close flyout'
                             type='button'
                         >
-                            <LegacyMinimize2pxIcon iconSize='xs' fill='var(--color-text-primary)' />
+                            <LabelPairedXmarkSmRegularIcon fill='var(--color-text-primary)' />
                         </button>
                     </React.Fragment>
                 )}

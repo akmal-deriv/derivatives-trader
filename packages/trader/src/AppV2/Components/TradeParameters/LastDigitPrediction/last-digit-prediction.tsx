@@ -24,13 +24,16 @@ const getInvalidDigitForContractType = (trade_type_tab: string): number | null =
     return null;
 };
 
-const LastDigitPrediction = observer(({ is_minimized }: TTradeParametersProps) => {
+const LastDigitPrediction = observer(({ is_minimized, is_automation }: TTradeParametersProps) => {
     const store = useTraderStore();
     const { digit_stats = [], is_market_closed, last_digit, onChange, trade_type_tab } = store;
     const [is_open, setIsOpen] = React.useState(false);
     const [selected_digit, setSelectedDigit] = React.useState(last_digit);
     const [previous_trade_type_tab, setPreviousTradeTypeTab] = React.useState(trade_type_tab);
     const { addSnackbar } = useSnackbar();
+    // The automation tab lays params out vertically as fields, so render the
+    // compact field here too — not the inline digit grid.
+    const render_as_field = is_minimized || is_automation;
 
     React.useEffect(() => {
         setSelectedDigit(last_digit);
@@ -85,11 +88,11 @@ const LastDigitPrediction = observer(({ is_minimized }: TTradeParametersProps) =
         setSelectedDigit(last_digit);
     }, [last_digit]);
 
-    if (is_minimized)
+    if (render_as_field)
         return (
             <>
                 <TextField
-                    className={clsx('trade-params__option', 'trade-params__option--minimized')}
+                    className={clsx('trade-params__option', is_minimized && 'trade-params__option--minimized')}
                     disabled={is_market_closed}
                     variant='fill'
                     readOnly

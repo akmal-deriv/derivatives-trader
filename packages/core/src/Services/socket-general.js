@@ -105,7 +105,7 @@ const BinarySocketGeneral = (() => {
                 common_store.setError(true, { message: mapErrorMessage(response.error) });
                 break;
             case 'AuthorizationRequired': {
-                if (msg_type === 'buy') {
+                if (msg_type === 'buy' || msg_type?.startsWith('auto_')) {
                     return;
                 }
                 client_store.logout();
@@ -121,10 +121,18 @@ const BinarySocketGeneral = (() => {
         }
     };
 
+    const subscribeBalance = () => {
+        WS.subscribeBalance(ResponseHandlers.balanceActiveAccount);
+    };
+
     const init = store => {
         client_store = store.client;
         common_store = store.common;
         gtm_store = store.gtm;
+
+        // Re-attach the balance cb on reconnect: `deriv_api` is recreated, so
+        // the prior subscription's callback chain is gone.
+        WS.setOnReconnect(subscribeBalance);
 
         return {
             onDisconnect,
@@ -132,10 +140,6 @@ const BinarySocketGeneral = (() => {
             onMessage,
             onConnectionError,
         };
-    };
-
-    const subscribeBalance = () => {
-        WS.subscribeBalance(ResponseHandlers.balanceActiveAccount);
     };
 
     const authorizeAccount = response => {

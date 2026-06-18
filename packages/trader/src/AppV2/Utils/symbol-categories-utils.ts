@@ -5,6 +5,15 @@ import sortSymbols from './sort-symbols-utils';
 
 type ActiveSymbols = NonNullable<TActiveSymbolsResponse['active_symbols']>;
 
+// Markets/submarkets offered only on Multipliers, which automation can't
+// trade. Used to hide them from the mobile market list and to revert a desktop
+// chart selection back to a supported market.
+const MULTIPLIER_ONLY_MARKETS = new Set(['cryptocurrency']);
+const MULTIPLIER_ONLY_SUBMARKETS = new Set(['crash_index', 'crash_boom']);
+
+export const isMultiplierOnlySymbol = (symbol: ActiveSymbols[0]) =>
+    MULTIPLIER_ONLY_MARKETS.has(symbol.market) || MULTIPLIER_ONLY_SUBMARKETS.has(symbol.submarket);
+
 // Helper function to get market display name
 export const getMarketDisplayName = (market: string) => {
     const market_display_names: Record<string, string> = {

@@ -1,16 +1,14 @@
 .trade-params-footer {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
+    flex-shrink: 0;
+    margin-top: auto;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: var(--core-spacing-800);
+    padding: var(--core-spacing-400) 0;
     border-top: 1px solid var(--semantic-color-slate-solid-surface-frame-mid);
     background-color: var(--color-surface-primary);
     gap: var(--core-spacing-400);
-    min-height: 4rem;
+    min-height: 3rem;
     width: 100%;
     box-sizing: border-box;
 

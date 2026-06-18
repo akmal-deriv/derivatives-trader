@@ -1,9 +1,6 @@
 import React from 'react';
 import clsx from 'clsx';
 
-import { Localize } from '@deriv-com/translations';
-import { Button, Text } from '@deriv-com/quill-ui';
-
 import TradeTypeListItem from './trade-type-list-item';
 
 import './trade-type-list.scss';
@@ -27,7 +24,7 @@ type TTradeTypeListProps = {
     selectable?: boolean;
     show_divider?: boolean;
     onRightIconClick?: (item: TTradeTypeItem) => void;
-    onTradeTypeClick?: (e: React.MouseEvent<HTMLElement> | React.KeyboardEvent<HTMLElement>) => void;
+    onTradeTypeClick?: (e: React.MouseEvent<HTMLElement> | React.KeyboardEvent<HTMLElement>, id: string) => void;
 };
 
 const TradeTypeList: React.FC<TTradeTypeListProps> = ({
@@ -61,7 +58,7 @@ const TradeTypeList: React.FC<TTradeTypeListProps> = ({
                                     title={item.title}
                                     selected={!!selectable && isSelected(item.id)}
                                     onRightIconClick={onRightIconClick && (() => onRightIconClick(item))}
-                                    onTradeTypeClick={onTradeTypeClick}
+                                    onTradeTypeClick={onTradeTypeClick && (e => onTradeTypeClick(e, item.id))}
                                 />
                             </div>
                         ))}

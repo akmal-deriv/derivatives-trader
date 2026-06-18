@@ -6,17 +6,20 @@ import { observer } from 'mobx-react-lite';
 import { useMobileBridge } from '@deriv/api';
 import {
     StandaloneBarsRegularIcon,
-    StandaloneChartAreaFillIcon,
-    StandaloneChartAreaRegularIcon,
     StandaloneClockThreeFillIcon,
     StandaloneClockThreeRegularIcon,
     StandaloneHouseBlankFillIcon,
     StandaloneHouseBlankRegularIcon,
 } from '@deriv/quill-icons';
-import { getBrandUrl, routes } from '@deriv/shared';
+import { getBrandUrl, getIsAutomationEnabled, routes } from '@deriv/shared';
 import { useStore } from '@deriv/stores';
 import { Badge, Navigation } from '@deriv-com/quill-ui';
 import { Localize } from '@deriv-com/translations';
+
+import IcAutomationTrading from 'Assets/SvgComponents/settings/ic-automation-trading.svg';
+import IcAutomationTradingFill from 'Assets/SvgComponents/settings/ic-automation-trading-fill.svg';
+import IcManualTrading from 'Assets/SvgComponents/settings/ic-manual-trading.svg';
+import IcManualTradingFill from 'Assets/SvgComponents/settings/ic-manual-trading-fill.svg';
 
 type BottomNavProps = {
     className?: string;
@@ -30,6 +33,7 @@ const BottomNav = observer(({ className }: BottomNavProps) => {
     const { currency, is_logged_in } = client;
     const { current_language } = common;
     const { sendBridgeEvent } = useMobileBridge();
+    const is_automation_enabled = getIsAutomationEnabled();
 
     const bottomNavItems = React.useMemo(
         () => [
@@ -41,11 +45,37 @@ const BottomNav = observer(({ className }: BottomNavProps) => {
                 action: 'home' as const,
             },
             {
-                icon: <StandaloneChartAreaRegularIcon iconSize='sm' fill='var(--color-text-primary)' />,
-                activeIcon: <StandaloneChartAreaFillIcon iconSize='sm' />,
+                icon: (
+                    <div className='bottom-nav-item__icon-wrapper'>
+                        <IcManualTrading width={14} height={14} />
+                    </div>
+                ),
+                activeIcon: (
+                    <div className='bottom-nav-item__icon-wrapper'>
+                        <IcManualTradingFill width={14} height={14} />
+                    </div>
+                ),
                 label: <Localize i18n_default_text='Trade' />,
                 path: routes.index,
             },
+            ...(is_automation_enabled
+                ? [
+                      {
+                          icon: (
+                              <div className='bottom-nav-item__icon-wrapper'>
+                                  <IcAutomationTrading width={20} height={16} />
+                              </div>
+                          ),
+                          activeIcon: (
+                              <div className='bottom-nav-item__icon-wrapper'>
+                                  <IcAutomationTradingFill width={20} height={16} />
+                              </div>
+                          ),
+                          label: <Localize i18n_default_text='Automate' />,
+                          path: routes.trader_automate,
+                      },
+                  ]
+                : []),
             ...(is_logged_in
                 ? [
                       {
@@ -99,7 +129,7 @@ const BottomNav = observer(({ className }: BottomNavProps) => {
             },
         ],
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        [active_positions_count, is_logged_in]
+        [active_positions_count, is_logged_in, is_automation_enabled]
     );
 
     const selectedIndex = React.useMemo(() => {

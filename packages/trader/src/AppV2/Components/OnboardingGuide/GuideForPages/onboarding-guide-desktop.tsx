@@ -5,6 +5,8 @@ import { Modal } from '@deriv-com/quill-ui';
 import { Localize } from '@deriv-com/translations';
 import { useDevice } from '@deriv-com/ui';
 
+import { notifyIntroOnboardingComplete } from '../intro-onboarding-event';
+
 import GuideContainer from './guide-container';
 import DESKTOP_STEPS from './steps-config-desktop';
 
@@ -50,6 +52,8 @@ const OnboardingGuideDesktop = ({ type = 'trade_page', callback }: TOnboardingGu
         setShouldRunGuide(false);
         setGuideDtraderV2Desktop({ ...guide_dtrader_v2_desktop, [type]: true });
         callback?.();
+        // Chain the automation onboarding only once the tour actually finishes.
+        if (type === 'trade_page') notifyIntroOnboardingComplete();
     }, [setGuideDtraderV2Desktop, guide_dtrader_v2_desktop, type, callback]);
 
     const onSkipGuide = React.useCallback(() => {

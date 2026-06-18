@@ -4,20 +4,29 @@ import { observer } from 'mobx-react-lite';
 
 import { useLocalStorageData } from '@deriv/api';
 import { Loading } from '@deriv/components';
-import { getIsMigratedUser, getSymbolDisplayName, trackAnalyticsEvent } from '@deriv/shared';
+import { getIsAutomationEnabled, getIsMigratedUser, getSymbolDisplayName, trackAnalyticsEvent } from '@deriv/shared';
 import { useStore } from '@deriv/stores';
 import { Loader } from '@deriv-com/ui';
 
 import AccountHeader from 'AppV2/Components/AccountHeader';
 import AccumulatorStats from 'AppV2/Components/AccumulatorStats';
+import AutomationActions from 'AppV2/Components/AutomationPanel/automation-actions';
+import { TRADE_PANEL_TABS } from 'AppV2/Components/AutomationPanel/automation-config';
+import AutomationPanel from 'AppV2/Components/AutomationPanel/automation-panel';
+import AutomationGuide from 'AppV2/Components/AutomationPanel/AutomationGuide';
 import ClosedMarketMessage from 'AppV2/Components/ClosedMarketMessage';
 import Guide from 'AppV2/Components/Guide';
+import { AutomationOnboarding } from 'AppV2/Components/OnboardingGuide/AutomationOnboarding';
 import OnboardingGuide, { OnboardingGuideDesktop } from 'AppV2/Components/OnboardingGuide/GuideForPages';
 import { MigrationOnboarding } from 'AppV2/Components/OnboardingGuide/MigrationOnboarding';
 import PurchaseButton from 'AppV2/Components/PurchaseButton';
 import TradeErrorSnackbar from 'AppV2/Components/TradeErrorSnackbar';
+import TradePanelTabs from 'AppV2/Components/TradePanelTabs/trade-panel-tabs';
 import { TradeParameters } from 'AppV2/Components/TradeParameters';
 import TradeParamsFooter from 'AppV2/Components/TradeParamsFooter';
+import useAutomationSupportedTradeTypes from 'AppV2/Hooks/useAutomationSupportedTradeTypes';
+import useAutomationSymbolFallback from 'AppV2/Hooks/useAutomationSymbolFallback';
+import useAutomationTradeTypeFallback from 'AppV2/Hooks/useAutomationTradeTypeFallback';
 // Commented out to use chart's native market selector instead
 // import MarketSelector from 'AppV2/Components/MarketSelector';
 import useContractsFor from 'AppV2/Hooks/useContractsFor';
@@ -42,6 +51,7 @@ const TradeDesktop = observer(() => {
         active_symbols,
         contract_type,
         is_accumulator,
+        is_automation_tab,
         is_multiplier,
         is_chart_loading,
         is_market_closed,
@@ -49,12 +59,37 @@ const TradeDesktop = observer(() => {
         onMount,
         onUnmount,
         proposal_info,
+        setActiveTradePanelTab,
         should_show_active_symbols_loading,
         trade_types: trade_types_store,
         trade_type_tab,
     } = useTraderStore();
+
     const { trade_types } = useContractsFor();
+    const supported_automation_trade_types = useAutomationSupportedTradeTypes();
+    const is_automation_enabled = getIsAutomationEnabled();
+
+    // When the feature is off for this user, reset a stale persisted automation
+    // tab so the panel and the automation fallback hooks don't act on it.
+    React.useEffect(() => {
+        if (!is_automation_enabled && is_automation_tab) {
+            setActiveTradePanelTab(TRADE_PANEL_TABS.TRADE);
+        }
+    }, [is_automation_enabled, is_automation_tab, setActiveTradePanelTab]);
+
+    const is_automation_active = is_automation_enabled && is_automation_tab;
+    const should_render_automation_panel = is_automation_active && supported_automation_trade_types.has(contract_type);
+
+    const displayed_trade_types = React.useMemo(
+        () =>
+            is_automation_active
+                ? trade_types.filter(({ value }) => supported_automation_trade_types.has(value))
+                : trade_types,
+        [is_automation_active, trade_types, supported_automation_trade_types]
+    );
     useDefaultSymbol(); // This will initialize and set the default symbol
+    useAutomationTradeTypeFallback();
+    useAutomationSymbolFallback();
     const { should_show_portrait_loader } = useTabletLandscape({
         is_chart_loading,
         should_show_active_symbols_loading,
@@ -64,7 +99,8 @@ const TradeDesktop = observer(() => {
         trade_page: false,
         positions_page: false,
     });
-    const is_migrated_user = React.useMemo(() => getIsMigratedUser(), []);
+
+    const is_migrated_user = getIsMigratedUser();
 
     // For handling edge cases of snackbar:
     const contract_types = getDisplayedContractTypes(trade_types_store, contract_type, trade_type_tab);
@@ -134,7 +170,7 @@ const TradeDesktop = observer(() => {
                         <TradeTypes
                             contract_type={contract_type}
                             onTradeTypeSelect={onTradeTypeSelect}
-                            trade_types={trade_types}
+                            trade_types={displayed_trade_types}
                             is_dark_mode_on={is_dark_mode_on}
                         />
                         <AccountHeader />
@@ -157,12 +193,21 @@ const TradeDesktop = observer(() => {
                             {is_accumulator && <AccumulatorStats />}
                         </div>
                         <div className='trade-params'>
-                            <Guide show_guide_for_selected_contract />
-                            <TradeParameters />
-                            <ClosedMarketMessage />
-                            {!is_market_closed && <PurchaseButton />}
+                            <div className='trade-params__scrollable'>
+                                {should_render_automation_panel ? (
+                                    <AutomationGuide />
+                                ) : (
+                                    <Guide show_guide_for_selected_contract />
+                                )}
+                                <TradeParameters />
+                                <ClosedMarketMessage />
+                                {should_render_automation_panel && <AutomationPanel />}
+                            </div>
+                            {!should_render_automation_panel && !is_market_closed && <PurchaseButton />}
+                            {should_render_automation_panel && !is_market_closed && <AutomationActions />}
                             <TradeParamsFooter />
                         </div>
+                        {is_automation_enabled && <TradePanelTabs />}
                     </div>
                     {/* Existing onboarding for non-migrated users */}
                     {!is_migrated_user && !guide_dtrader_v2?.trade_page && is_logged_in && (
@@ -171,6 +216,8 @@ const TradeDesktop = observer(() => {
                     {!is_migrated_user && is_logged_in && <OnboardingGuideDesktop type='trade_page' />}
                     {/* New onboarding for migrated users */}
                     {is_migrated_user && is_logged_in && <MigrationOnboarding is_dark_mode_on={is_dark_mode_on} />}
+                    {/* Automation intro — self-gates on the intro onboarding being done */}
+                    {is_logged_in && is_automation_enabled && <AutomationOnboarding />}
                 </div>
             ) : (
                 <Loading.DTraderV2 />

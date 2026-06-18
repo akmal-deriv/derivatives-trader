@@ -20,8 +20,17 @@ $BOTTOM_NAV_HEIGHT: var(--core-spacing-2800);
             color: var(--component-navigationBar-label-color-default);
         }
 
+        &__icon-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 2.4rem;
+            height: 2.4rem;
+        }
+
         svg {
             fill: var(--component-navigationBar-icon-default);
+            color: var(--component-navigationBar-icon-default);
         }
 
         &__position-badge {
@@ -34,6 +43,7 @@ $BOTTOM_NAV_HEIGHT: var(--core-spacing-2800);
 
             svg {
                 fill: var(--color-nav-item-active);
+                color: var(--color-nav-item-active);
             }
         }
         &--positions {

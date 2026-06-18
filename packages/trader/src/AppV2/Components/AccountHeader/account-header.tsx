@@ -29,7 +29,7 @@ const AccountHeader = observer(
     }: AccountHeaderProps = {}) => {
         const { localize } = useTranslations();
         const { client, common, ui } = useStore();
-        const { is_switching_account, setIsSwitchingAccount, is_chart_loading } = ui;
+        const { is_switching_account, setIsSwitchingAccount } = ui;
 
         const { isMobile } = useDevice();
         const { sendBridgeEvent } = useMobileBridge();
@@ -203,7 +203,7 @@ const AccountHeader = observer(
             );
         }
 
-        const shouldShowLoader = isLoading || is_switching_account || is_chart_loading;
+        const shouldShowLoader = isLoading || is_switching_account;
 
         return (
             <React.Fragment>

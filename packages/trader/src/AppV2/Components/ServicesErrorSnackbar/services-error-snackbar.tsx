@@ -48,6 +48,7 @@ const ServicesErrorSnackbar = observer(() => {
     const checkShouldShowErrorSnackBar = () => {
         if (!has_services_error && !contract_error) return false;
         if (pathname === routes.index) return (has_services_error && !is_modal_error) || contract_error;
+        if (pathname === routes.trader_automate) return has_services_error && !is_modal_error;
         if (pathname === routes.trader_positions || pathname.startsWith(routes.contract.replace('/:contract_id', '')))
             return has_services_error;
         return false;

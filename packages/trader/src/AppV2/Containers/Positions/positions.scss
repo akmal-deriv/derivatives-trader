@@ -49,6 +49,9 @@ $TABS_HEIGHT: var(--core-size-2400);
 
     &__filter {
         &__wrapper {
+            display: flex;
+            align-items: center;
+            gap: var(--core-spacing-400);
             padding: var(--core-spacing-400);
         }
     }

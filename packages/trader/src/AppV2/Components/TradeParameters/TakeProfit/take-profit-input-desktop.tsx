@@ -275,7 +275,7 @@ const TakeProfitInputDesktop = observer(({ onClose, is_open }: TTakeProfitInputD
             <Button
                 fullWidth
                 size='lg'
-                variant='primary'
+                variant='secondary'
                 color='black-white'
                 onClick={onSave}
                 disabled={is_loading || !!(state.fe_error_text || (state.error_text && state.is_enabled))}

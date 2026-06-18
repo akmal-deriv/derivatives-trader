@@ -7,6 +7,7 @@ import { TRouteConfig } from 'Types';
 
 // Lazy load route components for better code splitting
 const Trade = lazy(() => import(/* webpackChunkName: "trader-trade" */ 'AppV2/Containers/Trade'));
+const AutomateSwitch = lazy(() => import(/* webpackChunkName: "trader-automate-switch" */ './AutomateSwitch'));
 const PositionsSwitch = lazy(() => import(/* webpackChunkName: "trader-positions-switch" */ './PositionsSwitch'));
 const ContractDetailsSwitch = lazy(
     () => import(/* webpackChunkName: "trader-contract-details-switch" */ './ContractDetailsSwitch')
@@ -24,6 +25,12 @@ const traderRoutes: TRouteConfigExtended[] = [
         component: Trade,
         getTitle: () => localize('Trade'),
         exact: true,
+        default: false,
+    },
+    {
+        path: routes.trader_automate,
+        component: AutomateSwitch,
+        getTitle: () => localize('Automate'),
         default: false,
     },
     {

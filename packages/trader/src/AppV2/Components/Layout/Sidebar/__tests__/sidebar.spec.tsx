@@ -58,6 +58,7 @@ jest.mock('../../PositionsDrawer', () => ({
     PositionsDrawerContent: jest.fn(() => <div>PositionsDrawerContent</div>),
     PositionsDrawerFooter: jest.fn(() => <div>PositionsDrawerFooter</div>),
 }));
+jest.mock('../../PositionsDrawer/positions-drawer-tabs', () => jest.fn(() => <div>PositionsDrawerTabs</div>));
 
 describe('<Sidebar />', () => {
     const history = createMemoryHistory();
@@ -359,8 +360,7 @@ describe('<Sidebar />', () => {
             },
         });
         renderSidebar(store);
-        expect(screen.getByText('PositionsDrawerContent')).toBeInTheDocument();
-        expect(screen.getByText('PositionsDrawerFooter')).toBeInTheDocument();
+        expect(screen.getByText('PositionsDrawerTabs')).toBeInTheDocument();
     });
 
     it('should display sun icon when dark mode is off', () => {

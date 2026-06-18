@@ -16,6 +16,11 @@ jest.mock('@deriv/shared', () => ({
     getStartTime: jest.fn(),
 }));
 
+jest.mock('@deriv-com/ui', () => ({
+    ...jest.requireActual('@deriv-com/ui'),
+    useDevice: jest.fn(() => ({ isMobile: true })),
+}));
+
 let mockCurrentLang = 'EN';
 jest.mock('@deriv-com/translations', () => ({
     ...jest.requireActual('@deriv-com/translations'),
@@ -212,7 +217,7 @@ const openPositions = [
             current_spot_time: 1716220720,
             date_expiry: mockedNow + 1000,
             date_settlement: mockedNow + 1000,
-            date_start: 1716220710,
+            date_start: mockedNow - 9,
             entry_spot: '682.58',
             entry_spot_time: 1716220711,
             expiry_time: mockedNow + 1000,

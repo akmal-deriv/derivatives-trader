@@ -233,17 +233,9 @@ describe('AccountInfo component', () => {
     });
 
     describe('Chart loading behavior', () => {
-        it('should show skeleton loader when chart is loading', () => {
+        it('should show account info regardless of chart loading state', () => {
             mockGetAccountType.mockReturnValue('real');
             renderWithProviders({ currency: 'USD', balance: 1000 }, {}, { is_chart_loading: true });
-
-            expect(screen.getByTestId('dt_skeleton')).toBeInTheDocument();
-            expect(screen.queryByTestId('dt_acc_info')).not.toBeInTheDocument();
-        });
-
-        it('should show account info when chart is not loading', () => {
-            mockGetAccountType.mockReturnValue('real');
-            renderWithProviders({ currency: 'USD', balance: 1000 }, {}, { is_chart_loading: false });
 
             expect(screen.queryByTestId('dt_skeleton')).not.toBeInTheDocument();
             expect(screen.getByTestId('dt_acc_info')).toBeInTheDocument();

@@ -14,6 +14,7 @@ import { getStakePresets } from 'AppV2/Config/trade-parameter-presets';
 import useTradeError from 'AppV2/Hooks/useTradeError';
 import { mapContractTypeToStakePresetKey } from 'AppV2/Utils/trade-params-preset-utils';
 import { getDisplayedContractTypes } from 'AppV2/Utils/trade-types-utils';
+import { AutomationStoreContext } from 'Stores/useAutomationStore';
 import { useTraderStore } from 'Stores/useTraderStores';
 
 import { TTradeParametersProps } from '../trade-parameters';
@@ -63,7 +64,7 @@ const StakePopoverContent: React.FC<{
     );
 };
 
-const Stake = observer(({ is_minimized }: TTradeParametersProps) => {
+const Stake = observer(({ is_minimized, is_automation }: TTradeParametersProps) => {
     const {
         amount,
         currency,
@@ -75,8 +76,19 @@ const Stake = observer(({ is_minimized }: TTradeParametersProps) => {
         trade_type_tab,
         proposal_info,
         onChange,
+        is_automation_tab,
     } = useTraderStore();
+    const automation_store = React.useContext(AutomationStoreContext);
     const { is_error_matching_field: has_error } = useTradeError({ error_fields: ['stake', 'amount'] });
+
+    // Keep initial_stake in sync with the stake field in automation context.
+    // `is_automation_tab` only flips on desktop (the panel-tab switcher); the
+    // mobile /automate route relies on the `is_automation` prop instead.
+    React.useEffect(() => {
+        if ((is_automation_tab || is_automation) && amount && automation_store) {
+            automation_store.setStrategyParam('initial_stake', String(amount));
+        }
+    }, [amount, is_automation_tab, is_automation, automation_store]);
 
     const [is_open, setIsOpen] = React.useState(false);
     const [active_tab, setActiveTab] = React.useState<'chips' | 'input'>('chips');
@@ -105,7 +117,12 @@ const Stake = observer(({ is_minimized }: TTradeParametersProps) => {
 
     return (
         <TradeParameterPopover
-            label={<Localize i18n_default_text='Stake' key={`stake${is_minimized ? '-minimized' : ''}`} />}
+            label={
+                <Localize
+                    i18n_default_text={is_automation_tab ? 'Initial stake' : 'Stake'}
+                    key={`stake${is_minimized ? '-minimized' : ''}`}
+                />
+            }
             value={`${amount} ${getCurrencyDisplayCode(currency)}`}
             is_minimized={is_minimized}
             disabled={has_open_accu_contract || is_market_closed}

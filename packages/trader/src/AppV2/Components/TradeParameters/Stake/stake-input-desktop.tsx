@@ -14,6 +14,7 @@ import { Localize, useTranslations } from '@deriv-com/translations';
 
 import useIsVirtualKeyboardOpen from 'AppV2/Hooks/useIsVirtualKeyboardOpen';
 import { useProposal } from 'AppV2/Hooks/useProposal';
+import { createDecimalInputGuard, getDecimalInputMaxLength } from 'AppV2/Utils/decimal-input';
 import { getPayoutInfo } from 'AppV2/Utils/trade-params-utils';
 import { getDisplayedContractTypes } from 'AppV2/Utils/trade-types-utils';
 import { ExpandedProposal, getProposalInfo } from 'Stores/Modules/Trading/Helpers/proposal';
@@ -130,7 +131,7 @@ const createInitialState = (trade_store: ReturnType<typeof useTraderStore>, deci
         proposal_request_values: { amount },
         stake_error: '',
         fe_stake_error: '',
-        max_length: calculateMaxLength(amount, decimals),
+        max_length: getDecimalInputMaxLength(amount, decimals),
         details: {
             commission,
             error_1: first_payout_error,
@@ -145,11 +146,6 @@ const createInitialState = (trade_store: ReturnType<typeof useTraderStore>, deci
             stop_out,
         },
     };
-};
-
-const calculateMaxLength = (amount: number | string, decimals: number): number => {
-    const is_decimal = String(amount).includes('.') || String(amount).includes(',');
-    return is_decimal ? 11 + decimals : 10;
 };
 
 const StakeInput = observer(({ onClose, is_open }: TStakeInput) => {
@@ -357,7 +353,7 @@ const StakeInput = observer(({ onClose, is_open }: TStakeInput) => {
         const new_value = String(e.target.value);
         dispatch({
             type: 'SET_MAX_LENGTH',
-            payload: calculateMaxLength(new_value, decimals),
+            payload: getDecimalInputMaxLength(new_value, decimals),
         });
         if (new_value.endsWith('.') || new_value.endsWith(',')) {
             dispatch({
@@ -388,10 +384,14 @@ const StakeInput = observer(({ onClose, is_open }: TStakeInput) => {
         });
     };
 
-    const onBeforeInputChange = (e: React.FormEvent<HTMLInputElement>) => {
-        const input_event = e.nativeEvent as InputEvent;
-        const typed_char = input_event?.data ?? '';
+    const decimalGuard = createDecimalInputGuard(decimals);
 
+    const onBeforeInputChange = (e: React.FormEvent<HTMLInputElement>) => {
+        const typed_char = (e.nativeEvent as InputEvent)?.data ?? '';
+
+        // Stake-specific: when the user types a separator while the input
+        // is at most 10 chars, pre-bump `max_length` so the dispatch state
+        // permits the longer "X.YY" form (the next digit needs the room).
         if (['.', ','].includes(typed_char) && (String(proposal_request_values.amount)?.length ?? 0) <= 10) {
             dispatch({
                 type: 'SET_MAX_LENGTH',
@@ -399,22 +399,10 @@ const StakeInput = observer(({ onClose, is_open }: TStakeInput) => {
             });
         }
 
-        // Prevent typing digits past the maximum allowed decimal places.
-        // Without this, TextField rounds the extra digit via toFixed(),
-        // causing the stake to silently increment (e.g. 5.34 + "5" => 5.35).
-        if (typed_char && /\d/.test(typed_char) && decimals > 0) {
-            const input = e.target as HTMLInputElement;
-            const current_value = input.value;
-            const separator_index = current_value.search(/[.,]/);
-            const cursor_pos = input.selectionStart ?? current_value.length;
-            if (
-                separator_index !== -1 &&
-                current_value.length - separator_index - 1 >= decimals &&
-                cursor_pos > separator_index
-            ) {
-                e.preventDefault();
-            }
-        }
+        // Block typing digits past the max decimal places. Shared guard
+        // — TextField would otherwise round via `toFixed()`, silently
+        // incrementing the value (e.g. 5.34 + "5" => 5.35).
+        decimalGuard(e);
     };
 
     const onSave = () => {
@@ -494,7 +482,7 @@ const StakeInput = observer(({ onClose, is_open }: TStakeInput) => {
                 <Button
                     fullWidth
                     size='lg'
-                    variant='primary'
+                    variant='secondary'
                     color='black-white'
                     onClick={onSave}
                     disabled={is_loading_proposal || !!fe_stake_error || !!(should_show_stake_error && stake_error)}

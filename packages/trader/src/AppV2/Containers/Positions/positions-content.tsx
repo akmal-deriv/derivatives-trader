@@ -1,16 +1,20 @@
 import React from 'react';
+
+import { Loading } from '@deriv/components';
+import { TReportsStore, useReportsStore } from '@deriv/reports/src/Stores/useReportsStores';
 import { TContractInfo } from '@deriv/shared';
 import { observer, useStore } from '@deriv/stores';
-import { Loading } from '@deriv/components';
 import { TPortfolioPosition } from '@deriv/stores/types';
-import { EmptyPositions, TEmptyPositionsProps } from 'AppV2/Components/EmptyPositions';
+
 import { ContractCardList, ContractCardsSections } from 'AppV2/Components/ContractCard';
-import { ContractTypeFilter, TimeFilter } from 'AppV2/Components/Filter';
+import { EmptyPositions, TEmptyPositionsProps } from 'AppV2/Components/EmptyPositions';
+import { ContractTypeFilter, TimeFilter, TradeModeFilter } from 'AppV2/Components/Filter';
 import TotalProfitLoss from 'AppV2/Components/TotalProfitLoss';
-import useTradeTypeFilter from 'AppV2/Hooks/useTradeTypeFilter';
 import useTimeFilter from 'AppV2/Hooks/useTimeFilter';
-import { filterPositions, getTotalPositionsProfit, TAB_NAME } from '../../Utils/positions-utils';
-import { TReportsStore, useReportsStore } from '@deriv/reports/src/Stores/useReportsStores';
+import useTradeModeFilter from 'AppV2/Hooks/useTradeModeFilter';
+import useTradeTypeFilter from 'AppV2/Hooks/useTradeTypeFilter';
+
+import { filterByTradeMode, filterPositions, getTotalPositionsProfit, TAB_NAME } from '../../Utils/positions-utils';
 
 type TPositionsContentProps = Omit<TEmptyPositionsProps, 'noMatchesFound'> & {
     hasButtonsDemo?: boolean;
@@ -24,6 +28,7 @@ export type TClosedPosition = {
 const PositionsContent = observer(({ hasButtonsDemo, isClosedTab, setHasButtonsDemo }: TPositionsContentProps) => {
     const { contractTypeFilter, setContractTypeFilter } = useTradeTypeFilter({ isClosedTab });
     const { timeFilter, setTimeFilter, customTimeRangeFilter, setCustomTimeRangeFilter } = useTimeFilter();
+    const { tradeModeFilter, setTradeModeFilter } = useTradeModeFilter();
     const [filteredPositions, setFilteredPositions] = React.useState<(TPortfolioPosition | TClosedPosition)[]>([]);
     const [noMatchesFound, setNoMatchesFound] = React.useState(false);
 
@@ -56,7 +61,7 @@ const PositionsContent = observer(({ hasButtonsDemo, isClosedTab, setHasButtonsD
         [active_positions, isClosedTab, closedPositions]
     );
     const hasNoActiveFilters = isClosedTab
-        ? !timeFilter && !customTimeRangeFilter && !contractTypeFilter.length
+        ? !timeFilter && !customTimeRangeFilter && !contractTypeFilter.length && !tradeModeFilter
         : !contractTypeFilter.length;
     const hasNoPositions = hasNoActiveFilters && (isClosedTab ? is_empty : is_active_empty);
     const shouldShowEmptyMessage = hasNoPositions || noMatchesFound;
@@ -100,16 +105,20 @@ const PositionsContent = observer(({ hasButtonsDemo, isClosedTab, setHasButtonsD
 
     React.useEffect(() => {
         const result = filterPositions(positions, contractTypeFilter);
+        const mode_filtered = isClosedTab ? filterByTradeMode(result, tradeModeFilter) : result;
         if (contractTypeFilter.length) {
-            setFilteredPositions(result);
-            if (!isClosedTab) setNoMatchesFound(!result.length);
+            setFilteredPositions(mode_filtered);
+            if (!isClosedTab) setNoMatchesFound(!mode_filtered.length);
         } else {
             setNoMatchesFound(false);
-            setFilteredPositions(positions);
+            setFilteredPositions(mode_filtered);
         }
         if (isClosedTab)
-            setNoMatchesFound(!result.length && !!(timeFilter || customTimeRangeFilter || contractTypeFilter.length));
-    }, [isClosedTab, positions, contractTypeFilter, timeFilter, customTimeRangeFilter]);
+            setNoMatchesFound(
+                !mode_filtered.length &&
+                    !!(timeFilter || customTimeRangeFilter || contractTypeFilter.length || tradeModeFilter)
+            );
+    }, [isClosedTab, positions, contractTypeFilter, timeFilter, customTimeRangeFilter, tradeModeFilter]);
 
     React.useEffect(() => {
         isClosedTab ? onClosedTabMount(true) : onOpenTabMount();
@@ -133,14 +142,20 @@ const PositionsContent = observer(({ hasButtonsDemo, isClosedTab, setHasButtonsD
             {!hasNoPositions && (
                 <div className='positions-page-container__filter__wrapper'>
                     {isClosedTab ? (
-                        <TimeFilter
-                            timeFilter={timeFilter}
-                            setTimeFilter={setTimeFilter}
-                            handleDateChange={handleDateChange}
-                            customTimeRangeFilter={customTimeRangeFilter}
-                            setCustomTimeRangeFilter={setCustomTimeRangeFilter}
-                            setNoMatchesFound={setNoMatchesFound}
-                        />
+                        <React.Fragment>
+                            <TimeFilter
+                                timeFilter={timeFilter}
+                                setTimeFilter={setTimeFilter}
+                                handleDateChange={handleDateChange}
+                                customTimeRangeFilter={customTimeRangeFilter}
+                                setCustomTimeRangeFilter={setCustomTimeRangeFilter}
+                                setNoMatchesFound={setNoMatchesFound}
+                            />
+                            <TradeModeFilter
+                                tradeModeFilter={tradeModeFilter}
+                                setTradeModeFilter={setTradeModeFilter}
+                            />
+                        </React.Fragment>
                     ) : (
                         <ContractTypeFilter
                             contractTypeFilter={contractTypeFilter}

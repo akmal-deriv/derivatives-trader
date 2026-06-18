@@ -6,8 +6,38 @@
     gap: var(--core-spacing-800);
     padding: var(--core-spacing-800);
     height: 100%;
+    min-height: 0;
+    box-sizing: border-box;
     position: relative;
     padding-bottom: 0;
+
+    // Upper area: scrollable. Holds Guide, TradeParameters, ClosedMarketMessage
+    // and (in automation tab) the AutomationPanel fields. `flex: 0 1 auto`
+    // hugs the natural content height so the PurchaseButton (manual) /
+    // AutomationActions (automation) sibling sits immediately after the
+    // last field instead of being pushed to the bottom.
+    &__scrollable {
+        flex: 0 1 auto;
+        min-height: 0;
+        overflow-y: hidden;
+        display: flex;
+        flex-direction: column;
+        gap: var(--core-spacing-800);
+    }
+
+    &:has(.automation-actions) &__scrollable {
+        overflow-y: auto;
+    }
+
+    // Actions row (PurchaseButton on trade tab / AutomationActions on
+    // automation tab) sits as its own flex item right after the scrollable
+    // area, so when content fits it hugs the last field instead of being
+    // pushed to the bottom. `flex-shrink: 0` keeps it from being squashed
+    // when the scrollable area gets squeezed.
+    > .purchase-button__wrapper,
+    > .automation-actions {
+        flex-shrink: 0;
+    }
 
     @include mobile-screen {
         background-color: unset;
@@ -139,7 +169,7 @@
             flex-shrink: 0;
         }
         @include mobile-screen {
-            padding: var(--core-spacing-400);
+            padding: var(--core-spacing-800);
             background-color: var(--semantic-color-slate-solid-surface-frame-low);
             &:not(.trade-params__option--minimized) {
                 height: var(--core-size-2800);
