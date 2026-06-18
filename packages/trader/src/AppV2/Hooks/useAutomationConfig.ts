@@ -1,6 +1,12 @@
 import React from 'react';
 
-import { KNOWN_PARAM_KEYS, TStrategyOption } from 'AppV2/Components/AutomationPanel/automation-config';
+import {
+    getParamDescription,
+    getStrategyDescription,
+    getStrategyOrderIndex,
+    KNOWN_PARAM_KEYS,
+    TStrategyOption,
+} from 'AppV2/Components/AutomationPanel/automation-config';
 import { useAutomationStore } from 'Stores/useAutomationStore';
 
 import useAutoStrategies from './useAutoStrategies';
@@ -16,11 +22,15 @@ const useAutomationConfig = () => {
 
     const strategy_options: TStrategyOption[] = React.useMemo(
         () =>
-            server_strategies.map(s => ({
-                value: s.strategy_id,
-                label: s.display_name,
-                description: s.description,
-            })),
+            // Sort to a stable preferred order (Martingale first); BE order isn't reliable.
+            [...server_strategies]
+                .sort((a, b) => getStrategyOrderIndex(a.strategy_id) - getStrategyOrderIndex(b.strategy_id))
+                .map(s => ({
+                    value: s.strategy_id,
+                    label: s.display_name,
+                    // Prefer our localized copy; fall back to the (English-only) BE text.
+                    description: getStrategyDescription(s.strategy_id) ?? s.description,
+                })),
         [server_strategies]
     );
 
@@ -28,6 +38,8 @@ const useAutomationConfig = () => {
         () => server_strategies.find(s => s.strategy_id === config.strategy),
         [server_strategies, config.strategy]
     );
+
+    const strategy_description = getStrategyDescription(config.strategy) ?? selected_strategy?.description;
 
     const schema_keys = React.useMemo(() => {
         if (selected_strategy) {
@@ -37,7 +49,10 @@ const useAutomationConfig = () => {
         return new Set(Object.values(KNOWN_PARAM_KEYS) as string[]);
     }, [selected_strategy]);
 
-    const getSchemaDescription = (key: string) => selected_strategy?.parameters.properties[key]?.description;
+    // Prefer our own localized copy; fall back to the (English-only) BE schema
+    // description for any param we don't map.
+    const getSchemaDescription = (key: string) =>
+        getParamDescription(config.strategy, key) ?? selected_strategy?.parameters.properties[key]?.description;
 
     const getParamNumber = (key: string): number => Number(config.strategy_params[key]) || 0;
 
@@ -54,6 +69,7 @@ const useAutomationConfig = () => {
     return {
         strategy_options,
         selected_strategy,
+        strategy_description,
         schema_keys,
         getSchemaDescription,
         getParamNumber,

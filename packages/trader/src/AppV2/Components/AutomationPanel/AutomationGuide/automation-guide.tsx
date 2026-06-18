@@ -8,6 +8,7 @@ import { useDevice } from '@deriv-com/ui';
 import { useAutomationStore } from 'Stores/useAutomationStore';
 import { useTraderStore } from 'Stores/useTraderStores';
 
+import { getStrategyOrderIndex } from '../automation-config';
 import {
     getAutomationStrategyInfo,
     getAutomationTradeTypeInfo,
@@ -36,7 +37,9 @@ const AutomationGuide = observer(() => {
     const trade_type_info = getAutomationTradeTypeInfo(contract_type);
     if (!trade_type_info) return null;
 
-    const visible_strategies = available_strategies
+    const visible_strategies = [...available_strategies]
+        // Stable preferred order (Martingale first); BE order isn't reliable.
+        .sort((a, b) => getStrategyOrderIndex(a.strategy_id) - getStrategyOrderIndex(b.strategy_id))
         .map(s => ({ id: s.strategy_id, info: getAutomationStrategyInfo(s.strategy_id) }))
         .filter((s): s is { id: string; info: TGuideStrategyInfo } => !!s.info);
 

@@ -28,7 +28,7 @@ const AutomationPanel = observer(() => {
 
     const {
         strategy_options,
-        selected_strategy,
+        strategy_description,
         schema_keys,
         getSchemaDescription,
         getParamNumber,
@@ -50,7 +50,7 @@ const AutomationPanel = observer(() => {
                     <StrategySelector
                         options={strategy_options}
                         selectedValue={config.strategy}
-                        description={selected_strategy?.description}
+                        description={strategy_description}
                         onSelect={value => {
                             automation_store.setConfig('strategy', value);
                             automation_store.setConfig('strategy_params', { ...DEFAULT_STRATEGY_PARAMS });

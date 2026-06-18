@@ -41,6 +41,14 @@
         .quill-modal__button-wrapper .quill-button {
             border-radius: var(--component-button-border-radius-xl);
         }
+
+        // quill positions the close icon top-right; flip it to the left in RTL.
+        .quill-modal__close-icon {
+            @include rtl {
+                right: auto;
+                left: var(--core-spacing-800);
+            }
+        }
     }
 
     &__body {
@@ -48,6 +56,11 @@
         flex-direction: column;
         gap: var(--core-spacing-1600);
         padding: var(--component-modal-spacing-overlay-padding-md) var(--component-modal-spacing-overlay-padding-md) 0;
+
+        @include rtl {
+            direction: rtl;
+            text-align: right;
+        }
     }
 
     // Mobile equivalent of desktop's `__body`.

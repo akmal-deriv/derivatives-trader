@@ -3,6 +3,11 @@
     flex-direction: column;
     gap: var(--core-spacing-800);
 
+    // Opt into text-level RTL (body is forced LTR app-wide; components opt in).
+    @include rtl {
+        direction: rtl;
+    }
+
     // Each section (Strategy parameters / Risk management) is its own flex
     // column with a 16px gap between the header and its fields. The top
     // border doubles as the divider between this section and whatever sits
