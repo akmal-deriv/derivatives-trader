@@ -1,19 +1,23 @@
 import React from 'react';
 
-import { Localize } from '@deriv-com/translations';
 import { ActionSheet, Checkbox, Chip, Text } from '@deriv-com/quill-ui';
+import { Localize } from '@deriv-com/translations';
 
-import useAvailableContracts from 'AppV2/Hooks/useAvailableContracts';
+import { TAvailableContract } from 'AppV2/Utils/trade-types-utils';
 
 type TContractTypeFilter = {
+    availableContracts: TAvailableContract[];
     contractTypeFilter: string[] | [];
     onApplyContractTypeFilter: (filterValues: string[]) => void;
 };
 
-const ContractTypeFilter = ({ contractTypeFilter, onApplyContractTypeFilter }: TContractTypeFilter) => {
+const ContractTypeFilter = ({
+    availableContracts,
+    contractTypeFilter,
+    onApplyContractTypeFilter,
+}: TContractTypeFilter) => {
     const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
     const [changedOptions, setChangedOptions] = React.useState<string[]>(contractTypeFilter);
-    const available_contracts = useAvailableContracts();
 
     const onActionSheetClose = () => {
         setIsDropdownOpen(false);
@@ -49,7 +53,7 @@ const ContractTypeFilter = ({ contractTypeFilter, onApplyContractTypeFilter }: T
                 <ActionSheet.Portal shouldCloseOnDrag>
                     <ActionSheet.Header title={<Localize i18n_default_text='Filter by trade types' />} />
                     <ActionSheet.Content className='filter__item__wrapper'>
-                        {available_contracts.map(({ tradeType, id }) => (
+                        {availableContracts.map(({ tradeType, id }) => (
                             <Checkbox
                                 checked={changedOptions.includes(id)}
                                 checkboxPosition='right'

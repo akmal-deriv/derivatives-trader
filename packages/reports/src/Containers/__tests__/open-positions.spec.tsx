@@ -8,6 +8,7 @@ import { useDevice } from '@deriv-com/ui';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
+import useIsEuAccount from '../../Hooks/useIsEuAccount';
 import ReportsProviders from '../../reports-providers';
 import OpenPositions from '../open-positions';
 
@@ -43,6 +44,11 @@ jest.mock('@deriv-com/ui', () => ({
 
 jest.mock('../open-positions-table', () => ({
     OpenPositionsTable: jest.fn(() => <div>OpenPositionsTable</div>),
+}));
+
+jest.mock('../../Hooks/useIsEuAccount', () => ({
+    __esModule: true,
+    default: jest.fn(),
 }));
 
 jest.mock('@deriv/components', () => ({
@@ -149,6 +155,7 @@ describe('OpenPositions', () => {
 
     beforeEach(() => {
         (useDevice as jest.Mock).mockImplementation(() => ({ isMobile: false }));
+        (useIsEuAccount as jest.Mock).mockReturnValue({ is_eu: false, is_ready: true });
 
         store = mockStore({
             portfolio: {
@@ -336,5 +343,44 @@ describe('OpenPositions', () => {
         expect(comboboxes[1]).toHaveValue(all_growth_rates.toLowerCase());
         await userEvent.selectOptions(comboboxes[1], five_percent);
         expect(comboboxes[1]).toHaveValue(five_percent);
+    });
+    it('should hide the trade-type filter for EU accounts since only Multipliers is available on desktop', () => {
+        sessionStorage.clear();
+        (useIsEuAccount as jest.Mock).mockReturnValue({ is_eu: true, is_ready: true });
+        store = mockStore({
+            portfolio: {
+                active_positions: [multipliers_position, options_position],
+            },
+            client: {
+                currency: 'USD',
+            },
+            ui: {
+                notification_messages_ui: () => <div>{notifications}</div>,
+            },
+        });
+        render(mockedOpenPositions());
+
+        expect(screen.queryByTestId(filter_dropdown)).not.toBeInTheDocument();
+        expect(screen.getByText('OpenPositionsTable')).toBeInTheDocument();
+    });
+    it('should hide the trade-type filter for EU accounts since only Multipliers is available on mobile', () => {
+        sessionStorage.clear();
+        (useDevice as jest.Mock).mockImplementation(() => ({ isMobile: true }));
+        (useIsEuAccount as jest.Mock).mockReturnValue({ is_eu: true, is_ready: true });
+        store = mockStore({
+            portfolio: {
+                active_positions: [multipliers_position, options_position],
+            },
+            client: {
+                currency: 'USD',
+            },
+            ui: {
+                notification_messages_ui: () => <div>{notifications}</div>,
+            },
+        });
+        render(mockedOpenPositions());
+
+        expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+        expect(screen.getByText('OpenPositionsTable')).toBeInTheDocument();
     });
 });

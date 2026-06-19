@@ -6,6 +6,8 @@ import { mockStore } from '@deriv/stores';
 import { TPortfolioPosition } from '@deriv/stores/types';
 import { render, screen, waitFor } from '@testing-library/react';
 
+import useAvailableContracts from 'AppV2/Hooks/useAvailableContracts';
+import useIsEuAccount from 'AppV2/Hooks/useIsEuAccount';
 import ModulesProvider from 'Stores/Providers/modules-providers';
 
 import TraderProviders from '../../../../trader-providers';
@@ -16,6 +18,11 @@ const contractCardList = 'ContractCardList';
 const emptyPositions = 'EmptyPositions';
 const loaderTestId = 'dt_positions_loader';
 const totalProfitLoss = 'Total profit/loss:';
+const mockAvailableContracts = [
+    { id: 'Multipliers', tradeType: 'Multipliers' },
+    { id: 'Rise/Fall', tradeType: 'Rise/Fall' },
+    { id: 'Accumulators', tradeType: 'Accumulators' },
+];
 
 jest.mock('@deriv/shared', () => ({
     ...jest.requireActual('@deriv/shared'),
@@ -75,6 +82,16 @@ jest.mock('AppV2/Components/Filter', () => ({
     TimeFilter: jest.fn(() => <div>TimeFilter</div>),
 }));
 
+jest.mock('AppV2/Hooks/useAvailableContracts', () => ({
+    __esModule: true,
+    default: jest.fn(),
+}));
+
+jest.mock('AppV2/Hooks/useIsEuAccount', () => ({
+    __esModule: true,
+    default: jest.fn(),
+}));
+
 describe('PositionsContent', () => {
     let defaultMockStore: ReturnType<typeof mockStore>;
 
@@ -84,6 +101,8 @@ describe('PositionsContent', () => {
     };
 
     beforeEach(() => {
+        (useAvailableContracts as jest.Mock).mockReturnValue(mockAvailableContracts);
+        (useIsEuAccount as jest.Mock).mockReturnValue({ is_eu: false, is_ready: true });
         defaultMockStore = mockStore({
             client: {
                 is_logged_in: true,
@@ -350,5 +369,29 @@ describe('PositionsContent', () => {
         expect(screen.queryByText(emptyPositions)).not.toBeInTheDocument();
         expect(screen.getByText('MULTUP')).toBeInTheDocument();
         expect(screen.getByText('TURBOSLONG')).toBeInTheDocument();
+    });
+
+    it('should not render the contract type filter for EU accounts since only Multipliers is available', () => {
+        (useIsEuAccount as jest.Mock).mockReturnValue({ is_eu: true, is_ready: true });
+        render(mockPositionsContent());
+
+        expect(screen.queryByText(contractTypeFilter)).not.toBeInTheDocument();
+        expect(screen.getByText(contractCardList)).toBeInTheDocument();
+    });
+
+    it('should not render the contract type filter when only one trade type is available', () => {
+        (useAvailableContracts as jest.Mock).mockReturnValue([{ id: 'Multipliers', tradeType: 'Multipliers' }]);
+        render(mockPositionsContent());
+
+        expect(screen.queryByText(contractTypeFilter)).not.toBeInTheDocument();
+        expect(screen.getByText(contractCardList)).toBeInTheDocument();
+    });
+
+    it('should not render the contract type filter until the EU account status is resolved', () => {
+        (useIsEuAccount as jest.Mock).mockReturnValue({ is_eu: false, is_ready: false });
+        render(mockPositionsContent());
+
+        expect(screen.queryByText(contractTypeFilter)).not.toBeInTheDocument();
+        expect(screen.getByText(contractCardList)).toBeInTheDocument();
     });
 });
