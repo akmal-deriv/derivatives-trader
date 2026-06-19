@@ -218,7 +218,7 @@ const useRunControls = ({ onRunStarted }: TUseRunControlsOptions = {}) => {
         handleResumeClick,
         isStarting,
         is_busy,
-        is_run_disabled: is_busy || has_blocking_proposal_error || has_open_accu_contract,
+        is_run_disabled: is_logged_in && (is_busy || has_blocking_proposal_error || has_open_accu_contract),
     };
 };
 

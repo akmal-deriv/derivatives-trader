@@ -10,7 +10,7 @@ import { useTraderStore } from 'Stores/useTraderStores';
 import MaxTradeStake from './MaxTradeStake/max-trade-stake';
 import StakeMultiplier from './StakeMultiplier/stake-multiplier';
 import ThresholdInput from './ThresholdInput/threshold-input';
-import { DEFAULT_STRATEGY_PARAMS, KNOWN_PARAM_KEYS } from './automation-config';
+import { KNOWN_PARAM_KEYS } from './automation-config';
 import StrategySelector from './StrategySelector';
 
 import './automation-panel.scss';
@@ -51,10 +51,7 @@ const AutomationPanel = observer(() => {
                         options={strategy_options}
                         selectedValue={config.strategy}
                         description={strategy_description}
-                        onSelect={value => {
-                            automation_store.setConfig('strategy', value);
-                            automation_store.setConfig('strategy_params', { ...DEFAULT_STRATEGY_PARAMS });
-                        }}
+                        onSelect={value => automation_store.setConfig('strategy', value)}
                     />
 
                     {schema_keys.has(KNOWN_PARAM_KEYS.MULTIPLIER) && (

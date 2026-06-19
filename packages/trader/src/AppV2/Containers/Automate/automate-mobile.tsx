@@ -14,7 +14,7 @@ import { Button, Tag, Text, TextField } from '@deriv-com/quill-ui';
 import { Localize, useTranslations } from '@deriv-com/translations';
 
 import ActiveSymbolsList from 'AppV2/Components/ActiveSymbolsList';
-import { DEFAULT_STRATEGY_PARAMS, KNOWN_PARAM_KEYS } from 'AppV2/Components/AutomationPanel/automation-config';
+import { KNOWN_PARAM_KEYS } from 'AppV2/Components/AutomationPanel/automation-config';
 import AutomationErrorBanner from 'AppV2/Components/AutomationPanel/automation-error-banner';
 import AutomationGuide from 'AppV2/Components/AutomationPanel/AutomationGuide';
 import MaxTradeStake from 'AppV2/Components/AutomationPanel/MaxTradeStake/max-trade-stake';
@@ -190,10 +190,7 @@ const AutomateMobile = observer(() => {
                             options={strategy_options}
                             selectedValue={config.strategy}
                             description={strategy_description}
-                            onSelect={value => {
-                                automation_store.setConfig('strategy', value);
-                                automation_store.setConfig('strategy_params', { ...DEFAULT_STRATEGY_PARAMS });
-                            }}
+                            onSelect={value => automation_store.setConfig('strategy', value)}
                         />
 
                         {schema_keys.has(KNOWN_PARAM_KEYS.MULTIPLIER) && (

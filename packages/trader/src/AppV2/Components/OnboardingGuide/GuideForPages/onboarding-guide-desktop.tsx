@@ -46,13 +46,15 @@ const OnboardingGuideDesktop = ({ type = 'trade_page', callback }: TOnboardingGu
     const onGuideStart = React.useCallback(() => {
         setShouldRunGuide(true);
         setIsModalOpen(false);
-    }, []);
+        // Mark as seen when the tour starts, so a mid-tour refresh doesn't re-show the intro.
+        setGuideDtraderV2Desktop({ ...guide_dtrader_v2_desktop, [type]: true });
+    }, [setGuideDtraderV2Desktop, guide_dtrader_v2_desktop, type]);
 
     const onFinishGuide = React.useCallback(() => {
         setShouldRunGuide(false);
         setGuideDtraderV2Desktop({ ...guide_dtrader_v2_desktop, [type]: true });
         callback?.();
-        // Chain the automation onboarding only once the tour actually finishes.
+        // Chain the automation onboarding once the tour finishes.
         if (type === 'trade_page') notifyIntroOnboardingComplete();
     }, [setGuideDtraderV2Desktop, guide_dtrader_v2_desktop, type, callback]);
 
@@ -60,6 +62,7 @@ const OnboardingGuideDesktop = ({ type = 'trade_page', callback }: TOnboardingGu
         setIsModalOpen(false);
         setGuideDtraderV2Desktop({ ...guide_dtrader_v2_desktop, [type]: true });
         callback?.();
+        if (type === 'trade_page') notifyIntroOnboardingComplete();
     }, [setGuideDtraderV2Desktop, guide_dtrader_v2_desktop, type, callback]);
 
     React.useEffect(() => {
@@ -83,7 +86,6 @@ const OnboardingGuideDesktop = ({ type = 'trade_page', callback }: TOnboardingGu
                 toggleModal={onSkipGuide}
                 primaryButtonLabel={<Localize i18n_default_text="Let's begin" />}
                 primaryButtonCallback={onGuideStart}
-                shouldCloseOnPrimaryButtonClick
                 showCrossIcon
                 className='onboarding-guide-desktop'
             >
