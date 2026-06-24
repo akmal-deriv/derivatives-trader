@@ -31,7 +31,11 @@ const ServiceErrorSheet = observer(() => {
     const onClose = () => {
         setIsOpen(false);
         if (services_error.type === 'buy') {
-            if (is_insufficient_balance) {
+            // AuthorizationRequired is raised for logged-out users without sending a real buy, so the
+            // proposal subscriptions were never touched. Clearing + re-requesting here would blank the
+            // payout and can leave proposals failing to re-subscribe, so just close the sheet.
+            // Insufficient balance is likewise handled without resetting purchase state.
+            if (is_insufficient_balance || is_authorization_required) {
                 return;
             }
             clearPurchaseInfo();

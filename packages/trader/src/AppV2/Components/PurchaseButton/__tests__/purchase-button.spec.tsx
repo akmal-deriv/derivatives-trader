@@ -213,6 +213,7 @@ describe('PositionsContent', () => {
     });
 
     it('should call onPurchaseV2 function if user clicks on purchase button and it is not disabled', async () => {
+        default_mock_store.client.is_logged_in = true;
         mockPurchaseButton();
         const purchase_button = screen.getAllByRole('button')[0];
 
@@ -220,6 +221,22 @@ describe('PositionsContent', () => {
         await userEvent.click(purchase_button);
 
         expect(default_mock_store.modules.trade.onPurchaseV2).toBeCalled();
+    });
+
+    it('should open the auth sheet without calling onPurchaseV2 when a logged-out user clicks the purchase button', async () => {
+        default_mock_store.client.is_logged_in = false;
+        mockPurchaseButton();
+        const purchase_button = screen.getAllByRole('button')[0];
+
+        await userEvent.click(purchase_button);
+
+        // Logged-out users should be sent straight to the auth sheet (AuthorizationRequired), not through
+        // a doomed buy that waits on proposals and can get stuck loading.
+        expect(default_mock_store.modules.trade.onPurchaseV2).not.toBeCalled();
+        expect(default_mock_store.common.setServicesError).toHaveBeenCalledWith(
+            expect.objectContaining({ code: 'AuthorizationRequired', type: 'buy' }),
+            true
+        );
     });
 
     it('should disable the button when account is switching', async () => {

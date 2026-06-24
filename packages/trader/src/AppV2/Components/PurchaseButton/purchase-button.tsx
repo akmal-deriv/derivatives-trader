@@ -334,6 +334,17 @@ const PurchaseButton = observer(({ onPurchaseSuccess }: TPurchaseButtonProps = {
                                         onHoverPurchase(false, trade_type);
                                     }}
                                     onClick={() => {
+                                        if (!is_logged_in) {
+                                            // Logged-out users can't buy: the server always rejects with
+                                            // AuthorizationRequired. Open the auth sheet directly instead of
+                                            // sending a doomed buy and awaiting proposals — that path can leave
+                                            // the button stuck loading and blank the payout after the sheet closes.
+                                            setServicesError(
+                                                { code: SERVICE_ERROR.AUTHORIZATION_REQUIRED, type: 'buy' },
+                                                true
+                                            );
+                                            return;
+                                        }
                                         if (is_insufficient_balance) {
                                             const error =
                                                 (purchase_info as Record<string, any>)?.error ||
