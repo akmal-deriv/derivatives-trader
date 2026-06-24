@@ -37,7 +37,12 @@
             }
         }
 
-        &__item {
+        // Scope under the wrapper to raise specificity to (0,2,0) so this beats
+        // quill's equal-specificity `.quill-typography__color--prominent` rule
+        // regardless of stylesheet load order. Without this, navigating to Reports
+        // re-injects quill's base2.css after the trader CSS, flipping the cascade
+        // and turning the payout text black in light theme.
+        &__wrapper &__item {
             color: var(--component-button-label-color-sell-primary);
         }
     }
