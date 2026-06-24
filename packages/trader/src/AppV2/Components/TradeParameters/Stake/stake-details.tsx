@@ -8,6 +8,8 @@ import { Localize } from '@deriv-com/translations';
 import { useTraderStore } from 'Stores/useTraderStores';
 import { TTradeStore } from 'Types';
 
+import CommissionTooltip from '../Multiplier/commission-tooltip';
+
 type TStakeDetailsProps = Pick<TTradeStore, 'contract_type' | 'currency' | 'has_stop_loss' | 'is_multiplier'> & {
     contract_types: string[];
     details: {
@@ -39,7 +41,7 @@ const StakeDetails = ({
     is_empty,
     should_show_payout_details,
 }: TStakeDetailsProps) => {
-    const { root_store } = useTraderStore();
+    const { amount, multiplier, root_store } = useTraderStore();
     const is_mobile = root_store?.ui?.is_mobile;
     const [displayed_values, setDisplayedValues] = React.useState({
         is_first_payout_exceeded: false,
@@ -103,6 +105,7 @@ const StakeDetails = ({
         },
         {
             is_displayed: is_multiplier && !should_show_payout_details,
+            is_commission: true,
             label: <Localize i18n_default_text='Commission' />,
             value: displayed_values.commission,
         },
@@ -134,15 +137,29 @@ const StakeDetails = ({
     return (
         <div className='stake-content__details'>
             {content.map(
-                ({ contract_type, is_displayed, label, has_error, value }, idx) =>
+                ({ contract_type, is_commission, is_displayed, label, has_error, value }, idx) =>
                     is_displayed && (
                         <div
                             key={`${idx}_${value}`}
                             className={clsx('stake-content__details-row', has_error && 'error')}
                         >
                             <Text size='sm'>
-                                {label}
-                                {is_mobile && contract_type && ` (${contract_type})`}
+                                {is_commission ? (
+                                    <CommissionTooltip
+                                        commission={details.commission}
+                                        multiplier={multiplier}
+                                        amount={amount}
+                                        currency={currency}
+                                        align='start'
+                                    >
+                                        {label}
+                                    </CommissionTooltip>
+                                ) : (
+                                    <React.Fragment>
+                                        {label}
+                                        {is_mobile && contract_type && ` (${contract_type})`}
+                                    </React.Fragment>
+                                )}
                             </Text>
                             <Text size='sm'>
                                 {value} {getCurrencyDisplayCode(currency)}

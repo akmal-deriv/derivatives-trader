@@ -10,12 +10,15 @@ import { useDevice } from '@deriv-com/ui';
 
 import { useTraderStore } from 'Stores/useTraderStores';
 
+import CommissionFormula, { getCommissionPercentage } from '../Multiplier/commission-formula';
+
 import './multipliers-information.scss';
 
 const MultipliersInformation = observer(() => {
-    const { currency, is_market_closed, proposal_info } = useTraderStore();
+    const { amount, currency, is_market_closed, multiplier, proposal_info } = useTraderStore();
     const { isDesktop } = useDevice();
     const [is_stop_out_open, setIsStopOutOpen] = React.useState(false);
+    const [is_commission_open, setIsCommissionOpen] = React.useState(false);
 
     const up_commission = proposal_info?.[CONTRACT_TYPES.MULTIPLIER.UP]?.commission;
     const down_commission = proposal_info?.[CONTRACT_TYPES.MULTIPLIER.DOWN]?.commission;
@@ -50,10 +53,58 @@ const MultipliersInformation = observer(() => {
         proposal_info?.[CONTRACT_TYPES.MULTIPLIER.UP]?.has_error ||
         proposal_info?.[CONTRACT_TYPES.MULTIPLIER.DOWN]?.has_error;
 
+    // Dynamic commission formula tooltip (V1 parity) — shared with the multiplier wheel-picker.
+    const commission_percentage = getCommissionPercentage(commission, multiplier, amount);
+
+    // Reset the open state whenever the commission ActionSheet stops being rendered (desktop, or no derivable
+    // percentage). Otherwise the controlled `isOpen` survives the conditional unmount and the sheet would pop
+    // back open on its own once the trigger reappears (e.g. after the stake is cleared and re-entered).
+    React.useEffect(() => {
+        if (isDesktop || commission_percentage === null) setIsCommissionOpen(false);
+    }, [isDesktop, commission_percentage]);
+
+    const COMMISSION_TOOLTIP = (
+        <CommissionFormula commission={commission} multiplier={multiplier} amount={amount} currency={currency} />
+    );
+
     const openStopOutDescription = (e?: React.MouseEvent<HTMLElement> | React.KeyboardEvent<HTMLElement>) => {
         if (is_market_closed || isDesktop) return;
         clickAndKeyEventHandler(() => setIsStopOutOpen(true), e);
     };
+
+    const openCommissionDescription = (e?: React.MouseEvent<HTMLElement> | React.KeyboardEvent<HTMLElement>) => {
+        if (is_market_closed || isDesktop) return;
+        clickAndKeyEventHandler(() => setIsCommissionOpen(true), e);
+    };
+
+    const commission_label = <Localize i18n_default_text='Commission' />;
+    let commission_label_node = (
+        <Text size='sm' className={clsx(is_market_closed && 'trade-params__text--disabled')}>
+            {commission_label}
+        </Text>
+    );
+    if (commission_percentage !== null) {
+        const interactive_label_class = clsx(
+            'multipliers-information__label--underlined',
+            is_market_closed && 'trade-params__text--disabled'
+        );
+        commission_label_node = isDesktop ? (
+            <TooltipPortal message={COMMISSION_TOOLTIP} position='left' className='multipliers-information__tooltip'>
+                <Text size='sm' className={interactive_label_class}>
+                    {commission_label}
+                </Text>
+            </TooltipPortal>
+        ) : (
+            <Text
+                size='sm'
+                className={interactive_label_class}
+                onClick={openCommissionDescription}
+                onKeyDown={openCommissionDescription}
+            >
+                {commission_label}
+            </Text>
+        );
+    }
 
     if (has_error) return null;
 
@@ -126,9 +177,7 @@ const MultipliersInformation = observer(() => {
 
             {/* Commission - Hidden in collapsed mode on mobile */}
             <div className='multipliers-information__row multipliers-information__row--collapsible'>
-                <Text size='sm' className={clsx(is_market_closed && 'trade-params__text--disabled')}>
-                    <Localize i18n_default_text='Commission' />
-                </Text>
+                {commission_label_node}
                 {commission !== undefined && commission !== null ? (
                     <Text size='sm' className={clsx(is_market_closed && 'trade-params__text--disabled')}>
                         <Money amount={commission} show_currency currency={currency} />
@@ -137,6 +186,31 @@ const MultipliersInformation = observer(() => {
                     <Skeleton width={100} height={14} />
                 )}
             </div>
+            {!isDesktop && commission_percentage !== null && (
+                <ActionSheet.Root
+                    isOpen={is_commission_open}
+                    onClose={() => setIsCommissionOpen(false)}
+                    position='left'
+                    expandable={false}
+                >
+                    <ActionSheet.Portal shouldCloseOnDrag>
+                        <ActionSheet.Content className='multipliers-information__definition__wrapper'>
+                            <Heading.H4 className='multipliers-information__definition__title'>
+                                <Localize i18n_default_text='Commission' />
+                            </Heading.H4>
+                            <Text as='div'>{COMMISSION_TOOLTIP}</Text>
+                        </ActionSheet.Content>
+                        <ActionSheet.Footer
+                            alignment='vertical'
+                            primaryAction={{
+                                content: <Localize i18n_default_text='Got it' />,
+                                onAction: () => setIsCommissionOpen(false),
+                            }}
+                            className='multipliers-information__button'
+                        />
+                    </ActionSheet.Portal>
+                </ActionSheet.Root>
+            )}
         </div>
     );
 });

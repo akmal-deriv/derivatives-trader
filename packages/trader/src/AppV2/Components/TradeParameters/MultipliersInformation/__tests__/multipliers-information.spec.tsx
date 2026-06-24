@@ -1,25 +1,28 @@
 import { mockStore } from '@deriv/stores';
 import { useDevice } from '@deriv-com/ui';
 import { fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 
 import ModulesProvider from 'Stores/Providers/modules-providers';
 
 import TraderProviders from '../../../../../trader-providers';
 import MultipliersInformation from '../multipliers-information';
 
-jest.mock('@deriv-com/ui', () => ({
-    ...jest.requireActual('@deriv-com/ui'),
-    useDevice: jest.fn(() => ({ isDesktop: true })),
-}));
-
 const stop_out_label = 'Stop out';
 const commission_label = 'Commission';
+const underlined_label_class = 'multipliers-information__label--underlined';
+
+jest.mock('@deriv-com/ui', () => ({
+    ...jest.requireActual('@deriv-com/ui'),
+    useDevice: jest.fn(() => ({ isDesktop: false })),
+}));
 
 describe('MultipliersInformation', () => {
     let default_mock_store: ReturnType<typeof mockStore>;
 
+    afterEach(() => jest.clearAllMocks());
+
     beforeEach(() => {
-        (useDevice as jest.Mock).mockReturnValue({ isDesktop: true });
         default_mock_store = mockStore({
             modules: {
                 trade: {
@@ -251,8 +254,72 @@ describe('MultipliersInformation', () => {
         expect(commissionValue).toBeInTheDocument();
     });
 
+    it('does not make the commission label interactive when stake or multiplier are unavailable', () => {
+        // mockStore defaults amount and multiplier to 0, so the percentage cannot be derived
+        mockMultipliersInformation();
+
+        expect(screen.getByText(commission_label)).not.toHaveClass(underlined_label_class);
+    });
+
+    it('renders an interactive (underlined) commission label when stake and multiplier are available', () => {
+        default_mock_store.modules.trade.amount = 10;
+        default_mock_store.modules.trade.multiplier = 100;
+        mockMultipliersInformation();
+
+        expect(screen.getByText(commission_label)).toHaveClass(underlined_label_class);
+    });
+
+    it('opens an ActionSheet with the dynamic commission formula when the label is clicked (mobile)', async () => {
+        default_mock_store.modules.trade.amount = 10;
+        default_mock_store.modules.trade.multiplier = 100;
+        mockMultipliersInformation();
+
+        await userEvent.click(screen.getByText(commission_label));
+
+        // commission_percentage = (0.5 * 100) / (100 * 10) = 0.0500
+        expect(screen.getByText('0.0500%')).toBeInTheDocument();
+        expect(screen.getByText('Got it')).toBeInTheDocument();
+    });
+
+    it('recomputes the commission percentage from the current stake and multiplier', async () => {
+        default_mock_store.modules.trade.amount = 20;
+        default_mock_store.modules.trade.multiplier = 50;
+        default_mock_store.modules.trade.proposal_info = {
+            MULTUP: { commission: 1, limit_order: { stop_out: { order_amount: -10.5 } } },
+        };
+        mockMultipliersInformation();
+
+        await userEvent.click(screen.getByText(commission_label));
+
+        // commission_percentage = (1 * 100) / (50 * 20) = 0.1000
+        expect(screen.getByText('0.1000%')).toBeInTheDocument();
+    });
+
+    it('does not open the commission ActionSheet when market is closed (mobile)', async () => {
+        default_mock_store.modules.trade.amount = 10;
+        default_mock_store.modules.trade.multiplier = 100;
+        default_mock_store.modules.trade.is_market_closed = true;
+        mockMultipliersInformation();
+
+        await userEvent.click(screen.getByText(commission_label));
+
+        expect(screen.queryByText('0.0500%')).not.toBeInTheDocument();
+        expect(screen.queryByText('Got it')).not.toBeInTheDocument();
+    });
+
+    it('renders a hover tooltip (no ActionSheet) for the commission on desktop', () => {
+        (useDevice as jest.Mock).mockReturnValue({ isDesktop: true });
+        default_mock_store.modules.trade.amount = 10;
+        default_mock_store.modules.trade.multiplier = 100;
+        mockMultipliersInformation();
+
+        expect(screen.getByText(commission_label)).toHaveClass(underlined_label_class);
+        expect(screen.queryByText('Got it')).not.toBeInTheDocument();
+    });
+
     describe('stop out tooltip', () => {
-        // The desktop tooltip message only renders into the portal on hover/focus.
+        // The desktop tooltip message only renders into the portal on hover/focus (desktop only).
+        beforeEach(() => (useDevice as jest.Mock).mockReturnValue({ isDesktop: true }));
         const showDesktopTooltip = () => fireEvent.mouseEnter(screen.getByRole('button'));
 
         it('derives the stop out percentage from the stop out amount and stake/ask_price (100% stake loss)', () => {

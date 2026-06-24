@@ -1,5 +1,3 @@
-import React from 'react';
-
 import { mockStore } from '@deriv/stores';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -33,6 +31,10 @@ jest.mock('@deriv-com/quill-ui', () => ({
             </ul>
         </div>
     )),
+}));
+jest.mock('@deriv-com/ui', () => ({
+    ...jest.requireActual('@deriv-com/ui'),
+    useDevice: jest.fn(() => ({ isDesktop: false })),
 }));
 jest.mock('AppV2/Components/TradeParamDefinition', () => jest.fn(() => <div>{mocked_definition}</div>));
 jest.mock('lodash.debounce', () =>
@@ -152,5 +154,30 @@ describe('<Multiplier />', () => {
         await waitFor(() => {
             expect(default_mock_store.modules.trade.onChange).toBeCalled();
         });
+    });
+    it('reveals the commission formula in the wheel-picker when the Commission label is tapped', async () => {
+        const user = userEvent.setup();
+        default_mock_store.modules.trade.amount = 10; // multiplier 1, commission 0.01 -> 0.1000%
+        mockMultiplier();
+
+        await user.click(screen.getByText(multiplier_param_label));
+
+        expect(screen.queryByTestId('dt_commission_formula')).not.toBeInTheDocument();
+
+        await user.click(screen.getByText('Commission'));
+
+        // commission_percentage = (0.01 * 100) / (1 * 10) = 0.1000
+        expect(screen.getByTestId('dt_commission_formula')).toBeInTheDocument();
+        expect(screen.getByText('0.1000%')).toBeInTheDocument();
+    });
+    it('does not reveal a commission formula when stake is unavailable', async () => {
+        const user = userEvent.setup();
+        // amount defaults to 0 in mockStore, so the percentage cannot be derived
+        mockMultiplier();
+
+        await user.click(screen.getByText(multiplier_param_label));
+        await user.click(screen.getByText('Commission'));
+
+        expect(screen.queryByTestId('dt_commission_formula')).not.toBeInTheDocument();
     });
 });

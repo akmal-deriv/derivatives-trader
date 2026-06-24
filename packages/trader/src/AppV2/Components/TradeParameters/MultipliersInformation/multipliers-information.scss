@@ -12,8 +12,11 @@
         align-items: center;
 
         &--collapsible {
+            // Hidden only while the trade-params sheet is collapsed on mobile; shown once it is expanded.
+            // (The previous selector keyed off `.trade-params__options-wrapper--expanded`, a class that is
+            // never applied, so the row stayed hidden on mobile in every state.)
             @media (max-width: 768px) {
-                .trade-params__options-wrapper:not(.trade-params__options-wrapper--expanded) & {
+                .trade-params__container--collapsed & {
                     display: none;
                 }
             }

@@ -2,12 +2,15 @@ import React, { useEffect } from 'react';
 import debounce from 'lodash.debounce';
 
 import { formatMoney } from '@deriv/shared';
-import { Localize } from '@deriv-com/translations';
 import { ActionSheet, Skeleton, Text, WheelPicker } from '@deriv-com/quill-ui';
+import { Localize } from '@deriv-com/translations';
 
 import { useTraderStore } from 'Stores/useTraderStores';
 
+import CommissionTooltip from './commission-tooltip';
+
 type TMultiplierWheelPickerProps = {
+    amount: ReturnType<typeof useTraderStore>['amount'];
     multiplier: ReturnType<typeof useTraderStore>['multiplier'];
     multiplier_range_list: ReturnType<typeof useTraderStore>['multiplier_range_list'];
     currency: ReturnType<typeof useTraderStore>['currency'];
@@ -20,6 +23,7 @@ const debouncedSetMultiplier = debounce((setMultiplier, multiplier) => {
 }, 200);
 
 const MultiplierWheelPicker = ({
+    amount,
     multiplier,
     multiplier_range_list = [],
     currency,
@@ -65,9 +69,16 @@ const MultiplierWheelPicker = ({
                     )}
                 </div>
                 <div className='multiplier__commission'>
-                    <Text color='quill-typography__color--subtle' size='sm'>
-                        <Localize i18n_default_text='Commission' />
-                    </Text>
+                    <CommissionTooltip
+                        commission={commission}
+                        multiplier={multiplier}
+                        amount={amount}
+                        currency={currency}
+                    >
+                        <Text color='quill-typography__color--subtle' size='sm'>
+                            <Localize i18n_default_text='Commission' />
+                        </Text>
+                    </CommissionTooltip>
                     <Text size='sm' as='div' className='multiplier__commission-value'>
                         {commission ? (
                             <React.Fragment>
