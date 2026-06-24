@@ -4,6 +4,7 @@ import { observer } from 'mobx-react-lite';
 
 import { LegacyHandleLessIcon } from '@deriv/quill-icons';
 
+import ClosedMarketMessage from 'AppV2/Components/ClosedMarketMessage';
 import PurchaseButton from 'AppV2/Components/PurchaseButton';
 import { isTradeParamVisible } from 'AppV2/Utils/layout-utils';
 import { isSameTradeTypeCategory } from 'AppV2/Utils/trade-types-utils';
@@ -101,6 +102,7 @@ const TradeParametersContainer = ({ is_market_closed }: TTradeParametersContaine
                     })}
                 >
                     <TradeParameters is_minimized={!is_sheet_expanded} />
+                    <ClosedMarketMessage />
                     {!is_market_closed && <PurchaseButton onPurchaseSuccess={handlePurchaseSuccess} />}
                 </section>
             </div>

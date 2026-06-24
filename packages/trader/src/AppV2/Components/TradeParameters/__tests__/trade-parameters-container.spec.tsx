@@ -27,6 +27,11 @@ jest.mock('AppV2/Components/PurchaseButton', () => ({
     )),
 }));
 
+jest.mock('AppV2/Components/ClosedMarketMessage', () => ({
+    __esModule: true,
+    default: jest.fn(() => <div data-testid='mock-closed-market-message'>ClosedMarketMessage</div>),
+}));
+
 jest.mock('Stores/useTraderStores', () => ({
     useTraderStore: () => mockUseTraderStore(),
 }));
@@ -77,6 +82,13 @@ describe('TradeParametersContainer', () => {
 
             expect(screen.queryByText('PurchaseButton')).not.toBeInTheDocument();
             expect(screen.getByText('TradeParameters-minimized')).toBeInTheDocument();
+        });
+
+        it('should render closed market message (which self-gates on is_market_closed) when market is closed', () => {
+            render(<TradeParametersContainer is_market_closed />);
+
+            expect(screen.getByTestId('mock-closed-market-message')).toBeInTheDocument();
+            expect(screen.queryByText('PurchaseButton')).not.toBeInTheDocument();
         });
 
         it('should have collapsed class by default', () => {
