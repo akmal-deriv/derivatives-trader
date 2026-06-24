@@ -121,9 +121,7 @@ export class LoginPage {
      * @param email - Email address to type
      */
     async enterEmail(email: string): Promise<void> {
-        await expect(this.emailTextboxLabel, 'Email input label should be visible').toBeVisible();
-        await this.emailTextboxLabel.click();
-        await this.emailTextboxInput.waitFor({ state: 'visible' });
+        await expect(this.emailTextboxInput, 'Email input should be visible').toBeVisible();
         await this.emailTextboxInput.pressSequentially(email, { delay: 70 });
     }
 

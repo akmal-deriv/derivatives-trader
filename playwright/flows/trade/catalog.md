@@ -1,7 +1,7 @@
 # 🗺️ Trade Journey Catalog — Technical Reference
 
 > Source of truth: `packages/trader/src/AppV2/Containers/Trade/` · `packages/trader/src/AppV2/Components/TradeParameters/` · `packages/trader/src/AppV2/Components/PurchaseButton/`
-> Created: 2026-06-11 | Last updated: 2026-06-11
+> Last updated: 2026-06-24
 
 ---
 
@@ -80,49 +80,55 @@ test.describe('Trade — Form Loads', { tag: ['@trade', '@smoke', '@desktop', '@
 
 ### Flow 2.1 — Rise/Fall: buy Rise → close contract
 
+### Flow 2.2 — Rise/Fall: buy Fall → close contract
+
 ```typescript
 test.describe('Trade — Rise/Fall', { tag: ['@trade', '@smoke', '@desktop', '@mobile'] }, () => {
-    test.beforeEach(async ({ loginPage, tradePage, page }) => {
-        await loginPage.login();
-        await tradePage.goto();
-        await NavigationUtils.waitForDerivApiSettled(page);
-        await tradePage.selectTradeType('Rise/Fall');
+    test.describe.configure({ mode: 'serial' });
+
+    test.beforeEach(async ({ page, loginPage }) => {
+        await TradeBasePage.seedLocalStorageOnOrigin(page);
+        await loginPage.login(process.env.TEST_EMAIL_RISE_FALL);
     });
 
-    test('VERIFY buy Rise contract and close', async ({ tradePage, page }) => {
-        await expect(page.getByText('Duration'), 'Duration param should be visible for Rise/Fall').toBeVisible();
-        await expect(
-            page.getByText('Allow equals'),
-            'Allow equals toggle should be visible for Rise/Fall'
-        ).toBeVisible();
-        await tradePage.setStake('10.00');
-        await tradePage.clickRise();
-        await expect(
-            page.locator('.trade-notification--purchase'),
-            'Purchase notification should appear'
-        ).toBeVisible();
-        await tradePage.gotoPositions();
-        await NavigationUtils.waitForDerivApiSettled(page);
-        await tradePage.openFirstContract();
-        await tradePage.closeContract();
+    test('VERIFY Buy "Rise" Contract and Close', async ({ tradeRiseFallPage }) => {
+        await tradeRiseFallPage.buyRiseAndVerify({
+            market: 'Volatility 100 Index',
+            durationUnit: 'Minutes',
+            durationValue: '15 min',
+            stake: '10.50',
+            currency: 'USD',
+        });
     });
 
-    test('VERIFY buy Fall contract and close', async ({ tradePage, page }) => {
-        await tradePage.setStake('10.00');
-        await tradePage.clickFall();
-        await expect(
-            page.locator('.trade-notification--purchase'),
-            'Purchase notification should appear'
-        ).toBeVisible();
-        await tradePage.gotoPositions();
-        await NavigationUtils.waitForDerivApiSettled(page);
-        await tradePage.openFirstContract();
-        await tradePage.closeContract();
+    test('VERIFY Buy "Fall" Contract and Close', async ({ tradeRiseFallPage }) => {
+        await tradeRiseFallPage.buyFallAndVerify({
+            market: 'Volatility 100 Index',
+            durationUnit: 'Minutes',
+            durationValue: '15 min',
+            stake: '10.50',
+            currency: 'USD',
+        });
     });
 });
 ```
 
-> **Flow 2.1** = `VERIFY buy Rise contract and close` · **Flow 2.2** = `VERIFY buy Fall contract and close`
+**`buyRiseAndVerify` / `buyFallAndVerify` cover (in order):**
+
+1. `selectMarket` → `selectTradeType('Rise/Fall')` → `clickRiseFallOption` → `selectDuration` → `setStake` → `clickBuy`
+2. `verifyOpenPositionsVisible` + `verifyContractCardDetails` + `verifyBalanceAfterContractPurchase`
+3. `verifyOpenPositionsInReports` (Open positions tab) — captures `buyId`
+4. `verifyContractDetailsPage` (open contract) — captures `entrySpot`
+5. `closeFirstContract` / `sellContract`
+6. `verifyClosedPositionsTab` — captures `contractProfitLossAmount`
+7. `verifyClosedContractDetailsPage` (closed contract) — captures `sellId`
+8. `verifyBalanceAfterContractClose`
+9. `verifyClosedContractInReports` → Trade table (by `buyId`) + Statement Sell row (by `sellId`) + Buy row (by `buyId`)
+
+> **Fixture:** `tradeRiseFallPage` from `playwright/fixtures/fixtures.ts`
+> **Env var:** `TEST_EMAIL_RISE_FALL` — dedicated funded staging account for this suite
+> **Serial mode:** tests run sequentially (shared account state between Rise and Fall)
+> **Flow 2.1** = `VERIFY Buy "Rise" Contract and Close` · **Flow 2.2** = `VERIFY Buy "Fall" Contract and Close`
 
 ---
 
@@ -918,13 +924,14 @@ test.describe('Trade — Closed Market', { tag: ['@trade', '@desktop', '@mobile'
 
 ### Which trade types require manual close vs auto-expiry
 
-| Trade type                              | Close method                                                                                    |
-| --------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| Rise/Fall, Higher/Lower, Touch/No Touch | Manual close via contract details footer: `getByRole('button', { name: /^Close/ })`             |
-| Accumulators                            | Close button on trade page (`getByRole('button', { name: /^Close/ })`) while contract is active |
-| Multipliers                             | Manual close via contract details footer                                                        |
-| Matches/Differs, Over/Under, Even/Odd   | Auto-expiry — no manual close                                                                   |
-| Turbos, Vanillas                        | Auto-expiry — no manual close; test only verifies purchase + position card                      |
+| Trade type                            | Close method                                                                                                                                                                                                        |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Rise/Fall                             | Desktop: `PositionsPage.closeFirstContract()` (inline Close button on card). Mobile: `PositionsPage.closeFirstContract()` (force-clicks hidden button). Then `verifyClosedContractDetailsPage()` extracts `sellId`. |
+| Higher/Lower, Touch/No Touch          | Manual close via contract details footer: `getByRole('button', { name: /^Close/ })`                                                                                                                                 |
+| Accumulators                          | Close button on trade page (`getByRole('button', { name: /^Close/ })`) while contract is active                                                                                                                     |
+| Multipliers                           | Manual close via contract details footer                                                                                                                                                                            |
+| Matches/Differs, Over/Under, Even/Odd | Auto-expiry — no manual close                                                                                                                                                                                       |
+| Turbos, Vanillas                      | Auto-expiry — no manual close; test only verifies purchase + position card                                                                                                                                          |
 
 ### `NavigationUtils.waitForDerivApiSettled(page)` required after every navigation
 

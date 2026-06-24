@@ -111,7 +111,7 @@ export default defineConfig({
         actionTimeout: 45000,
 
         /* User agent */
-        userAgent: 'Playwright-Test-Agent/1.0',
+        userAgent: 'Playwright-Agent/deriv/1.9',
     },
 
     /* Configure projects for major browsers */
@@ -120,14 +120,15 @@ export default defineConfig({
             name: 'chromium',
             use: {
                 ...devices['Desktop Chrome'],
-                viewport: { width: 1728, height: 1117 },
+                viewport: { width: 1280, height: 720 },
             },
         },
         {
             name: 'chromium-mobile',
             use: {
-                ...devices['Pixel 5'], // isMobile: true, hasTouch: true, mobile UA
-                viewport: { width: 500, height: 850 },
+                ...devices['Pixel 7'],
+                viewport: { width: 412, height: 915 },
+                userAgent: `${devices['Pixel 7'].userAgent} Playwright-Agent/deriv/1.9`,
             },
         },
         // {

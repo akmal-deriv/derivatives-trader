@@ -204,14 +204,33 @@ find packages/components/src -name "*.tsx" | xargs grep -l "<Feature>" 2>/dev/nu
 
 ### 3b. data-testid attributes — the most important step
 
+**Primary source locations for locators — always start here:**
+
+| Feature area                                         | Where to look first                                     |
+| ---------------------------------------------------- | ------------------------------------------------------- |
+| Trade form, contract type selector, trade parameters | `packages/trader/src/AppV2/Components/`                 |
+| Trade page layout (desktop vs mobile containers)     | `packages/trader/src/AppV2/Containers/Trade/`           |
+| Contract details page                                | `packages/trader/src/AppV2/Containers/ContractDetails/` |
+| Positions list                                       | `packages/trader/src/AppV2/Containers/Positions/`       |
+| Sidebar (desktop nav), account selector              | `packages/trader/src/AppV2/Components/Layout/Sidebar/`  |
+| Bottom nav, header (mobile), login button            | `packages/core/src/App/Components/Layout/Header/`       |
+| App shell, menu page (mobile)                        | `packages/core/src/`                                    |
+| Reports (P&L, statement, portfolio)                  | `packages/reports/src/`                                 |
+| Contract type constants, button display names        | `packages/shared/src/utils/constants/contract.ts`       |
+
+**Rule: for anything on the trade page or contract details, always start in `packages/trader/src/AppV2/`.** `packages/core/src/` covers only the app shell (header, bottom nav, login button, account info, menu).
+
 Scan **both** desktop and mobile source paths and tag each testid by platform. The same element often has different testids on desktop vs mobile.
 
 ```bash
-# Desktop Modules
-grep -r 'data-testid' packages/trader/src/Modules/<Feature> --include="*.tsx" -n
-
-# AppV2 mobile
+# All AppV2 trade components (primary search — covers both desktop and mobile renders)
 grep -r 'data-testid' packages/trader/src/AppV2/Components/<Feature> --include="*.tsx" -n
+
+# AppV2 page-level containers
+grep -r 'data-testid' packages/trader/src/AppV2/Containers/<Feature> --include="*.tsx" -n
+
+# Legacy Desktop Modules (if the feature has a non-AppV2 desktop path)
+grep -r 'data-testid' packages/trader/src/Modules/<Feature> --include="*.tsx" -n
 
 # Shared components used by both
 grep -r 'data-testid' packages/components/src --include="*.tsx" -n | grep -i "<feature>"
@@ -447,6 +466,21 @@ Follow `flow-template.md` exactly. DTrader-specific rules:
 - **User State column**: always note account type (real/demo) and market state (open/closed) where relevant
 - Use `[verify on staging]` for any copy you cannot confirm from `i18n_default_text` in source
 
+### flow.md table formatting rules
+
+All step tables must use **single-space cell padding** and **`| --- |` separator rows** — no wide column separators, no trailing spaces:
+
+```markdown
+| #   | Step     | Action                         | Expected Result                       | Platform |
+| --- | -------- | ------------------------------ | ------------------------------------- | -------- |
+| 1   | Login    | `loginPage.login()`            | Redirected to trade page; API settled | Both     |
+| 2   | Buy Rise | `tradePage.buyRiseAndVerify()` | Contract purchased, positions updated | Both     |
+```
+
+- `#` column values are **unpadded integers** — `| 1 |` not `| 1   |`
+- Separator rows always `| --- |` — never `|---|`, `|:---:|`, or longer dashes
+- No trailing spaces after the last cell: line ends at the final `|`
+
 ### Desktop/Mobile split in step tables
 
 When desktop and mobile share the same flow but interact differently, use a `Platform` column:
@@ -516,25 +550,43 @@ When a spec file covers multiple sub-flows (e.g. `verify-rise-fall.spec.ts` cove
 
 ```typescript
 test.describe('Trade — Rise/Fall', { tag: [...] }, () => {
-    test.beforeEach(async ({ loginPage, tradePage, page }) => { /* shared setup */ });
+    test.beforeAll(async ({ loginPage, tradePage, page }) => { /* shared setup */ });
 
-    test('VERIFY buy Rise contract and close', async ({ tradePage, page }) => {
-        // Flow 2.1 steps
+    test('VERIFY buy Rise contract and close', async ({ tradePage, positionsPage, reportsPage, contractDetailsPage, page }) => {
+        // Flow 2.1 — orchestrated via high-level method
+        await tradePage.buyRiseAndVerify(positionsPage, reportsPage, contractDetailsPage);
     });
 
-    test('VERIFY buy Fall contract and close', async ({ tradePage, page }) => {
-        // Flow 2.2 steps — same describe, separate test
+    test('VERIFY buy Fall contract and close', async ({ tradePage, positionsPage, reportsPage, contractDetailsPage, page }) => {
+        // Flow 2.2 — same describe, separate test
+        await tradePage.buyFallAndVerify(positionsPage, reportsPage, contractDetailsPage);
     });
 });
 ```
 
 > **Flow 2.1** = `VERIFY buy Rise contract and close` · **Flow 2.2** = `VERIFY buy Fall contract and close`
 
+The `buyRiseAndVerify` / `buyFallAndVerify` orchestration methods each span the full buy→positions→reports→contract-details→close→statement sequence:
+
+1. `selectMarket` — set symbol + trade type
+2. `buyRise` / `buyFall` — click Buy, dismiss toast
+3. `verifyOpenPositionsVisible` — position card visible in Positions tab
+4. `verifyOpenPositionsInReports` — entry in Reports > Positions
+5. `verifyContractDetailsPage` — open contract details, assert key fields
+6. `closeFirstContract` — close the contract from Positions
+7. `verifyClosedPositionsTab` — closed contract appears in Positions > Closed
+8. `verifyClosedContractDetailsPage` — verify closed state in Contract Details
+9. `verifyBalanceAfterContractClose` — balance updated
+10. `verifyClosedContractInReports` — entry in Reports > Statement
+
+These methods live on `TradeRiseFallPage` (which inherits `TradeParametersPage → TradeBasePage`) and take the other page-object instances as arguments.
+
 **Rules:**
 
 - The first test in the describe block verifies the unique params for this trade type (Duration visible, Allow equals visible, etc.) — subsequent sub-flows can skip those param assertions since they are already covered
 - Never put both directions in a single test — they must be independently runnable
-- `beforeEach` handles the shared setup (login, navigate, select trade type); each test is responsible only for its own direction
+- Use `test.describe.configure({ mode: 'serial' })` when tests share cumulative state (e.g. buying then checking positions) — serial mode prevents parallel teardown races
+- `beforeAll` (not `beforeEach`) handles login + navigation when the whole describe block shares a single session; each test picks up from the already-loaded trade page
 
 ---
 
@@ -608,6 +660,40 @@ Record DTrader-specific non-obvious rules, e.g.:
 - Any `waitForDerivApiSettled` call required after a specific action
 - Known testids set dynamically (e.g. `data-testid={item.dataTestId}`) — these need MCP verification
 
+### Page Object section ordering convention
+
+When documenting or sketching a Page Object class in catalog Section 4 or flow notes, always follow this order:
+
+1. **LOCATORS** — all `get` accessors (public, then private if any)
+2. **ACTIONS** — public methods first, private helpers last
+3. **VERIFICATIONS** — public assertion methods first, private helpers last
+
+```typescript
+class TradeRiseFallPage extends TradeParametersPage {
+    // ── LOCATORS ──────────────────────────────────
+    get riseButton() { return this.page.getByTestId('dt_purchase_call_button'); }
+    get fallButton() { return this.page.getByTestId('dt_purchase_put_button'); }
+
+    // ── ACTIONS (public) ──────────────────────────
+    async buyRise() { await this.riseButton.click(); }
+    async buyFall() { await this.fallButton.click(); }
+    async buyRiseAndVerify(...) { /* orchestrated */ }
+    async buyFallAndVerify(...) { /* orchestrated */ }
+
+    // ── ACTIONS (private) ─────────────────────────
+    private async dismissToast() { ... }
+
+    // ── VERIFICATIONS (public) ────────────────────
+    async verifyOpenPositionsVisible(...) { ... }
+    async verifyContractDetailsPage(...) { ... }
+
+    // ── VERIFICATIONS (private) ───────────────────
+    private async assertBalanceUpdated() { ... }
+}
+```
+
+This ordering applies to the catalog note and is the convention the `flow-to-playwright` skill uses when generating the actual POM file.
+
 ---
 
 ## ✍️ Step 8 — Generate `coverage.md`
@@ -664,6 +750,10 @@ Follow _orchestrator.md and sync _index.md.
 
 ## ✅ Post-Generation Checklist
 
+- [ ] **All Markdown tables use `| --- |` separator rows** — no wide dashes, no `|:---:|`, no `|---|`
+- [ ] **All table cells have single-space padding** — `| value |` not `| value   |` or `|value|`
+- [ ] **`#` column values are unpadded integers** — `| 1 |` not `| 1   |`
+- [ ] No trailing whitespace on any table row
 - [ ] Module source paths confirmed — used `packages/` paths, not `src/app/` or `src/features/`
 - [ ] Both desktop (`Modules/`) and mobile (`AppV2/`) source paths scanned for every feature
 - [ ] Each testid tagged by platform (Desktop / Mobile / Both) in working notes from Step 3b

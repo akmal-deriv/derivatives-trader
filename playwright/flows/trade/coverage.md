@@ -1,47 +1,47 @@
 # Trade Journey Coverage
 
-**Analysis date:** 2026-06-11
+**Analysis date:** 2026-06-24
 
 ---
 
 ## Section 1 — Coverage at a Glance
 
-| #         | Journey                                                | Desktop | Mobile | Notes                                           |
-| --------- | ------------------------------------------------------ | ------- | ------ | ----------------------------------------------- |
-| Flow 1    | Trade form loads with default state visible            | ❌      | ❌     | Requires authenticated account                  |
-| Flow 2.1  | Rise/Fall — buy Rise → close                           | ❌      | ❌     | Requires funded account                         |
-| Flow 2.2  | Rise/Fall — buy Fall → close                           | ❌      | ❌     | Requires funded account                         |
-| Flow 3.1  | Rise/Fall Allow Equals — buy Rise → close              | ❌      | ❌     | Requires funded account                         |
-| Flow 3.2  | Rise/Fall Allow Equals — buy Fall → close              | ❌      | ❌     | Requires funded account                         |
-| Flow 4.1  | Higher/Lower — buy Higher → close                      | ❌      | ❌     | Requires funded account + barrier symbol        |
-| Flow 4.2  | Higher/Lower — buy Lower → close                       | ❌      | ❌     | Requires funded account + barrier symbol        |
-| Flow 5.1  | Touch/No Touch — buy Touch → close                     | ❌      | ❌     | Requires funded account                         |
-| Flow 5.2  | Touch/No Touch — buy No Touch → close                  | ❌      | ❌     | Requires funded account                         |
-| Flow 6.1  | Matches/Differs — buy Matches → expiry                 | ❌      | ❌     | Requires Digits symbol (e.g. Vol 10 Index)      |
-| Flow 6.2  | Matches/Differs — buy Differs → expiry                 | ❌      | ❌     | Requires Digits symbol                          |
-| Flow 7.1  | Over/Under — buy Over → expiry                         | ❌      | ❌     | Requires Digits symbol                          |
-| Flow 7.2  | Over/Under — buy Under → expiry                        | ❌      | ❌     | Requires Digits symbol                          |
-| Flow 8.1  | Even/Odd — buy Even → expiry                           | ❌      | ❌     | Requires Digits symbol                          |
-| Flow 8.2  | Even/Odd — buy Odd → expiry                            | ❌      | ❌     | Requires Digits symbol                          |
-| Flow 9.1  | Accumulators without TP — buy → close                  | ❌      | ❌     | One active accumulator per symbol at a time     |
-| Flow 9.2  | Accumulators with TP — buy → verify TP set → close     | ❌      | ❌     | One active accumulator per symbol at a time     |
-| Flow 10.1 | Multipliers no TP/SL — buy Up → close                  | ❌      | ❌     | Requires funded account                         |
-| Flow 10.2 | Multipliers no TP/SL — buy Down → close                | ❌      | ❌     | Requires funded account                         |
-| Flow 11.1 | Multipliers with TP — buy Up → close                   | ❌      | ❌     | Requires funded account                         |
-| Flow 11.2 | Multipliers with TP — buy Down → close                 | ❌      | ❌     | Requires funded account                         |
-| Flow 12.1 | Multipliers with SL — buy Up → close                   | ❌      | ❌     | Requires funded account                         |
-| Flow 12.2 | Multipliers with SL — buy Down → close                 | ❌      | ❌     | Requires funded account                         |
-| Flow 13.1 | Multipliers with Deal Cancellation — buy Up → cancel   | ❌      | ❌     | DC must be available for selected symbol        |
-| Flow 13.2 | Multipliers with Deal Cancellation — buy Down → cancel | ❌      | ❌     | DC must be available for selected symbol        |
-| Flow 14.1 | Turbos without TP — buy Up → verify in positions       | ❌      | ❌     | Auto-expiry; button label is "Up" not "Long"    |
-| Flow 14.2 | Turbos without TP — buy Down → verify in positions     | ❌      | ❌     | Auto-expiry; button label is "Down" not "Short" |
-| Flow 14.3 | Turbos with TP — buy Up → verify TP set in positions   | ❌      | ❌     | Auto-expiry                                     |
-| Flow 14.4 | Turbos with TP — buy Down → verify TP set in positions | ❌      | ❌     | Auto-expiry                                     |
-| Flow 15.1 | Vanillas — buy Call → verify in positions              | ❌      | ❌     | Auto-expiry                                     |
-| Flow 15.2 | Vanillas — buy Put → verify in positions               | ❌      | ❌     | Auto-expiry                                     |
-| Flow 16   | Market closed → purchase hidden, countdown visible     | ❌      | ❌     | Environment-dependent — needs closed market     |
-| G1        | Insufficient balance → ServiceErrorSheet               | ❌      | ❌     | Needs account with zero/low balance             |
-| G2        | Unauthenticated purchase → login prompt sheet          | ❌      | ❌     | Needs unauthenticated session                   |
+| #         | Journey                                                | Desktop | Mobile | Notes |
+| --------- | ------------------------------------------------------ | ------- | ------ | ----- |
+| Flow 1    | Trade form loads with default state visible            | ✅      | ✅     |       |
+| Flow 2.1  | Rise/Fall — buy Rise → close                           | ✅      | ✅     |       |
+| Flow 2.2  | Rise/Fall — buy Fall → close                           | ✅      | ✅     |       |
+| Flow 3.1  | Rise/Fall Allow Equals — buy Rise → close              | ❌      | ❌     |       |
+| Flow 3.2  | Rise/Fall Allow Equals — buy Fall → close              | ❌      | ❌     |       |
+| Flow 4.1  | Higher/Lower — buy Higher → close                      | ❌      | ❌     |       |
+| Flow 4.2  | Higher/Lower — buy Lower → close                       | ❌      | ❌     |       |
+| Flow 5.1  | Touch/No Touch — buy Touch → close                     | ❌      | ❌     |       |
+| Flow 5.2  | Touch/No Touch — buy No Touch → close                  | ❌      | ❌     |       |
+| Flow 6.1  | Matches/Differs — buy Matches → expiry                 | ❌      | ❌     |       |
+| Flow 6.2  | Matches/Differs — buy Differs → expiry                 | ❌      | ❌     |       |
+| Flow 7.1  | Over/Under — buy Over → expiry                         | ❌      | ❌     |       |
+| Flow 7.2  | Over/Under — buy Under → expiry                        | ❌      | ❌     |       |
+| Flow 8.1  | Even/Odd — buy Even → expiry                           | ❌      | ❌     |       |
+| Flow 8.2  | Even/Odd — buy Odd → expiry                            | ❌      | ❌     |       |
+| Flow 9.1  | Accumulators without TP — buy → close                  | ❌      | ❌     |       |
+| Flow 9.2  | Accumulators with TP — buy → verify TP set → close     | ❌      | ❌     |       |
+| Flow 10.1 | Multipliers no TP/SL — buy Up → close                  | ❌      | ❌     |       |
+| Flow 10.2 | Multipliers no TP/SL — buy Down → close                | ❌      | ❌     |       |
+| Flow 11.1 | Multipliers with TP — buy Up → close                   | ❌      | ❌     |       |
+| Flow 11.2 | Multipliers with TP — buy Down → close                 | ❌      | ❌     |       |
+| Flow 12.1 | Multipliers with SL — buy Up → close                   | ❌      | ❌     |       |
+| Flow 12.2 | Multipliers with SL — buy Down → close                 | ❌      | ❌     |       |
+| Flow 13.1 | Multipliers with Deal Cancellation — buy Up → cancel   | ❌      | ❌     |       |
+| Flow 13.2 | Multipliers with Deal Cancellation — buy Down → cancel | ❌      | ❌     |       |
+| Flow 14.1 | Turbos without TP — buy Up → verify in positions       | ❌      | ❌     |       |
+| Flow 14.2 | Turbos without TP — buy Down → verify in positions     | ❌      | ❌     |       |
+| Flow 14.3 | Turbos with TP — buy Up → verify TP set in positions   | ❌      | ❌     |       |
+| Flow 14.4 | Turbos with TP — buy Down → verify TP set in positions | ❌      | ❌     |       |
+| Flow 15.1 | Vanillas — buy Call → verify in positions              | ❌      | ❌     |       |
+| Flow 15.2 | Vanillas — buy Put → verify in positions               | ❌      | ❌     |       |
+| Flow 16   | Market closed → purchase hidden, countdown visible     | ❌      | ❌     |       |
+| G1        | Insufficient balance → ServiceErrorSheet               | ❌      | ❌     |       |
+| G2        | Unauthenticated purchase → login prompt sheet          | ❌      | ❌     |       |
 
 ---
 

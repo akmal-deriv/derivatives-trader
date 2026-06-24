@@ -5,7 +5,7 @@ This folder contains plain-English journey specifications, coverage scorecards, 
 
 Updated when new flows are added, tests are implemented, or coverage status changes.
 
-Last updated: 2026-06-11 (reports module added)
+Last updated: 2026-06-24
 
 ---
 
@@ -36,12 +36,12 @@ Each module section lists every documented flow with its current **status** and 
 
 | Module          | Total Flows | Documented | Automated |
 | --------------- | ----------- | ---------- | --------- |
-| `trade`         | 32          | 32         | 0         |
+| `trade`         | 34          | 34         | 3         |
 | `positions`     | 11          | 11         | 0         |
 | `reports`       | 10          | 10         | 0         |
 | `notifications` | 9           | 9          | 0         |
 | `auth`          | 4           | 4          | 3         |
-| **Total**       | **66**      | **66**     | **3**     |
+| **Total**       | **68**      | **68**     | **6**     |
 
 > Status advances: `documented` → `automated`
 
@@ -53,9 +53,9 @@ Each module section lists every documented flow with its current **status** and 
 
 | Flow      | Priority | Description                                                | User State                   | Status       |
 | --------- | -------- | ---------------------------------------------------------- | ---------------------------- | ------------ |
-| Flow 1    | P0       | Trade form loads with default state visible                | authenticated                | `documented` |
-| Flow 2.1  | P0       | Rise/Fall — buy Rise → close                               | authenticated, funded        | `documented` |
-| Flow 2.2  | P0       | Rise/Fall — buy Fall → close                               | authenticated, funded        | `documented` |
+| Flow 1    | P0       | Trade form loads with default state visible                | authenticated                | `automated`  |
+| Flow 2.1  | P0       | Rise/Fall — buy Rise → close                               | authenticated, funded        | `automated`  |
+| Flow 2.2  | P0       | Rise/Fall — buy Fall → close                               | authenticated, funded        | `automated`  |
 | Flow 3.1  | P2       | Rise/Fall Allow Equals — buy Rise → close                  | authenticated, funded        | `documented` |
 | Flow 3.2  | P2       | Rise/Fall Allow Equals — buy Fall → close                  | authenticated, funded        | `documented` |
 | Flow 4.1  | P1       | Higher/Lower — buy Higher → close                          | authenticated, funded        | `documented` |
@@ -162,13 +162,13 @@ Each module section lists every documented flow with its current **status** and 
 
 ## Implementation Priority Order
 
-| Priority | Module          | Key Flows to Implement First                                                                   |
-| -------- | --------------- | ---------------------------------------------------------------------------------------------- |
-| **Next** | `trade`         | Flow 1 (form loads) + Flow 2.1/2.2 (buy Rise/Fall → close) — highest value, already documented |
-| **Next** | `positions`     | Flow 1 (open positions mobile), Flow 2 (desktop flyout)                                        |
-| **Next** | `reports`       | Flow 1 (page load), Flow 5 (Trade Table), Flow 6 (Statement)                                   |
-| **Soon** | `auth`          | Flow 1 (email+password login), Flow 3 (logout)                                                 |
-| **Soon** | `notifications` | Flow 3 (bell → dialog desktop), Flow 4 (bell → modal mobile), Flow 1 (trade banner)            |
+| Priority | Module          | Key Flows to Implement First                                                                         |
+| -------- | --------------- | ---------------------------------------------------------------------------------------------------- |
+| **Next** | `trade`         | Flow 6.1/6.2 (Matches/Differs) + Flow 9.1/9.2 (Accumulators) + Flow 10.1/10.2 (Multipliers no TP/SL) |
+| **Next** | `positions`     | Flow 1 (open positions mobile), Flow 2 (desktop flyout)                                              |
+| **Next** | `reports`       | Flow 1 (page load), Flow 5 (Trade Table), Flow 6 (Statement)                                         |
+| **Soon** | `auth`          | Flow 1 (email+password login), Flow 3 (logout)                                                       |
+| **Soon** | `notifications` | Flow 3 (bell → dialog desktop), Flow 4 (bell → modal mobile), Flow 1 (trade banner)                  |
 
 ---
 

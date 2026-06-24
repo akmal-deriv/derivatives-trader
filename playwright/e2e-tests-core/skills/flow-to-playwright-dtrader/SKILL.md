@@ -2,7 +2,7 @@
 name: flow-to-playwright-dtrader
 description: Converts the existing flow documents in playwright/flows/ (flow.md + catalog.md + coverage.md) into Playwright test files for the derivatives-trader (DTrader) project. ONLY use for implementing gaps from coverage.md or generating tests from flows already documented in playwright/flows/. Do NOT use for general test writing or fixing failing tests.
 version: 1.0.0
-last_updated: 2026-06-11 (Quill lazy-input pattern + two-step login correction)
+last_updated: 2026-06-16
 ---
 
 # Flow-to-Playwright — DTrader Variant
@@ -148,13 +148,38 @@ Mobile elements source: `packages/core/src/App/Components/Layout/Header/` (`acco
 | Balance           | `.account-header__balance`                                                 | `[data-testid="dt_balance"]`  |
 | Login button      | `getByRole('button', { name: 'Log in' })` (class `.account-header__login`) | `#dt_login_button_v2`         |
 
+**Where to find locators — primary source locations:**
+
+| Feature area                                         | Where to look first                                     |
+| ---------------------------------------------------- | ------------------------------------------------------- |
+| Trade form, contract type selector, trade parameters | `packages/trader/src/AppV2/Components/`                 |
+| Trade page layout (desktop vs mobile containers)     | `packages/trader/src/AppV2/Containers/Trade/`           |
+| Contract details page                                | `packages/trader/src/AppV2/Containers/ContractDetails/` |
+| Positions list                                       | `packages/trader/src/AppV2/Containers/Positions/`       |
+| Sidebar (desktop nav), account selector              | `packages/trader/src/AppV2/Components/Layout/Sidebar/`  |
+| Bottom nav, header (mobile), login button            | `packages/core/src/App/Components/Layout/Header/`       |
+| App shell, menu page (mobile)                        | `packages/core/src/`                                    |
+| Reports (P&L, statement, portfolio)                  | `packages/reports/src/`                                 |
+| Contract type constants, button display names        | `packages/shared/src/utils/constants/contract.ts`       |
+
+**Rule: always start in `packages/trader/src/AppV2/` for anything on the trade page or contract details.** `packages/core/src/` covers only the app shell (header, bottom nav, login button, account info, menu).
+
 **How to discover the right locator for a new element:**
 
 1. **Search the source first** — most locators are findable without a browser:
-    - **Desktop elements** live in `packages/trader/src/AppV2/Components/` — check for `data-testid` first, then `id`, then `aria-label`/role, then a stable unique CSS class
-    - **Mobile elements** live in `packages/core/src/App/Components/Layout/Header/` — these typically use `data-testid` or `id` attributes (e.g. `dt_acc_info`, `dt_login_button_v2`)
-    - Also search `packages/trader/src/AppV2/Containers/` and `packages/core/src/` for page-level components
-2. **Grep for the attribute directly** — e.g. `grep -r "data-testid" packages/trader/src/AppV2/Components/AccountHeader/` to find all testids in a component
+    - For any **trade page element**: start in `packages/trader/src/AppV2/Components/` (component-level) and `packages/trader/src/AppV2/Containers/Trade/` (page-level layout)
+    - For **app shell elements** (header, login button, balance, bottom nav): look in `packages/core/src/App/Components/Layout/Header/`
+    - Check for `data-testid` first (`dt_` prefix convention), then `id`, then `aria-label`/role, then a stable unique CSS class
+2. **Grep for the attribute directly:**
+
+    ```bash
+    # Find all data-testids in a feature component
+    grep -r "data-testid" packages/trader/src/AppV2/Components/<Feature> --include="*.tsx" -n
+
+    # Find all data-testids across the whole AppV2 trade area
+    grep -r "data-testid" packages/trader/src/AppV2/ --include="*.tsx" -n | grep -i "<keyword>"
+    ```
+
 3. **Only use Playwright MCP as a last resort** — when test IDs are computed at runtime, the element is behind auth/account state you can't replicate from source, or source inspection alone is insufficient.
 4. If both viewports have different selectors, use `isMobile` to branch in the Page Object getter.
 5. If only one viewport is in scope for the test, a single selector is fine — document why.
@@ -204,6 +229,42 @@ await expect(loginPage.emailTextbox, 'Email field should be visible on the login
 // ❌ WRONG — native input is not in the DOM until container is clicked
 await expect(loginPage.emailInput, 'Email input should be visible').toBeVisible();
 ```
+
+---
+
+### Rule 2c — Trade type selector is viewport-aware (different element on mobile)
+
+On **desktop**, the trade type selector is an icon button with `aria-label="View all trade types"` (`trade-types-selector__button`). On **mobile**, this button is hidden and replaced by a `"View all"` text button in the scrollable trade types bar.
+
+Always use `isMobile` to branch:
+
+```typescript
+get tradeTypeSelector(): Locator {
+    return this.isMobile
+        ? this.page.getByRole('button', { name: 'View all' })
+        : this.page.getByLabel('View all trade types');
+}
+```
+
+**Why `getByLabel` on desktop instead of `getByRole('button', { name: '...' })`:** The Quill tooltip wraps the button in a `<span role="button">` with the same accessible name, causing a strict mode violation. `getByLabel` resolves to the `<button aria-label="...">` only.
+
+---
+
+### Rule 2d — `getByRole` with `name` does NOT match by text content
+
+`getByRole('paragraph', { name: 'Home' })` matches only elements with an **`aria-label`** or **`aria-labelledby`** of "Home" — it does NOT match `<p>Home</p>`.
+
+Quill navigation labels (e.g. bottom nav, trade type chips) carry their label as **text content only**, with no `aria-label`. Use `getByText()` scoped to a stable container instead:
+
+```typescript
+// ❌ WRONG — <p> has no aria-label, locator finds nothing
+this.page.locator('.bottom-nav-container').getByRole('paragraph', { name: 'Home' });
+
+// ✅ CORRECT — matches by text content, scoped to avoid false matches elsewhere
+this.page.locator('.bottom-nav-container').getByText('Home');
+```
+
+---
 
 ### Rule 3 — Source code search paths (monorepo)
 
@@ -629,6 +690,8 @@ grep -En '^export' playwright/fixtures/fixtures.ts
 | Asserting `loginPage.emailInput` / `loginPage.passwordInput` visibility before clicking the container | These are lazy-rendered Quill inputs — assert `emailTextbox` / `passwordTextbox` (the containers) instead                                                                                 |
 | Filling email/password without clicking the container first                                           | Quill inputs are not in the DOM until the container `<div>` is clicked — always click `emailTextbox` / `passwordTextbox` first                                                            |
 | Using `getByLabel('Password')` for the password input                                                 | Ambiguous — matches both the input and the "Show password" toggle; use `passwordTextbox.locator("input[type='password']")` instead                                                        |
+| Using a single locator for the trade type selector on both viewports                                  | On mobile the icon button is hidden and replaced by a `"View all"` text button — branch with `isMobile` (see Rule 2c)                                                                     |
+| Using `getByRole('paragraph', { name: 'X' })` to match Quill nav labels                               | The `name` filter matches `aria-label`, not text content — use `getByText('X')` scoped to the container instead (see Rule 2d)                                                             |
 | Searching `src/app/` for locators                                                                     | This is a monorepo — search `packages/trader/src/`, `packages/core/src/`, `packages/reports/src/`                                                                                         |
 | Inline locators in test body                                                                          | All `page.getBy*()` / `page.locator()` calls must live in Page Object getters                                                                                                             |
 | Calling `waitForDerivApiSettled` after `redirectionHelpers.redirectTo()`                              | Already called internally — redundant, do not add                                                                                                                                         |

@@ -4,8 +4,10 @@ import { LoginPage } from '../pages/LoginPage';
 import { PasswordPage } from '../pages/PasswordPage';
 import { TradeBasePage } from '../pages/TradeBasePage';
 import { TradeParametersPage } from '../pages/TradeParametersPage';
-import { TradeMultipliersPage } from '../pages/TradeMultipliersPage';
-import { TradeAccumulatorsPage } from '../pages/TradeAccumulatorsPage';
+import { TradeRiseFallPage } from '../pages/TradeRiseFallPage';
+import { PositionsPage } from '../pages/PositionsPage';
+import { ReportsPage } from '../pages/ReportsPage';
+import { ContractDetailsPage } from '../pages/ContractDetailsPage';
 
 /**
  * Extended test fixtures with page object models for derivatives-trader.
@@ -56,8 +58,10 @@ export const test = base.extend<{
     passwordPage: PasswordPage;
     tradeBasePage: TradeBasePage;
     tradeParametersPage: TradeParametersPage;
-    tradeMultipliersPage: TradeMultipliersPage;
-    tradeAccumulatorsPage: TradeAccumulatorsPage;
+    tradeRiseFallPage: TradeRiseFallPage;
+    positionsPage: PositionsPage;
+    reportsPage: ReportsPage;
+    contractDetailsPage: ContractDetailsPage;
     /** True when running under a mobile project (viewport width < 1024px). */
     isMobileViewport: boolean;
 }>({
@@ -101,17 +105,31 @@ export const test = base.extend<{
     },
 
     /**
-     * Trade multipliers page fixture — provides initialized TradeMultipliersPage instance
+     * Trade Rise/Fall page fixture — provides initialized TradeRiseFallPage instance
      */
-    tradeMultipliersPage: async ({ page }, use) => {
-        await use(new TradeMultipliersPage(page));
+    tradeRiseFallPage: async ({ page }, use) => {
+        await use(new TradeRiseFallPage(page));
     },
 
     /**
-     * Trade accumulators page fixture — provides initialized TradeAccumulatorsPage instance
+     * Positions page fixture — provides initialized PositionsPage instance
      */
-    tradeAccumulatorsPage: async ({ page }, use) => {
-        await use(new TradeAccumulatorsPage(page));
+    positionsPage: async ({ page }, use) => {
+        await use(new PositionsPage(page));
+    },
+
+    /**
+     * Reports page fixture — provides initialized ReportsPage instance
+     */
+    reportsPage: async ({ page }, use) => {
+        await use(new ReportsPage(page));
+    },
+
+    /**
+     * Contract details page fixture — provides initialized ContractDetailsPage instance
+     */
+    contractDetailsPage: async ({ page }, use) => {
+        await use(new ContractDetailsPage(page));
     },
 
     /**

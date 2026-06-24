@@ -12,17 +12,41 @@
 
 ## Flow 1 — Trade form loads with default state visible
 
+### Flow 1a — Logged-out state
+
+**Prerequisites:** No authentication. Market open.
+
+| #   | Step                       | Action                                | Expected Result                       | Platform |
+| --- | -------------------------- | ------------------------------------- | ------------------------------------- | -------- |
+| 1   | Navigate to trade page     | `tradeParametersPage.gotoTradePage()` | Trade page loads at `/`               | Both     |
+| 2   | Verify login button        | Observe header                        | Login button visible                  | Both     |
+| 3   | Verify account info absent | Observe header                        | Account info not visible              | Both     |
+| 4   | Verify trade type selector | Observe trade type row                | "View all trade types" button visible | Both     |
+| 5   | Verify selected chip       | Observe trade type chips              | Rise/Fall chip selected by default    | Both     |
+| 6   | Verify purchase button     | Observe buy area                      | Purchase button visible               | Both     |
+
+### Flow 1b — Logged-in state
+
 **Prerequisites:** Authenticated (real or demo account). Market open.
 
-| #   | Step                            | Action                                         | Expected Result                                             | Platform |
-| --- | ------------------------------- | ---------------------------------------------- | ----------------------------------------------------------- | -------- |
-| 1   | Navigate to trade page          | `page.goto(BASE_URL)`                          | Trade page loads at `/`                                     | Both     |
-| 2   | Wait for page to settle         | `NavigationUtils.waitForDerivApiSettled(page)` | WebSocket settled                                           | Both     |
-| 3   | Verify account info             | Observe header                                 | Account info pill (`dt_acc_info`) visible                   | Both     |
-| 4   | Verify market selector          | Observe market selector area                   | Market name + current spot price visible                    | Both     |
-| 5   | Verify trade type chips         | Observe trade type chip row                    | At least one chip rendered and selected                     | Both     |
-| 6   | Verify purchase button          | Observe buy area                               | "Buy" or "Rise"/"Fall" button visible and enabled           | Both     |
-| 7   | Verify param container (mobile) | Observe bottom sheet                           | `trade-params-container` visible with `trade-params-handle` | Mobile   |
+| #   | Step                               | Action                       | Expected Result                                             | Platform |
+| --- | ---------------------------------- | ---------------------------- | ----------------------------------------------------------- | -------- |
+| 1   | Login                              | `loginPage.login()`          | Redirected to trade page; API settled                       | Both     |
+| 2   | Verify account info                | Observe header               | Account info, balance, deposit button visible               | Both     |
+| 3   | Verify login button absent         | Observe header               | Login button not visible                                    | Both     |
+| 4   | Verify market selector             | Observe market selector area | Market name + current spot price visible                    | Both     |
+| 5   | Verify trade type selector         | Observe trade type row       | "View all trade types" button visible                       | Both     |
+| 6   | Verify selected chip               | Observe trade type chips     | Rise/Fall chip selected by default                          | Both     |
+| 7   | Verify Rise/Fall buttons           | Observe segmented control    | Rise and Fall buttons visible                               | Both     |
+| 8   | Verify Duration + Stake            | Observe parameters           | Duration and Stake labels visible                           | Both     |
+| 9   | Verify Allow equals                | Observe parameters           | Allow equals text visible                                   | Both     |
+| 10  | Verify purchase button             | Observe buy area             | Purchase button visible                                     | Both     |
+| 11  | Verify param container (mobile)    | Observe bottom sheet         | `trade-params-container` visible with `trade-params-handle` | Mobile   |
+| 12  | Verify guide link (desktop)        | Observe trade params panel   | Guide link visible                                          | Desktop  |
+| 13  | Verify network status (desktop)    | Observe footer               | Network status indicator visible                            | Desktop  |
+| 14  | Verify fullscreen toggle (desktop) | Observe footer               | Fullscreen toggle visible                                   | Desktop  |
+| 15  | Verify sidebar (desktop)           | Observe sidebar              | Home, Positions, Reports, Help, Language, Theme, Account    | Desktop  |
+| 16  | Verify bottom nav (mobile)         | Observe bottom navigation    | Home, Trade, Positions, Menu tabs visible                   | Mobile   |
 
 ---
 
@@ -31,31 +55,51 @@
 ### Flow 2.1 — Rise/Fall: buy Rise → close contract
 
 **Prerequisites:** Authenticated with funded account. Symbol supporting Rise/Fall (e.g. Volatility 100 Index).
-**Unique params:** Duration, Stake, Allow equals toggle
+**Spec:** `playwright/tests/trade/rise-fall/verify-rise-fall.spec.ts` — `VERIFY Buy "Rise" Contract and Close`
+**Unique params:** Duration (`15 min`), Stake (`10.50`), Allow equals toggle
 
-| #   | Step                          | Action                                             | Expected Result                                  | Platform |
-| --- | ----------------------------- | -------------------------------------------------- | ------------------------------------------------ | -------- |
-| 1   | Navigate to trade page        | `page.goto(BASE_URL)` + `waitForDerivApiSettled`   | Trade page loaded                                | Both     |
-| 2   | Select Rise/Fall trade type   | Click "Rise/Fall" chip                             | Rise/Fall chip selected                          | Both     |
-| 3   | Verify Duration param visible | Observe parameters                                 | "Duration" parameter visible                     | Both     |
-| 4   | Verify Allow equals visible   | Observe parameters                                 | "Allow equals" toggle visible                    | Both     |
-| 5   | Set stake amount              | Enter `10.00` in stake input                       | Stake input shows `10.00`                        | Both     |
-| 6   | Buy Rise contract             | Click "Rise" button                                | Contract purchased; success notification appears | Both     |
-| 7   | Navigate to contract details  | Navigate to positions                              | Contract details page loads                      | Both     |
-| 8   | Close contract                | Click "Close [amount] [currency]" button in footer | Contract closed                                  | Both     |
+| #   | Step                              | Action                                                         | Expected Result                                                 | Platform |
+| --- | --------------------------------- | -------------------------------------------------------------- | --------------------------------------------------------------- | -------- |
+| 1   | Navigate to trade page            | `page.goto(BASE_URL)` + `waitForDerivApiSettled`               | Trade page loaded                                               | Both     |
+| 2   | Select market                     | `selectMarket('Volatility 100 Index')`                         | Market selector shows "Volatility 100 Index"                    | Both     |
+| 3   | Select Rise/Fall trade type       | `selectTradeType('Rise/Fall')`                                 | Chip selected; Duration, Stake, Allow equals visible            | Both     |
+| 4   | Select Rise option                | `clickRiseFallOption('Rise')`                                  | Purchase button turns green                                     | Both     |
+| 5   | Select duration                   | `selectDuration('Minutes', '15 min')`                          | Duration field shows `15 min`                                   | Both     |
+| 6   | Set stake                         | `setStake('10.50')`                                            | Stake field shows `10.50`                                       | Both     |
+| 7   | Buy Rise contract                 | `clickBuy()` — captures payout                                 | Contract purchased                                              | Both     |
+| 8   | Verify open position in Positions | `verifyOpenPositionsVisible()` + `verifyContractCardDetails()` | Card visible; balance reduced by stake                          | Both     |
+| 9   | Verify open position in Reports   | `verifyOpenPositionsInReports()` — captures `buyId`            | Headers, row values, footer totals correct                      | Both     |
+| 10  | Open contract details (open)      | `openFirstContract()` + `verifyContractDetailsPage()`          | Ref. ID, Duration, Start time, Entry spot, Barrier visible      | Both     |
+| 11  | Close contract                    | `closeFirstContract()`                                         | Contract card disappears from Positions                         | Both     |
+| 12  | Verify closed contract card       | `verifyClosedPositionsTab()` — captures P&L                    | Card shows market, trade type, stake, "Closed" status, P&L      | Both     |
+| 13  | Open contract details (closed)    | `verifyClosedContractDetailsPage()` — captures `sellId`        | Buy + Sell Ref. IDs, Exit spot, Exit time visible; no Sell btn  | Both     |
+| 14  | Verify balance after close        | `verifyBalanceAfterContractClose()`                            | Balance = balanceBeforeClose + stake + P&L                      | Both     |
+| 15  | Reports — Trade table             | `verifyClosedContractInReports()` step 2                       | Row by `buyId`; dates, stake, contract value, P&L correct       | Both     |
+| 16  | Reports — Statement               | `verifyClosedContractInReports()` step 3                       | Sell row (by `sellId`) + Buy row (by `buyId`); balances correct | Both     |
 
 ### Flow 2.2 — Rise/Fall: buy Fall → close contract
 
 **Prerequisites:** Same as Flow 2.1.
+**Spec:** `playwright/tests/trade/rise-fall/verify-rise-fall.spec.ts` — `VERIFY Buy "Fall" Contract and Close`
 
-| #   | Step                         | Action                                             | Expected Result                                  | Platform |
-| --- | ---------------------------- | -------------------------------------------------- | ------------------------------------------------ | -------- |
-| 1   | Navigate to trade page       | `page.goto(BASE_URL)` + `waitForDerivApiSettled`   | Trade page loaded                                | Both     |
-| 2   | Select Rise/Fall trade type  | Click "Rise/Fall" chip                             | Rise/Fall chip selected                          | Both     |
-| 3   | Set stake amount             | Enter `10.00` in stake input                       | Stake input shows `10.00`                        | Both     |
-| 4   | Buy Fall contract            | Click "Fall" button                                | Contract purchased; success notification appears | Both     |
-| 5   | Navigate to contract details | Navigate to positions                              | Contract details page loads                      | Both     |
-| 6   | Close contract               | Click "Close [amount] [currency]" button in footer | Contract closed                                  | Both     |
+| #   | Step                              | Action                                                         | Expected Result                                                 | Platform |
+| --- | --------------------------------- | -------------------------------------------------------------- | --------------------------------------------------------------- | -------- |
+| 1   | Navigate to trade page            | `page.goto(BASE_URL)` + `waitForDerivApiSettled`               | Trade page loaded                                               | Both     |
+| 2   | Select market                     | `selectMarket('Volatility 100 Index')`                         | Market selector shows "Volatility 100 Index"                    | Both     |
+| 3   | Select Rise/Fall trade type       | `selectTradeType('Rise/Fall')`                                 | Chip selected; Duration, Stake, Allow equals visible            | Both     |
+| 4   | Select Fall option                | `clickRiseFallOption('Fall')`                                  | Purchase button turns red                                       | Both     |
+| 5   | Select duration                   | `selectDuration('Minutes', '15 min')`                          | Duration field shows `15 min`                                   | Both     |
+| 6   | Set stake                         | `setStake('10.50')`                                            | Stake field shows `10.50`                                       | Both     |
+| 7   | Buy Fall contract                 | `clickBuy()` — captures payout                                 | Contract purchased                                              | Both     |
+| 8   | Verify open position in Positions | `verifyOpenPositionsVisible()` + `verifyContractCardDetails()` | Card visible; balance reduced by stake                          | Both     |
+| 9   | Verify open position in Reports   | `verifyOpenPositionsInReports()` — captures `buyId`            | Headers, row values, footer totals correct                      | Both     |
+| 10  | Open contract details (open)      | `openFirstContract()` + `verifyContractDetailsPage()`          | Ref. ID, Duration, Start time, Entry spot, Barrier visible      | Both     |
+| 11  | Close contract                    | `closeFirstContract()`                                         | Contract card disappears from Positions                         | Both     |
+| 12  | Verify closed contract card       | `verifyClosedPositionsTab()` — captures P&L                    | Card shows market, trade type, stake, "Closed" status, P&L      | Both     |
+| 13  | Open contract details (closed)    | `verifyClosedContractDetailsPage()` — captures `sellId`        | Buy + Sell Ref. IDs, Exit spot, Exit time visible; no Sell btn  | Both     |
+| 14  | Verify balance after close        | `verifyBalanceAfterContractClose()`                            | Balance = balanceBeforeClose + stake + P&L                      | Both     |
+| 15  | Reports — Trade table             | `verifyClosedContractInReports()` step 2                       | Row by `buyId`; dates, stake, contract value, P&L correct       | Both     |
+| 16  | Reports — Statement               | `verifyClosedContractInReports()` step 3                       | Sell row (by `sellId`) + Buy row (by `buyId`); balances correct | Both     |
 
 ---
 
