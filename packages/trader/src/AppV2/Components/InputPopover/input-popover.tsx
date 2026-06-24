@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import clsx from 'clsx';
 
 import usePopoverPosition from './hooks/use-popover-position';
@@ -34,14 +35,19 @@ const InputPopover = React.memo(
             [position.top, position.left, popoverWidth]
         );
 
-        if (!isOpen) return null;
+        if (!isOpen || typeof document === 'undefined') return null;
 
-        return (
+        // Render through a portal to document.body so the position:fixed overlay/panel are not
+        // descendants of the trigger's `overflow`/`sticky` ancestors. Safari (unlike Chrome) clips
+        // a fixed descendant to such an ancestor's box, which hid the popover entirely; portaling
+        // it out keeps the fixed positioning anchored to the viewport in every browser.
+        return createPortal(
             <div className='input-popover-overlay' onClick={onClose}>
                 <div className={clsx('input-popover', className)} onClick={stopPropagation} style={style}>
                     {children}
                 </div>
-            </div>
+            </div>,
+            document.body
         );
     }
 );

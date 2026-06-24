@@ -45,7 +45,13 @@ const usePopoverPosition = ({
         calculatePosition();
 
         window.addEventListener('resize', calculatePosition);
-        return () => window.removeEventListener('resize', calculatePosition);
+        // Capture phase so scrolling any ancestor (e.g. the horizontally-scrollable trade-types row)
+        // keeps the portaled popover anchored to the trigger.
+        window.addEventListener('scroll', calculatePosition, true);
+        return () => {
+            window.removeEventListener('resize', calculatePosition);
+            window.removeEventListener('scroll', calculatePosition, true);
+        };
     }, [isOpen, triggerRef, popoverWidth, spacing, placement]);
 
     return position;
