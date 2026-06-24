@@ -1,5 +1,6 @@
-import { isMobile } from '../screen';
 import { Analytics } from '@deriv-com/analytics';
+
+import { isMobile } from '../screen';
 
 type ClientStore = {
     is_logged_in: boolean;
@@ -97,6 +98,5 @@ export const trackAnalyticsEvent = (
         ...properties,
     };
 
-    // @ts-expect-error - Analytics library types not updated yet
     Analytics.trackEvent(eventName, eventProperties);
 };

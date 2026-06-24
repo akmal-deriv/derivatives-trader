@@ -8,7 +8,12 @@ import {
     StandalonePlayFillIcon,
     StandaloneSquareFillIcon,
 } from '@deriv/quill-icons';
-import { getSymbolDisplayName, trackAnalyticsEvent } from '@deriv/shared';
+import {
+    getSymbolDisplayName,
+    trackAnalyticsEvent,
+    trackAutomationSectionViewed,
+    trackTradeTypeSwitched,
+} from '@deriv/shared';
 import { useStore } from '@deriv/stores';
 import { Button, Tag, Text, TextField } from '@deriv-com/quill-ui';
 import { Localize, useTranslations } from '@deriv-com/translations';
@@ -81,6 +86,7 @@ const AutomateMobile = observer(() => {
         getParamNumberOrNull,
         setParamFromNumber,
         setParamFromNumberOrNull,
+        selectStrategy,
     } = useAutomationConfig();
 
     const {
@@ -119,6 +125,26 @@ const AutomateMobile = observer(() => {
         return onUnmount;
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [current_language, network_status.class]);
+
+    // Mobile reaches the automation section by opening this screen, so mount is
+    // the "section viewed" moment.
+    React.useEffect(() => {
+        trackAutomationSectionViewed({ trade_type: contract_type, platform: 'mobile' });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // Fire when the trade type changes while the automation screen is open.
+    const prev_contract_type = React.useRef(contract_type);
+    React.useEffect(() => {
+        if (prev_contract_type.current !== contract_type) {
+            trackTradeTypeSwitched({
+                from_trade_type: prev_contract_type.current,
+                to_trade_type: contract_type,
+                platform: 'mobile',
+            });
+            prev_contract_type.current = contract_type;
+        }
+    }, [contract_type]);
 
     if (!trade_types.length) {
         return <Loading.DTraderV2 />;
@@ -190,7 +216,7 @@ const AutomateMobile = observer(() => {
                             options={strategy_options}
                             selectedValue={config.strategy}
                             description={strategy_description}
-                            onSelect={value => automation_store.setConfig('strategy', value)}
+                            onSelect={selectStrategy}
                         />
 
                         {schema_keys.has(KNOWN_PARAM_KEYS.MULTIPLIER) && (

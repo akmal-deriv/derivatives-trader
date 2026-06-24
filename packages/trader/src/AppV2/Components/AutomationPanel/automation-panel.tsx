@@ -1,5 +1,7 @@
+import React from 'react';
 import { observer } from 'mobx-react-lite';
 
+import { trackAutomationSectionViewed, trackTradeTypeSwitched } from '@deriv/shared';
 import { Text } from '@deriv-com/quill-ui';
 import { Localize } from '@deriv-com/translations';
 
@@ -22,9 +24,30 @@ import './automation-panel.scss';
  */
 const AutomationPanel = observer(() => {
     const trade_store = useTraderStore();
-    const { amount, currency } = trade_store;
+    const { amount, contract_type, currency } = trade_store;
     const automation_store = useAutomationStore();
     const { config } = automation_store;
+
+    // Desktop reaches the automation section when this panel mounts (the
+    // "Automated trading" tab is selected), so mount is the "section viewed"
+    // moment.
+    React.useEffect(() => {
+        trackAutomationSectionViewed({ trade_type: contract_type, platform: 'web' });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // Fire when the trade type changes while the automation panel is visible.
+    const prev_contract_type = React.useRef(contract_type);
+    React.useEffect(() => {
+        if (prev_contract_type.current !== contract_type) {
+            trackTradeTypeSwitched({
+                from_trade_type: prev_contract_type.current,
+                to_trade_type: contract_type,
+                platform: 'web',
+            });
+            prev_contract_type.current = contract_type;
+        }
+    }, [contract_type]);
 
     const {
         strategy_options,
@@ -35,6 +58,7 @@ const AutomationPanel = observer(() => {
         getParamNumberOrNull,
         setParamFromNumber,
         setParamFromNumberOrNull,
+        selectStrategy,
     } = useAutomationConfig();
 
     const display_currency = currency || 'USD';
@@ -51,7 +75,7 @@ const AutomationPanel = observer(() => {
                         options={strategy_options}
                         selectedValue={config.strategy}
                         description={strategy_description}
-                        onSelect={value => automation_store.setConfig('strategy', value)}
+                        onSelect={selectStrategy}
                     />
 
                     {schema_keys.has(KNOWN_PARAM_KEYS.MULTIPLIER) && (

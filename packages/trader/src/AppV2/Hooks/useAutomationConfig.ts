@@ -1,6 +1,8 @@
 import React from 'react';
 
+import { getAutomationPlatform, trackStrategyParameterChanged, trackStrategySelected } from '@deriv/shared';
 import { useTranslations } from '@deriv-com/translations';
+import { useDevice } from '@deriv-com/ui';
 
 import {
     getParamDescription,
@@ -10,6 +12,7 @@ import {
     TStrategyOption,
 } from 'AppV2/Components/AutomationPanel/automation-config';
 import { useAutomationStore } from 'Stores/useAutomationStore';
+import { useTraderStore } from 'Stores/useTraderStores';
 
 import useAutoStrategies from './useAutoStrategies';
 
@@ -20,6 +23,8 @@ import useAutoStrategies from './useAutoStrategies';
 const useAutomationConfig = () => {
     const automation_store = useAutomationStore();
     const { config } = automation_store;
+    const { contract_type } = useTraderStore();
+    const { isMobile } = useDevice();
     const { strategies: server_strategies } = useAutoStrategies();
     // Subscribe to the active language so consumers re-render on a language
     // switch — our `localize()`-derived descriptions are plain strings and won't
@@ -70,10 +75,34 @@ const useAutomationConfig = () => {
         return val ? Number(val) : null;
     };
 
-    const setParamFromNumber = (key: string, value: number) => automation_store.setStrategyParam(key, String(value));
+    const trackParamChanged = (key: string, value: number | null) =>
+        trackStrategyParameterChanged({
+            parameter_name: key,
+            new_value: value,
+            trade_type: contract_type,
+            strategy_name: config.strategy,
+            platform: getAutomationPlatform(isMobile),
+        });
 
-    const setParamFromNumberOrNull = (key: string, value: number | null) =>
+    const setParamFromNumber = (key: string, value: number) => {
+        automation_store.setStrategyParam(key, String(value));
+        trackParamChanged(key, value);
+    };
+
+    const setParamFromNumberOrNull = (key: string, value: number | null) => {
         automation_store.setStrategyParam(key, value !== null ? String(value) : '');
+        trackParamChanged(key, value);
+    };
+
+    /** Commit a strategy selection and fire the `strategy_selected` event. */
+    const selectStrategy = (value: string) => {
+        automation_store.setConfig('strategy', value);
+        trackStrategySelected({
+            strategy_name: value,
+            trade_type: contract_type,
+            platform: getAutomationPlatform(isMobile),
+        });
+    };
 
     return {
         strategy_options,
@@ -85,6 +114,7 @@ const useAutomationConfig = () => {
         getParamNumberOrNull,
         setParamFromNumber,
         setParamFromNumberOrNull,
+        selectStrategy,
     };
 };
 

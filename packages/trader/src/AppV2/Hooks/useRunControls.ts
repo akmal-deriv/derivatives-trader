@@ -1,9 +1,16 @@
 import React from 'react';
 
-import { isAccumulatorContract, isOpen } from '@deriv/shared';
+import {
+    getAutomationPlatform,
+    isAccumulatorContract,
+    isOpen,
+    trackStrategyRunClicked,
+    trackStrategyStopClicked,
+} from '@deriv/shared';
 import { useStore } from '@deriv/stores';
 import { useSnackbar } from '@deriv-com/quill-ui';
 import { localize } from '@deriv-com/translations';
+import { useDevice } from '@deriv-com/ui';
 
 import { formatAutomationErrorMessage } from 'AppV2/Components/AutomationPanel/format-automation-error';
 import { SERVICE_ERROR } from 'AppV2/Utils/layout-utils';
@@ -45,6 +52,7 @@ const useRunControls = ({ onRunStarted }: TUseRunControlsOptions = {}) => {
     } = useStore();
     const automation_store = useAutomationStore();
     const { config, can_start, is_recovering } = automation_store;
+    const { isMobile } = useDevice();
 
     const { startRun, isStarting, error: start_error } = useAutoStart();
     const { stop, pause, resume, isLoading: is_action_loading } = useAutoRunActions();
@@ -95,6 +103,21 @@ const useRunControls = ({ onRunStarted }: TUseRunControlsOptions = {}) => {
         }
 
         if (!can_start) return;
+
+        const { strategy_params } = config;
+        trackStrategyRunClicked({
+            trade_type: trade_store.contract_type,
+            strategy_name: config.strategy,
+            initial_stake: trade_store.amount,
+            stake_multiplier: strategy_params.multiplier || undefined,
+            stake_increment: strategy_params.unit || undefined,
+            profit_threshold: strategy_params.take_profit || undefined,
+            loss_threshold: strategy_params.stop_loss || undefined,
+            max_stake_set: !!strategy_params.max_stake,
+            purchase_condition: getApiContractType(trade_store),
+            duration: `${trade_store.duration} ${trade_store.duration_unit}`,
+            platform: getAutomationPlatform(isMobile),
+        });
 
         // Another device may have started a run for this account while this
         // screen was parked (auto_list isn't subscribable, so we can be stale).
@@ -148,6 +171,14 @@ const useRunControls = ({ onRunStarted }: TUseRunControlsOptions = {}) => {
 
     const handleStopClick = async () => {
         if (!automation_store.active_run_id) return;
+        trackStrategyStopClicked({
+            session_id: automation_store.active_run_id,
+            trade_type: trade_store.contract_type,
+            strategy_name: config.strategy,
+            trades_completed: automation_store.contracts_count,
+            cumulative_pnl: automation_store.net_profit,
+            platform: getAutomationPlatform(isMobile),
+        });
         automation_store.setRunStatus('stopping');
         try {
             await stop(automation_store.active_run_id);

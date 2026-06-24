@@ -1,6 +1,7 @@
 import React from 'react';
 import { observer } from 'mobx-react-lite';
 
+import { getAutomationPlatform, trackAutomationGuideClicked } from '@deriv/shared';
 import { ActionSheet, Heading, Modal } from '@deriv-com/quill-ui';
 import { Localize } from '@deriv-com/translations';
 import { useDevice } from '@deriv-com/ui';
@@ -45,6 +46,15 @@ const AutomationGuide = observer(() => {
 
     const onClose = () => setIsOpen(false);
 
+    const onTriggerClick = () => {
+        trackAutomationGuideClicked({
+            trade_type: contract_type,
+            strategy_selected: config.strategy,
+            platform: getAutomationPlatform(isMobile),
+        });
+        setIsOpen(true);
+    };
+
     const content = (
         <AutomationGuideContent
             trade_type_info={trade_type_info}
@@ -60,7 +70,7 @@ const AutomationGuide = observer(() => {
 
     return (
         <>
-            <AutomationGuideTrigger title={trade_type_info.title} onClick={() => setIsOpen(true)} />
+            <AutomationGuideTrigger title={trade_type_info.title} onClick={onTriggerClick} />
             {isMobile ? (
                 <ActionSheet.Root isOpen={is_open} onClose={onClose} expandable={false} position='left'>
                     <ActionSheet.Portal shouldCloseOnDrag>

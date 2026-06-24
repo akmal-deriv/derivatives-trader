@@ -11,7 +11,7 @@ import {
     StandaloneHouseBlankFillIcon,
     StandaloneHouseBlankRegularIcon,
 } from '@deriv/quill-icons';
-import { getBrandUrl, getIsAutomationEnabled, routes } from '@deriv/shared';
+import { getBrandUrl, getIsAutomationEnabled, routes, trackAutomateTabTapped } from '@deriv/shared';
 import { useStore } from '@deriv/stores';
 import { Badge, Navigation } from '@deriv-com/quill-ui';
 import { Localize } from '@deriv-com/translations';
@@ -165,6 +165,17 @@ const BottomNav = observer(({ className }: BottomNavProps) => {
                 window.location.href = `${brandUrl}/home?source=options&acc=options&curr=${curr}${lang_param}`;
             });
             return;
+        }
+
+        if (item.path === routes.trader_automate) {
+            // Map the route the user is leaving to a human-readable tab name.
+            const previous_tab =
+                {
+                    [routes.index]: 'trade',
+                    [routes.trader_positions]: 'positions',
+                    [routes.menu]: 'menu',
+                }[location.pathname] ?? 'home';
+            trackAutomateTabTapped({ previous_tab });
         }
 
         if (item.path) {

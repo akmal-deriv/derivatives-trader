@@ -1,20 +1,13 @@
-import type { TEvents } from '@deriv-com/analytics';
-
 export type TPayload = {
-    data: Omit<
-        Partial<
-            // @ts-expect-error - Analytics library types not updated yet for these event types
-            TEvents['ce_chart_types_form_v2'] &
-                // @ts-expect-error - Analytics library types not updated yet for these event types
-                TEvents['ce_market_types_form_v2'] &
-                // @ts-expect-error - Analytics library types not updated yet for these event types
-                TEvents['ce_indicators_types_form_v2'] &
-                // @ts-expect-error - Analytics library types not updated yet for these event types
-                TEvents['ce_drawing_tools_form_v2']
-        >,
-        'action'
-    > & {
+    /**
+     * Analytics event properties. `action` is always present; the remaining
+     * keys vary per chart event type (e.g. `chart_type_name`, `market_type_name`,
+     * `drawing_tool_name`). Previously typed via the analytics package's
+     * `TEvents` map, which is no longer exported as of @deriv-com/analytics v1.42.
+     */
+    data: {
         action: string;
+        [key: string]: unknown;
     };
     event_type:
         | 'ce_chart_types_form_v2'
