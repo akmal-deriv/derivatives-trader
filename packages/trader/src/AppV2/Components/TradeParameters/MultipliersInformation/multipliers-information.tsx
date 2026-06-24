@@ -12,10 +12,6 @@ import { useTraderStore } from 'Stores/useTraderStores';
 
 import './multipliers-information.scss';
 
-const STOP_OUT_TOOLTIP = (
-    <Localize i18n_default_text='Your contract will be closed automatically when your loss reaches 100% of your stake.' />
-);
-
 const MultipliersInformation = observer(() => {
     const { currency, is_market_closed, proposal_info } = useTraderStore();
     const { isDesktop } = useDevice();
@@ -25,10 +21,30 @@ const MultipliersInformation = observer(() => {
     const down_commission = proposal_info?.[CONTRACT_TYPES.MULTIPLIER.DOWN]?.commission;
     const up_stop_out = proposal_info?.[CONTRACT_TYPES.MULTIPLIER.UP]?.limit_order?.stop_out?.order_amount;
     const down_stop_out = proposal_info?.[CONTRACT_TYPES.MULTIPLIER.DOWN]?.limit_order?.stop_out?.order_amount;
+    const up_stake = proposal_info?.[CONTRACT_TYPES.MULTIPLIER.UP]?.stake;
+    const down_stake = proposal_info?.[CONTRACT_TYPES.MULTIPLIER.DOWN]?.stake;
 
     // Use UP values, fallback to DOWN if UP is not available
     const commission = up_commission ?? down_commission;
     const stop_out = up_stop_out ?? down_stop_out;
+
+    // The stop out level is configured per asset/multiplier on the backend and is not sent as a
+    // percentage. Derive it from the stop out loss amount (order_amount) relative to the stake
+    // (ask_price), both taken from the same proposal, so the tooltip reflects the real level
+    // (e.g. 90% for CRASH1000) instead of a hardcoded 100%.
+    const stake = Number(up_stake ?? down_stake);
+    const stop_out_percentage =
+        stop_out != null && stake > 0 ? Math.round((Math.abs(stop_out) / stake) * 100) : undefined;
+
+    const stop_out_tooltip =
+        stop_out_percentage != null ? (
+            <Localize
+                i18n_default_text='Your contract will be closed automatically when your loss reaches {{stop_out_percentage}}% of your stake.'
+                values={{ stop_out_percentage }}
+            />
+        ) : (
+            <Localize i18n_default_text='Your contract will be closed automatically when your loss reaches a certain percentage of your stake.' />
+        );
 
     const has_error =
         proposal_info?.[CONTRACT_TYPES.MULTIPLIER.UP]?.has_error ||
@@ -47,7 +63,7 @@ const MultipliersInformation = observer(() => {
             <div className='multipliers-information__row'>
                 {isDesktop ? (
                     <TooltipPortal
-                        message={STOP_OUT_TOOLTIP}
+                        message={stop_out_tooltip}
                         position='left'
                         className='multipliers-information__tooltip'
                     >
@@ -94,7 +110,7 @@ const MultipliersInformation = observer(() => {
                             <Heading.H4 className='multipliers-information__definition__title'>
                                 <Localize i18n_default_text='Stop out' />
                             </Heading.H4>
-                            <Text as='div'>{STOP_OUT_TOOLTIP}</Text>
+                            <Text as='div'>{stop_out_tooltip}</Text>
                         </ActionSheet.Content>
                         <ActionSheet.Footer
                             alignment='vertical'

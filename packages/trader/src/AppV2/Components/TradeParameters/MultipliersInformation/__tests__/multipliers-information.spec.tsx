@@ -1,10 +1,16 @@
 import { mockStore } from '@deriv/stores';
-import { render, screen } from '@testing-library/react';
+import { useDevice } from '@deriv-com/ui';
+import { fireEvent, render, screen } from '@testing-library/react';
 
 import ModulesProvider from 'Stores/Providers/modules-providers';
 
 import TraderProviders from '../../../../../trader-providers';
 import MultipliersInformation from '../multipliers-information';
+
+jest.mock('@deriv-com/ui', () => ({
+    ...jest.requireActual('@deriv-com/ui'),
+    useDevice: jest.fn(() => ({ isDesktop: true })),
+}));
 
 const stop_out_label = 'Stop out';
 const commission_label = 'Commission';
@@ -12,35 +18,35 @@ const commission_label = 'Commission';
 describe('MultipliersInformation', () => {
     let default_mock_store: ReturnType<typeof mockStore>;
 
-    beforeEach(
-        () =>
-            (default_mock_store = mockStore({
-                modules: {
-                    trade: {
-                        currency: 'USD',
-                        is_market_closed: false,
-                        proposal_info: {
-                            MULTUP: {
-                                commission: 0.5,
-                                limit_order: {
-                                    stop_out: {
-                                        order_amount: -10.5,
-                                    },
+    beforeEach(() => {
+        (useDevice as jest.Mock).mockReturnValue({ isDesktop: true });
+        default_mock_store = mockStore({
+            modules: {
+                trade: {
+                    currency: 'USD',
+                    is_market_closed: false,
+                    proposal_info: {
+                        MULTUP: {
+                            commission: 0.5,
+                            limit_order: {
+                                stop_out: {
+                                    order_amount: -10.5,
                                 },
                             },
-                            MULTDOWN: {
-                                commission: 0.5,
-                                limit_order: {
-                                    stop_out: {
-                                        order_amount: -10.5,
-                                    },
+                        },
+                        MULTDOWN: {
+                            commission: 0.5,
+                            limit_order: {
+                                stop_out: {
+                                    order_amount: -10.5,
                                 },
                             },
                         },
                     },
                 },
-            }))
-    );
+            },
+        });
+    });
 
     const mockMultipliersInformation = () =>
         render(
@@ -243,5 +249,64 @@ describe('MultipliersInformation', () => {
 
         expect(commissionText).toBeInTheDocument();
         expect(commissionValue).toBeInTheDocument();
+    });
+
+    describe('stop out tooltip', () => {
+        // The desktop tooltip message only renders into the portal on hover/focus.
+        const showDesktopTooltip = () => fireEvent.mouseEnter(screen.getByRole('button'));
+
+        it('derives the stop out percentage from the stop out amount and stake/ask_price (100% stake loss)', () => {
+            default_mock_store.modules.trade.proposal_info = {
+                MULTUP: { commission: 0.5, stake: '100', limit_order: { stop_out: { order_amount: -100 } } },
+            };
+            mockMultipliersInformation();
+            showDesktopTooltip();
+
+            expect(
+                screen.getByText(
+                    'Your contract will be closed automatically when your loss reaches 100% of your stake.'
+                )
+            ).toBeInTheDocument();
+        });
+
+        it('reflects a non-100% configured stop out level (e.g. 90% for CRASH1000)', () => {
+            default_mock_store.modules.trade.proposal_info = {
+                MULTUP: { commission: 0.5, stake: '100', limit_order: { stop_out: { order_amount: -90 } } },
+            };
+            mockMultipliersInformation();
+            showDesktopTooltip();
+
+            expect(
+                screen.getByText('Your contract will be closed automatically when your loss reaches 90% of your stake.')
+            ).toBeInTheDocument();
+        });
+
+        it('rounds the derived percentage to the nearest whole number', () => {
+            default_mock_store.modules.trade.proposal_info = {
+                MULTUP: { commission: 0.5, stake: '30', limit_order: { stop_out: { order_amount: -27.2 } } },
+            };
+            mockMultipliersInformation();
+            showDesktopTooltip();
+
+            // 27.2 / 30 = 90.67% -> 91%
+            expect(
+                screen.getByText('Your contract will be closed automatically when your loss reaches 91% of your stake.')
+            ).toBeInTheDocument();
+        });
+
+        it('falls back to a non-numeric tooltip when the stop out amount is unavailable', () => {
+            default_mock_store.modules.trade.proposal_info = {
+                MULTUP: {},
+                MULTDOWN: {},
+            };
+            mockMultipliersInformation();
+            showDesktopTooltip();
+
+            expect(
+                screen.getByText(
+                    'Your contract will be closed automatically when your loss reaches a certain percentage of your stake.'
+                )
+            ).toBeInTheDocument();
+        });
     });
 });
