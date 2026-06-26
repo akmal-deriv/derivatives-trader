@@ -5,6 +5,7 @@ import {
     isAccumulatorContract,
     isOpen,
     trackStrategyRunClicked,
+    trackStrategySessionStarted,
     trackStrategyStopClicked,
 } from '@deriv/shared';
 import { useStore } from '@deriv/stores';
@@ -104,8 +105,11 @@ const useRunControls = ({ onRunStarted }: TUseRunControlsOptions = {}) => {
 
         if (!can_start) return;
 
+        // Snapshot the run config at click time so the same payload backs both the
+        // "Run pressed" event and the later "Session started" event (fired after the
+        // async startRun, where these store values could otherwise have drifted).
         const { strategy_params } = config;
-        trackStrategyRunClicked({
+        const run_payload = {
             trade_type: trade_store.contract_type,
             strategy_name: config.strategy,
             initial_stake: trade_store.amount,
@@ -117,7 +121,7 @@ const useRunControls = ({ onRunStarted }: TUseRunControlsOptions = {}) => {
             purchase_condition: getApiContractType(trade_store),
             duration: `${trade_store.duration} ${trade_store.duration_unit}`,
             platform: getAutomationPlatform(isMobile),
-        });
+        };
 
         // Another device may have started a run for this account while this
         // screen was parked (auto_list isn't subscribable, so we can be stale).
@@ -132,6 +136,11 @@ const useRunControls = ({ onRunStarted }: TUseRunControlsOptions = {}) => {
             });
             return;
         }
+
+        // Track the press only once we know it's a genuine new-run attempt — i.e.
+        // not the "adopt an already-running session" path above. Validation/template
+        // failures below still count: they're the real funnel drop-off before start.
+        trackStrategyRunClicked(run_payload);
 
         // Same derivation as the template builder — keeps validation and
         // the buy template aligned.
@@ -160,6 +169,9 @@ const useRunControls = ({ onRunStarted }: TUseRunControlsOptions = {}) => {
         try {
             const response = await startRun(config.strategy, automation_store.buildStrategyParameters(), template);
             if (response?.auto_start) {
+                // Confirmed start — funnel step 5. Fires only on a real session so it
+                // gives the clean "actual runs" count distinct from the Run press above.
+                trackStrategySessionStarted({ ...run_payload, session_id: response.auto_start.run_id });
                 automation_store.onRunStarted(response.auto_start);
                 subscribeToRun(response.auto_start.run_id);
                 onRunStarted?.();

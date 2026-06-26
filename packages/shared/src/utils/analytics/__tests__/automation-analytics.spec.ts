@@ -9,6 +9,7 @@ import {
     trackStrategyParameterChanged,
     trackStrategyRunClicked,
     trackStrategySelected,
+    trackStrategySessionStarted,
     trackStrategyStopClicked,
     trackTradeTypeSwitched,
 } from '../automation-analytics';
@@ -88,6 +89,27 @@ describe('automation analytics', () => {
                 purchase_condition: 'CALL',
                 duration: '5 t',
                 platform: 'web',
+            })
+        );
+    });
+
+    it('tags strategy_session_started with the confirmed session_id', () => {
+        trackStrategySessionStarted({
+            session_id: 'run-42',
+            trade_type: 'rise_fall',
+            strategy_name: 'martingale',
+            max_stake_set: false,
+            platform: 'mobile',
+        });
+
+        expect(trackEvent).toHaveBeenCalledWith(
+            AUTOMATION_ANALYTICS_EVENT,
+            expect.objectContaining({
+                action: 'strategy_session_started',
+                session_id: 'run-42',
+                trade_type: 'rise_fall',
+                strategy_name: 'martingale',
+                platform: 'mobile',
             })
         );
     });

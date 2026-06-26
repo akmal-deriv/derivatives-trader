@@ -1,15 +1,13 @@
 import { trackAnalyticsEvent } from './analytics-utils';
 
 /**
- * Analytics for the DTrader Automated Strategies feature.
+ * Analytics for the DTrader Automated Strategies feature ("DTrader Automated Strategies" brief).
  *
- * Implements the events from the "DTrader Automated Strategies" analytics brief.
- * Per the codebase convention every automation event is fired under the single
- * `ce_automation_form_v2` event name and discriminated by an `action` matching
- * the brief's event name (e.g. `automation_section_viewed`). `account_type` and
- * `device_type` are injected automatically by `trackAnalyticsEvent`; `platform`
- * (web/mobile) is passed explicitly because it is part of the brief's spec and
- * is not the same as `device_type`.
+ * Per codebase convention every automation event fires under the single
+ * `ce_automation_form_v2` name, discriminated by an `action` matching the brief's
+ * event name (e.g. `automation_section_viewed`). `account_type`/`device_type` are
+ * injected by `trackAnalyticsEvent`; `platform` (web/mobile) is passed explicitly
+ * as it's part of the brief's spec and distinct from `device_type`.
  */
 export const AUTOMATION_ANALYTICS_EVENT = 'ce_automation_form_v2';
 
@@ -56,8 +54,8 @@ export const trackStrategyParameterChanged = (payload: {
     platform: TAutomationPlatform;
 }) => trackAnalyticsEvent(AUTOMATION_ANALYTICS_EVENT, { action: 'strategy_parameter_changed', ...payload });
 
-/** User presses Run to start a strategy session. */
-export const trackStrategyRunClicked = (payload: {
+/** Shared payload describing a strategy run — used by both the "Run pressed" and "Session started" events. */
+export type TStrategyRunPayload = {
     trade_type: string;
     strategy_name: string;
     initial_stake?: number | string;
@@ -69,7 +67,15 @@ export const trackStrategyRunClicked = (payload: {
     purchase_condition?: string;
     duration?: string;
     platform: TAutomationPlatform;
-}) => trackAnalyticsEvent(AUTOMATION_ANALYTICS_EVENT, { action: 'strategy_run_clicked', ...payload });
+};
+
+/** User presses Run to start a strategy session (funnel step 4 — "Run pressed"). */
+export const trackStrategyRunClicked = (payload: TStrategyRunPayload) =>
+    trackAnalyticsEvent(AUTOMATION_ANALYTICS_EVENT, { action: 'strategy_run_clicked', ...payload });
+
+/** Fires once the run has actually started (auto_start succeeded) — funnel step 5. `session_id` joins it back to strategy_run_clicked. */
+export const trackStrategySessionStarted = (payload: TStrategyRunPayload & { session_id: string }) =>
+    trackAnalyticsEvent(AUTOMATION_ANALYTICS_EVENT, { action: 'strategy_session_started', ...payload });
 
 /** User manually presses Stop while a strategy session is running. */
 export const trackStrategyStopClicked = (payload: {
