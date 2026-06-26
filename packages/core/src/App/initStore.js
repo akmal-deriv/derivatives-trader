@@ -8,6 +8,7 @@ import {
     getApiCoreBaseUrl,
     getBrandDomains,
     getIsAutomationEnabled,
+    removeCookies,
 } from '@deriv/shared';
 
 import { checkWhoAmI, fetchMigrationStatus } from 'Services';
@@ -84,6 +85,11 @@ export const initStore = async notification_messages => {
             localStorage.removeItem('active_loginid');
             sessionStorage.removeItem('active_loginid');
             localStorage.removeItem('current_account');
+            // Drop the stale shared `.deriv.com` session cookies so getAccountId()
+            // doesn't re-bootstrap this dead session on every subsequent load.
+            // `options_account_id` is the account_id source getAccountId() reads back
+            // below, so it must be cleared too, not just the legacy `client_information`.
+            removeCookies('options_account_id', 'client_information', 'region');
         } else if (whoami_result.data?.identity?.external_id) {
             external_id = whoami_result.data.identity.external_id;
         }

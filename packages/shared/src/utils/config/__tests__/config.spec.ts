@@ -1,5 +1,7 @@
+import Cookies from 'js-cookie';
+
 import * as brandUtils from '../../brand';
-import { getAccountType, getSocketURL } from '../config';
+import { getAccountId, getAccountType, getSocketURL } from '../config';
 
 // Mock the brand utils module
 jest.mock('../../brand', () => ({
@@ -7,7 +9,22 @@ jest.mock('../../brand', () => ({
     getWebSocketURL: jest.fn(),
 }));
 
+// Mock js-cookie so we can drive the shared `options_account_id` session cookie
+jest.mock('js-cookie', () => ({
+    get: jest.fn(),
+    set: jest.fn(),
+    remove: jest.fn(),
+}));
+
 const mockGetWebSocketURL = brandUtils.getWebSocketURL as jest.Mock;
+const mockCookiesGet = Cookies.get as unknown as jest.Mock;
+
+// Helper to set the `options_account_id` cookie (a plain account_id string), or clear it with null
+const setOptionsAccountIdCookie = (account_id: string | null) => {
+    mockCookiesGet.mockImplementation((name?: string) =>
+        name === 'options_account_id' && account_id ? account_id : undefined
+    );
+};
 
 // Helper function to create localStorage mock
 const createLocalStorageMock = () => {
@@ -48,6 +65,8 @@ describe('getAccountType', () => {
         });
 
         window.history.replaceState = jest.fn();
+        // Default: no session cookie. clearAllMocks() keeps mock implementations, so reset explicitly.
+        mockCookiesGet.mockReset();
     });
 
     afterEach(() => {
@@ -140,6 +159,155 @@ describe('getAccountType', () => {
         expect(result).toBe('public');
         // replaceState should NOT be called for invalid account_type values
         expect(window.history.replaceState).not.toHaveBeenCalled();
+    });
+
+    it('should derive "demo" from a virtual (VR*) session cookie account_id and persist it', () => {
+        setOptionsAccountIdCookie('VRTC1234');
+        mockLocation(originalLocation, {
+            search: '',
+            href: 'https://dtrader.deriv.com',
+        });
+
+        const result = getAccountType();
+
+        expect(result).toBe('demo');
+        expect(window.localStorage.getItem('account_type')).toBe('demo');
+    });
+
+    it('should derive "real" from a non-virtual (CR*) session cookie account_id and persist it', () => {
+        setOptionsAccountIdCookie('CR901234');
+        mockLocation(originalLocation, {
+            search: '',
+            href: 'https://dtrader.deriv.com',
+        });
+
+        const result = getAccountType();
+
+        expect(result).toBe('real');
+        expect(window.localStorage.getItem('account_type')).toBe('real');
+    });
+
+    it('should prefer localStorage over the session cookie', () => {
+        window.localStorage.setItem('account_type', 'real');
+        setOptionsAccountIdCookie('VRTC1234');
+        mockLocation(originalLocation, {
+            search: '',
+            href: 'https://dtrader.deriv.com',
+        });
+
+        expect(getAccountType()).toBe('real');
+    });
+
+    it('should return "public" when there is no URL param, localStorage value, or cookie', () => {
+        setOptionsAccountIdCookie(null);
+        mockLocation(originalLocation, {
+            search: '',
+            href: 'https://dtrader.deriv.com',
+        });
+
+        expect(getAccountType()).toBe('public');
+    });
+
+    it('should derive account_type from the account_id, not the cookie, when they belong to different accounts', () => {
+        // Cookie belongs to a demo (VR*) account, but the URL pins a real (CR*) account_id.
+        // account_type must follow the account_id actually in use, not the unrelated cookie.
+        setOptionsAccountIdCookie('VRTC456');
+        mockLocation(originalLocation, {
+            search: '?account_id=CR123',
+            href: 'https://dtrader.deriv.com?account_id=CR123',
+            pathname: '/',
+        });
+
+        expect(getAccountType()).toBe('real');
+    });
+});
+
+describe('getAccountId', () => {
+    let originalLocation: Location, originalLocalStorage: Storage;
+
+    beforeEach(() => {
+        originalLocation = window.location;
+        originalLocalStorage = window.localStorage;
+
+        Object.defineProperty(window, 'localStorage', {
+            value: createLocalStorageMock(),
+            writable: true,
+        });
+
+        window.history.replaceState = jest.fn();
+        mockCookiesGet.mockReset();
+    });
+
+    afterEach(() => {
+        Object.defineProperty(window, 'location', {
+            value: originalLocation,
+            writable: true,
+        });
+        Object.defineProperty(window, 'localStorage', {
+            value: originalLocalStorage,
+            writable: true,
+        });
+        jest.clearAllMocks();
+    });
+
+    it('should return account_id from the URL param, persist it, and strip it from the URL', () => {
+        mockLocation(originalLocation, {
+            search: '?account_id=CR111',
+            href: 'https://dtrader.deriv.com?account_id=CR111',
+            pathname: '/',
+        });
+
+        const result = getAccountId();
+
+        expect(result).toBe('CR111');
+        expect(window.localStorage.getItem('account_id')).toBe('CR111');
+        expect(window.history.replaceState).toHaveBeenCalledWith({}, document.title, '/');
+    });
+
+    it('should prefer the URL param over both localStorage and the session cookie', () => {
+        window.localStorage.setItem('account_id', 'CR222');
+        setOptionsAccountIdCookie('CR333');
+        mockLocation(originalLocation, {
+            search: '?account_id=CR111',
+            href: 'https://dtrader.deriv.com?account_id=CR111',
+            pathname: '/',
+        });
+
+        expect(getAccountId()).toBe('CR111');
+    });
+
+    it('should prefer localStorage over the session cookie', () => {
+        window.localStorage.setItem('account_id', 'CR222');
+        setOptionsAccountIdCookie('CR333');
+        mockLocation(originalLocation, {
+            search: '',
+            href: 'https://dtrader.deriv.com',
+        });
+
+        expect(getAccountId()).toBe('CR222');
+    });
+
+    it('should fall back to the session cookie account_id and persist it to localStorage', () => {
+        setOptionsAccountIdCookie('CR333');
+        mockLocation(originalLocation, {
+            search: '',
+            href: 'https://dtrader.deriv.com',
+        });
+
+        const result = getAccountId();
+
+        expect(result).toBe('CR333');
+        expect(window.localStorage.getItem('account_id')).toBe('CR333');
+    });
+
+    it('should return null when there is no URL param, localStorage value, or cookie', () => {
+        setOptionsAccountIdCookie(null);
+        mockLocation(originalLocation, {
+            search: '',
+            href: 'https://dtrader.deriv.com',
+        });
+
+        expect(getAccountId()).toBeNull();
     });
 });
 

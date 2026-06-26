@@ -7,10 +7,23 @@
  *
  */
 
+import Cookies from 'js-cookie';
+
 import { getWebSocketURL } from '../brand';
 
 /**
- * Gets account_type with priority: URL parameter > localStorage > default 'public'
+ * Reads the account_id from the shared `.deriv.com` `options_account_id` cookie.
+ * This cookie is written by home.deriv.com on login (real account if the user has
+ * one, otherwise the demo account) and removed on logout, so it acts as the
+ * cross-subdomain session hint. The value is a plain account_id string, and since
+ * account_id === loginid in this system it is a valid account_id as-is.
+ * @returns account_id string or null when the cookie is missing
+ */
+const getAccountIdFromCookie = (): string | null => Cookies.get('options_account_id') || null;
+
+/**
+ * Gets account_type with priority: URL parameter > localStorage > derived from the
+ * resolved account_id (which may itself come from the session cookie) > default 'public'
  * @returns 'real', 'demo', or 'public'
  */
 export const getAccountType = (): 'real' | 'demo' | 'public' => {
@@ -38,12 +51,25 @@ export const getAccountType = (): 'real' | 'demo' | 'public' => {
         return storedAccountType;
     }
 
+    // Third priority: derive from the resolved account_id. Since account_id === loginid,
+    // its prefix gives the type (virtual `VR*` → demo, otherwise real), mirroring
+    // getClientAccountType's `/^VR/` check. Deriving from getAccountId() — rather than
+    // reading the cookie independently here — guarantees the type matches whichever
+    // account_id the app actually uses, even when account_id comes from the URL/localStorage
+    // while the shared session cookie belongs to a different account.
+    const account_id = getAccountId();
+    if (account_id) {
+        const account_type = /^VR/.test(account_id) ? 'demo' : 'real';
+        window.localStorage.setItem('account_type', account_type);
+        return account_type;
+    }
+
     // Default to public when no account_type parameter or invalid value
     return 'public';
 };
 
 /**
- * Gets account_id with priority: URL parameter > localStorage > null
+ * Gets account_id with priority: URL parameter > localStorage > session cookie > null
  * @returns account_id string or null
  */
 export const getAccountId = (): string | null => {
@@ -61,7 +87,21 @@ export const getAccountId = (): string | null => {
     }
 
     // 2. Check localStorage
-    return localStorage.getItem('account_id');
+    const storedAccountId = localStorage.getItem('account_id');
+    if (storedAccountId) return storedAccountId;
+
+    // 3. Fall back to the shared `.deriv.com` `options_account_id` cookie. This lets
+    // DTrader recognise an existing login from another Deriv app (e.g. home.deriv.com)
+    // without a round-trip. Persist it like the URL-param branch so the normal
+    // whoami/logout cleanup (which clears localStorage) applies; whoami validates
+    // it on init and clears a stale cookie on 401.
+    const accountIdFromCookie = getAccountIdFromCookie();
+    if (accountIdFromCookie) {
+        localStorage.setItem('account_id', accountIdFromCookie);
+        return accountIdFromCookie;
+    }
+
+    return null;
 };
 
 /**
