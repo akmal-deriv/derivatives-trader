@@ -195,16 +195,15 @@ describe('StatementStore', () => {
 
         statement_store.onMount();
 
-        expect(WS.forgetAll).toHaveBeenCalled();
         expect(statement_store.client_loginid).toBe(root_store.client.loginid);
         // Verify fetchNextBatch is eventually called after authentication
         await new Promise(resolve => setTimeout(resolve, 0));
         expect(WS.statement).toHaveBeenCalled();
     });
 
-    it('should forget proposal calls on Unmount', () => {
+    it('should not forget price-proposal subscriptions it does not own on Unmount', () => {
         statement_store.onUnmount();
 
-        expect(WS.forgetAll).toHaveBeenCalledWith('proposal');
+        expect(WS.forgetAll).not.toHaveBeenCalledWith('proposal');
     });
 });

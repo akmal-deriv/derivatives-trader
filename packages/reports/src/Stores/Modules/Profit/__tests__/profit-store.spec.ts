@@ -316,11 +316,11 @@ describe('ProfitTableStore', () => {
         });
     });
     describe('onUnmount', () => {
-        it('should unsubscribe from proposal API', () => {
+        it('should not forget price-proposal subscriptions it does not own (avoids breaking the trade form in AppV2)', () => {
             const spyWSForgetAll = jest.spyOn(WS, 'forgetAll');
             mocked_profit_table_store.onUnmount();
 
-            expect(spyWSForgetAll).toHaveBeenCalledWith('proposal');
+            expect(spyWSForgetAll).not.toHaveBeenCalledWith('proposal');
         });
     });
     describe('totals', () => {

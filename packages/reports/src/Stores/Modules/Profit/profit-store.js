@@ -122,7 +122,7 @@ export default class ProfitTableStore extends BaseStore {
     }
 
     onMount(shouldFilterContractTypes) {
-        this.assertHasValidCache(this.client_loginid, this.clearDateFilter, WS.forgetAll.bind(null, 'proposal'));
+        this.assertHasValidCache(this.client_loginid, this.clearDateFilter);
         this.client_loginid = this.root_store.client.loginid;
         this.onNetworkStatusChange(this.networkStatusChangeListener);
 
@@ -160,7 +160,9 @@ export default class ProfitTableStore extends BaseStore {
     /* DO NOT call clearDateFilter() upon unmounting the component, date filters should stay
     as we change tab or click on any contract for later references as discussed with UI/UX and QA */
     onUnmount() {
-        WS.forgetAll('proposal');
+        // Don't WS.forgetAll('proposal') here: this store never opens a 'proposal' subscription,
+        // so it would only kill the trade store's live price proposals (Closed tab coexists with
+        // the trade form in AppV2), causing an "Unknown contract proposal" error on next purchase.
 
         // Dispose MobX reaction to prevent memory leak
         if (this.loginReactionDisposer) {
