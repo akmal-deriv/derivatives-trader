@@ -1,30 +1,27 @@
-import { useMemo } from 'react';
+import { useEffect } from 'react';
 
-import { useDerivativesAccount } from '@deriv/api';
-import { getIsAutomationEnabled } from '@deriv/shared';
-import { useStore } from '@deriv/stores';
+import useIsEuAccount from './useIsEuAccount';
 
-// EU (DIEL) account groups for which automation is hidden. Mirrors
-// `RESTRICTED_TRADE_TYPE_GROUPS`; the backend remains the source of truth.
-export const AUTOMATION_RESTRICTED_GROUPS: string[] = ['DIEL Default Group'];
+type TUseIsAutomationEnabled = {
+    /** On for everyone except EU (DIEL) accounts; `false` until `is_ready`. */
+    is_enabled: boolean;
+    /** `true` once EU status is known. Gate redirects/tab resets on this. */
+    is_ready: boolean;
+};
 
 /**
- * Whether the automation feature is available to the user: enabled for their
- * country (the `?automation` flag) AND not a restricted EU (DIEL) account.
- * Fail-open on the group check — treated as allowed until the account group is
- * known (matches `useIsTradeTypeSelectionRestricted`).
+ * Automation availability. Wraps `useIsEuAccount` and toggles the
+ * `automation-enabled` root class (for SCSS) once the status is known.
  */
-const useIsAutomationEnabled = (): boolean => {
-    const { client } = useStore();
-    const { is_logged_in, loginid } = client;
-    const { data } = useDerivativesAccount(loginid, is_logged_in);
+const useIsAutomationEnabled = (): TUseIsAutomationEnabled => {
+    const { is_eu, is_ready } = useIsEuAccount();
+    const is_enabled = is_ready && !is_eu;
 
-    return useMemo(() => {
-        if (!getIsAutomationEnabled()) return false;
-        if (!is_logged_in || !loginid) return true;
-        const group = data?.data?.find(account => account.account_id === loginid)?.group;
-        return !group || !AUTOMATION_RESTRICTED_GROUPS.includes(group);
-    }, [data, is_logged_in, loginid]);
+    useEffect(() => {
+        if (is_ready) document.body.classList.toggle('automation-enabled', is_enabled);
+    }, [is_enabled, is_ready]);
+
+    return { is_enabled, is_ready };
 };
 
 export default useIsAutomationEnabled;

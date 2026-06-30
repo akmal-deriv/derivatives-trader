@@ -172,6 +172,8 @@ const useRunControls = ({ onRunStarted }: TUseRunControlsOptions = {}) => {
                 // Confirmed start — funnel step 5. Fires only on a real session so it
                 // gives the clean "actual runs" count distinct from the Run press above.
                 trackStrategySessionStarted({ ...run_payload, session_id: response.auto_start.run_id });
+                // Stash the same snapshot so the store can replay it on completion.
+                automation_store.setActiveRunAnalytics(run_payload);
                 automation_store.onRunStarted(response.auto_start);
                 subscribeToRun(response.auto_start.run_id);
                 onRunStarted?.();

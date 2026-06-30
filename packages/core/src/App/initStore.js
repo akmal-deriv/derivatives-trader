@@ -7,7 +7,6 @@ import {
     getAccountType,
     getApiCoreBaseUrl,
     getBrandDomains,
-    getIsAutomationEnabled,
     removeCookies,
 } from '@deriv/shared';
 
@@ -71,9 +70,6 @@ export const initStore = async notification_messages => {
     let external_id;
     const account_id = getAccountId();
     getAccountType();
-    // Resolve the automation flag early and expose it as a root class so SCSS can
-    // react (e.g. the pre-automation layout when it's off).
-    document.body.classList.toggle('automation-enabled', getIsAutomationEnabled());
 
     if (account_id) {
         const whoami_result = await checkWhoAmI();

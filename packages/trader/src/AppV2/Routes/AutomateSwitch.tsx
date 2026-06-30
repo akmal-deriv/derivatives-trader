@@ -18,9 +18,10 @@ const AutomateSwitch = observer(() => {
     const { isMobile } = useDevice();
     const { setActiveTradePanelTab } = useTraderStore();
     const history = useHistory();
-    const is_automation_enabled = useIsAutomationEnabled();
+    const { is_enabled: is_automation_enabled, is_ready: is_eu_status_ready } = useIsAutomationEnabled();
 
     React.useEffect(() => {
+        if (!is_eu_status_ready) return;
         if (!is_automation_enabled) {
             history.replace(routes.index);
             return;
@@ -30,9 +31,11 @@ const AutomateSwitch = observer(() => {
             history.replace(routes.index);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isMobile, is_automation_enabled]);
+    }, [isMobile, is_automation_enabled, is_eu_status_ready]);
 
-    if (!is_automation_enabled || !isMobile) return null;
+    if (!isMobile) return null;
+    if (!is_eu_status_ready) return <SmartFallbackLoader />;
+    if (!is_automation_enabled) return null;
 
     return (
         <Suspense fallback={<SmartFallbackLoader />}>

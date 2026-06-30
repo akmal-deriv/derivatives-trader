@@ -9,6 +9,7 @@ import {
     trackStrategyParameterChanged,
     trackStrategyRunClicked,
     trackStrategySelected,
+    trackStrategySessionCompleted,
     trackStrategySessionStarted,
     trackStrategyStopClicked,
     trackTradeTypeSwitched,
@@ -110,6 +111,36 @@ describe('automation analytics', () => {
                 trade_type: 'rise_fall',
                 strategy_name: 'martingale',
                 platform: 'mobile',
+            })
+        );
+    });
+
+    it('reports the outcome fields on strategy_session_completed', () => {
+        trackStrategySessionCompleted({
+            session_id: 'run-42',
+            trade_type: 'rise_fall',
+            strategy_name: 'martingale',
+            max_stake_set: false,
+            platform: 'web',
+            trades_completed: 7,
+            cumulative_pnl: 12.5,
+            status: 'stopped',
+            stop_reason: 'condition_triggered',
+            stop_reason_code: 'profit_threshold_reached',
+        });
+
+        expect(trackEvent).toHaveBeenCalledWith(
+            AUTOMATION_ANALYTICS_EVENT,
+            expect.objectContaining({
+                action: 'strategy_session_completed',
+                session_id: 'run-42',
+                trades_completed: 7,
+                cumulative_pnl: 12.5,
+                status: 'stopped',
+                stop_reason: 'condition_triggered',
+                stop_reason_code: 'profit_threshold_reached',
+                strategy_name: 'martingale',
+                platform: 'web',
             })
         );
     });

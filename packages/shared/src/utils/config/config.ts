@@ -119,25 +119,6 @@ export const getIsMigratedUser = (): boolean => {
     return localStorage.getItem('is_migrated_user') === 'true';
 };
 
-// Automation feature flag, off by default. Reads `?automation` from the URL (set
-// at the edge per country) and remembers it; `true` enables, `false` disables.
-// Falls back to the saved value when the param isn't in the URL.
-export const getIsAutomationEnabled = (): boolean => {
-    const automationFromUrl = new URLSearchParams(window.location.search).get('automation');
-
-    if (automationFromUrl !== null) {
-        const is_enabled = automationFromUrl === 'true';
-        localStorage.setItem('automation_enabled', String(is_enabled));
-        // Strip the param from the URL after persisting
-        const url = new URL(window.location.href);
-        url.searchParams.delete('automation');
-        window.history.replaceState({}, document.title, url.pathname + url.search);
-        return is_enabled;
-    }
-
-    return localStorage.getItem('automation_enabled') === 'true';
-};
-
 /**
  * Gets the complete WebSocket URL with proper endpoint and query params
  * @returns Complete WebSocket URL

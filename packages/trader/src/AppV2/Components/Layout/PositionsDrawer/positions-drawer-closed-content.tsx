@@ -27,7 +27,7 @@ export const PositionsDrawerClosedContent = observer(() => {
     const { data, handleDateChange, handleScroll, is_empty, is_loading, onMount, onUnmount, clearTable } =
         useReportsStore().profit_table;
     const { tradeModeFilter } = useTradeModeFilter();
-    const is_automation_enabled = useIsAutomationEnabled();
+    const { is_enabled: is_automation_enabled } = useIsAutomationEnabled();
 
     const closedPositions: TClosedPosition[] = React.useMemo(
         () =>

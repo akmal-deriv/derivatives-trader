@@ -35,7 +35,7 @@ const PositionsContent = observer(({ hasButtonsDemo, isClosedTab, setHasButtonsD
     const available_contracts = useAvailableContracts();
     const { is_eu, is_ready: is_eu_account_ready } = useIsEuAccount();
     const { tradeModeFilter, setTradeModeFilter } = useTradeModeFilter();
-    const is_automation_enabled = useIsAutomationEnabled();
+    const { is_enabled: is_automation_enabled } = useIsAutomationEnabled();
     const [filteredPositions, setFilteredPositions] = React.useState<(TPortfolioPosition | TClosedPosition)[]>([]);
     const [noMatchesFound, setNoMatchesFound] = React.useState(false);
 

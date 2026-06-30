@@ -1,6 +1,7 @@
 import { action, computed, makeObservable, observable, reaction } from 'mobx';
 
 import type { TAutoRun, TAutoStopReasonCode, TAutoStrategyDescriptor } from '@deriv/api';
+import { trackStrategySessionCompleted, type TStrategyRunPayload } from '@deriv/shared';
 import { localize } from '@deriv-com/translations';
 
 import { TRootStore } from 'Types';
@@ -28,6 +29,14 @@ export default class AutomationStore extends BaseStore {
     available_strategies: TAutoStrategyDescriptor[] = [];
     last_stop_event: TStopEvent | null = null;
     is_recovering = false;
+    /**
+     * Analytics snapshot of the run config captured at start (set by `useRunControls`),
+     * replayed on completion so `strategy_session_completed` reports what the run actually
+     * ran with — not the live form, which may have changed by the time it stops. Not
+     * observable: it never drives rendering. Null for runs we didn't start (e.g. adopted
+     * from another device), which therefore don't emit a completion event.
+     */
+    active_run_analytics: TStrategyRunPayload | null = null;
 
     constructor(options: { root_store: TRootStore }) {
         super({
@@ -55,6 +64,7 @@ export default class AutomationStore extends BaseStore {
             setStrategyParam: action.bound,
             setRunStatus: action.bound,
             setIsRecovering: action.bound,
+            setActiveRunAnalytics: action.bound,
             onRunStarted: action.bound,
             onRunUpdate: action.bound,
             onRunStopped: action.bound,
@@ -136,6 +146,11 @@ export default class AutomationStore extends BaseStore {
         this.is_recovering = value;
     }
 
+    /** Stash the analytics snapshot for the run we're starting, replayed on completion. */
+    setActiveRunAnalytics(payload: TStrategyRunPayload | null) {
+        this.active_run_analytics = payload;
+    }
+
     onRunStarted(run: TAutoRun) {
         this.active_run = run;
         this.active_run_id = run.run_id;
@@ -166,7 +181,11 @@ export default class AutomationStore extends BaseStore {
                     code: run.stop_reason_code,
                 };
             }
-            this.onRunStopped();
+            this.onRunStopped({
+                status: run.status,
+                stop_reason: run.stop_reason,
+                stop_reason_code: run.stop_reason_code,
+            });
         } else if (run.status === 'paused') {
             this.run_status = 'paused';
         } else if (run.status === 'running') {
@@ -177,10 +196,26 @@ export default class AutomationStore extends BaseStore {
         }
     }
 
-    onRunStopped() {
+    onRunStopped(completion?: { status?: string; stop_reason?: string; stop_reason_code?: string }) {
+        // Emit the completion event for runs we started (snapshot present). Reasons other
+        // than a BE-reported one mean the user pressed Stop. Captured before the state is
+        // cleared below; `active_run_analytics` is nulled to guard against a double-fire.
+        if (this.active_run_analytics && this.active_run_id) {
+            trackStrategySessionCompleted({
+                ...this.active_run_analytics,
+                session_id: this.active_run_id,
+                // Outcome — read from the final run state before it's cleared below.
+                trades_completed: this.contracts_count,
+                cumulative_pnl: this.net_profit,
+                status: completion?.status ?? 'stopped',
+                stop_reason: completion?.stop_reason ?? 'user_stopped',
+                stop_reason_code: completion?.stop_reason_code,
+            });
+        }
         this.run_status = 'stopped';
         this.active_run_id = null;
         this.active_run = null;
+        this.active_run_analytics = null;
     }
 
     // Recovers stale run state when the `auto_get` subscription missed the
@@ -197,7 +232,11 @@ export default class AutomationStore extends BaseStore {
                 code: stopped_run.stop_reason_code,
             };
         }
-        this.onRunStopped();
+        this.onRunStopped({
+            status: stopped_run?.status,
+            stop_reason: stopped_run?.stop_reason,
+            stop_reason_code: stopped_run?.stop_reason_code,
+        });
     }
 
     setStrategies(strategies: TAutoStrategyDescriptor[]) {
@@ -281,6 +320,7 @@ export default class AutomationStore extends BaseStore {
         this.run_status = 'idle';
         this.last_error = null;
         this.last_stop_event = null;
+        this.active_run_analytics = null;
     }
 
     /** Full reset including user config — used on logout. */

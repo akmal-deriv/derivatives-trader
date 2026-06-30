@@ -53,7 +53,7 @@ const Trade = observer(() => {
         trade_type_tab,
     } = useTraderStore();
     const { trade_types } = useContractsFor();
-    const is_automation_enabled = useIsAutomationEnabled();
+    const { is_enabled: is_automation_enabled } = useIsAutomationEnabled();
     useDefaultSymbol(); // This will initialize and set the default symbol
     const [guide_dtrader_v2] = useLocalStorageData<Record<string, boolean>>('guide_dtrader_v2', {
         trade_types_selection: false,

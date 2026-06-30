@@ -68,15 +68,16 @@ const TradeDesktop = observer(() => {
 
     const { trade_types } = useContractsFor();
     const supported_automation_trade_types = useAutomationSupportedTradeTypes();
-    const is_automation_enabled = useIsAutomationEnabled();
+    const { is_enabled: is_automation_enabled, is_ready: is_automation_ready } = useIsAutomationEnabled();
 
-    // When the feature is off for this user, reset a stale persisted automation
-    // tab so the panel and the automation fallback hooks don't act on it.
+    // When automation is off (EU), clear a stale persisted automation tab so the
+    // fallback hooks don't act on it. Gate on readiness so a non-EU user's saved
+    // tab isn't wiped mid-lookup.
     React.useEffect(() => {
-        if (!is_automation_enabled && is_automation_tab) {
+        if (is_automation_ready && !is_automation_enabled && is_automation_tab) {
             setActiveTradePanelTab(TRADE_PANEL_TABS.TRADE);
         }
-    }, [is_automation_enabled, is_automation_tab, setActiveTradePanelTab]);
+    }, [is_automation_ready, is_automation_enabled, is_automation_tab, setActiveTradePanelTab]);
 
     const is_automation_active = is_automation_enabled && is_automation_tab;
     const should_render_automation_panel = is_automation_active && supported_automation_trade_types.has(contract_type);

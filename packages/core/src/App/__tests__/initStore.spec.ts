@@ -11,7 +11,6 @@ jest.mock('@deriv/shared', () => ({
     getAccountType: jest.fn(),
     getApiCoreBaseUrl: jest.fn(() => 'https://api-core.deriv.com'),
     getBrandDomains: jest.fn(() => []),
-    getIsAutomationEnabled: jest.fn(() => false),
     removeCookies: jest.fn(),
 }));
 

@@ -11,7 +11,7 @@ import {
     StandaloneHouseBlankFillIcon,
     StandaloneHouseBlankRegularIcon,
 } from '@deriv/quill-icons';
-import { getBrandUrl, getIsAutomationEnabled, routes, trackAutomateTabTapped } from '@deriv/shared';
+import { getAccountId, getBrandUrl, routes, trackAutomateTabTapped } from '@deriv/shared';
 import { useStore } from '@deriv/stores';
 import { Badge, Navigation } from '@deriv-com/quill-ui';
 import { Localize } from '@deriv-com/translations';
@@ -33,14 +33,17 @@ const BottomNav = observer(({ className }: BottomNavProps) => {
     const { currency, is_logged_in, loginid } = client;
     const { current_language } = common;
     const { sendBridgeEvent } = useMobileBridge();
-    const { data: derivatives_account } = useDerivativesAccount(loginid, is_logged_in);
-    // Show Automate only when (a) enabled for the country (`?automation=true`,
-    // set at the edge) and (b) not a restricted EU (DIEL) account. Mirrors the
-    // trader-side `useIsAutomationEnabled`; duplicated because core can't import
-    // the trader hook.
+    const { data: derivatives_account, isError: is_derivatives_account_error } = useDerivativesAccount(
+        loginid,
+        is_logged_in
+    );
+    // Show Automate to public users and logged-in non-EU (DIEL) accounts.
+    // `is_public_user` excludes a mid-restore session so an EU account doesn't
+    // flash the tab in. Mirrors the trader hook (core can't import it).
     const automation_group = derivatives_account?.data?.find(account => account.account_id === loginid)?.group;
-    const is_automation_enabled =
-        getIsAutomationEnabled() && (!is_logged_in || automation_group !== 'DIEL Default Group');
+    const is_public_user = !is_logged_in && !getAccountId();
+    const is_account_resolved = !!derivatives_account || is_derivatives_account_error;
+    const is_automation_enabled = is_public_user || (is_account_resolved && automation_group !== 'DIEL Default Group');
 
     const bottomNavItems = React.useMemo(
         () => [

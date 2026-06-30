@@ -187,10 +187,9 @@
     }
 }
 
-// Pre-automation layout: applied when the automation feature is off. The
-// `automation-enabled` root class is set at app init from the flag, so the
-// base rules above are the automation (on) state and these restore the
-// original layout when it's off.
+// Pre-automation layout for when automation is unavailable (EU/DIEL). The
+// `automation-enabled` class is toggled by `useIsAutomationEnabled` once the
+// account status is known; the base rules above are the automation-on state.
 body:not(.automation-enabled) {
     .trade {
         background-color: transparent;

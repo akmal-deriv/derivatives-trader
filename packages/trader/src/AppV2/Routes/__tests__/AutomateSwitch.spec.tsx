@@ -50,8 +50,8 @@ describe('AutomateSwitch', () => {
     };
 
     beforeEach(() => {
-        // Default: automation available (country-enabled and not a restricted account).
-        (useIsAutomationEnabled as jest.Mock).mockReturnValue(true);
+        // Default: EU status resolved and automation available (not an EU/DIEL account).
+        (useIsAutomationEnabled as jest.Mock).mockReturnValue({ is_enabled: true, is_ready: true });
     });
 
     afterEach(() => {
@@ -79,9 +79,17 @@ describe('AutomateSwitch', () => {
     });
 
     it('should redirect to index and not render the page when automation is unavailable (even on mobile)', () => {
-        (useIsAutomationEnabled as jest.Mock).mockReturnValue(false);
+        (useIsAutomationEnabled as jest.Mock).mockReturnValue({ is_enabled: false, is_ready: true });
         const { history } = renderComponent(true);
         expect(screen.queryByTestId('automate-page')).not.toBeInTheDocument();
         expect(history.location.pathname).toBe('/');
+    });
+
+    it('should not redirect while EU status is still resolving on mobile', () => {
+        (useIsAutomationEnabled as jest.Mock).mockReturnValue({ is_enabled: false, is_ready: false });
+        const { history } = renderComponent(true, '/automate');
+        // Stays on /automate (no premature bounce) and shows a loader, not the page.
+        expect(screen.queryByTestId('automate-page')).not.toBeInTheDocument();
+        expect(history.location.pathname).toBe('/automate');
     });
 });

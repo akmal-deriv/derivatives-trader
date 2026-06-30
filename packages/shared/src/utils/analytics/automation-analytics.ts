@@ -77,6 +77,21 @@ export const trackStrategyRunClicked = (payload: TStrategyRunPayload) =>
 export const trackStrategySessionStarted = (payload: TStrategyRunPayload & { session_id: string }) =>
     trackAnalyticsEvent(AUTOMATION_ANALYTICS_EVENT, { action: 'strategy_session_started', ...payload });
 
+/**
+ * Fires when a session ends, for any reason (user stop, threshold hit, error). Carries the run's
+ * start snapshot plus the outcome so completions can be sliced by `stop_reason` (brief §4.3).
+ */
+export const trackStrategySessionCompleted = (
+    payload: TStrategyRunPayload & {
+        session_id: string;
+        trades_completed: number;
+        cumulative_pnl: number;
+        status: string;
+        stop_reason?: string;
+        stop_reason_code?: string;
+    }
+) => trackAnalyticsEvent(AUTOMATION_ANALYTICS_EVENT, { action: 'strategy_session_completed', ...payload });
+
 /** User manually presses Stop while a strategy session is running. */
 export const trackStrategyStopClicked = (payload: {
     session_id: string | null;
