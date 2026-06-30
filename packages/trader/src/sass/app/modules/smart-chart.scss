@@ -666,6 +666,15 @@ $solid-blue-700: #2c9aff;
     }
 }
 
+/** @define sc-inline-loader; weak */
+// smartcharts-champion ships its chart loading spinner hardcoded to teal (#85acb0)
+// for both light and dark themes. Override to brand red so the chart loader (shown
+// while the contract details / replay chart loads) matches every other loader.
+// !important is required: the library colours it via `.smartcharts-{light,dark} .sc-inline-loader__inner__bullet`.
+.sc-inline-loader__inner__bullet {
+    background-color: var(--brand-primary) !important;
+}
+
 //Vanilla specific styles
 .vanilla-trade-chart {
     @include mobile {

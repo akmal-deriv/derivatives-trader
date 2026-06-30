@@ -14,7 +14,7 @@
         @include createBarspinnerAnimation(5, 1.2s, 0.1);
     }
     &--dark .barspinner__rect {
-        background-color: var(--brand-secondary);
+        background-color: var(--brand-primary);
     }
 }
 
@@ -54,7 +54,7 @@
         margin: 5rem auto;
 
         &--rect {
-            background-color: var(--brand-secondary);
+            background-color: var(--brand-primary);
         }
     }
 }

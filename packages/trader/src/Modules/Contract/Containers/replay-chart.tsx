@@ -103,12 +103,12 @@ const ReplayChart = observer(
         const has_ended = !!getEndTime(contract_info);
         const is_dtrader_v2_enabled = isMobile; // V2 for mobile, V1 for desktop
 
-        if (!symbol) return <Loader />;
+        if (!symbol) return <Loader color='var(--brand-primary)' />;
 
         if (isLoading) {
             return (
                 <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '400px' }}>
-                    <Loader />
+                    <Loader color='var(--brand-primary)' />
                 </div>
             );
         }
@@ -133,7 +133,7 @@ const ReplayChart = observer(
             );
         }
 
-        if (!chartData || !chartData.tradingTimes) return <Loader />;
+        if (!chartData || !chartData.tradingTimes) return <Loader color='var(--brand-primary)' />;
 
         return (
             <SmartChart

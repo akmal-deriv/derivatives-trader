@@ -160,7 +160,7 @@ const TradeDesktop = observer(() => {
 
     return (
         <>
-            {should_show_portrait_loader && <Loader isFullScreen />}
+            {should_show_portrait_loader && <Loader isFullScreen color='var(--brand-primary)' />}
             {symbols.length && trade_types.length ? (
                 <div
                     className={clsx('trade', {
