@@ -184,7 +184,7 @@ export const getApiBaseUrl = (): string => {
 
 /**
  * Gets the Help Centre URL
- * @returns Help Centre URL (e.g., "https://trade.deriv.com/help-centre")
+ * @returns Help Centre URL (e.g., "https://trade.deriv.com/help-centre/deriv-trader")
  */
 export const getHelpCentreUrl = (): string => {
     return substituteDerivDomain(config_data.platform.help_centre_url);

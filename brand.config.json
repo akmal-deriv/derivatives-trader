@@ -14,7 +14,7 @@
             "beta": "beta-dtrader.deriv.com",
             "production": "dtrader.deriv.com"
         },
-        "help_centre_url": "https://trade.deriv.com/help-centre"
+        "help_centre_url": "https://trade.deriv.com/help-centre/deriv-trader"
     },
     "auth": {
         "staging": "https://staging-auth.deriv.com",
