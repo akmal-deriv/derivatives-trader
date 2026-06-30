@@ -34,7 +34,7 @@ const RouteWithSubRoutes = (route: TRouteWithSubRoutes) => {
         }
 
         const title = route.getTitle?.() || '';
-        document.title = `${title} | ${getBrandName()}`;
+        document.title = title ? `${title} | ${getBrandName()}` : getBrandName();
         return result;
     };
 

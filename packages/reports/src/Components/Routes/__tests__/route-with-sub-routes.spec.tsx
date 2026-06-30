@@ -79,7 +79,7 @@ describe('<RouteWithSubRoutes />', () => {
     });
     it('should set document title to default title when getTitle is not defined', () => {
         render(<MockRouteWithSubRoutes />);
-        expect(document.title).toBe('| Default Title');
+        expect(document.title).toBe('Default Title');
     });
     it('should set document title based on route.getTitle', () => {
         const title = 'Test Title';
