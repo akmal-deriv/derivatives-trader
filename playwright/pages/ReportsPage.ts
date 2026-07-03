@@ -895,7 +895,7 @@ export class ReportsPage extends TradeBasePage {
         await expect(
             sellRow.locator('.balance .data-list__row-content [data-testid="dt_span"]'),
             `Sell row Balance should be "${sellRowBalance}"`
-        ).toHaveText(sellRowBalance);
+        ).toHaveText(this.formatBalance(sellRowBalance));
 
         // Buy row — identified by buyId
         const buyRow = this.statementBuyRow(buyId);
@@ -939,7 +939,7 @@ export class ReportsPage extends TradeBasePage {
         await expect(
             buyRow.locator('.balance .data-list__row-content [data-testid="dt_span"]'),
             `Buy row Balance should be "${buyRowBalance}"`
-        ).toHaveText(buyRowBalance);
+        ).toHaveText(this.formatBalance(buyRowBalance));
     }
 
     private async verifyClosedContractInReportsDesktop(
@@ -1044,7 +1044,7 @@ export class ReportsPage extends TradeBasePage {
         await expect(
             sellRow.locator('.table__cell.balance [data-testid="dt_span"]'),
             `Sell row Balance should be "${sellRowBalance}"`
-        ).toHaveText(sellRowBalance);
+        ).toHaveText(this.formatBalance(sellRowBalance));
 
         const buyRow = this.statementBuyRow(buyId);
         await expect(buyRow, `Statement Buy row for contract "${buyId}" should be visible`).toBeVisible();
@@ -1067,6 +1067,13 @@ export class ReportsPage extends TradeBasePage {
         await expect(
             buyRow.locator('.table__cell.balance [data-testid="dt_span"]'),
             `Buy row Balance should be "${buyRowBalance}"`
-        ).toHaveText(buyRowBalance);
+        ).toHaveText(this.formatBalance(buyRowBalance));
+    }
+
+    private formatBalance(balance: string): string {
+        const [integer, decimal] = balance.split('.');
+        const formatted = integer.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        // Trailing space matches the UI's rendered balance text (e.g. "1,234.56 ")
+        return decimal !== undefined ? `${formatted}.${decimal} ` : `${formatted} `;
     }
 }

@@ -65,11 +65,19 @@ export class TradeRiseFallPage extends TradeParametersPage {
     }
 
     /**
-     * Purchase button — green "Buy" button rendered after selecting Rise/Fall.
-     * Source: purchase-button.tsx class="quill__color--primary-purchase"
+     * Purchase button for Rise — green, class="quill__color--primary-purchase".
+     * Source: purchase-button.tsx getButtonType() returns 'purchase' for index 0 (Rise).
      */
-    get purchaseButton(): Locator {
+    get risePurchaseButton(): Locator {
         return this.page.locator('.quill__color--primary-purchase');
+    }
+
+    /**
+     * Purchase button for Fall — red, class="quill__color--primary-sell".
+     * Source: purchase-button.tsx getButtonType() returns 'sell' for index 1 (Fall).
+     */
+    get fallPurchaseButton(): Locator {
+        return this.page.locator('.quill__color--primary-sell');
     }
 
     /**
@@ -96,7 +104,7 @@ export class TradeRiseFallPage extends TradeParametersPage {
         const expectedColor = option === 'Rise' ? 'rgb(0, 195, 144)' : 'rgb(222, 0, 64)';
         await target.click();
         await expect(
-            this.purchaseButton,
+            option === 'Rise' ? this.risePurchaseButton : this.fallPurchaseButton,
             `Purchase button should have ${option === 'Rise' ? 'green' : 'red'} background after selecting ${option}`
         ).toHaveCSS('background-color', expectedColor);
     }
@@ -116,16 +124,22 @@ export class TradeRiseFallPage extends TradeParametersPage {
         durationValue,
         stake,
         currency,
+        allowEquals = false,
     }: {
         market: string;
         durationUnit: string;
         durationValue: string;
         stake: string;
         currency: string;
+        allowEquals?: boolean;
     }): Promise<void> {
         // 1. Configure and buy
         await this.selectMarket(market);
         await this.selectTradeType('Rise/Fall');
+        if (allowEquals) {
+            await this.enableAllowEquals();
+            await this.verifyAllowEqualsEnabled();
+        }
         await this.clickRiseFallOption('Rise');
         await this.selectDuration(durationUnit, durationValue);
         await this.setStake(stake);
@@ -224,16 +238,22 @@ export class TradeRiseFallPage extends TradeParametersPage {
         durationValue,
         stake,
         currency,
+        allowEquals = false,
     }: {
         market: string;
         durationUnit: string;
         durationValue: string;
         stake: string;
         currency: string;
+        allowEquals?: boolean;
     }): Promise<void> {
         // 1. Configure and buy
         await this.selectMarket(market);
         await this.selectTradeType('Rise/Fall');
+        if (allowEquals) {
+            await this.enableAllowEquals();
+            await this.verifyAllowEqualsEnabled();
+        }
         await this.clickRiseFallOption('Fall');
         await this.selectDuration(durationUnit, durationValue);
         await this.setStake(stake);

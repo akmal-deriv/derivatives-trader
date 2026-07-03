@@ -69,6 +69,41 @@ export class TradeParametersPage extends TradeBasePage {
     }
 
     /**
+     * Allow equals toggle button (desktop only).
+     * Source: allow-equals.tsx — <button class="toggle-switch" aria-pressed="false|true">
+     * Scoped inside .allow-equals__wrapper to avoid matching other toggle switches.
+     */
+    get allowEqualsToggle(): Locator {
+        return this.page.locator('.allow-equals__wrapper button.toggle-switch');
+    }
+
+    /**
+     * Allow equals minimized text field (mobile only).
+     * Tapping this opens the action sheet with the toggle + Save button.
+     * Source: allow-equals.tsx is_minimized branch — TextField with label "Allow equals"
+     */
+    get allowEqualsMobileField(): Locator {
+        return this.page.locator('.trade-params__option--minimized', { hasText: 'Allow equals' });
+    }
+
+    /**
+     * Allow equals toggle inside the mobile action sheet.
+     * Visible after tapping allowEqualsMobileField.
+     * Source: allow-equals.tsx is_minimized ActionSheet — ToggleSwitch inside .allow-equals__toggle-row
+     */
+    get allowEqualsSheetToggle(): Locator {
+        return this.page.locator('.allow-equals__toggle-row button.toggle-switch');
+    }
+
+    /**
+     * "Save" button inside the mobile Allow equals action sheet.
+     * Source: allow-equals.tsx ActionSheet.Footer primaryAction
+     */
+    get allowEqualsSheetSaveButton(): Locator {
+        return this.page.locator('.allow-equals__button').getByRole('button', { name: 'Save' });
+    }
+
+    /**
      * Growth rate label — Accumulators only.
      * Desktop: <label>Growth rate</label> inside .trade-params__option
      * Mobile: <label>Growth rate</label> inside .trade-params__option--minimized
@@ -428,6 +463,50 @@ export class TradeParametersPage extends TradeBasePage {
     }
 
     /**
+     * Enable the Allow Equals toggle, adapting for desktop vs mobile layout.
+     *
+     * Desktop: clicks the toggle button in .allow-equals__wrapper.
+     * Mobile: taps the minimized text field to open the action sheet,
+     *         clicks the toggle inside the sheet, then taps Save.
+     *
+     * Precondition: Allow Equals must be visible (Rise/Fall trade type selected,
+     * duration unit compatible with callputequal, e.g. Minutes not Ticks).
+     */
+    async enableAllowEquals(): Promise<void> {
+        if (this.isMobile) {
+            await expect(
+                this.allowEqualsMobileField,
+                'Allow equals field should be visible before enabling (mobile)'
+            ).toBeVisible();
+            await this.allowEqualsMobileField.click();
+            await expect(
+                this.allowEqualsSheetToggle,
+                'Allow equals toggle inside action sheet should be visible'
+            ).toBeVisible();
+            await this.allowEqualsSheetToggle.click();
+            await expect(
+                this.allowEqualsSheetToggle,
+                'Allow equals toggle should be pressed after click'
+            ).toHaveAttribute('aria-pressed', 'true');
+            await this.allowEqualsSheetSaveButton.click();
+        } else {
+            await expect(
+                this.allowEqualsToggle,
+                'Allow equals toggle should be visible before enabling (desktop)'
+            ).toBeVisible();
+            await expect(this.allowEqualsToggle, 'Allow equals toggle should be off before enabling').toHaveAttribute(
+                'aria-pressed',
+                'false'
+            );
+            await this.allowEqualsToggle.click();
+            await expect(this.allowEqualsToggle, 'Allow equals toggle should be on after enabling').toHaveAttribute(
+                'aria-pressed',
+                'true'
+            );
+        }
+    }
+
+    /**
      * Select a market / symbol by its display name.
      * Opens the market selector, searches for the market, clicks the matching item,
      * then asserts the selector label reflects the new market.
@@ -581,6 +660,12 @@ export class TradeParametersPage extends TradeBasePage {
             await this.stakePopoverInput.click();
             await this.stakePopoverInput.fill(amount);
             await this.stakeSaveButton.click();
+            if (this.isMobile) {
+                await expect(
+                    this.page.locator('.stake-container__tab-selector'),
+                    'Stake action sheet should dismiss after saving'
+                ).not.toBeVisible();
+            }
         }
 
         await expect(this.stakeField, `Stake field should contain '${amount}' after saving`).toHaveValue(
@@ -611,6 +696,26 @@ export class TradeParametersPage extends TradeBasePage {
     // ============================================
     // VERIFICATIONS
     // ============================================
+
+    /**
+     * Verify that the Allow Equals toggle is currently enabled (aria-pressed="true").
+     * Desktop: checks the toggle in .allow-equals__wrapper.
+     * Mobile: checks the minimized field value shows "Yes".
+     */
+    async verifyAllowEqualsEnabled(): Promise<void> {
+        if (this.isMobile) {
+            const field = this.page.locator('.trade-params__option--minimized', { hasText: 'Allow equals' });
+            await expect(
+                field.locator('input'),
+                'Allow equals minimized field should show "Yes" when enabled'
+            ).toHaveValue('Yes');
+        } else {
+            await expect(
+                this.allowEqualsToggle,
+                'Allow equals toggle should be on (aria-pressed="true")'
+            ).toHaveAttribute('aria-pressed', 'true');
+        }
+    }
 
     /**
      * Verifies the visible params after selecting a trade type.

@@ -12,6 +12,8 @@
     "regression-team-3": "S05V1D5DBME",
     "regression-team-4": "S0608NJ67MH",
     "squad_dtrader_fe": "S05D1BZ5AS1",
+    "squad_deriv_p2p_clientapps": "S04S9TE1T5L",
+    "squad_deriv_p2p_qa_automation": "S05P98BSCRX",
     "team-web-app-v2": "S0A0YQ1T21G",
     "trading_apps_qa": "S05D6NPU3V2"
   },
@@ -28,10 +30,12 @@
     "portfolio": "S067SAJ51BQ",
     "profile": "S067SAJ51BQ",
     "transfer": "S067SAJ51BQ",
+    "eu": "S067SAJ51BQ",
     "all": "S08VD67SPEY"
   },
   "users": {
     "akmal-deriv": "U01AVM7CZ6J",
+    "ameerul-deriv": "U038ZTSHBNZ",
     "anitha-deriv": "U044DUMUH8B",
     "ankitha-deriv": "U03BQBY8TBN",
     "balakumaran-deriv": "U02PB7C0SLU",
@@ -40,6 +44,7 @@
     "cyrus-deriv": "U020Y7T763S",
     "deborah-deriv": "U03S45JANF9",
     "farabi-deriv": "U0379RL11UK",
+    "farrah-deriv": "U01TCD0V3M1",
     "fasihali-deriv": "U04EV8BJ80Y",
     "habib-deriv": "U01P4V6M2GK",
     "harvinraj-deriv": "U039GDCKXJ7",

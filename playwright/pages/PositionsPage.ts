@@ -142,10 +142,13 @@ export class PositionsPage extends TradeBasePage {
 
     /**
      * Empty state message shown when there are no open positions.
-     * Source: .portfolio-empty__text
+     * Desktop: .portfolio-empty__text inside the flyout
+     * Mobile: "No open positions" paragraph inside the Open tabpanel
      */
     get noOpenPositionsText(): Locator {
-        return this.page.locator('.portfolio-empty__text');
+        return this.isMobile
+            ? this.page.getByRole('tabpanel', { name: 'Open' }).getByText('No open positions')
+            : this.page.locator('.portfolio-empty__text');
     }
 
     /**
@@ -268,23 +271,36 @@ export class PositionsPage extends TradeBasePage {
     }
 
     private async pollUntilContractClosed(closeButton: import('@playwright/test').Locator): Promise<void> {
+        // The Open tab stays active after close — the card disappears and the empty state appears.
+        // We poll for the empty state with a short inner timeout to allow MobX re-render to settle.
+        // Retry the close on each interval; click errors (button gone or disabled) are swallowed.
         await expect
             .poll(
                 async () => {
-                    if (!(await this.firstContractCard.isVisible())) return true;
-                    // Retry close — use timeout:0 so a stale/disabled button doesn't block the poll loop
+                    // Use a short inner timeout — the global expect timeout is 45s, which would
+                    // block each poll interval for 45s on every miss before retrying the close.
+                    try {
+                        await expect(this.noOpenPositionsText).toBeVisible({ timeout: 5000 });
+                        return true;
+                    } catch {
+                        // not visible yet — retry close only if button is still attached
+                    }
                     try {
                         if (this.isMobile) {
-                            await closeButton.click({ force: true, timeout: 0 });
+                            await closeButton.click({ force: true });
                         } else {
-                            await closeButton.click({ timeout: 0 });
+                            await closeButton.click();
                         }
                     } catch {
-                        // button detached or disabled — ignore and re-poll
+                        // button gone or disabled — ignore
                     }
                     return false;
                 },
-                { message: 'Contract card should disappear after closing', intervals: [1000], timeout: 60_000 }
+                {
+                    message: 'Open positions empty state should appear after closing the contract',
+                    intervals: [1000],
+                    timeout: 60_000,
+                }
             )
             .toBe(true);
     }

@@ -1,7 +1,7 @@
 # 🗺️ Trade Journey Catalog — Technical Reference
 
 > Source of truth: `packages/trader/src/AppV2/Containers/Trade/` · `packages/trader/src/AppV2/Components/TradeParameters/` · `packages/trader/src/AppV2/Components/PurchaseButton/`
-> Last updated: 2026-06-24
+> Last updated: 2026-07-02
 
 ---
 
@@ -12,35 +12,35 @@
 | Flow 1     | `trade/verify-trade-form-loads.spec.ts`              | `@trade @smoke @desktop @mobile`          |
 | Flow 2.1   | `trade/verify-rise-fall.spec.ts`                     | `@trade @smoke @desktop @mobile @staging` |
 | Flow 2.2   | `trade/verify-rise-fall.spec.ts`                     | `@trade @smoke @desktop @mobile @staging` |
-| Flow 3.1   | `trade/verify-rise-fall-allow-equals.spec.ts`        | `@trade @desktop @mobile @staging`        |
-| Flow 3.2   | `trade/verify-rise-fall-allow-equals.spec.ts`        | `@trade @desktop @mobile @staging`        |
-| Flow 4.1   | `trade/verify-higher-lower.spec.ts`                  | `@trade @smoke @desktop @mobile @staging` |
-| Flow 4.2   | `trade/verify-higher-lower.spec.ts`                  | `@trade @smoke @desktop @mobile @staging` |
-| Flow 5.1   | `trade/verify-touch-no-touch.spec.ts`                | `@trade @desktop @mobile @staging`        |
-| Flow 5.2   | `trade/verify-touch-no-touch.spec.ts`                | `@trade @desktop @mobile @staging`        |
-| Flow 6.1   | `trade/verify-matches-differs.spec.ts`               | `@trade @smoke @desktop @mobile @staging` |
-| Flow 6.2   | `trade/verify-matches-differs.spec.ts`               | `@trade @smoke @desktop @mobile @staging` |
-| Flow 7.1   | `trade/verify-over-under.spec.ts`                    | `@trade @desktop @mobile @staging`        |
-| Flow 7.2   | `trade/verify-over-under.spec.ts`                    | `@trade @desktop @mobile @staging`        |
-| Flow 8.1   | `trade/verify-even-odd.spec.ts`                      | `@trade @desktop @mobile @staging`        |
-| Flow 8.2   | `trade/verify-even-odd.spec.ts`                      | `@trade @desktop @mobile @staging`        |
-| Flow 9.1   | `trade/verify-accumulators.spec.ts`                  | `@trade @smoke @desktop @mobile @staging` |
-| Flow 9.2   | `trade/verify-accumulators.spec.ts`                  | `@trade @smoke @desktop @mobile @staging` |
-| Flow 10.1  | `trade/verify-multipliers-no-tpsl.spec.ts`           | `@trade @smoke @desktop @mobile @staging` |
-| Flow 10.2  | `trade/verify-multipliers-no-tpsl.spec.ts`           | `@trade @smoke @desktop @mobile @staging` |
-| Flow 11.1  | `trade/verify-multipliers-with-tp.spec.ts`           | `@trade @smoke @desktop @mobile @staging` |
-| Flow 11.2  | `trade/verify-multipliers-with-tp.spec.ts`           | `@trade @smoke @desktop @mobile @staging` |
-| Flow 12.1  | `trade/verify-multipliers-with-sl.spec.ts`           | `@trade @desktop @mobile @staging`        |
-| Flow 12.2  | `trade/verify-multipliers-with-sl.spec.ts`           | `@trade @desktop @mobile @staging`        |
-| Flow 13.1  | `trade/verify-multipliers-deal-cancellation.spec.ts` | `@trade @desktop @mobile @staging`        |
-| Flow 13.2  | `trade/verify-multipliers-deal-cancellation.spec.ts` | `@trade @desktop @mobile @staging`        |
-| Flow 14.1  | `trade/verify-turbos.spec.ts`                        | `@trade @desktop @mobile @staging`        |
-| Flow 14.2  | `trade/verify-turbos.spec.ts`                        | `@trade @desktop @mobile @staging`        |
-| Flow 14.3  | `trade/verify-turbos.spec.ts`                        | `@trade @desktop @mobile @staging`        |
-| Flow 14.4  | `trade/verify-turbos.spec.ts`                        | `@trade @desktop @mobile @staging`        |
-| Flow 15.1  | `trade/verify-vanillas.spec.ts`                      | `@trade @desktop @mobile @staging`        |
-| Flow 15.2  | `trade/verify-vanillas.spec.ts`                      | `@trade @desktop @mobile @staging`        |
-| Flow 16    | `trade/verify-closed-market.spec.ts`                 | `@trade @desktop @mobile`                 |
+| Flow 2.3   | `trade/rise-fall/verify-rise-fall.spec.ts`           | `@trade @smoke @desktop @mobile`          |
+| Flow 2.4   | `trade/rise-fall/verify-rise-fall.spec.ts`           | `@trade @smoke @desktop @mobile`          |
+| Flow 3.1   | `trade/verify-higher-lower.spec.ts`                  | `@trade @smoke @desktop @mobile @staging` |
+| Flow 3.2   | `trade/verify-higher-lower.spec.ts`                  | `@trade @smoke @desktop @mobile @staging` |
+| Flow 4.1   | `trade/verify-touch-no-touch.spec.ts`                | `@trade @desktop @mobile @staging`        |
+| Flow 4.2   | `trade/verify-touch-no-touch.spec.ts`                | `@trade @desktop @mobile @staging`        |
+| Flow 5.1   | `trade/verify-matches-differs.spec.ts`               | `@trade @smoke @desktop @mobile @staging` |
+| Flow 5.2   | `trade/verify-matches-differs.spec.ts`               | `@trade @smoke @desktop @mobile @staging` |
+| Flow 6.1   | `trade/verify-over-under.spec.ts`                    | `@trade @desktop @mobile @staging`        |
+| Flow 6.2   | `trade/verify-over-under.spec.ts`                    | `@trade @desktop @mobile @staging`        |
+| Flow 7.1   | `trade/verify-even-odd.spec.ts`                      | `@trade @desktop @mobile @staging`        |
+| Flow 7.2   | `trade/verify-even-odd.spec.ts`                      | `@trade @desktop @mobile @staging`        |
+| Flow 8.1   | `trade/verify-accumulators.spec.ts`                  | `@trade @smoke @desktop @mobile @staging` |
+| Flow 8.2   | `trade/verify-accumulators.spec.ts`                  | `@trade @smoke @desktop @mobile @staging` |
+| Flow 9.1   | `trade/verify-multipliers-no-tpsl.spec.ts`           | `@trade @smoke @desktop @mobile @staging` |
+| Flow 9.2   | `trade/verify-multipliers-no-tpsl.spec.ts`           | `@trade @smoke @desktop @mobile @staging` |
+| Flow 10.1  | `trade/verify-multipliers-with-tp.spec.ts`           | `@trade @smoke @desktop @mobile @staging` |
+| Flow 10.2  | `trade/verify-multipliers-with-tp.spec.ts`           | `@trade @smoke @desktop @mobile @staging` |
+| Flow 11.1  | `trade/verify-multipliers-with-sl.spec.ts`           | `@trade @desktop @mobile @staging`        |
+| Flow 11.2  | `trade/verify-multipliers-with-sl.spec.ts`           | `@trade @desktop @mobile @staging`        |
+| Flow 12.1  | `trade/verify-multipliers-deal-cancellation.spec.ts` | `@trade @desktop @mobile @staging`        |
+| Flow 12.2  | `trade/verify-multipliers-deal-cancellation.spec.ts` | `@trade @desktop @mobile @staging`        |
+| Flow 13.1  | `trade/verify-turbos.spec.ts`                        | `@trade @desktop @mobile @staging`        |
+| Flow 13.2  | `trade/verify-turbos.spec.ts`                        | `@trade @desktop @mobile @staging`        |
+| Flow 13.3  | `trade/verify-turbos.spec.ts`                        | `@trade @desktop @mobile @staging`        |
+| Flow 13.4  | `trade/verify-turbos.spec.ts`                        | `@trade @desktop @mobile @staging`        |
+| Flow 14.1  | `trade/verify-vanillas.spec.ts`                      | `@trade @desktop @mobile @staging`        |
+| Flow 14.2  | `trade/verify-vanillas.spec.ts`                      | `@trade @desktop @mobile @staging`        |
+| Flow 15    | `trade/verify-closed-market.spec.ts`                 | `@trade @desktop @mobile`                 |
 | G1         | `trade/verify-insufficient-balance.spec.ts`          | `@trade @staging`                         |
 | G2         | `trade/verify-unauthenticated-purchase.spec.ts`      | `@trade @staging`                         |
 
@@ -132,51 +132,70 @@ test.describe('Trade — Rise/Fall', { tag: ['@trade', '@smoke', '@desktop', '@m
 
 ---
 
-### Flow 3.1 — Rise/Fall Allow Equals: enable toggle → buy Rise → close
+### Flow 2.3 — Rise/Fall Allow Equals: enable toggle → buy Rise → close
+
+### Flow 2.4 — Rise/Fall Allow Equals: enable toggle → buy Fall → close
 
 ```typescript
-test.describe('Trade — Rise/Fall Allow Equals', { tag: ['@trade', '@desktop', '@mobile'] }, () => {
-    test.beforeEach(async ({ loginPage, tradePage, page }) => {
-        await loginPage.login();
-        await tradePage.goto();
-        await NavigationUtils.waitForDerivApiSettled(page);
-        await tradePage.selectTradeType('Rise/Fall');
-        await tradePage.enableAllowEquals();
+// Co-located in verify-rise-fall.spec.ts alongside Flow 2.1 + 2.2 (same describe block, serial mode)
+test.describe('Trade — Rise/Fall', { tag: ['@trade', '@smoke', '@desktop', '@mobile'] }, () => {
+    test.describe.configure({ mode: 'serial' });
+
+    test.beforeAll(async ({}, testInfo) => {
+        const isMobile = testInfo.project.name.includes('mobile');
+        const backupEmailVar = isMobile ? 'TEST_EMAIL_RISE_FALL_MOBILE' : 'TEST_EMAIL_RISE_FALL';
+        const account = await createAccountV2viaJS('real', {
+            currency: 'USD',
+            trading: true,
+            backupAccount: process.env[backupEmailVar],
+        });
+        accountEmail = account.email;
+        accountPassword = account.password;
     });
 
-    test('VERIFY Rise/Fall Allow Equals buy Rise and close', async ({ tradePage, page }) => {
-        await tradePage.setStake('10.00');
-        await tradePage.clickRise();
-        await expect(
-            page.locator('.trade-notification--purchase'),
-            'Purchase notification should appear'
-        ).toBeVisible();
-        await tradePage.gotoPositions();
-        await NavigationUtils.waitForDerivApiSettled(page);
-        await tradePage.openFirstContract();
-        await tradePage.closeContract();
+    test.beforeEach(async ({ page, loginPage }) => {
+        await TradeBasePage.seedLocalStorageOnOrigin(page);
+        await loginPage.login(accountEmail, accountPassword);
     });
 
-    test('VERIFY Rise/Fall Allow Equals buy Fall and close', async ({ tradePage, page }) => {
-        await tradePage.setStake('10.00');
-        await tradePage.clickFall();
-        await expect(
-            page.locator('.trade-notification--purchase'),
-            'Purchase notification should appear'
-        ).toBeVisible();
-        await tradePage.gotoPositions();
-        await NavigationUtils.waitForDerivApiSettled(page);
-        await tradePage.openFirstContract();
-        await tradePage.closeContract();
+    test('VERIFY Buy "Rise" Contract with Allow Equals Enabled', async ({ tradeRiseFallPage }) => {
+        await tradeRiseFallPage.buyRiseAndVerify({
+            market: 'Volatility 100 Index',
+            durationUnit: 'Minutes',
+            durationValue: '15 min',
+            stake: '10.50',
+            currency: 'USD',
+            allowEquals: true,
+        });
+    });
+
+    test('VERIFY Buy "Fall" Contract with Allow Equals Enabled', async ({ tradeRiseFallPage }) => {
+        await tradeRiseFallPage.buyFallAndVerify({
+            market: 'Volatility 100 Index',
+            durationUnit: 'Minutes',
+            durationValue: '18 min',
+            stake: '20.50',
+            currency: 'USD',
+            allowEquals: true,
+        });
     });
 });
 ```
 
-> **Flow 3.1** = `VERIFY Rise/Fall Allow Equals buy Rise and close` · **Flow 3.2** = `VERIFY Rise/Fall Allow Equals buy Fall and close`
+**`buyRiseAndVerify` / `buyFallAndVerify` with `allowEquals: true` cover (in order):**
+
+1. `selectMarket` → `selectTradeType('Rise/Fall')` → enable Allow Equals toggle → `clickRiseFallOption` → `selectDuration` → `setStake` → `clickBuy`
+2. Contract type submitted as `RISEEQUAL` / `FALLEQUAL` (pays out when exit spot = entry spot too)
+3. Same full verification chain as Flow 2.1/2.2: open positions → reports → contract details → close → closed card → balance → reports
+
+> **Spec:** `playwright/tests/trade/rise-fall/verify-rise-fall.spec.ts`
+> **Fixture:** `tradeRiseFallPage` from `playwright/fixtures/fixtures.ts`
+> **Serial mode:** all four Rise/Fall tests share the same funded account; order matters
+> **Flow 2.3** = `VERIFY Buy "Rise" Contract with Allow Equals Enabled` · **Flow 2.4** = `VERIFY Buy "Fall" Contract with Allow Equals Enabled`
 
 ---
 
-### Flow 4.1 — Higher/Lower: buy Higher → close
+### Flow 3.1 — Higher/Lower: buy Higher → close
 
 ```typescript
 test.describe('Trade — Higher/Lower', { tag: ['@trade', '@smoke', '@desktop', '@mobile'] }, () => {
@@ -217,11 +236,11 @@ test.describe('Trade — Higher/Lower', { tag: ['@trade', '@smoke', '@desktop', 
 });
 ```
 
-> **Flow 4.1** = `VERIFY buy Higher contract and close` · **Flow 4.2** = `VERIFY buy Lower contract and close`
+> **Flow 3.1** = `VERIFY buy Higher contract and close` · **Flow 3.2** = `VERIFY buy Lower contract and close`
 
 ---
 
-### Flow 5.1 — Touch/No Touch: buy Touch → close
+### Flow 4.1 — Touch/No Touch: buy Touch → close
 
 ```typescript
 test.describe('Trade — Touch/No Touch', { tag: ['@trade', '@desktop', '@mobile'] }, () => {
@@ -261,11 +280,11 @@ test.describe('Trade — Touch/No Touch', { tag: ['@trade', '@desktop', '@mobile
 });
 ```
 
-> **Flow 5.1** = `VERIFY buy Touch contract and close` · **Flow 5.2** = `VERIFY buy No Touch contract and close`
+> **Flow 4.1** = `VERIFY buy Touch contract and close` · **Flow 4.2** = `VERIFY buy No Touch contract and close`
 
 ---
 
-### Flow 6.1 — Matches/Differs: set last digit → buy Matches → wait for expiry
+### Flow 5.1 — Matches/Differs: set last digit → buy Matches → wait for expiry
 
 ```typescript
 test.describe('Trade — Matches/Differs', { tag: ['@trade', '@smoke', '@desktop', '@mobile'] }, () => {
@@ -315,11 +334,11 @@ test.describe('Trade — Matches/Differs', { tag: ['@trade', '@smoke', '@desktop
 ```
 
 > **Digit contracts auto-expire** — no manual close. Test only verifies purchase + position card.
-> **Flow 6.1** = `VERIFY buy Matches contract and wait for expiry` · **Flow 6.2** = `VERIFY buy Differs contract and wait for expiry`
+> **Flow 5.1** = `VERIFY buy Matches contract and wait for expiry` · **Flow 5.2** = `VERIFY buy Differs contract and wait for expiry`
 
 ---
 
-### Flow 7.1 — Over/Under: set digit → buy Over → wait for expiry
+### Flow 6.1 — Over/Under: set digit → buy Over → wait for expiry
 
 ```typescript
 test.describe('Trade — Over/Under', { tag: ['@trade', '@desktop', '@mobile'] }, () => {
@@ -370,7 +389,7 @@ test.describe('Trade — Over/Under', { tag: ['@trade', '@desktop', '@mobile'] }
 
 ---
 
-### Flow 8.1 — Even/Odd: buy Even → wait for expiry
+### Flow 7.1 — Even/Odd: buy Even → wait for expiry
 
 ```typescript
 test.describe('Trade — Even/Odd', { tag: ['@trade', '@desktop', '@mobile'] }, () => {
@@ -417,11 +436,11 @@ test.describe('Trade — Even/Odd', { tag: ['@trade', '@desktop', '@mobile'] }, 
 });
 ```
 
-> **Flow 8.1** = `VERIFY buy Even contract and wait for expiry` · **Flow 8.2** = `VERIFY buy Odd contract and wait for expiry`
+> **Flow 7.1** = `VERIFY buy Even contract and wait for expiry` · **Flow 7.2** = `VERIFY buy Odd contract and wait for expiry`
 
 ---
 
-### Flow 9.1 — Accumulators without Take Profit: buy → close from trade page
+### Flow 8.1 — Accumulators without Take Profit: buy → close from trade page
 
 ```typescript
 test.describe('Trade — Accumulators', { tag: ['@trade', '@smoke', '@desktop', '@mobile'] }, () => {
@@ -481,11 +500,11 @@ test.describe('Trade — Accumulators', { tag: ['@trade', '@smoke', '@desktop', 
 ```
 
 > **`closeAccumulatorButton`:** The PurchaseButton on the trade page changes to "Close [amount] [currency]" when an active accumulator is open for the current symbol. No `data-testid` — use `getByRole('button', { name: /^Close/ })`.
-> **Flow 9.1** = `VERIFY buy Accumulators without TP and close from trade page` · **Flow 9.2** = `VERIFY buy Accumulators with TP set and close from trade page`
+> **Flow 8.1** = `VERIFY buy Accumulators without TP and close from trade page` · **Flow 8.2** = `VERIFY buy Accumulators with TP set and close from trade page`
 
 ---
 
-### Flow 10.1 — Multipliers without TP/SL: buy Up → close
+### Flow 9.1 — Multipliers without TP/SL: buy Up → close
 
 ```typescript
 test.describe('Trade — Multipliers (no TP/SL)', { tag: ['@trade', '@smoke', '@desktop', '@mobile'] }, () => {
@@ -529,11 +548,11 @@ test.describe('Trade — Multipliers (no TP/SL)', { tag: ['@trade', '@smoke', '@
 });
 ```
 
-> **Flow 10.1** = `VERIFY buy Up multiplier contract without TP/SL and close` · **Flow 10.2** = `VERIFY buy Down multiplier contract without TP/SL and close`
+> **Flow 9.1** = `VERIFY buy Up multiplier contract without TP/SL and close` · **Flow 9.2** = `VERIFY buy Down multiplier contract without TP/SL and close`
 
 ---
 
-### Flow 11.1 — Multipliers with Take Profit: set TP → buy Up → close
+### Flow 10.1 — Multipliers with Take Profit: set TP → buy Up → close
 
 ```typescript
 test.describe('Trade — Multipliers with Take Profit', { tag: ['@trade', '@smoke', '@desktop', '@mobile'] }, () => {
@@ -588,11 +607,11 @@ test.describe('Trade — Multipliers with Take Profit', { tag: ['@trade', '@smok
 });
 ```
 
-> **Flow 11.1** = `VERIFY buy Up multiplier contract with take profit and close` · **Flow 11.2** = `VERIFY buy Down multiplier contract with take profit and close`
+> **Flow 10.1** = `VERIFY buy Up multiplier contract with take profit and close` · **Flow 10.2** = `VERIFY buy Down multiplier contract with take profit and close`
 
 ---
 
-### Flow 12.1 — Multipliers with Stop Loss: set SL → buy Up → close
+### Flow 11.1 — Multipliers with Stop Loss: set SL → buy Up → close
 
 ```typescript
 test.describe('Trade — Multipliers with Stop Loss', { tag: ['@trade', '@desktop', '@mobile'] }, () => {
@@ -647,11 +666,11 @@ test.describe('Trade — Multipliers with Stop Loss', { tag: ['@trade', '@deskto
 });
 ```
 
-> **Flow 12.1** = `VERIFY buy Up multiplier contract with stop loss and close` · **Flow 12.2** = `VERIFY buy Down multiplier contract with stop loss and close`
+> **Flow 11.1** = `VERIFY buy Up multiplier contract with stop loss and close` · **Flow 11.2** = `VERIFY buy Down multiplier contract with stop loss and close`
 
 ---
 
-### Flow 13.1 — Multipliers with Deal Cancellation: set DC → buy Up → cancel
+### Flow 12.1 — Multipliers with Deal Cancellation: set DC → buy Up → cancel
 
 ```typescript
 test.describe('Trade — Multipliers with Deal Cancellation', { tag: ['@trade', '@desktop', '@mobile'] }, () => {
@@ -700,11 +719,11 @@ test.describe('Trade — Multipliers with Deal Cancellation', { tag: ['@trade', 
 });
 ```
 
-> **Flow 13.1** = `VERIFY buy Up multiplier contract with deal cancellation and cancel` · **Flow 13.2** = `VERIFY buy Down multiplier contract with deal cancellation and cancel`
+> **Flow 12.1** = `VERIFY buy Up multiplier contract with deal cancellation and cancel` · **Flow 12.2** = `VERIFY buy Down multiplier contract with deal cancellation and cancel`
 
 ---
 
-### Flow 14.1 — Turbos without TP: buy Up → verify in positions
+### Flow 13.1 — Turbos without TP: buy Up → verify in positions
 
 ```typescript
 test.describe('Trade — Turbos', { tag: ['@trade', '@desktop', '@mobile'] }, () => {
@@ -796,14 +815,14 @@ test.describe('Trade — Turbos', { tag: ['@trade', '@desktop', '@mobile'] }, ()
 
 > **Turbos buttons are "Up" / "Down"** — NOT "Long" / "Short". Source: `CONTRACT_TYPES.TURBOS.LONG → name 'Up'`, `CONTRACT_TYPES.TURBOS.SHORT → name 'Down'`.
 > **Turbos auto-expire** — no manual close. Test only verifies purchase + position card.
-> **Flow 14.1** = `VERIFY buy Turbos Up contract without TP and verify in positions`
-> **Flow 14.2** = `VERIFY buy Turbos Down contract without TP and verify in positions`
-> **Flow 14.3** = `VERIFY buy Turbos Up contract with TP set and verify in positions`
-> **Flow 14.4** = `VERIFY buy Turbos Down contract with TP set and verify in positions`
+> **Flow 13.1** = `VERIFY buy Turbos Up contract without TP and verify in positions`
+> **Flow 13.2** = `VERIFY buy Turbos Down contract without TP and verify in positions`
+> **Flow 13.3** = `VERIFY buy Turbos Up contract with TP set and verify in positions`
+> **Flow 13.4** = `VERIFY buy Turbos Down contract with TP set and verify in positions`
 
 ---
 
-### Flow 15.1 — Vanillas: buy Call → verify in positions
+### Flow 14.1 — Vanillas: buy Call → verify in positions
 
 ```typescript
 test.describe('Trade — Vanillas', { tag: ['@trade', '@desktop', '@mobile'] }, () => {
@@ -850,11 +869,11 @@ test.describe('Trade — Vanillas', { tag: ['@trade', '@desktop', '@mobile'] }, 
 
 > **Vanillas have NO take profit parameter** — confirmed from `getTradeParams()` in `trade-params-utils.tsx`. Do not add TP assertions for Vanillas.
 > **Vanillas auto-expire** — no manual close. Test only verifies purchase + position card.
-> **Flow 15.1** = `VERIFY buy Vanillas Call contract and verify in positions` · **Flow 15.2** = `VERIFY buy Vanillas Put contract and verify in positions`
+> **Flow 14.1** = `VERIFY buy Vanillas Call contract and verify in positions` · **Flow 14.2** = `VERIFY buy Vanillas Put contract and verify in positions`
 
 ---
 
-### Flow 16 — Market closed: purchase button hidden, countdown visible
+### Flow 15 — Market closed: purchase button hidden, countdown visible
 
 ```typescript
 test.describe('Trade — Closed Market', { tag: ['@trade', '@desktop', '@mobile'] }, () => {

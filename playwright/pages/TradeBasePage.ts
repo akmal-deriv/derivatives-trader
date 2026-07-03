@@ -167,6 +167,7 @@ export class TradeBasePage {
      *  - `guide_dtrader_v2_desktop_returning` → marks returning-user desktop tour steps as seen
      *  - `presets_onboarding_guide` → suppresses the presets onboarding popup
      *  - `trade_param_guide` → suppresses the trade parameter guide popup
+     *  - `automation_onboarding_completed` → marks automation onboarding as completed
      *
      * @example
      * test.beforeEach(async ({ page, loginPage }) => {
@@ -207,6 +208,7 @@ export class TradeBasePage {
             );
             localStorage.setItem('presets_onboarding_guide', 'true');
             localStorage.setItem('trade_param_guide', 'true');
+            localStorage.setItem('automation_onboarding_completed', 'true');
         });
     }
 
@@ -284,7 +286,10 @@ export class TradeBasePage {
      */
     async getBalance(): Promise<string> {
         const text = await this.balance.innerText();
-        return text.replace(/\s+[A-Z]+$/, '').trim();
+        return text
+            .replace(/,/g, '')
+            .replace(/\s+[A-Z]+$/, '')
+            .trim();
     }
 
     // ============================================
