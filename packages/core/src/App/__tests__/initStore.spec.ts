@@ -73,7 +73,7 @@ describe('initStore - stale session cleanup', () => {
 
         expect(mockCheckWhoAmI).toHaveBeenCalled();
         expect(mockClearAccountId).toHaveBeenCalled();
-        expect(mockRemoveCookies).toHaveBeenCalledWith('options_account_id', 'client_information', 'region');
+        expect(mockRemoveCookies).toHaveBeenCalledWith('client_information', 'region');
         // Session was invalidated — the client must NOT be flagged as logging in.
         expect(latestClient().setIsLoggingIn).not.toHaveBeenCalled();
     });
