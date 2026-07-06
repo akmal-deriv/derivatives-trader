@@ -1,0 +1,111 @@
+import type { TAutoContractItem, TAutoRun } from '@deriv/api';
+import { mockStore } from '@deriv/stores';
+
+import { TRootStore } from 'Types';
+
+import AutomationStore from '../automation-store';
+
+const makeRun = (overrides: Partial<TAutoRun> = {}): TAutoRun =>
+    ({
+        run_id: 'run-1',
+        strategy_id: 'martingale',
+        strategy_parameters: {},
+        contract_template: {} as TAutoRun['contract_template'],
+        contracts: [],
+        total_stake: 0,
+        total_payout: 0,
+        status: 'running',
+        start_time: 1,
+        ...overrides,
+    }) as TAutoRun;
+
+const A_CONTRACT = {} as TAutoContractItem;
+
+describe('AutomationStore run-status transitions', () => {
+    let store: AutomationStore;
+
+    beforeEach(() => {
+        const root = mockStore({ client: { loginid: 'CR1' } }) as unknown as TRootStore;
+        store = new AutomationStore({ root_store: root });
+    });
+
+    describe('adoptRun (run recovered on account switch / resync)', () => {
+        it("marks a running run as 'running' even before contracts arrive", () => {
+            // Regression: auto_list may omit contracts, which previously left the
+            // adopted run stuck in 'starting'.
+            store.adoptRun(makeRun({ status: 'running', contracts: [] }));
+            expect(store.run_status).toBe('running');
+            expect(store.active_run_id).toBe('run-1');
+        });
+
+        it("marks a paused run as 'paused'", () => {
+            store.adoptRun(makeRun({ status: 'paused' }));
+            expect(store.run_status).toBe('paused');
+        });
+
+        it('ignores a non-live (stopped) run instead of marking it running', () => {
+            store.adoptRun(makeRun({ status: 'stopped' }));
+            expect(store.run_status).toBe('idle'); // unchanged from initial
+            expect(store.active_run_id).toBeNull();
+        });
+
+        it('does not demote to starting on a later contract-less running update', () => {
+            store.adoptRun(makeRun({ status: 'running', contracts: [] }));
+            store.onRunUpdate(makeRun({ status: 'running', contracts: [] }));
+            expect(store.run_status).toBe('running');
+        });
+    });
+
+    describe('onRunStarted (run we initiated)', () => {
+        it("stays 'starting' until the first contract is observed", () => {
+            store.onRunStarted(makeRun({ status: 'running', contracts: [] }));
+            expect(store.run_status).toBe('starting');
+        });
+
+        it("promotes to 'running' when the start payload already has a contract", () => {
+            store.onRunStarted(makeRun({ contracts: [A_CONTRACT] }));
+            expect(store.run_status).toBe('running');
+        });
+    });
+
+    describe('adoptRun contract preservation (no 0 flash on re-adopt)', () => {
+        // net_profit sums (sell_price - buy_price) over settled contracts: 2 + -1 = 1.
+        const CONTRACTS = [
+            { buy_price: 10, sell_price: 12 },
+            { buy_price: 10, sell_price: 9 },
+        ] as TAutoContractItem[];
+
+        it('uses the incoming contracts when the payload has them', () => {
+            store.adoptRun(makeRun({ contracts: CONTRACTS }));
+            expect(store.contracts_count).toBe(2);
+            expect(store.net_profit).toBe(1);
+        });
+
+        it('keeps contracts across a lean re-adopt via the cached run (reconnect)', () => {
+            store.adoptRun(makeRun({ contracts: [] }));
+            store.onRunUpdate(makeRun({ contracts: CONTRACTS })); // auto_get fills + caches
+            expect(store.contracts_count).toBe(2);
+            store.adoptRun(makeRun({ contracts: [] })); // lean re-adopt on reconnect
+            expect(store.contracts_count).toBe(2);
+            expect(store.net_profit).toBe(1);
+        });
+
+        it('restores contracts from the per-account cache (account switch)', () => {
+            (store as unknown as { run_by_loginid: Map<string, TAutoRun> }).run_by_loginid.set(
+                'CR1',
+                makeRun({ contracts: CONTRACTS })
+            );
+            store.adoptRun(makeRun({ contracts: [] }));
+            expect(store.contracts_count).toBe(2);
+        });
+
+        it('does not carry stale contracts across to a different run', () => {
+            (store as unknown as { run_by_loginid: Map<string, TAutoRun> }).run_by_loginid.set(
+                'CR1',
+                makeRun({ run_id: 'run-old', contracts: CONTRACTS })
+            );
+            store.adoptRun(makeRun({ run_id: 'run-new', contracts: [] }));
+            expect(store.contracts_count).toBe(0);
+        });
+    });
+});

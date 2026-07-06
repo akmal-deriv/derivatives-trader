@@ -65,8 +65,7 @@ const AutomationSubscriptionManager = observer(({ children }: React.PropsWithChi
             // Only (re)adopt a run we aren't already tracking — re-subscribing
             // to the same run would needlessly churn the live auto_get stream.
             if (active_run.run_id !== automation_store.active_run_id) {
-                automation_store.onRunStarted(active_run);
-                if (active_run.status === 'paused') automation_store.setRunStatus('paused');
+                automation_store.adoptRun(active_run);
                 subscribeToRun(active_run.run_id);
             }
             return active_run;
@@ -103,10 +102,7 @@ const AutomationSubscriptionManager = observer(({ children }: React.PropsWithChi
                 recovered_for_loginid.current = loginid;
 
                 if (active_run) {
-                    automation_store.onRunStarted(active_run);
-                    if (active_run.status === 'paused') {
-                        automation_store.setRunStatus('paused');
-                    }
+                    automation_store.adoptRun(active_run);
                     subscribeToRun(active_run.run_id);
                     return;
                 }

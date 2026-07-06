@@ -37,6 +37,13 @@ export default class AutomationStore extends BaseStore {
      * from another device), which therefore don't emit a completion event.
      */
     active_run_analytics: TStrategyRunPayload | null = null;
+    /**
+     * Last-known run per account, kept fresh from the auto_get stream. On
+     * re-adopting a run (account switch / reconnect), `adoptRun` restores its
+     * contracts so Contracts/P&L don't flash 0 while the lean auto_list payload is
+     * topped up by auto_get. Not observable — it only seeds `active_run`.
+     */
+    private run_by_loginid = new Map<string, TAutoRun>();
 
     constructor(options: { root_store: TRootStore }) {
         super({
@@ -66,6 +73,7 @@ export default class AutomationStore extends BaseStore {
             setIsRecovering: action.bound,
             setActiveRunAnalytics: action.bound,
             onRunStarted: action.bound,
+            adoptRun: action.bound,
             onRunUpdate: action.bound,
             onRunStopped: action.bound,
             recoverStoppedRun: action.bound,
@@ -156,8 +164,28 @@ export default class AutomationStore extends BaseStore {
         this.active_run_id = run.run_id;
         // Stay in 'starting' until a contract is observed so an immediate
         // BE stop (e.g. InsufficientBalance) doesn't flash Pause/Stop UI.
-        // Recovery of an already-trading run skips straight to 'running'.
+        // Only for runs we start here — adopted runs use `adoptRun`.
         this.run_status = (run.contracts?.length ?? 0) > 0 ? 'running' : 'starting';
+        this.last_error = null;
+    }
+
+    /**
+     * Adopt a run that's already live on the server (account switch, resync,
+     * reconnect). `onRunStarted` would hold it in 'starting' until the next contract.
+     * Recovery payload may not include `contracts` yet, so trust the BE `status` instead.
+     */
+    adoptRun(run: TAutoRun) {
+        // Only adopt live runs; ignore anything else so a stopped run can't be
+        // surfaced as active. Guard before mutating to avoid a half-updated state.
+        if (run.status !== 'running' && run.status !== 'paused') return;
+
+        // auto_list is lean (no contracts). Reuse this account's last-known run
+        // contracts so Contracts/P&L don't flash 0 until auto_get repopulates them.
+        const cached_run = this.run_by_loginid.get(this.root_store.client.loginid ?? '');
+        const fallback = cached_run?.run_id === run.run_id ? cached_run.contracts : [];
+        this.active_run = { ...run, contracts: run.contracts?.length ? run.contracts : fallback };
+        this.active_run_id = run.run_id;
+        this.run_status = run.status;
         this.last_error = null;
     }
 
@@ -170,6 +198,9 @@ export default class AutomationStore extends BaseStore {
 
         this.active_run = run;
         this.active_run_id = run.run_id;
+        // Cache this account's latest run so a later re-adopt (account switch /
+        // reconnect) can restore contracts before auto_get re-delivers them.
+        if (this.root_store.client.loginid) this.run_by_loginid.set(this.root_store.client.loginid, run);
 
         if (run.status === 'stopped') {
             // Surface BE-triggered stops to the snackbar/popup consumer.
@@ -326,6 +357,7 @@ export default class AutomationStore extends BaseStore {
     /** Full reset including user config — used on logout. */
     reset() {
         this.config = { ...DEFAULT_AUTOMATION_CONFIG };
+        this.run_by_loginid.clear();
         this.resetRunState();
     }
 }
