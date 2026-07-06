@@ -1196,6 +1196,8 @@ $side-padding: 1.2em;
     @include mobile-or-tablet-screen {
         flex: 1;
         padding-top: 0.8rem;
+        // Reserve space for the fixed bottom navigation so the totals footer isn't clipped behind it (GRWT-9275)
+        margin-bottom: calc(var(--component-navigationBar-sizing-body-heightBottom) + 1.6rem);
 
         &-multiplier,
         &-accumulator {
