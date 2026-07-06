@@ -1,7 +1,7 @@
 import Cookies from 'js-cookie';
 
 import * as brandUtils from '../../brand';
-import { getAccountId, getAccountType, getSocketURL } from '../config';
+import { getAccountId, getAccountType, getCompleteWebSocketURL, getSocketURL } from '../config';
 
 // Mock the brand utils module
 jest.mock('../../brand', () => ({
@@ -308,6 +308,80 @@ describe('getAccountId', () => {
         });
 
         expect(getAccountId()).toBeNull();
+    });
+});
+
+describe('getCompleteWebSocketURL', () => {
+    let originalLocation: Location, originalLocalStorage: Storage;
+
+    beforeEach(() => {
+        originalLocation = window.location;
+        originalLocalStorage = window.localStorage;
+
+        Object.defineProperty(window, 'localStorage', {
+            value: createLocalStorageMock(),
+            writable: true,
+        });
+
+        window.history.replaceState = jest.fn();
+        mockCookiesGet.mockReset();
+        mockGetWebSocketURL.mockReturnValue('core.api.deriv.com/options/v1/ws');
+    });
+
+    afterEach(() => {
+        Object.defineProperty(window, 'location', {
+            value: originalLocation,
+            writable: true,
+        });
+        Object.defineProperty(window, 'localStorage', {
+            value: originalLocalStorage,
+            writable: true,
+        });
+        jest.clearAllMocks();
+    });
+
+    it('should return /public URL when localStorage is cleared and no cookie exists (post-logout state)', () => {
+        // Simulate the state after cleanUp() has run: localStorage cleared, cookie also cleared
+        setOptionsAccountIdCookie(null);
+        mockLocation(originalLocation, {
+            search: '',
+            href: 'https://dtrader.deriv.com',
+            pathname: '/',
+        });
+
+        const result = getCompleteWebSocketURL();
+
+        expect(result).toBe('wss://core.api.deriv.com/options/v1/ws/public');
+    });
+
+    it('should return /real URL with account_id param when a real account is active', () => {
+        window.localStorage.setItem('account_id', 'CR123456');
+        window.localStorage.setItem('account_type', 'real');
+        setOptionsAccountIdCookie(null);
+        mockLocation(originalLocation, {
+            search: '',
+            href: 'https://dtrader.deriv.com',
+            pathname: '/',
+        });
+
+        const result = getCompleteWebSocketURL();
+
+        expect(result).toBe('wss://core.api.deriv.com/options/v1/ws/real?account_id=CR123456');
+    });
+
+    it('should return /demo URL with account_id param when a demo account is active', () => {
+        window.localStorage.setItem('account_id', 'VRTC1234');
+        window.localStorage.setItem('account_type', 'demo');
+        setOptionsAccountIdCookie(null);
+        mockLocation(originalLocation, {
+            search: '',
+            href: 'https://dtrader.deriv.com',
+            pathname: '/',
+        });
+
+        const result = getCompleteWebSocketURL();
+
+        expect(result).toBe('wss://core.api.deriv.com/options/v1/ws/demo?account_id=VRTC1234');
     });
 });
 

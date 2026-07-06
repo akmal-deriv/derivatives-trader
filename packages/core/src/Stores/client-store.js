@@ -595,6 +595,9 @@ export default class ClientStore extends BaseStore {
         clearAccountId();
         localStorage.removeItem('account_type');
 
+        // Remove the shared `options_account_id` cookie before reconnecting.
+        removeCookies('options_account_id');
+
         Analytics.reset();
 
         runInAction(() => {
