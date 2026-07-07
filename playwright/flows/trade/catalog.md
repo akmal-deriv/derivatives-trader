@@ -1,48 +1,48 @@
 # 🗺️ Trade Journey Catalog — Technical Reference
 
 > Source of truth: `packages/trader/src/AppV2/Containers/Trade/` · `packages/trader/src/AppV2/Components/TradeParameters/` · `packages/trader/src/AppV2/Components/PurchaseButton/`
-> Last updated: 2026-07-02
+> Last updated: 2026-07-06
 
 ---
 
 ## Section 1 — Journey Index
 
-| Journey ID | Spec File                                            | Tags                                      |
-| ---------- | ---------------------------------------------------- | ----------------------------------------- |
-| Flow 1     | `trade/verify-trade-form-loads.spec.ts`              | `@trade @smoke @desktop @mobile`          |
-| Flow 2.1   | `trade/verify-rise-fall.spec.ts`                     | `@trade @smoke @desktop @mobile @staging` |
-| Flow 2.2   | `trade/verify-rise-fall.spec.ts`                     | `@trade @smoke @desktop @mobile @staging` |
-| Flow 2.3   | `trade/rise-fall/verify-rise-fall.spec.ts`           | `@trade @smoke @desktop @mobile`          |
-| Flow 2.4   | `trade/rise-fall/verify-rise-fall.spec.ts`           | `@trade @smoke @desktop @mobile`          |
-| Flow 3.1   | `trade/verify-higher-lower.spec.ts`                  | `@trade @smoke @desktop @mobile @staging` |
-| Flow 3.2   | `trade/verify-higher-lower.spec.ts`                  | `@trade @smoke @desktop @mobile @staging` |
-| Flow 4.1   | `trade/verify-touch-no-touch.spec.ts`                | `@trade @desktop @mobile @staging`        |
-| Flow 4.2   | `trade/verify-touch-no-touch.spec.ts`                | `@trade @desktop @mobile @staging`        |
-| Flow 5.1   | `trade/verify-matches-differs.spec.ts`               | `@trade @smoke @desktop @mobile @staging` |
-| Flow 5.2   | `trade/verify-matches-differs.spec.ts`               | `@trade @smoke @desktop @mobile @staging` |
-| Flow 6.1   | `trade/verify-over-under.spec.ts`                    | `@trade @desktop @mobile @staging`        |
-| Flow 6.2   | `trade/verify-over-under.spec.ts`                    | `@trade @desktop @mobile @staging`        |
-| Flow 7.1   | `trade/verify-even-odd.spec.ts`                      | `@trade @desktop @mobile @staging`        |
-| Flow 7.2   | `trade/verify-even-odd.spec.ts`                      | `@trade @desktop @mobile @staging`        |
-| Flow 8.1   | `trade/verify-accumulators.spec.ts`                  | `@trade @smoke @desktop @mobile @staging` |
-| Flow 8.2   | `trade/verify-accumulators.spec.ts`                  | `@trade @smoke @desktop @mobile @staging` |
-| Flow 9.1   | `trade/verify-multipliers-no-tpsl.spec.ts`           | `@trade @smoke @desktop @mobile @staging` |
-| Flow 9.2   | `trade/verify-multipliers-no-tpsl.spec.ts`           | `@trade @smoke @desktop @mobile @staging` |
-| Flow 10.1  | `trade/verify-multipliers-with-tp.spec.ts`           | `@trade @smoke @desktop @mobile @staging` |
-| Flow 10.2  | `trade/verify-multipliers-with-tp.spec.ts`           | `@trade @smoke @desktop @mobile @staging` |
-| Flow 11.1  | `trade/verify-multipliers-with-sl.spec.ts`           | `@trade @desktop @mobile @staging`        |
-| Flow 11.2  | `trade/verify-multipliers-with-sl.spec.ts`           | `@trade @desktop @mobile @staging`        |
-| Flow 12.1  | `trade/verify-multipliers-deal-cancellation.spec.ts` | `@trade @desktop @mobile @staging`        |
-| Flow 12.2  | `trade/verify-multipliers-deal-cancellation.spec.ts` | `@trade @desktop @mobile @staging`        |
-| Flow 13.1  | `trade/verify-turbos.spec.ts`                        | `@trade @desktop @mobile @staging`        |
-| Flow 13.2  | `trade/verify-turbos.spec.ts`                        | `@trade @desktop @mobile @staging`        |
-| Flow 13.3  | `trade/verify-turbos.spec.ts`                        | `@trade @desktop @mobile @staging`        |
-| Flow 13.4  | `trade/verify-turbos.spec.ts`                        | `@trade @desktop @mobile @staging`        |
-| Flow 14.1  | `trade/verify-vanillas.spec.ts`                      | `@trade @desktop @mobile @staging`        |
-| Flow 14.2  | `trade/verify-vanillas.spec.ts`                      | `@trade @desktop @mobile @staging`        |
-| Flow 15    | `trade/verify-closed-market.spec.ts`                 | `@trade @desktop @mobile`                 |
-| G1         | `trade/verify-insufficient-balance.spec.ts`          | `@trade @staging`                         |
-| G2         | `trade/verify-unauthenticated-purchase.spec.ts`      | `@trade @staging`                         |
+| Journey ID | Spec File                                            | Tags                             |
+| ---------- | ---------------------------------------------------- | -------------------------------- |
+| Flow 1     | `trade/verify-trade-form-loads.spec.ts`              | `@trade @smoke @desktop @mobile` |
+| Flow 2.1   | `trade/verify-rise-fall.spec.ts`                     | `@trade @smoke @desktop @mobile` |
+| Flow 2.2   | `trade/verify-rise-fall.spec.ts`                     | `@trade @smoke @desktop @mobile` |
+| Flow 2.3   | `trade/rise-fall/verify-rise-fall.spec.ts`           | `@trade @smoke @desktop @mobile` |
+| Flow 2.4   | `trade/rise-fall/verify-rise-fall.spec.ts`           | `@trade @smoke @desktop @mobile` |
+| Flow 3.1   | `trade/higher-lower/verify-higher-lower.spec.ts`     | `@trade @desktop @mobile`        |
+| Flow 3.2   | `trade/higher-lower/verify-higher-lower.spec.ts`     | `@trade @desktop @mobile`        |
+| Flow 4.1   | `trade/touch-no-touch/verify-touch-no-touch.spec.ts` | `@trade @desktop @mobile`        |
+| Flow 4.2   | `trade/touch-no-touch/verify-touch-no-touch.spec.ts` | `@trade @desktop @mobile`        |
+| Flow 5.1   | `trade/verify-matches-differs.spec.ts`               | `@trade @smoke @desktop @mobile` |
+| Flow 5.2   | `trade/verify-matches-differs.spec.ts`               | `@trade @smoke @desktop @mobile` |
+| Flow 6.1   | `trade/verify-over-under.spec.ts`                    | `@trade @desktop @mobile`        |
+| Flow 6.2   | `trade/verify-over-under.spec.ts`                    | `@trade @desktop @mobile`        |
+| Flow 7.1   | `trade/verify-even-odd.spec.ts`                      | `@trade @desktop @mobile`        |
+| Flow 7.2   | `trade/verify-even-odd.spec.ts`                      | `@trade @desktop @mobile`        |
+| Flow 8.1   | `trade/verify-accumulators.spec.ts`                  | `@trade @smoke @desktop @mobile` |
+| Flow 8.2   | `trade/verify-accumulators.spec.ts`                  | `@trade @smoke @desktop @mobile` |
+| Flow 9.1   | `trade/verify-multipliers-no-tpsl.spec.ts`           | `@trade @smoke @desktop @mobile` |
+| Flow 9.2   | `trade/verify-multipliers-no-tpsl.spec.ts`           | `@trade @smoke @desktop @mobile` |
+| Flow 10.1  | `trade/verify-multipliers-with-tp.spec.ts`           | `@trade @smoke @desktop @mobile` |
+| Flow 10.2  | `trade/verify-multipliers-with-tp.spec.ts`           | `@trade @smoke @desktop @mobile` |
+| Flow 11.1  | `trade/verify-multipliers-with-sl.spec.ts`           | `@trade @desktop @mobile`        |
+| Flow 11.2  | `trade/verify-multipliers-with-sl.spec.ts`           | `@trade @desktop @mobile`        |
+| Flow 12.1  | `trade/verify-multipliers-deal-cancellation.spec.ts` | `@trade @desktop @mobile`        |
+| Flow 12.2  | `trade/verify-multipliers-deal-cancellation.spec.ts` | `@trade @desktop @mobile`        |
+| Flow 13.1  | `trade/verify-turbos.spec.ts`                        | `@trade @desktop @mobile`        |
+| Flow 13.2  | `trade/verify-turbos.spec.ts`                        | `@trade @desktop @mobile`        |
+| Flow 13.3  | `trade/verify-turbos.spec.ts`                        | `@trade @desktop @mobile`        |
+| Flow 13.4  | `trade/verify-turbos.spec.ts`                        | `@trade @desktop @mobile`        |
+| Flow 14.1  | `trade/verify-vanillas.spec.ts`                      | `@trade @desktop @mobile`        |
+| Flow 14.2  | `trade/verify-vanillas.spec.ts`                      | `@trade @desktop @mobile`        |
+| Flow 15    | `trade/verify-closed-market.spec.ts`                 | `@trade @desktop @mobile`        |
+| G1         | `trade/verify-insufficient-balance.spec.ts`          | `@trade`                         |
+| G2         | `trade/verify-unauthenticated-purchase.spec.ts`      | `@trade`                         |
 
 ---
 
@@ -198,89 +198,106 @@ test.describe('Trade — Rise/Fall', { tag: ['@trade', '@smoke', '@desktop', '@m
 ### Flow 3.1 — Higher/Lower: buy Higher → close
 
 ```typescript
-test.describe('Trade — Higher/Lower', { tag: ['@trade', '@smoke', '@desktop', '@mobile'] }, () => {
-    test.beforeEach(async ({ loginPage, tradePage, page }) => {
-        await loginPage.login();
-        await tradePage.goto();
-        await NavigationUtils.waitForDerivApiSettled(page);
-        await tradePage.selectTradeType('Higher/Lower');
+test.describe('Trade — Higher/Lower', { tag: ['@desktop', '@mobile', '@trade'] }, () => {
+    test.describe.configure({ mode: 'serial' });
+
+    test.beforeAll(async ({}, testInfo) => {
+        const isMobile = testInfo.project.name.includes('mobile');
+        const backupEmailVar = isMobile ? 'TEST_EMAIL_HIGHER_LOWER_MOBILE' : 'TEST_EMAIL_HIGHER_LOWER';
+        const account = await createAccountV2viaJS('real', {
+            currency: 'USD',
+            trading: true,
+            backupAccount: process.env[backupEmailVar],
+        });
+        accountEmail = account.email;
+        accountPassword = account.password;
     });
 
-    test('VERIFY buy Higher contract and close', async ({ tradePage, page }) => {
-        await expect(page.getByText('Barrier'), 'Barrier param should be visible for Higher/Lower').toBeVisible();
-        await expect(page.getByText('Duration'), 'Duration param should be visible for Higher/Lower').toBeVisible();
-        await tradePage.setStake('10.00');
-        await tradePage.clickHigher();
-        await expect(
-            page.locator('.trade-notification--purchase'),
-            'Purchase notification should appear'
-        ).toBeVisible();
-        await tradePage.gotoPositions();
-        await NavigationUtils.waitForDerivApiSettled(page);
-        await tradePage.openFirstContract();
-        await tradePage.closeContract();
+    test.beforeEach(async ({ page, loginPage }) => {
+        await TradeBasePage.seedLocalStorageOnOrigin(page);
+        await loginPage.login(accountEmail, accountPassword);
     });
 
-    test('VERIFY buy Lower contract and close', async ({ tradePage, page }) => {
-        await tradePage.setStake('10.00');
-        await tradePage.clickLower();
-        await expect(
-            page.locator('.trade-notification--purchase'),
-            'Purchase notification should appear'
-        ).toBeVisible();
-        await tradePage.gotoPositions();
-        await NavigationUtils.waitForDerivApiSettled(page);
-        await tradePage.openFirstContract();
-        await tradePage.closeContract();
+    test('VERIFY Buy "Higher" Contract and Close', async ({ tradeHigherLowerPage }) => {
+        await tradeHigherLowerPage.buyHigherAndVerify({
+            market: 'Volatility 100 (1s) Index',
+            durationUnit: 'Hours',
+            durationValue: '1 hr',
+            barrierType: 'Above spot',
+            barrier: '5.11',
+            stake: '10.00',
+            currency: 'USD',
+        });
+    });
+
+    test('VERIFY Buy "Lower" Contract and Close', async ({ tradeHigherLowerPage }) => {
+        await tradeHigherLowerPage.buyLowerAndVerify({
+            market: 'Volatility 100 (1s) Index',
+            durationUnit: 'Hours',
+            durationValue: '1h 30m',
+            barrierType: 'Below spot',
+            barrier: '5.00',
+            stake: '10.00',
+            currency: 'USD',
+        });
     });
 });
 ```
 
-> **Flow 3.1** = `VERIFY buy Higher contract and close` · **Flow 3.2** = `VERIFY buy Lower contract and close`
+> **Flow 3.1** = `VERIFY Buy "Higher" Contract and Close` · **Flow 3.2** = `VERIFY Buy "Lower" Contract and Close`
 
 ---
 
 ### Flow 4.1 — Touch/No Touch: buy Touch → close
 
 ```typescript
-test.describe('Trade — Touch/No Touch', { tag: ['@trade', '@desktop', '@mobile'] }, () => {
-    test.beforeEach(async ({ loginPage, tradePage, page }) => {
-        await loginPage.login();
-        await tradePage.goto();
-        await NavigationUtils.waitForDerivApiSettled(page);
-        await tradePage.selectTradeType('Touch/No Touch');
+test.describe('Trade — Touch/No Touch', { tag: ['@desktop', '@mobile', '@trade'] }, () => {
+    test.describe.configure({ mode: 'serial' });
+
+    test.beforeAll(async ({}, testInfo) => {
+        const isMobile = testInfo.project.name.includes('mobile');
+        const backupEmailVar = isMobile ? 'TEST_EMAIL_TOUCH_NO_TOUCH_MOBILE' : 'TEST_EMAIL_TOUCH_NO_TOUCH';
+        const account = await createAccountV2viaJS('real', {
+            currency: 'USD',
+            trading: true,
+            backupAccount: process.env[backupEmailVar],
+        });
+        accountEmail = account.email;
+        accountPassword = account.password;
     });
 
-    test('VERIFY buy Touch contract and close', async ({ tradePage, page }) => {
-        await expect(page.getByText('Barrier'), 'Barrier param should be visible for Touch/No Touch').toBeVisible();
-        await tradePage.setStake('10.00');
-        await tradePage.clickTouch();
-        await expect(
-            page.locator('.trade-notification--purchase'),
-            'Purchase notification should appear'
-        ).toBeVisible();
-        await tradePage.gotoPositions();
-        await NavigationUtils.waitForDerivApiSettled(page);
-        await tradePage.openFirstContract();
-        await tradePage.closeContract();
+    test.beforeEach(async ({ page, loginPage }) => {
+        await TradeBasePage.seedLocalStorageOnOrigin(page);
+        await loginPage.login(accountEmail, accountPassword);
     });
 
-    test('VERIFY buy No Touch contract and close', async ({ tradePage, page }) => {
-        await tradePage.setStake('10.00');
-        await tradePage.clickNoTouch();
-        await expect(
-            page.locator('.trade-notification--purchase'),
-            'Purchase notification should appear'
-        ).toBeVisible();
-        await tradePage.gotoPositions();
-        await NavigationUtils.waitForDerivApiSettled(page);
-        await tradePage.openFirstContract();
-        await tradePage.closeContract();
+    test('VERIFY Buy "Touch" Contract and Close', async ({ tradeTouchNoTouchPage }) => {
+        await tradeTouchNoTouchPage.buyTouchAndVerify({
+            market: 'Volatility 75 Index',
+            durationUnit: 'Minutes',
+            durationValue: '15 min',
+            barrierType: 'Above spot',
+            barrier: '5.11',
+            stake: '10.00',
+            currency: 'USD',
+        });
+    });
+
+    test('VERIFY Buy "No Touch" Contract and Close', async ({ tradeTouchNoTouchPage }) => {
+        await tradeTouchNoTouchPage.buyNoTouchAndVerify({
+            market: 'Volatility 75 Index',
+            durationUnit: 'Minutes',
+            durationValue: '18 min',
+            barrierType: 'Below spot',
+            barrier: '5.00',
+            stake: '10.00',
+            currency: 'USD',
+        });
     });
 });
 ```
 
-> **Flow 4.1** = `VERIFY buy Touch contract and close` · **Flow 4.2** = `VERIFY buy No Touch contract and close`
+> **Flow 4.1** = `VERIFY Buy "Touch" Contract and Close` · **Flow 4.2** = `VERIFY Buy "No Touch" Contract and Close`
 
 ---
 
@@ -507,48 +524,39 @@ test.describe('Trade — Accumulators', { tag: ['@trade', '@smoke', '@desktop', 
 ### Flow 9.1 — Multipliers without TP/SL: buy Up → close
 
 ```typescript
-test.describe('Trade — Multipliers (no TP/SL)', { tag: ['@trade', '@smoke', '@desktop', '@mobile'] }, () => {
-    test.beforeEach(async ({ loginPage, tradePage, page }) => {
-        await loginPage.login();
-        await tradePage.goto();
-        await NavigationUtils.waitForDerivApiSettled(page);
-        await tradePage.selectTradeType('Multipliers');
+test.describe('Trade — Multipliers (no TP/SL)', { tag: ['@desktop', '@mobile', '@trade', '@smoke'] }, () => {
+    test.describe.configure({ mode: 'serial' });
+
+    test.beforeEach(async ({ page, loginPage }) => {
+        await TradeBasePage.seedLocalStorageOnOrigin(page);
+        await loginPage.login('account@example.com');
     });
 
-    test('VERIFY buy Up multiplier contract without TP/SL and close', async ({ tradePage, page }) => {
-        await expect(page.getByText('Duration'), 'Duration should NOT be visible for Multipliers').not.toBeVisible();
-        await expect(page.getByText('Multiplier'), 'Multiplier param should be visible').toBeVisible();
-        await expect(page.getByText('Risk management'), 'Risk management param should be visible').toBeVisible();
-        await tradePage.setStake('20.00');
-        await tradePage.setMultiplier('x200');
-        await tradePage.clickUp();
-        await expect(
-            page.locator('.trade-notification--purchase'),
-            'Purchase notification should appear'
-        ).toBeVisible();
-        await tradePage.gotoPositions();
-        await NavigationUtils.waitForDerivApiSettled(page);
-        await tradePage.openFirstContract();
-        await tradePage.closeContract();
+    test('VERIFY Buy "Up" Multipliers Contract and Close', async ({ tradeMultipliersPage }) => {
+        await tradeMultipliersPage.buyUpAndVerify({
+            market: 'Volatility 100 (1s) Index',
+            multiplier: 'x200',
+            stake: '20.00',
+            currency: 'USD',
+        });
     });
 
-    test('VERIFY buy Down multiplier contract without TP/SL and close', async ({ tradePage, page }) => {
-        await tradePage.setStake('21.00');
-        await tradePage.setMultiplier('x300');
-        await tradePage.clickDown();
-        await expect(
-            page.locator('.trade-notification--purchase'),
-            'Purchase notification should appear'
-        ).toBeVisible();
-        await tradePage.gotoPositions();
-        await NavigationUtils.waitForDerivApiSettled(page);
-        await tradePage.openFirstContract();
-        await tradePage.closeContract();
+    test('VERIFY Buy "Down" Multipliers Contract and Close', async ({ tradeMultipliersPage }) => {
+        await tradeMultipliersPage.buyDownAndVerify({
+            market: 'Volatility 100 (1s) Index',
+            multiplier: 'x300',
+            stake: '21.00',
+            currency: 'USD',
+        });
     });
 });
 ```
 
-> **Flow 9.1** = `VERIFY buy Up multiplier contract without TP/SL and close` · **Flow 9.2** = `VERIFY buy Down multiplier contract without TP/SL and close`
+> **Flow 9.1** = `VERIFY Buy "Up" Multipliers Contract and Close` · **Flow 9.2** = `VERIFY Buy "Down" Multipliers Contract and Close`
+>
+> Both tests delegate to `buyUpAndVerify` / `buyDownAndVerify` on `TradeMultipliersPage`, which implement the full 17-step chain: configure → buy → positions → reports (open) → contract details (open, captures `buyId` + `entrySpot`) → close → closed positions tab → contract details (closed, asserts commission, stop out level, entry/exit details) → balance → reports (closed trade table + statement).
+> Commission and stop out are captured pre-buy from the info panel and asserted exactly in the closed contract details.
+> Mobile entry/exit detail dates render as `DD Mon YYYY`; the helper derives this format internally from the ISO `buyDate`.
 
 ---
 
@@ -907,7 +915,6 @@ test.describe('Trade — Closed Market', { tag: ['@trade', '@desktop', '@mobile'
 | `@auth`       | Login, logout, session handling                         |
 | `@reports`    | Positions, statements, P&L                              |
 | `@smoke`      | Critical path — must pass on every run                  |
-| `@staging`    | Uses account credentials or requires funded account     |
 | `@production` | Safe to run on production (read-only assertions only)   |
 | `@desktop`    | Desktop viewport (chromium project, 1728×1117)          |
 | `@mobile`     | Mobile viewport (chromium-mobile project, 500×850)      |

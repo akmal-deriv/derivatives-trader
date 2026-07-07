@@ -330,6 +330,28 @@ await loginPage.login();
 await NavigationUtils.waitForDerivApiSettled(page);
 ```
 
+### Rule 7 — Match the verification depth documented in `flow.md` for the target trade type
+
+When implementing a new trade type (e.g. Higher/Lower, Touch/No Touch, In/Out), **read the target trade type's section in `flow.md` first** and implement exactly the steps shown there. Do not implement a shallow "buy-and-close" flow when `flow.md` specifies a full verification chain.
+
+**Canonical verification chain (for manually-closeable contracts):**
+
+1. Configure and buy → capture `balanceBefore`, `buyDate`, `payout`
+2. Verify open positions card + balance deducted after purchase
+3. Verify open position in Reports → extract `buyId`
+4. Verify contract details page → close details → close contract via Positions
+5. Verify closed contract in Closed tab → verify closed contract details → extract `sellId`
+6. Verify final balance after close
+7. Verify closed contract in Reports (trade table + statement)
+
+**How to apply:**
+
+- Before writing any `buy*AndVerify` method, read the target trade type's section in `flow.md` and implement exactly the steps shown there.
+- Structural exceptions are documented with `> **Structural exception:**` callouts in `flow.md` — follow them exactly (e.g. tick-expiry contracts that expire automatically, Deal Cancellation contracts that use a cancel button instead of close).
+- **Never rename `buy*AndVerify` to `buy*AndClose`** — "Close" signals a minimal flow; "Verify" signals the full chain.
+
+> **Why this matters:** the Higher/Lower flow was initially generated as `buyHigherAndClose` with only 3 steps because an earlier version of `flow.md` described only those steps. `flow.md` now contains the authoritative step count and structural exception callouts for every trade type — it is the single source of truth.
+
 ---
 
 ## 📋 12-Step Protocol (Steps 0–11)
@@ -476,6 +498,23 @@ Copy TypeScript code blocks from `catalog.md` and:
 
 1. Replace `'...'` in assertion messages with descriptive text
 2. **Scan for inline locators** — any `page.getByTestId()`, `page.locator()`, `page.getByRole()` directly in the test body is a violation. Move them to the appropriate Page Object getter before writing the test.
+3. **Cross-check catalog steps against `flow.md`** — the catalog is manually maintained and can omit steps that are listed in `flow.md`. For every flow step in `flow.md`, verify a corresponding POM call exists in the catalog snippet. Common omissions to check:
+    - `flow.md` lists "Duration param visible" → catalog must call `selectDuration(unit, value)` (not just assert visibility)
+    - `flow.md` lists "Set stake amount" → catalog must call `setStake(amount)`
+    - `flow.md` lists "Select trade type" → catalog must call `selectTradeType(tradeType)` in `beforeEach`
+      If a step is in `flow.md` but missing from the catalog, add the POM call — **do not omit it** on the grounds that the catalog didn't include it.
+
+    > **Why this matters:** catalog snippets sometimes verify a param is visible without actually _configuring_ it. Skipping `selectDuration()` makes the test rely on whatever default is active, which is flaky when state bleeds between serial tests or the default duration is invalid for the symbol.
+
+4. **POM action methods with 3+ parameters must use a destructured object, not positional args** — follow the `buyRiseAndVerify({ market, durationUnit, durationValue, stake, currency })` pattern. Positional args become unreadable at the call site and make argument order errors silent. Apply this to all `buy*` and `verify*` methods in trade page objects.
+
+5. **Always call `selectMarket()` even when `flow.md` omits it** — every trade flow test must pin a known symbol. If the catalog snippet or `flow.md` does not include a market selection step, add `selectMarket('Volatility 75 Index')` (or whichever symbol the flow prerequisite specifies) as the first call in the POM action method. Relying on whatever symbol happens to be active is fragile — a prior test or account default can leave an incompatible symbol selected.
+
+    > **Reference:** the Rise/Fall pattern (`buyRiseAndVerify`) always begins with `selectMarket(market)` before `selectTradeType()`. Apply the same pattern for all trade type flows.
+
+6. **Match the exact step chain documented in `flow.md` for the trade type being implemented** — before writing any `buy*` method, read the target trade type's section in `flow.md` and implement exactly the steps shown. Name the method `buy*AndVerify`, not `buy*AndClose` — "Close" signals a minimal flow; "Verify" signals the full chain. Structural exceptions are documented with `> **Structural exception:**` callouts in `flow.md` — follow them exactly.
+
+    > **Why this matters:** Higher/Lower was initially generated as `buyHigherAndClose` with 3 steps because an earlier version of `flow.md` described only those steps. `flow.md` now carries the authoritative step count for every trade type. See Rule 7.
 
 ```typescript
 // Catalog shows (with inline locator — violation):

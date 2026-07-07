@@ -5,6 +5,9 @@ import { PasswordPage } from '../pages/PasswordPage';
 import { TradeBasePage } from '../pages/TradeBasePage';
 import { TradeParametersPage } from '../pages/TradeParametersPage';
 import { TradeRiseFallPage } from '../pages/TradeRiseFallPage';
+import { TradeHigherLowerPage } from '../pages/TradeHigherLowerPage';
+import { TradeTouchNoTouchPage } from '../pages/TradeTouchNoTouchPage';
+import { TradeMultipliersPage } from '../pages/TradeMultipliersPage';
 import { PositionsPage } from '../pages/PositionsPage';
 import { ReportsPage } from '../pages/ReportsPage';
 import { ContractDetailsPage } from '../pages/ContractDetailsPage';
@@ -59,6 +62,9 @@ export const test = base.extend<{
     tradeBasePage: TradeBasePage;
     tradeParametersPage: TradeParametersPage;
     tradeRiseFallPage: TradeRiseFallPage;
+    tradeHigherLowerPage: TradeHigherLowerPage;
+    tradeTouchNoTouchPage: TradeTouchNoTouchPage;
+    tradeMultipliersPage: TradeMultipliersPage;
     positionsPage: PositionsPage;
     reportsPage: ReportsPage;
     contractDetailsPage: ContractDetailsPage;
@@ -109,6 +115,27 @@ export const test = base.extend<{
      */
     tradeRiseFallPage: async ({ page }, use) => {
         await use(new TradeRiseFallPage(page));
+    },
+
+    /**
+     * Trade Higher/Lower page fixture — provides initialized TradeHigherLowerPage instance
+     */
+    tradeHigherLowerPage: async ({ page }, use) => {
+        await use(new TradeHigherLowerPage(page));
+    },
+
+    /**
+     * Trade Touch/No Touch page fixture — provides initialized TradeTouchNoTouchPage instance
+     */
+    tradeTouchNoTouchPage: async ({ page }, use) => {
+        await use(new TradeTouchNoTouchPage(page));
+    },
+
+    /**
+     * Trade Multipliers page fixture — provides initialized TradeMultipliersPage instance
+     */
+    tradeMultipliersPage: async ({ page }, use) => {
+        await use(new TradeMultipliersPage(page));
     },
 
     /**

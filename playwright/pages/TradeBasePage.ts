@@ -307,6 +307,30 @@ export class TradeBasePage {
     }
 
     /**
+     * Converts an ISO date string ("YYYY-MM-DD") to the "DD Mon YYYY" format used by
+     * the mobile entry/exit details section (e.g. "2026-07-07" → "07 Jul 2026").
+     *
+     * @param iso - ISO date string, e.g. "2026-07-07"
+     * @returns Formatted date string, e.g. "07 Jul 2026"
+     */
+    static formatISODate(iso: string): string {
+        const [year, month, day] = iso.split('-');
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        return `${day} ${months[parseInt(month, 10) - 1]} ${year}`;
+    }
+
+    /**
+     * Returns the current UTC date as "DD Mon YYYY" (e.g. "07 Jul 2026").
+     * Use this for mobile entry/exit details date assertions where the UI renders
+     * this format instead of the ISO "YYYY-MM-DD" used by the desktop audit grid.
+     *
+     * @returns Formatted date string, e.g. "07 Jul 2026"
+     */
+    getCurrentDateFormatted(): string {
+        return TradeBasePage.formatISODate(this.getCurrentDate());
+    }
+
+    /**
      * Wait for the balance to decrease by the stake amount after a buy.
      * Polls the live balance element — needed because the WebSocket balance
      * update arrives asynchronously after the buy is confirmed.

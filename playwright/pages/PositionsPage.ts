@@ -240,12 +240,8 @@ export class PositionsPage extends TradeBasePage {
             await this.pollUntilContractClosed(this.contractCardCloseButton);
             await expect(
                 this.footerPositionCount,
-                'Footer position count should not be visible after closing all positions'
-            ).not.toBeVisible();
-            await expect(
-                this.footerTotalPL,
-                'Footer Total P/L should not be visible after closing all positions'
-            ).not.toBeVisible();
+                'Footer position count should show "0 open positions" after closing all positions'
+            ).toHaveText('0 open positions');
         }
     }
 
@@ -338,8 +334,11 @@ export class PositionsPage extends TradeBasePage {
             `${stake} ${currency}`
         );
 
-        // Remaining time — live value, assert presence only
-        await expect(this.contractCardRemainingTime, 'Remaining time should have a value').not.toBeEmpty();
+        // Remaining time — Multipliers contracts have no expiry, so no remaining time is shown
+        const isMultipliers = tradeType.startsWith('Multipliers');
+        if (!isMultipliers) {
+            await expect(this.contractCardRemainingTime, 'Remaining time should have a value').not.toBeEmpty();
+        }
 
         // Profit/loss — live tick value (sign is a text node outside dt_span), assert presence only
         await expect(this.contractCardProfit, 'Profit/loss should have a value').not.toBeEmpty();

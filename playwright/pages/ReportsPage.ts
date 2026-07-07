@@ -443,6 +443,171 @@ export class ReportsPage extends TradeBasePage {
         return this.openPositionsFirstRow.locator('[data-testid="dt_contract_card_sell"]');
     }
 
+    // ============================================
+    // MULTIPLIERS OPEN POSITIONS LOCATORS
+    // ============================================
+    // Columns: Type, Multiplier, Currency, Contract cost, Deal cancel. fee, Stake,
+    //          Take profit, Stop loss, Contract value, Total profit/loss, Action
+
+    /**
+     * Multipliers open positions grid header row.
+     * Source: open-positions__multipliers-table header row
+     */
+    get multOpenPositionsTableHeader(): Locator {
+        return this.page.locator('.open-positions__multipliers-table .table__head .table__row');
+    }
+
+    /**
+     * Multiplier value cell on the first open positions row — desktop only.
+     * Rendered as plain text directly in .table__cell.multiplier (no dt_span wrapper).
+     */
+    get multOpenPositionsFirstRowMultiplier(): Locator {
+        return this.openPositionsFirstRow.locator('.table__cell.multiplier');
+    }
+
+    /** Multiplier value on the first open positions card — mobile only. */
+    get multOpenPositionsMobFirstRowMultiplier(): Locator {
+        return this.openPositionsFirstRow.locator('.dc-contract-type__type-label-trade-param');
+    }
+
+    /** Currency cell on the first open positions row — desktop only. */
+    get multOpenPositionsFirstRowCurrency(): Locator {
+        return this.openPositionsFirstRow.locator('.table__cell.currency .dc-text');
+    }
+
+    /** Currency value on the first open positions card — mobile only. */
+    get multOpenPositionsMobFirstRowCurrency(): Locator {
+        return this.openPositionsFirstRow.locator('.dc-currency-badge');
+    }
+
+    /**
+     * Deal cancel. fee cell on the first open positions row — desktop only.
+     * Renders as "-" when deal cancellation is not active.
+     * Column class: .cancellation (plain text, no dt_span wrapper)
+     */
+    get multOpenPositionsFirstRowDealCancelFee(): Locator {
+        return this.openPositionsFirstRow.locator('.table__cell.cancellation');
+    }
+
+    /** Deal cancel. fee value on the first open positions card — mobile only. */
+    get multOpenPositionsMobFirstRowDealCancelFee(): Locator {
+        return this.multMobCardItemValue('Deal cancel. fee:');
+    }
+
+    /**
+     * Take profit value inside the limit_order cell — desktop only.
+     * Renders as the first <div> child of .table__cell.limit_order; "-" when not set.
+     */
+    get multOpenPositionsFirstRowTakeProfit(): Locator {
+        return this.openPositionsFirstRow.locator('.table__cell.limit_order div').nth(0);
+    }
+
+    /**
+     * Stop loss value inside the limit_order cell — desktop only.
+     * Renders as the second <div> child of .table__cell.limit_order; "-" when not set.
+     */
+    get multOpenPositionsFirstRowStopLoss(): Locator {
+        return this.openPositionsFirstRow.locator('.table__cell.limit_order div').nth(1);
+    }
+
+    /** Take profit value on the first open positions card — mobile only. */
+    get multOpenPositionsMobFirstRowTakeProfit(): Locator {
+        return this.multMobCardItemValue('Take profit:');
+    }
+
+    /** Stop loss value on the first open positions card — mobile only. */
+    get multOpenPositionsMobFirstRowStopLoss(): Locator {
+        return this.multMobCardItemValue('Stop loss:');
+    }
+
+    /**
+     * Contract cost cell on the first open positions row — desktop only.
+     * Column class: .buy_price
+     */
+    get multOpenPositionsFirstRowContractCost(): Locator {
+        return this.openPositionsFirstRow.locator('.table__cell.buy_price [data-testid="dt_span"]');
+    }
+
+    /** Contract cost value on the first open positions card — mobile only. */
+    get multOpenPositionsMobFirstRowContractCost(): Locator {
+        return this.multMobCardItemValue('Contract cost:').locator('[data-testid="dt_span"]');
+    }
+
+    /**
+     * Stake cell on the first open positions row — desktop only.
+     * Column class: .purchase (Multipliers "Stake" column, distinct from contract cost)
+     */
+    get multOpenPositionsFirstRowStake(): Locator {
+        return this.openPositionsFirstRow.locator('.table__cell.purchase [data-testid="dt_span"]');
+    }
+
+    /** Stake value on the first open positions card — mobile only. */
+    get multOpenPositionsMobFirstRowStake(): Locator {
+        return this.multMobCardItemValue('Stake:').locator('[data-testid="dt_span"]');
+    }
+
+    /**
+     * Contract value cell on the first open positions row — desktop only.
+     * Multipliers uses .bid_price for the live contract value (not .indicative).
+     */
+    get multOpenPositionsFirstRowContractValue(): Locator {
+        return this.openPositionsFirstRow.locator('.table__cell.bid_price [data-testid="dt_span"]');
+    }
+
+    /** Contract value on the first open positions card — mobile only. */
+    get multOpenPositionsMobFirstRowContractValue(): Locator {
+        return this.multMobCardItemValue('Contract value:').locator('[data-testid="dt_span"]');
+    }
+
+    /** Total profit/loss cell on the first open positions row — desktop only. */
+    get multOpenPositionsFirstRowProfitLoss(): Locator {
+        return this.openPositionsFirstRow.locator('.table__cell.profit [data-testid="dt_span"]');
+    }
+
+    /** Total profit/loss value on the first open positions card — mobile only. */
+    get multOpenPositionsMobFirstRowProfitLoss(): Locator {
+        return this.openPositionsFirstRow.locator(
+            '.dc-contract-card-item__total-profit-loss .dc-contract-card-item__body [data-testid="dt_span"]'
+        );
+    }
+
+    /**
+     * Close button inside the Multipliers open positions row.
+     * Desktop: .table__cell.action button
+     * Mobile: .dc-contract-card-item__footer button.dc-btn--sell
+     */
+    get multOpenPositionsFirstRowCloseButton(): Locator {
+        return this.isMobile
+            ? this.openPositionsFirstRow.locator('.dc-contract-card-item__footer button.dc-btn--sell')
+            : this.openPositionsFirstRow.locator('.table__cell.action button');
+    }
+
+    /**
+     * Label cell of a mobile Multipliers card item by its header text.
+     * Source: [data-testid="dt_multiplier_card_body"] > .dc-contract-card-item > .dc-contract-card-item__header
+     */
+    multMobCardItemLabel(label: string): Locator {
+        return this.openPositionsFirstRow
+            .getByTestId('dt_multiplier_card_body')
+            .locator('.dc-contract-card-item', {
+                has: this.page.locator('.dc-contract-card-item__header', { hasText: label }),
+            })
+            .locator('.dc-contract-card-item__header');
+    }
+
+    /**
+     * Value cell of a mobile Multipliers card item by its header text.
+     * Source: [data-testid="dt_multiplier_card_body"] > .dc-contract-card-item > .dc-contract-card-item__body
+     */
+    multMobCardItemValue(label: string): Locator {
+        return this.openPositionsFirstRow
+            .getByTestId('dt_multiplier_card_body')
+            .locator('.dc-contract-card-item', {
+                has: this.page.locator('.dc-contract-card-item__header', { hasText: label }),
+            })
+            .locator('.dc-contract-card-item__body');
+    }
+
     // Mobile row-title labels (inline divs inside each card — mobile only, no <table> header)
     /** "Ref. ID" inline label inside the first mobile open positions card. */
     get openPositionsMobRowTitleRefId(): Locator {
@@ -707,6 +872,119 @@ export class ReportsPage extends TradeBasePage {
         ).not.toBeEmpty();
 
         return buyId;
+    }
+
+    /**
+     * Click the "Open positions" tab in Reports and verify the Multipliers grid is populated.
+     *
+     * Multipliers uses a completely different grid layout with no Ref. ID column.
+     * The buy ID is NOT available here — it must be extracted from the contract URL
+     * after opening the contract details page.
+     *
+     * Verifies: row present, multiplier value, currency, contract cost (stake),
+     * contract value (live), total profit/loss (live), and Close button.
+     *
+     * @param currency   - Expected currency badge, e.g. "USD"
+     * @param stake      - Expected stake/contract cost amount, e.g. "20.00"
+     * @param multiplier - Expected multiplier label, e.g. "x200"
+     */
+    async verifyOpenPositionsInReportsForMultipliers(
+        currency: string,
+        stake: string,
+        multiplier: string
+    ): Promise<void> {
+        if (this.isMobile) {
+            await this.reportsRoutePicker.selectOption(ReportsPage.ROUTE_OPEN_POSITIONS_MOB);
+        } else {
+            await this.reportsOpenPositionsTab.click();
+        }
+
+        await expect(
+            this.reportsEmptyOpenPositions,
+            'Empty open positions state should not be visible — at least one Multipliers position must exist'
+        ).not.toBeVisible();
+        await expect(
+            this.openPositionsFirstRow,
+            'At least one Multipliers open position row should be present'
+        ).toBeAttached();
+
+        if (this.isMobile) {
+            await this.verifyMultOpenPositionsMobile(currency, stake, multiplier);
+        } else {
+            await this.verifyMultOpenPositionsDesktop(currency, stake, multiplier);
+        }
+    }
+
+    private async verifyMultOpenPositionsDesktop(currency: string, stake: string, multiplier: string): Promise<void> {
+        // Verify static cell values
+        await expect(this.multOpenPositionsFirstRowMultiplier, `Multiplier cell should be "${multiplier}"`).toHaveText(
+            multiplier
+        );
+        await expect(this.multOpenPositionsFirstRowCurrency, `Currency cell should be "${currency}"`).toHaveText(
+            currency
+        );
+        await expect(this.multOpenPositionsFirstRowContractCost, `Contract cost cell should be "${stake}"`).toHaveText(
+            stake
+        );
+        await expect(
+            this.multOpenPositionsFirstRowDealCancelFee,
+            'Deal cancel. fee cell should be "-" (no deal cancellation)'
+        ).toHaveText('-');
+        await expect(this.multOpenPositionsFirstRowStake, `Stake cell should be "${stake}"`).toHaveText(stake);
+        await expect(this.multOpenPositionsFirstRowTakeProfit, 'Take profit should be "-" (not set)').toHaveText('-');
+        await expect(this.multOpenPositionsFirstRowStopLoss, 'Stop loss should be "-" (not set)').toHaveText('-');
+
+        // Live values — only assert non-empty
+        await expect(
+            this.multOpenPositionsFirstRowContractValue,
+            'Contract value (bid_price) cell should have a value'
+        ).not.toBeEmpty();
+        await expect(
+            this.multOpenPositionsFirstRowProfitLoss,
+            'Total profit/loss cell should have a value'
+        ).not.toBeEmpty();
+
+        await expect(this.multOpenPositionsFirstRowCloseButton, 'Close button should be visible').toBeVisible();
+    }
+
+    private async verifyMultOpenPositionsMobile(currency: string, stake: string, multiplier: string): Promise<void> {
+        // Card header — trade type label contains multiplier (e.g. "Up x200")
+        await expect(
+            this.multOpenPositionsMobFirstRowMultiplier,
+            `Trade param label should contain "${multiplier}"`
+        ).toContainText(multiplier);
+
+        // Currency badge
+        await expect(this.multOpenPositionsMobFirstRowCurrency, `Currency badge should be "${currency}"`).toHaveText(
+            currency
+        );
+
+        // Static card body values
+        await expect(
+            this.multOpenPositionsMobFirstRowContractCost,
+            `Contract cost value should be "${stake}"`
+        ).toContainText(stake);
+        await expect(
+            this.multOpenPositionsMobFirstRowDealCancelFee,
+            'Deal cancel. fee value should be "-" (no deal cancellation)'
+        ).toHaveText('-');
+        await expect(this.multOpenPositionsMobFirstRowStake, `Stake value should be "${stake}"`).toContainText(stake);
+        await expect(this.multOpenPositionsMobFirstRowTakeProfit, 'Take profit should be "-" (not set)').toHaveText(
+            '-'
+        );
+        await expect(this.multOpenPositionsMobFirstRowStopLoss, 'Stop loss should be "-" (not set)').toHaveText('-');
+
+        // Live values — only assert non-empty
+        await expect(
+            this.multOpenPositionsMobFirstRowContractValue,
+            'Contract value should have a value'
+        ).not.toBeEmpty();
+        await expect(
+            this.multOpenPositionsMobFirstRowProfitLoss,
+            'Total profit/loss should have a value'
+        ).not.toBeEmpty();
+
+        await expect(this.multOpenPositionsFirstRowCloseButton, 'Close button should be visible').toBeVisible();
     }
 
     /**

@@ -216,6 +216,25 @@ export class TradeParametersPage extends TradeBasePage {
     }
 
     /**
+     * Barrier label — Higher/Lower and Touch/No Touch trade types.
+     * Desktop: <label>Barrier</label> inside .trade-params__option
+     * Mobile: visible "Barrier" text in the bottom sheet
+     * Source: barrier.tsx label={<Localize i18n_default_text='Barrier' />}
+     */
+    get barrierLabel(): Locator {
+        return this.page.locator('label', { hasText: 'Barrier' }).first();
+    }
+
+    /**
+     * Purchase success notification icon — appears after a successful buy.
+     * Source: purchase-button.tsx addBanner callback injects StandaloneStopwatchRegularIcon
+     * with className 'trade-notification--purchase'.
+     */
+    get purchaseNotification(): Locator {
+        return this.page.locator('.trade-notification--purchase');
+    }
+
+    /**
      * Duration label — stable across both viewports.
      * Desktop: <label>Duration</label> inside .trade-params__option
      * Mobile: visible "Duration" text in the bottom sheet
@@ -339,6 +358,51 @@ export class TradeParametersPage extends TradeBasePage {
     }
 
     /**
+     * Barrier field trigger (read-only TextField that opens the popover/action-sheet).
+     * Desktop: TradeParameterPopover renders a readOnly TextField labelled "Barrier".
+     * Mobile: barrier.tsx renders the same TextField labelled "Barrier".
+     * Source: barrier-desktop.tsx + barrier.tsx
+     */
+    get barrierField(): Locator {
+        return this.page
+            .locator('.trade-params__option')
+            .filter({ has: this.page.locator('label', { hasText: 'Barrier' }) });
+    }
+
+    /**
+     * Barrier type selector inside the popover/action-sheet.
+     * Desktop: role="tab" buttons inside .barrier-popover__sidebar (VerticalTabSelector)
+     * Mobile: .quill-chip buttons inside .barrier-params__chips — no aria-label, matched by text content
+     * Source: barrier-type-selector.tsx (desktop), barrier-input.tsx (mobile)
+     */
+    barrierTypeTab(type: 'Above spot' | 'Below spot' | 'Fixed barrier'): Locator {
+        return this.isMobile
+            ? this.page.locator('.barrier-params__chips').locator('.quill-chip', { hasText: type })
+            : this.page.locator('.barrier-popover__sidebar').getByRole('tab', { name: type });
+    }
+
+    /**
+     * Barrier value input inside the popover/action-sheet.
+     * Both viewports: input[name="barrier_1"]
+     * Source: barrier-content-desktop.tsx + barrier-input.tsx
+     */
+    get barrierInput(): Locator {
+        return this.page.locator('input[name="barrier_1"]');
+    }
+
+    /**
+     * Save button inside the barrier popover/action-sheet.
+     * Desktop: .barrier-content__save-button (.quill__color--secondary-black-white)
+     * Mobile: .quill-action-sheet--footer primary button (.quill__color--primary-black-white)
+     * Source: barrier-content-desktop.tsx + barrier-input.tsx
+     */
+    get barrierSaveButton(): Locator {
+        return this.isMobile
+            ? this.page.locator('.quill-action-sheet--footer').getByRole('button', { name: 'Save' })
+            : this.page.locator('.barrier-content__save-button');
+    }
+
+    /**
      * Manual input toggle button (second item in the segmented control) inside the stake popover/action sheet.
      * Switches from preset chips view to the text input view.
      * - Desktop: inside `.stake-popover`
@@ -367,7 +431,9 @@ export class TradeParametersPage extends TradeBasePage {
      * Both desktop (stake-input-desktop.tsx) and mobile (stake-input.tsx) render a "Save" button.
      */
     get stakeSaveButton(): Locator {
-        return this.page.getByRole('button', { name: 'Save' });
+        return this.isMobile
+            ? this.page.locator('.stake-container').getByRole('button', { name: 'Save' })
+            : this.page.getByRole('button', { name: 'Save' });
     }
 
     /**
@@ -608,20 +674,22 @@ export class TradeParametersPage extends TradeBasePage {
                 // formattedValue expected as 'Xh Ym' (e.g. '1h 30m') or 'Xh' (e.g. '2h')
                 const hoursMatch = formattedValue.match(/(\d+)h/);
                 const minutesMatch = formattedValue.match(/(\d+)m/);
-                const popover = this.page.locator('.duration-popover__content');
-                await popover.getByLabel('Hours').fill(hoursMatch ? hoursMatch[1] : '0');
-                await popover.getByLabel('Minutes').fill(minutesMatch ? minutesMatch[1] : '0');
+                const popover = this.isMobile
+                    ? this.page.locator('.duration-container')
+                    : this.page.locator('.duration-popover__content');
+                await popover.getByRole('textbox', { name: 'Hours' }).fill(hoursMatch ? hoursMatch[1] : '0');
+                await popover.getByRole('textbox', { name: 'Minutes' }).fill(minutesMatch ? minutesMatch[1] : '0');
             } else {
                 const testId = unitLower === 'ticks' ? 'dt_duration_ticks_input_desktop' : 'dt_duration_input_desktop';
                 await this.page.getByTestId(testId).fill(formattedValue.replace(/[^\d.]/g, ''));
             }
-            await this.page.getByRole('button', { name: 'Save' }).click();
+            await this.page.locator('.duration-popover').getByRole('button', { name: 'Save' }).click();
         }
 
-        // Mobile renders full unit words in the input (e.g. "15 minutes"), desktop uses abbreviations ("15 min")
+        // Mobile expands abbreviations to full words (e.g. "15 min" → "15 minutes"); desktop keeps chip abbreviation
         const displayValue = this.isMobile ? this.expandDurationForDisplay(formattedValue) : formattedValue;
         await expect(this.durationField, `Duration field should show '${displayValue}' after selection`).toHaveValue(
-            displayValue
+            new RegExp(`^${displayValue.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`)
         );
     }
 
@@ -631,6 +699,19 @@ export class TradeParametersPage extends TradeBasePage {
      * Mobile display words:  'minutes', 'seconds', 'hours', 'ticks'
      */
     private expandDurationForDisplay(formattedValue: string): string {
+        // Custom hours format '1h 30m' — app renders "1 hour 30 minutes"
+        const customMatch = formattedValue.match(/^(\d+)h\s+(\d+)m$/);
+        if (customMatch) {
+            const h = parseInt(customMatch[1], 10);
+            const m = parseInt(customMatch[2], 10);
+            return `${h} ${h === 1 ? 'hour' : 'hours'} ${m} ${m === 1 ? 'minute' : 'minutes'}`;
+        }
+        // Chip format '1 hr' / '2 hr' — app renders "1 hour" / "2 hours"
+        const hrMatch = formattedValue.match(/^(\d+) hr$/);
+        if (hrMatch) {
+            const n = parseInt(hrMatch[1], 10);
+            return `${n} ${n === 1 ? 'hour' : 'hours'}`;
+        }
         return formattedValue
             .replace(/\bmin\b/, 'minutes')
             .replace(/\bsec\b/, 'seconds')
@@ -693,6 +774,50 @@ export class TradeParametersPage extends TradeBasePage {
         return payoutText;
     }
 
+    /**
+     * "Higher" option in the Higher/Lower segmented control.
+     * Source: purchase-button.tsx segmented-control-single > button.item containing "Higher"
+     * Scoped to .trade-params__option to avoid matching other buttons with the same label.
+     */
+    get higherOption(): Locator {
+        return this.page.locator('.trade-params__option').getByRole('button', { name: 'Higher', exact: true });
+    }
+
+    /**
+     * "Lower" option in the Higher/Lower segmented control.
+     * Source: purchase-button.tsx segmented-control-single > button.item containing "Lower"
+     * Scoped to .trade-params__option to avoid matching other buttons with the same label.
+     */
+    get lowerOption(): Locator {
+        return this.page.locator('.trade-params__option').getByRole('button', { name: 'Lower', exact: true });
+    }
+
+    /**
+     * Open the Barrier popover/action-sheet, optionally switch type, set the value, and save.
+     *
+     * @param value - Numeric string without sign prefix, e.g. '3.51'
+     * @param type  - Barrier type to select before typing. Omit to keep the current type.
+     */
+    async setBarrier(value: string, type?: 'Above spot' | 'Below spot' | 'Fixed barrier'): Promise<void> {
+        await this.barrierField.click();
+        if (type) {
+            await this.barrierTypeTab(type).click();
+            await expect(this.barrierTypeTab(type), `Barrier type "${type}" should be selected`).toHaveAttribute(
+                this.isMobile ? 'data-state' : 'aria-selected',
+                this.isMobile ? 'selected' : 'true'
+            );
+        }
+        await this.barrierInput.clear();
+        await this.barrierInput.fill(value);
+        await expect(this.barrierInput, `Barrier input should contain "${value}" before saving`).toHaveValue(value);
+        await this.barrierSaveButton.click();
+        const expectedValue = type === 'Above spot' ? `+${value}` : type === 'Below spot' ? `-${value}` : value;
+        await expect(
+            this.barrierField.locator('input'),
+            `Barrier field should display "${expectedValue}" after saving`
+        ).toHaveValue(expectedValue);
+    }
+
     // ============================================
     // VERIFICATIONS
     // ============================================
@@ -750,6 +875,18 @@ export class TradeParametersPage extends TradeBasePage {
                     'Accumulators stats panel should be visible for Accumulators'
                 ).toBeVisible();
                 await expect(this.purchaseButton, 'Buy button should be visible for Accumulators').toBeVisible();
+                break;
+            case 'Higher/Lower':
+                await expect(this.barrierLabel, 'Barrier param should be visible for Higher/Lower').toBeVisible();
+                await expect(this.durationLabel, 'Duration param should be visible for Higher/Lower').toBeVisible();
+                await expect(this.stakeLabel, 'Stake param should be visible for Higher/Lower').toBeVisible();
+                await expect(this.purchaseButton, 'Buy button should be visible for Higher/Lower').toBeVisible();
+                break;
+            case 'Touch/No Touch':
+                await expect(this.barrierLabel, 'Barrier param should be visible for Touch/No Touch').toBeVisible();
+                await expect(this.durationLabel, 'Duration param should be visible for Touch/No Touch').toBeVisible();
+                await expect(this.stakeLabel, 'Stake param should be visible for Touch/No Touch').toBeVisible();
+                await expect(this.purchaseButton, 'Buy button should be visible for Touch/No Touch').toBeVisible();
                 break;
             // Add cases for Multipliers, Turbos, Vanillas, etc. as they are implemented
         }

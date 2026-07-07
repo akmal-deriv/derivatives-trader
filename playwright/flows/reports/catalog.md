@@ -431,15 +431,14 @@ get archivedStatementTab(): Locator {
 
 ## Section 3 — Tags Reference
 
-| Tag           | When to apply                                                                               |
-| ------------- | ------------------------------------------------------------------------------------------- |
-| `@reports`    | All tests in the reports feature area                                                       |
-| `@smoke`      | Critical path — page load, default tab, basic data rows visible                             |
-| `@regression` | Full coverage including filters, empty states, navigation, archived statement               |
-| `@staging`    | Tests that require a specific staging account (archived statement, no-history empty states) |
-| `@production` | Tests safe to run on production (read-only, no contract mutations)                          |
-| `@desktop`    | Desktop viewport — `VerticalTab` sidebar navigation                                         |
-| `@mobile`     | Mobile viewport — `SelectNative` dropdown tab navigation                                    |
+| Tag           | When to apply                                                                 |
+| ------------- | ----------------------------------------------------------------------------- |
+| `@reports`    | All tests in the reports feature area                                         |
+| `@smoke`      | Critical path — page load, default tab, basic data rows visible               |
+| `@regression` | Full coverage including filters, empty states, navigation, archived statement |
+| `@production` | Tests safe to run on production (read-only, no contract mutations)            |
+| `@desktop`    | Desktop viewport — `VerticalTab` sidebar navigation                           |
+| `@mobile`     | Mobile viewport — `SelectNative` dropdown tab navigation                      |
 
 ---
 
@@ -483,7 +482,7 @@ Switching between Reports tabs triggers WebSocket calls to fetch data (profit ta
 
 ### Archived Statement is conditional on `has_archived_statement`
 
-The "Archived statement" tab only appears in the `VerticalTab` / `SelectNative` when `client.has_archived_statement` is true. This cannot be set programmatically — requires a specific staging account. Tests for G2 must use a dedicated env var (`ARCHIVED_TEST_EMAIL`) and be tagged `@staging`, not `@smoke`.
+The "Archived statement" tab only appears in the `VerticalTab` / `SelectNative` when `client.has_archived_statement` is true. This cannot be set programmatically — requires a specific staging account. Tests for G2 must use a dedicated env var (`ARCHIVED_TEST_EMAIL`) and be tagged `@regression`, not `@smoke`.
 
 **Impact on generated code:** G2 spec uses `ARCHIVED_TEST_EMAIL` env var; validation must throw a descriptive error if missing.
 

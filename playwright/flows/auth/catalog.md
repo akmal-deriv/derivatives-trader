@@ -135,14 +135,13 @@ test.describe('Logout', { tag: ['@auth', '@smoke', '@desktop', '@mobile'] }, () 
 
 ## Section 3 — Tags Reference
 
-| Tag           | When to apply                                                |
-| ------------- | ------------------------------------------------------------ |
-| `@auth`       | Login state, logout, session handling                        |
-| `@smoke`      | Critical path — must pass on every run                       |
-| `@staging`    | Uses Mailisk or account credentials — not safe on production |
-| `@production` | Safe to run on production (read-only assertions only)        |
-| `@desktop`    | Desktop viewport (chromium project, 1728×1117)               |
-| `@mobile`     | Mobile viewport (chromium-mobile project, 500×850)           |
+| Tag           | When to apply                                         |
+| ------------- | ----------------------------------------------------- |
+| `@auth`       | Login state, logout, session handling                 |
+| `@smoke`      | Critical path — must pass on every run                |
+| `@production` | Safe to run on production (read-only assertions only) |
+| `@desktop`    | Desktop viewport (chromium project, 1728×1117)        |
+| `@mobile`     | Mobile viewport (chromium-mobile project, 500×850)    |
 
 ---
 

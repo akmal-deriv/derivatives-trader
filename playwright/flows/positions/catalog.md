@@ -355,7 +355,6 @@ test.describe('Positions — Navigate to contract details', { tag: ['@positions'
 | `@positions`  | All tests in the positions feature area                                               |
 | `@smoke`      | Critical path — open positions list visible, tab switching, card → details navigation |
 | `@regression` | Full coverage including filters, edge states, close/cancel actions                    |
-| `@staging`    | Tests that require account creation via `createAccountV2`                             |
 | `@production` | Tests safe to run on production (read-only, no contract mutations)                    |
 | `@desktop`    | Desktop viewport — sidebar flyout flow only                                           |
 | `@mobile`     | Mobile viewport — full-page `/positions` route with tabs                              |

@@ -7,7 +7,7 @@
 import { test } from '../../fixtures/fixtures';
 import { TradeBasePage } from '../../pages/TradeBasePage';
 
-test.describe('Trade', { tag: ['@trade', '@smoke', '@desktop', '@mobile'] }, () => {
+test.describe('Trade', { tag: ['@desktop', '@mobile', '@trade', '@smoke'] }, () => {
     let testEmail: string = undefined!;
 
     test.beforeAll(async ({}, testInfo) => {

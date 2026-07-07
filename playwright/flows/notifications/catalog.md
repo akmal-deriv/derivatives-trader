@@ -7,17 +7,17 @@
 
 ## Section 1 — Journey Index
 
-| Journey ID | Spec File                                                    | Tags                                       |
-| ---------- | ------------------------------------------------------------ | ------------------------------------------ |
-| Flow 1     | `notifications/verify-trade-banner-purchase.spec.ts`         | `@notifications @smoke @mobile @staging`   |
-| Flow 2     | `notifications/verify-trade-banner-sell.spec.ts`             | `@notifications @mobile @staging`          |
-| Flow 3     | `notifications/verify-notification-centre-desktop.spec.ts`   | `@notifications @smoke @desktop @staging`  |
-| Flow 4     | `notifications/verify-notification-centre-mobile.spec.ts`    | `@notifications @smoke @mobile @staging`   |
-| Flow 5     | `notifications/verify-notification-centre-empty.spec.ts`     | `@notifications @desktop @mobile @staging` |
-| Flow 6     | `notifications/verify-notification-centre-list.spec.ts`      | `@notifications @desktop @mobile @staging` |
-| Flow 7     | `notifications/verify-notification-centre-clear-all.spec.ts` | `@notifications @desktop @mobile @staging` |
-| G1         | `notifications/verify-no-bell-on-trade-page.spec.ts`         | `@notifications @desktop @mobile @staging` |
-| G2         | `notifications/verify-trade-banner-locator-fallback.spec.ts` | `@notifications @mobile @staging`          |
+| Journey ID | Spec File                                                    | Tags                              |
+| ---------- | ------------------------------------------------------------ | --------------------------------- |
+| Flow 1     | `notifications/verify-trade-banner-purchase.spec.ts`         | `@notifications @smoke @mobile`   |
+| Flow 2     | `notifications/verify-trade-banner-sell.spec.ts`             | `@notifications @mobile`          |
+| Flow 3     | `notifications/verify-notification-centre-desktop.spec.ts`   | `@notifications @smoke @desktop`  |
+| Flow 4     | `notifications/verify-notification-centre-mobile.spec.ts`    | `@notifications @smoke @mobile`   |
+| Flow 5     | `notifications/verify-notification-centre-empty.spec.ts`     | `@notifications @desktop @mobile` |
+| Flow 6     | `notifications/verify-notification-centre-list.spec.ts`      | `@notifications @desktop @mobile` |
+| Flow 7     | `notifications/verify-notification-centre-clear-all.spec.ts` | `@notifications @desktop @mobile` |
+| G1         | `notifications/verify-no-bell-on-trade-page.spec.ts`         | `@notifications @desktop @mobile` |
+| G2         | `notifications/verify-trade-banner-locator-fallback.spec.ts` | `@notifications @mobile`          |
 
 ---
 
@@ -251,7 +251,6 @@ test.describe('Notifications — Centre clear all', { tag: ['@notifications', '@
 | ---------------- | --------------------------------------------------------------------------------------- |
 | `@notifications` | All tests in the notifications module                                                   |
 | `@smoke`         | Critical path — bell opens dialog, trade banner visible                                 |
-| `@staging`       | All flows (require authenticated session or funded account)                             |
 | `@desktop`       | Desktop viewport only (notification centre inline dropdown)                             |
 | `@mobile`        | Mobile viewport (trade banner is AppV2-only; notification centre opens as MobileDialog) |
 

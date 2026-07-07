@@ -1,6 +1,6 @@
 # Trade Journey Coverage
 
-**Analysis date:** 2026-07-02
+**Analysis date:** 2026-07-07
 
 ---
 
@@ -13,10 +13,10 @@
 | Flow 2.2  | Rise/Fall — buy Fall → close                           | ✅      | ✅     |       |
 | Flow 2.3  | Rise/Fall Allow Equals — buy Rise → close              | ✅      | ✅     |       |
 | Flow 2.4  | Rise/Fall Allow Equals — buy Fall → close              | ✅      | ✅     |       |
-| Flow 3.1  | Higher/Lower — buy Higher → close                      | ❌      | ❌     |       |
-| Flow 3.2  | Higher/Lower — buy Lower → close                       | ❌      | ❌     |       |
-| Flow 4.1  | Touch/No Touch — buy Touch → close                     | ❌      | ❌     |       |
-| Flow 4.2  | Touch/No Touch — buy No Touch → close                  | ❌      | ❌     |       |
+| Flow 3.1  | Higher/Lower — buy Higher → close                      | ✅      | ✅     |       |
+| Flow 3.2  | Higher/Lower — buy Lower → close                       | ✅      | ✅     |       |
+| Flow 4.1  | Touch/No Touch — buy Touch → close                     | ✅      | ✅     |       |
+| Flow 4.2  | Touch/No Touch — buy No Touch → close                  | ✅      | ✅     |       |
 | Flow 5.1  | Matches/Differs — buy Matches → expiry                 | ❌      | ❌     |       |
 | Flow 5.2  | Matches/Differs — buy Differs → expiry                 | ❌      | ❌     |       |
 | Flow 6.1  | Over/Under — buy Over → expiry                         | ❌      | ❌     |       |
@@ -25,8 +25,8 @@
 | Flow 7.2  | Even/Odd — buy Odd → expiry                            | ❌      | ❌     |       |
 | Flow 8.1  | Accumulators without TP — buy → close                  | ❌      | ❌     |       |
 | Flow 8.2  | Accumulators with TP — buy → verify TP set → close     | ❌      | ❌     |       |
-| Flow 9.1  | Multipliers no TP/SL — buy Up → close                  | ❌      | ❌     |       |
-| Flow 9.2  | Multipliers no TP/SL — buy Down → close                | ❌      | ❌     |       |
+| Flow 9.1  | Multipliers no TP/SL — buy Up → close                  | ✅      | ✅     |       |
+| Flow 9.2  | Multipliers no TP/SL — buy Down → close                | ✅      | ✅     |       |
 | Flow 10.1 | Multipliers with TP — buy Up → close                   | ❌      | ❌     |       |
 | Flow 10.2 | Multipliers with TP — buy Down → close                 | ❌      | ❌     |       |
 | Flow 11.1 | Multipliers with SL — buy Up → close                   | ❌      | ❌     |       |
@@ -58,20 +58,20 @@
 
 ## Section 3 — Priority List
 
-| Priority | Spec file                                            | Flow                           | Reason                                             |
-| -------- | ---------------------------------------------------- | ------------------------------ | -------------------------------------------------- |
-| P0       | `trade/verify-multipliers-no-tpsl.spec.ts`           | Flow 9.1 + 9.2                 | Most popular contract type                         |
-| P0       | `trade/verify-multipliers-with-tp.spec.ts`           | Flow 10.1 + 10.2               | TP is the most-used risk control                   |
-| P0       | `trade/verify-accumulators.spec.ts`                  | Flow 8.1 + 8.2                 | Top-traffic trade type; without and with TP        |
-| P0       | `trade/verify-matches-differs.spec.ts`               | Flow 5.1 + 5.2                 | Most popular Digit type                            |
-| P1       | `trade/verify-higher-lower.spec.ts`                  | Flow 3.1 + 3.2                 | Core directional type with barrier                 |
-| P1       | `trade/verify-multipliers-with-sl.spec.ts`           | Flow 11.1 + 11.2               | SL is a critical risk control path                 |
-| P1       | `trade/verify-turbos.spec.ts`                        | Flow 13.1 + 13.2 + 13.3 + 13.4 | Unique payout per point param; without and with TP |
-| P1       | `trade/verify-vanillas.spec.ts`                      | Flow 14.1 + 14.2               | Unique strike price param                          |
-| P2       | `trade/verify-touch-no-touch.spec.ts`                | Flow 4.1 + 4.2                 | Directional with barrier — lower traffic           |
-| P2       | `trade/verify-over-under.spec.ts`                    | Flow 6.1 + 6.2                 | Secondary Digit type                               |
-| P2       | `trade/verify-even-odd.spec.ts`                      | Flow 7.1 + 7.2                 | Secondary Digit type; simplest params              |
-| P2       | `trade/verify-multipliers-deal-cancellation.spec.ts` | Flow 12.1 + 12.2               | DC less-used; symbol availability varies           |
-| P2       | `trade/verify-closed-market.spec.ts`                 | Flow 15                        | Important edge case; environment-dependent         |
-| P2       | `trade/verify-insufficient-balance.spec.ts`          | G1                             | Important error path; needs account state setup    |
-| P3       | `trade/verify-unauthenticated-purchase.spec.ts`      | G2                             | Edge case — most users are logged in               |
+| Priority | Spec file                                                        | Flow                           | Reason                                             |
+| -------- | ---------------------------------------------------------------- | ------------------------------ | -------------------------------------------------- |
+| P0       | `trade/multipliers/verify-multipliers-no-tpsl.spec.ts`           | Flow 9.1 + 9.2                 | Most popular contract type                         |
+| P0       | `trade/multipliers/verify-multipliers-with-tp.spec.ts`           | Flow 10.1 + 10.2               | TP is the most-used risk control                   |
+| P0       | `trade/accumulators/verify-accumulators.spec.ts`                 | Flow 8.1 + 8.2                 | Top-traffic trade type; without and with TP        |
+| P0       | `trade/matches-differs/verify-matches-differs.spec.ts`           | Flow 5.1 + 5.2                 | Most popular Digit type                            |
+| P1       | `trade/higher-lower/verify-higher-lower.spec.ts`                 | Flow 3.1 + 3.2                 | Core directional type with barrier                 |
+| P1       | `trade/multipliers/verify-multipliers-with-sl.spec.ts`           | Flow 11.1 + 11.2               | SL is a critical risk control path                 |
+| P1       | `trade/turbos/verify-turbos.spec.ts`                             | Flow 13.1 + 13.2 + 13.3 + 13.4 | Unique payout per point param; without and with TP |
+| P1       | `trade/vanillas/verify-vanillas.spec.ts`                         | Flow 14.1 + 14.2               | Unique strike price param                          |
+| P2       | `trade/touch-no-touch/verify-touch-no-touch.spec.ts`             | Flow 4.1 + 4.2                 | Directional with barrier — lower traffic           |
+| P2       | `trade/over-under/verify-over-under.spec.ts`                     | Flow 6.1 + 6.2                 | Secondary Digit type                               |
+| P2       | `trade/even-odd/verify-even-odd.spec.ts`                         | Flow 7.1 + 7.2                 | Secondary Digit type; simplest params              |
+| P2       | `trade/multipliers/verify-multipliers-deal-cancellation.spec.ts` | Flow 12.1 + 12.2               | DC less-used; symbol availability varies           |
+| P2       | `trade/verify-closed-market.spec.ts`                             | Flow 15                        | Important edge case; environment-dependent         |
+| P2       | `trade/verify-insufficient-balance.spec.ts`                      | G1                             | Important error path; needs account state setup    |
+| P3       | `trade/verify-unauthenticated-purchase.spec.ts`                  | G2                             | Edge case — most users are logged in               |
