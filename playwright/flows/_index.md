@@ -5,7 +5,7 @@ This folder contains plain-English journey specifications, coverage scorecards, 
 
 Updated when new flows are added, tests are implemented, or coverage status changes.
 
-Last updated: 2026-06-24
+Last updated: 2026-07-07
 
 ---
 
@@ -41,7 +41,8 @@ Each module section lists every documented flow with its current **status** and 
 | `reports`       | 10          | 10         | 0         |
 | `notifications` | 9           | 9          | 0         |
 | `auth`          | 4           | 4          | 3         |
-| **Total**       | **68**      | **68**     | **6**     |
+| `automation`    | 9           | 9          | 1         |
+| **Total**       | **77**      | **77**     | **7**     |
 
 > Status advances: `documented` → `automated`
 
@@ -160,10 +161,29 @@ Each module section lists every documented flow with its current **status** and 
 
 ---
 
+## Module: `automation` — Automated Trading
+
+**Flow docs:** `playwright/flows/automation/` · **Test folder:** `playwright/tests/automation/`
+
+| Flow   | Priority | Description                                           | User State                                     | Status       |
+| ------ | -------- | ----------------------------------------------------- | ---------------------------------------------- | ------------ |
+| Flow 1 | P0       | Lifecycle — start strategy → Running → Stop           | authenticated, funded real/staging (non-EU)    | `automated`  |
+| Flow 2 | P1       | Pause and Resume a running automation                 | authenticated, funded real/staging (non-EU)    | `documented` |
+| Flow 3 | P1       | Risk threshold auto-stop (loss/profit threshold)      | authenticated, funded real/staging (non-EU)    | `documented` |
+| Flow 4 | P2       | Strategy selection & params (Martingale / D'Alembert) | authenticated, funded real/staging (non-EU)    | `documented` |
+| Flow 5 | P2       | Resync after account switch (stays Running)           | authenticated, funded real/staging, 2 accounts | `documented` |
+| Flow 6 | P1       | Automation panel loads with default state             | authenticated, funded real/staging (non-EU)    | `documented` |
+| Flow 7 | P3       | Automation unavailable for EU account (gating)        | authenticated, EU/DIEL account                 | `documented` |
+| —      | P2       | "Automation already running" adoption snackbar (G1)   | authenticated, run active                      | `documented` |
+| —      | P2       | Validation / unsupported-contract-type error (G2)     | authenticated, funded real/staging (non-EU)    | `documented` |
+
+---
+
 ## Implementation Priority Order
 
 | Priority | Module          | Key Flows to Implement First                                                                         |
 | -------- | --------------- | ---------------------------------------------------------------------------------------------------- |
+| **Now**  | `automation`    | Flow 1 (start → Running → Stop lifecycle) first; then Flow 6 (panel loads) + Flow 2 (pause/resume)   |
 | **Next** | `trade`         | Flow 6.1/6.2 (Matches/Differs) + Flow 9.1/9.2 (Accumulators) + Flow 10.1/10.2 (Multipliers no TP/SL) |
 | **Next** | `positions`     | Flow 1 (open positions mobile), Flow 2 (desktop flyout)                                              |
 | **Next** | `reports`       | Flow 1 (page load), Flow 5 (Trade Table), Flow 6 (Statement)                                         |
@@ -193,3 +213,4 @@ AI will read all `coverage.md` files and `playwright/tests/` spec files, compute
 | reports       | [flow](reports/flow.md)       | [catalog](reports/catalog.md)       | [coverage](reports/coverage.md)       |
 | notifications | [flow](notifications/flow.md) | [catalog](notifications/catalog.md) | [coverage](notifications/coverage.md) |
 | auth          | [flow](auth/flow.md)          | [catalog](auth/catalog.md)          | [coverage](auth/coverage.md)          |
+| automation    | [flow](automation/flow.md)    | [catalog](automation/catalog.md)    | [coverage](automation/coverage.md)    |

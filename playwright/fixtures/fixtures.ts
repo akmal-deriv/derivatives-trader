@@ -8,6 +8,7 @@ import { TradeRiseFallPage } from '../pages/TradeRiseFallPage';
 import { TradeHigherLowerPage } from '../pages/TradeHigherLowerPage';
 import { TradeTouchNoTouchPage } from '../pages/TradeTouchNoTouchPage';
 import { TradeMultipliersPage } from '../pages/TradeMultipliersPage';
+import { TradeAutomationPage } from '../pages/TradeAutomationPage';
 import { PositionsPage } from '../pages/PositionsPage';
 import { ReportsPage } from '../pages/ReportsPage';
 import { ContractDetailsPage } from '../pages/ContractDetailsPage';
@@ -65,6 +66,7 @@ export const test = base.extend<{
     tradeHigherLowerPage: TradeHigherLowerPage;
     tradeTouchNoTouchPage: TradeTouchNoTouchPage;
     tradeMultipliersPage: TradeMultipliersPage;
+    tradeAutomationPage: TradeAutomationPage;
     positionsPage: PositionsPage;
     reportsPage: ReportsPage;
     contractDetailsPage: ContractDetailsPage;
@@ -136,6 +138,13 @@ export const test = base.extend<{
      */
     tradeMultipliersPage: async ({ page }, use) => {
         await use(new TradeMultipliersPage(page));
+    },
+
+    /**
+     * Trade Automation page fixture — provides initialized TradeAutomationPage instance
+     */
+    tradeAutomationPage: async ({ page }, use) => {
+        await use(new TradeAutomationPage(page));
     },
 
     /**
