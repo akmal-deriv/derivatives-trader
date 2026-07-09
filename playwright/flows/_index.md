@@ -41,8 +41,8 @@ Each module section lists every documented flow with its current **status** and 
 | `reports`       | 10          | 10         | 0         |
 | `notifications` | 9           | 9          | 0         |
 | `auth`          | 4           | 4          | 3         |
-| `automation`    | 9           | 9          | 1         |
-| **Total**       | **77**      | **77**     | **7**     |
+| `automation`    | 9           | 9          | 3         |
+| **Total**       | **77**      | **77**     | **9**     |
 
 > Status advances: `documented` → `automated`
 
@@ -168,11 +168,11 @@ Each module section lists every documented flow with its current **status** and 
 | Flow   | Priority | Description                                           | User State                                     | Status       |
 | ------ | -------- | ----------------------------------------------------- | ---------------------------------------------- | ------------ |
 | Flow 1 | P0       | Lifecycle — start strategy → Running → Stop           | authenticated, funded real/staging (non-EU)    | `automated`  |
-| Flow 2 | P1       | Pause and Resume a running automation                 | authenticated, funded real/staging (non-EU)    | `documented` |
+| Flow 2 | P1       | Pause and Resume a running automation                 | authenticated, funded real/staging (non-EU)    | `automated`  |
 | Flow 3 | P1       | Risk threshold auto-stop (loss/profit threshold)      | authenticated, funded real/staging (non-EU)    | `documented` |
 | Flow 4 | P2       | Strategy selection & params (Martingale / D'Alembert) | authenticated, funded real/staging (non-EU)    | `documented` |
 | Flow 5 | P2       | Resync after account switch (stays Running)           | authenticated, funded real/staging, 2 accounts | `documented` |
-| Flow 6 | P1       | Automation panel loads with default state             | authenticated, funded real/staging (non-EU)    | `documented` |
+| Flow 6 | P1       | Automation panel loads with default state             | authenticated, funded real/staging (non-EU)    | `automated`  |
 | Flow 7 | P3       | Automation unavailable for EU account (gating)        | authenticated, EU/DIEL account                 | `documented` |
 | —      | P2       | "Automation already running" adoption snackbar (G1)   | authenticated, run active                      | `documented` |
 | —      | P2       | Validation / unsupported-contract-type error (G2)     | authenticated, funded real/staging (non-EU)    | `documented` |

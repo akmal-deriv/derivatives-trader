@@ -159,6 +159,28 @@ export class TradeAutomationPage extends TradeParametersPage {
         });
     }
 
+    /**
+     * Pause the active run (click the Pause button).
+     *
+     * @returns Promise that resolves once the Pause button has been clicked.
+     */
+    async pauseRun(): Promise<void> {
+        await expect(this.pauseButton, 'Pause button should be visible while running').toBeVisible();
+        await expect(this.pauseButton, 'Pause button should be enabled before pausing').toBeEnabled();
+        await this.pauseButton.click();
+    }
+
+    /**
+     * Resume a paused run (click the Resume button).
+     *
+     * @returns Promise that resolves once the Resume button has been clicked.
+     */
+    async resumeRun(): Promise<void> {
+        await expect(this.resumeButton, 'Resume button should be visible while paused').toBeVisible();
+        await expect(this.resumeButton, 'Resume button should be enabled before resuming').toBeEnabled();
+        await this.resumeButton.click();
+    }
+
     // ============================================
     // VERIFICATIONS
     // ============================================
@@ -190,6 +212,19 @@ export class TradeAutomationPage extends TradeParametersPage {
         await expect(this.pauseButton, 'Pause button should be visible while running').toBeVisible();
         await expect(this.stopButton, 'Stop button should be visible while running').toBeVisible();
         await expect(this.automationStats, 'Contracts / P/L stats line should be visible while running').toBeVisible();
+    }
+
+    /**
+     * Verify the run is paused — "Status: Paused" and both the Resume and Stop buttons are shown.
+     *
+     * @returns Promise that resolves once the paused state is confirmed.
+     */
+    async verifyPaused(): Promise<void> {
+        await expect(this.statusPaused, 'Status should become "Paused" after pausing').toBeVisible({
+            timeout: 30_000,
+        });
+        await expect(this.resumeButton, 'Resume button should be visible while paused').toBeVisible();
+        await expect(this.stopButton, 'Stop button should be visible while paused').toBeVisible();
     }
 
     /**
