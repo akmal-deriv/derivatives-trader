@@ -4,17 +4,19 @@ import { TTicksStreamResponse } from '@deriv/api';
 import {
     ChartBarrierStore,
     getSymbolDisplayName,
+    getViewMarketsFromURL,
     isAccumulatorContract,
     isContractSupportedAndStarted,
     isTurbosContract,
     isVanillaContract,
+    removeViewMarketsFromURL,
     TRADE_TYPES,
 } from '@deriv/shared';
 import { observer, useStore } from '@deriv/stores';
 import { useDevice } from '@deriv-com/ui';
 
-import { filterByContractType } from 'Modules/Contract/Components/ContractAudit/positions-helper';
 import useActiveSymbols from 'AppV2/Hooks/useActiveSymbols';
+import { filterByContractType } from 'Modules/Contract/Components/ContractAudit/positions-helper';
 import { SmartChart } from 'Modules/SmartChart';
 import AccumulatorsChartElements from 'Modules/SmartChart/Components/Markers/accumulators-chart-elements';
 import ToolbarWidgets from 'Modules/SmartChart/Components/toolbar-widgets';
@@ -99,6 +101,15 @@ const TradeChart = observer(() => {
     const is_accumulator = isAccumulatorContract(contract_type);
     const timeoutsMapRef = React.useRef<Map<number, NodeJS.Timeout>>(new Map());
 
+    // On desktop the chart's native market selector (ChartTitle) is used, so we open it here when
+    // Deriv Home's "View all markets" entry sets `view_markets=true`. On mobile the custom MarketSelector
+    // handles this instead, so we skip it to avoid consuming the one-time param before MarketSelector reads it.
+    // Read from the URL on first render so `open` is already true when ChartTitle mounts.
+    const [should_open_market_selector] = React.useState(() => !isMobile && getViewMarketsFromURL());
+    React.useEffect(() => {
+        if (should_open_market_selector) removeViewMarketsFromURL();
+    }, [should_open_market_selector]);
+
     // Memoize settings object to prevent chart re-initialization
     const settings = React.useMemo(
         () => ({
@@ -129,8 +140,13 @@ const TradeChart = observer(() => {
     const { current_spot, current_spot_time } = accumulator_barriers_data || {};
 
     const topWidgets = React.useCallback(
-        () => <TopWidgets onSymbolChange={symbol => onChange({ target: { name: 'symbol', value: symbol } })} />,
-        [onChange]
+        () => (
+            <TopWidgets
+                open={should_open_market_selector}
+                onSymbolChange={symbol => onChange({ target: { name: 'symbol', value: symbol } })}
+            />
+        ),
+        [onChange, should_open_market_selector]
     );
 
     // Use centralized SmartCharts adapter hook

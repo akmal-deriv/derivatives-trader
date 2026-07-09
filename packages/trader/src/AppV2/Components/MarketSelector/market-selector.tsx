@@ -1,13 +1,21 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+
 import { LabelPairedChevronDownMdRegularIcon } from '@deriv/quill-icons';
-import { getMarketNamesMap, getSymbolDisplayName } from '@deriv/shared';
+import {
+    getMarketNamesMap,
+    getSymbolDisplayName,
+    getViewMarketsFromURL,
+    removeViewMarketsFromURL,
+} from '@deriv/shared';
 import { observer } from '@deriv/stores';
-import { Localize } from '@deriv-com/translations';
 import { CaptionText, Skeleton, Tag, Text, useSnackbar } from '@deriv-com/quill-ui';
+import { Localize } from '@deriv-com/translations';
+
 import useActiveSymbols from 'AppV2/Hooks/useActiveSymbols';
 import useContractsFor from 'AppV2/Hooks/useContractsFor';
 import { TContractType } from 'AppV2/Types/contract-type';
 import { useTraderStore } from 'Stores/useTraderStores';
+
 import ActiveSymbolsList from '../ActiveSymbolsList';
 import SymbolIconsMapper from '../SymbolIconsMapper/symbol-icons-mapper';
 
@@ -21,6 +29,15 @@ const MarketSelector = observer(() => {
     const currentSymbol = activeSymbols.find(symbol_info => symbol_info.underlying_symbol === storeSymbol);
 
     const contract_name = trade_types?.find((item: TContractType) => item.value === contract_type)?.text;
+
+    // Open the market selector on load when Deriv Home's "View all markets" entry sets `view_markets=true`.
+    // The selected market itself is handled by the existing `symbol` URL param, so we only open the sheet here.
+    useEffect(() => {
+        if (getViewMarketsFromURL()) {
+            setIsOpen(true);
+            removeViewMarketsFromURL();
+        }
+    }, []);
 
     useEffect(() => {
         if (!currentSymbol && !isLoading) {

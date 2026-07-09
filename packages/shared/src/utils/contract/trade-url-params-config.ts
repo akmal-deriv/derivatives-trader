@@ -24,6 +24,7 @@ const TRADE_URL_PARAMS = {
     INTERVAL: 'interval',
     SYMBOL: 'symbol',
     TRADE_TYPE: 'trade_type',
+    VIEW_MARKETS: 'view_markets',
 };
 
 const tradeURLParamsConfig: TTradeURLParamsConfig = {
@@ -85,6 +86,28 @@ export const getTradeURLParams = ({ active_symbols = [], contract_types_list = {
             result.showModal = true;
     }
     return result;
+};
+
+/**
+ * Reads the one-time `view_markets=true` param used by Deriv Home's "View all markets"
+ * entry point to request that DTrader opens the market selector on load.
+ */
+export const getViewMarketsFromURL = () => {
+    const searchParams = new URLSearchParams(window.location.search);
+    return searchParams.get(TRADE_URL_PARAMS.VIEW_MARKETS) === 'true';
+};
+
+/**
+ * Removes the one-time `view_markets` param from the URL after it has been consumed.
+ * It is not persisted anywhere, so it should never survive a reload.
+ */
+export const removeViewMarketsFromURL = () => {
+    const searchParams = new URLSearchParams(window.location.search);
+    if (!searchParams.has(TRADE_URL_PARAMS.VIEW_MARKETS)) return;
+    searchParams.delete(TRADE_URL_PARAMS.VIEW_MARKETS);
+    const query = searchParams.toString();
+    const newUrl = query ? `${window.location.pathname}?${query}` : window.location.pathname;
+    window.history.replaceState({}, document.title, newUrl);
 };
 
 export const setTradeURLParams = ({ contractType, symbol, chartType, granularity }: TTradeUrlParams) => {

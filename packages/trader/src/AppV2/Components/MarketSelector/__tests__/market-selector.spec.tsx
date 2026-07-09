@@ -5,6 +5,7 @@ import { TCoreStores } from '@deriv/stores/types';
 import { render, screen } from '@testing-library/react';
 
 import TraderProviders from '../../../../trader-providers';
+import ActiveSymbolsList from '../../ActiveSymbolsList';
 import MarketSelector from '../market-selector';
 
 // Mock the WS object from @deriv/shared
@@ -125,5 +126,34 @@ describe('MarketSelector', () => {
         render(MockedMarketSelector());
 
         expect(screen.getByText('-')).toBeInTheDocument();
+    });
+
+    describe('view_markets URL param', () => {
+        const mocked_active_symbols_list = ActiveSymbolsList as unknown as jest.Mock;
+
+        afterEach(() => {
+            window.history.replaceState({}, document.title, '/');
+        });
+
+        it('opens the market selector on load when view_markets=true is in the URL', () => {
+            mocked_active_symbols_list.mockClear();
+            window.history.pushState({}, document.title, '/?view_markets=true');
+
+            render(MockedMarketSelector());
+
+            const opened_with_true = mocked_active_symbols_list.mock.calls.some(([props]) => props.isOpen);
+            expect(opened_with_true).toBe(true);
+            // one-time param must be stripped from the URL after being consumed
+            expect(window.location.search).toBe('');
+        });
+
+        it('does not open the market selector on load when view_markets is absent', () => {
+            mocked_active_symbols_list.mockClear();
+
+            render(MockedMarketSelector());
+
+            const opened_with_true = mocked_active_symbols_list.mock.calls.some(([props]) => props.isOpen);
+            expect(opened_with_true).toBe(false);
+        });
     });
 });

@@ -2,7 +2,12 @@ import { TActiveSymbolsResponse } from '@deriv/api';
 
 import { routes } from '../../routes';
 import { TRADE_TYPES } from '../contract';
-import { getTradeURLParams, setTradeURLParams } from '../trade-url-params-config';
+import {
+    getTradeURLParams,
+    getViewMarketsFromURL,
+    removeViewMarketsFromURL,
+    setTradeURLParams,
+} from '../trade-url-params-config';
 
 // Mock window.location and window.history
 const mockLocation = {
@@ -741,5 +746,89 @@ describe('setTradeURLParams', () => {
 
             expect(mockHistory.replaceState).not.toHaveBeenCalled();
         });
+    });
+});
+
+describe('getViewMarketsFromURL', () => {
+    const setSearch = (search: string) => {
+        Object.defineProperty(window, 'location', {
+            configurable: true,
+            enumerable: true,
+            value: { ...mockLocation, search },
+        });
+    };
+
+    it('should return true when view_markets=true is present', () => {
+        setSearch('?view_markets=true');
+
+        expect(getViewMarketsFromURL()).toBe(true);
+    });
+
+    it('should return true when view_markets=true is combined with other params', () => {
+        setSearch('?symbol=R_100&view_markets=true');
+
+        expect(getViewMarketsFromURL()).toBe(true);
+    });
+
+    it('should return false when view_markets is not present', () => {
+        setSearch('?symbol=R_100');
+
+        expect(getViewMarketsFromURL()).toBe(false);
+    });
+
+    it('should return false when view_markets has a non-true value', () => {
+        setSearch('?view_markets=false');
+
+        expect(getViewMarketsFromURL()).toBe(false);
+    });
+
+    it('should return false when there are no query params', () => {
+        setSearch('');
+
+        expect(getViewMarketsFromURL()).toBe(false);
+    });
+});
+
+describe('removeViewMarketsFromURL', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+
+        Object.defineProperty(window, 'history', {
+            configurable: true,
+            enumerable: true,
+            value: mockHistory,
+        });
+    });
+
+    const setSearch = (search: string) => {
+        Object.defineProperty(window, 'location', {
+            configurable: true,
+            enumerable: true,
+            value: { ...mockLocation, search },
+        });
+    };
+
+    it('should remove view_markets and keep other params', () => {
+        setSearch('?symbol=R_100&view_markets=true');
+
+        removeViewMarketsFromURL();
+
+        expect(mockHistory.replaceState).toHaveBeenCalledWith({}, document.title, `${routes.index}?symbol=R_100`);
+    });
+
+    it('should drop the query string entirely when view_markets is the only param', () => {
+        setSearch('?view_markets=true');
+
+        removeViewMarketsFromURL();
+
+        expect(mockHistory.replaceState).toHaveBeenCalledWith({}, document.title, routes.index);
+    });
+
+    it('should not call replaceState when view_markets is absent', () => {
+        setSearch('?symbol=R_100');
+
+        removeViewMarketsFromURL();
+
+        expect(mockHistory.replaceState).not.toHaveBeenCalled();
     });
 });
