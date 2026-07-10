@@ -1,6 +1,6 @@
 # Trade Journey Coverage
 
-**Analysis date:** 2026-07-07
+**Analysis date:** 2026-07-09
 
 ---
 
@@ -17,12 +17,12 @@
 | Flow 3.2  | Higher/Lower — buy Lower → close                       | ✅      | ✅     |       |
 | Flow 4.1  | Touch/No Touch — buy Touch → close                     | ✅      | ✅     |       |
 | Flow 4.2  | Touch/No Touch — buy No Touch → close                  | ✅      | ✅     |       |
-| Flow 5.1  | Matches/Differs — buy Matches → expiry                 | ❌      | ❌     |       |
-| Flow 5.2  | Matches/Differs — buy Differs → expiry                 | ❌      | ❌     |       |
-| Flow 6.1  | Over/Under — buy Over → expiry                         | ❌      | ❌     |       |
-| Flow 6.2  | Over/Under — buy Under → expiry                        | ❌      | ❌     |       |
-| Flow 7.1  | Even/Odd — buy Even → expiry                           | ❌      | ❌     |       |
-| Flow 7.2  | Even/Odd — buy Odd → expiry                            | ❌      | ❌     |       |
+| Flow 5.1  | Matches/Differs — buy Matches → expiry                 | ✅      | ✅     |       |
+| Flow 5.2  | Matches/Differs — buy Differs → expiry                 | ✅      | ✅     |       |
+| Flow 6.1  | Over/Under — buy Over → expiry                         | ✅      | ✅     |       |
+| Flow 6.2  | Over/Under — buy Under → expiry                        | ✅      | ✅     |       |
+| Flow 7.1  | Even/Odd — buy Even → expiry                           | ✅      | ✅     |       |
+| Flow 7.2  | Even/Odd — buy Odd → expiry                            | ✅      | ✅     |       |
 | Flow 8.1  | Accumulators without TP — buy → close                  | ❌      | ❌     |       |
 | Flow 8.2  | Accumulators with TP — buy → verify TP set → close     | ❌      | ❌     |       |
 | Flow 9.1  | Multipliers no TP/SL — buy Up → close                  | ✅      | ✅     |       |

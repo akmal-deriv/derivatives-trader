@@ -216,6 +216,16 @@ export class TradeParametersPage extends TradeBasePage {
     }
 
     /**
+     * Last digit prediction param — Matches/Differs and Over/Under digit trade types.
+     * Desktop: <CaptionText class="last-digit-prediction__title">Last digit prediction</CaptionText>
+     * Mobile: <label> "Last digit prediction" on the minimized TextField
+     * Source: last-digit-prediction.tsx — the label text is present on both viewports.
+     */
+    get lastDigitPredictionParam(): Locator {
+        return this.page.getByText('Last digit prediction').first();
+    }
+
+    /**
      * Barrier label — Higher/Lower and Touch/No Touch trade types.
      * Desktop: <label>Barrier</label> inside .trade-params__option
      * Mobile: visible "Barrier" text in the bottom sheet
@@ -887,6 +897,34 @@ export class TradeParametersPage extends TradeBasePage {
                 await expect(this.durationLabel, 'Duration param should be visible for Touch/No Touch').toBeVisible();
                 await expect(this.stakeLabel, 'Stake param should be visible for Touch/No Touch').toBeVisible();
                 await expect(this.purchaseButton, 'Buy button should be visible for Touch/No Touch').toBeVisible();
+                break;
+            case 'Matches/Differs':
+                await expect(
+                    this.lastDigitPredictionParam,
+                    'Last digit prediction should be visible for Matches/Differs'
+                ).toBeVisible();
+                await expect(this.durationLabel, 'Duration param should be visible for Matches/Differs').toBeVisible();
+                await expect(this.stakeLabel, 'Stake param should be visible for Matches/Differs').toBeVisible();
+                await expect(this.purchaseButton, 'Buy button should be visible for Matches/Differs').toBeVisible();
+                break;
+            case 'Over/Under':
+                await expect(
+                    this.lastDigitPredictionParam,
+                    'Last digit prediction should be visible for Over/Under'
+                ).toBeVisible();
+                await expect(this.durationLabel, 'Duration param should be visible for Over/Under').toBeVisible();
+                await expect(this.stakeLabel, 'Stake param should be visible for Over/Under').toBeVisible();
+                await expect(this.purchaseButton, 'Buy button should be visible for Over/Under').toBeVisible();
+                break;
+            case 'Even/Odd':
+                // Even/Odd has no last-digit prediction selector — the outcome is even vs odd.
+                await expect(
+                    this.lastDigitPredictionParam,
+                    'Last digit prediction should NOT be visible for Even/Odd'
+                ).not.toBeVisible();
+                await expect(this.durationLabel, 'Duration param should be visible for Even/Odd').toBeVisible();
+                await expect(this.stakeLabel, 'Stake param should be visible for Even/Odd').toBeVisible();
+                await expect(this.purchaseButton, 'Buy button should be visible for Even/Odd').toBeVisible();
                 break;
             // Add cases for Multipliers, Turbos, Vanillas, etc. as they are implemented
         }

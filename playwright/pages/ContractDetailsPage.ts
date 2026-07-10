@@ -773,6 +773,227 @@ export class ContractDetailsPage extends TradeBasePage {
     }
 
     /**
+     * Read the buy Reference ID from the contract details page (open or closed), stripped of the
+     * " (Buy)" suffix. Viewport-aware. Capture this from the OPEN position right after purchase so
+     * later closed-state checks target the same contract (important on shared accounts with history).
+     *
+     * @returns The buy reference ID, e.g. "1071599"
+     */
+    async getBuyReferenceId(): Promise<string> {
+        if (this.isMobile) {
+            const refIdValueCell = this.page
+                .locator('.order-details__table-row', {
+                    has: this.page.locator('.order-details__table-row-cell', { hasText: 'Reference ID' }),
+                })
+                .locator('.order-details__table-row-cell')
+                .last();
+            const buyRefIdParagraph = refIdValueCell.locator('p').filter({ hasText: '(Buy)' });
+            await expect(
+                buyRefIdParagraph,
+                'Buy Reference ID should be visible on the contract details page'
+            ).toBeVisible();
+            return (await buyRefIdParagraph.innerText()).trim().replace(' (Buy)', '');
+        }
+        await expect(
+            this.contractDetailsReferenceID,
+            'Buy Reference ID should be visible on the contract details page'
+        ).toBeVisible();
+        return (await this.contractDetailsReferenceID.innerText()).trim().replace(' (Buy)', '');
+    }
+
+    /**
+     * Wait, on the contract details page of the currently-open contract, for it to settle in place.
+     * Settlement is detected by the Sell reference ID appearing in the audit grid. Use for short
+     * (tick-duration) contracts so the SAME contract is verified after it auto-expires.
+     */
+    async waitForContractSettled(): Promise<void> {
+        if (this.isMobile) {
+            const sellRefIdParagraph = this.page
+                .locator('.order-details__table-row', {
+                    has: this.page.locator('.order-details__table-row-cell', { hasText: 'Reference ID' }),
+                })
+                .locator('.order-details__table-row-cell')
+                .last()
+                .locator('p')
+                .filter({ hasText: '(Sell)' });
+            await expect(
+                sellRefIdParagraph,
+                'Contract should settle in place (Sell reference ID should appear)'
+            ).toBeVisible({ timeout: 60_000 });
+            return;
+        }
+        await expect(
+            this.contractDetailsReferenceIDSell,
+            'Contract should settle in place (Sell reference ID should appear)'
+        ).not.toBeEmpty({ timeout: 60_000 });
+    }
+
+    /**
+     * Verify the settled (closed) details page for a digit contract (Matches/Differs, Over/Under, Even/Odd).
+     *
+     * Digit contracts render a different audit grid than directional contracts: there is **no Entry spot**
+     * and **no Barrier** — instead a **Target** row (`dt_bt_label`) shows the prediction, e.g. "Equals 5"
+     * (Matches), "Over 5"/"Under 5" (Over/Under), or "Even"/"Odd" (Even/Odd). Everything else (Reference
+     * IDs, Duration, Start time, Exit spot, Exit time) matches.
+     *
+     * @param market           - Market symbol, e.g. "Volatility 10 Index"
+     * @param tradeType        - Contract type name, e.g. "Matches", "Over", "Even"
+     * @param currency         - Currency badge, e.g. "USD"
+     * @param stake            - Stake as displayed, e.g. "10.00"
+     * @param payout           - Potential payout as displayed
+     * @param buyId            - Buy reference ID to assert (read via {@link getBuyReferenceId})
+     * @param durationValue    - Ticks duration, e.g. "5 ticks"
+     * @param buyDate          - UTC date captured before buy, e.g. "2026-07-09"
+     * @param profitLossAmount - Settled profit/loss from the Closed positions tab, e.g. "-10.00 USD"
+     * @param targetText       - Substring the Target row must contain — the digit ("5") for digit-prediction
+     *                           types, or the outcome ("Even"/"Odd") for Even/Odd
+     * @returns The extracted sell reference ID
+     */
+    async verifyClosedDigitContractDetailsPage(
+        market: string,
+        tradeType: string,
+        currency: string,
+        stake: string,
+        payout: string,
+        buyId: string,
+        durationValue: string,
+        buyDate: string,
+        profitLossAmount: string,
+        targetText: string
+    ): Promise<string> {
+        const auditDuration = this.normaliseDurationForAudit(durationValue);
+        const profitLossNumeric = profitLossAmount
+            .replace(/^[+-]/, '')
+            .replace(/\s+[A-Z]+$/, '')
+            .trim();
+
+        // Header
+        await expect(
+            this.contractDetailsHeaderTitle,
+            'Contract details header title should be "Contract details"'
+        ).toHaveText('Contract details');
+
+        if (this.isMobile) {
+            // Contract card
+            await expect(this.mobileContractMarket, `Closed contract card should show market "${market}"`).toHaveText(
+                market
+            );
+            await expect(
+                this.mobileContractTradeType,
+                `Closed contract card should show trade type "${tradeType}"`
+            ).toHaveText(tradeType);
+            await expect(this.mobileContractProfit, 'Closed contract profit/loss should have a value').not.toBeEmpty();
+
+            // Reference ID row — buy + sell paragraphs in the same value cell
+            const refIdValueCell = this.page
+                .locator('.order-details__table-row', {
+                    has: this.page.locator('.order-details__table-row-cell', { hasText: 'Reference ID' }),
+                })
+                .locator('.order-details__table-row-cell')
+                .last();
+            const buyRefIdParagraph = refIdValueCell.locator('p').filter({ hasText: '(Buy)' });
+            const sellRefIdParagraph = refIdValueCell.locator('p').filter({ hasText: '(Sell)' });
+            await expect(buyRefIdParagraph, `Buy Reference ID should contain "${buyId} (Buy)"`).toContainText(
+                `${buyId} (Buy)`
+            );
+            await expect(sellRefIdParagraph, 'Sell Reference ID should have a value').toContainText('(Sell)');
+            const sellId = (await sellRefIdParagraph.innerText()).trim().replace(' (Sell)', '');
+
+            // Order details
+            await expect(this.mobileOrderDetailsValue('Duration'), `Duration should be "${auditDuration}"`).toHaveText(
+                auditDuration
+            );
+            await expect(this.mobileOrderDetailsValue('Target'), `Target should contain "${targetText}"`).toContainText(
+                targetText
+            );
+            await expect(this.mobileOrderDetailsValue('Stake'), `Stake should contain "${stake}"`).toContainText(stake);
+            // parseFloat strips trailing zeros ("19.20" → "19.2") to match how the app renders the payout,
+            // consistent with the open-contract mobile path above.
+            await expect(
+                this.mobileOrderDetailsValue('Potential payout'),
+                `Potential payout should contain "${payout}"`
+            ).toContainText(parseFloat(payout).toString());
+
+            // Close button should be gone on a settled contract
+            await expect(
+                this.mobileContractDetailsCloseButton,
+                'Close button should not be visible on a closed contract'
+            ).not.toBeVisible();
+
+            return sellId;
+        }
+
+        // Desktop — contract card summary
+        await expect(this.contractDetailsMarket, `Contract card symbol should be "${market}"`).toHaveText(market);
+        await expect(this.contractDetailsTradeType, `Contract card type should be "${tradeType}"`).toContainText(
+            tradeType
+        );
+        await expect(this.contractDetailsCurrency, `Contract card currency should be "${currency}"`).toHaveText(
+            currency
+        );
+        await expect(
+            this.contractDetailsRemainingTime,
+            'Remaining time should not be visible on a closed contract'
+        ).not.toBeVisible();
+        await expect(
+            this.contractCardItem('Total profit/loss:'),
+            `Total profit/loss should contain "${profitLossNumeric}"`
+        ).toContainText(profitLossNumeric);
+        const expectedContractValue = this.calculateClosedContractValue(stake, profitLossAmount);
+        await expect(
+            this.contractCardItem('Contract value:'),
+            `Contract value should be "${expectedContractValue}"`
+        ).toHaveText(expectedContractValue);
+        await expect(this.contractCardItem('Stake:'), `Stake should be "${stake}"`).toHaveText(stake);
+        await expect(this.contractCardItem('Potential payout:'), `Potential payout should be "${payout}"`).toHaveText(
+            payout
+        );
+        await expect(
+            this.contractDetailsSellButton,
+            'Sell button should not be visible on a closed contract'
+        ).not.toBeVisible();
+
+        // Reference IDs
+        await expect(this.contractDetailsReferenceIDLabel, 'Reference ID label should be "Reference ID"').toHaveText(
+            'Reference ID'
+        );
+        await expect(this.contractDetailsReferenceID, `Buy reference ID should be "${buyId} (Buy)"`).toHaveText(
+            `${buyId} (Buy)`
+        );
+        await expect(this.contractDetailsReferenceIDSell, 'Sell reference ID should have a value').not.toBeEmpty();
+        const sellId = (await this.contractDetailsReferenceIDSell.innerText()).trim().replace(' (Sell)', '');
+
+        // Duration
+        await expect(this.contractDetailsDurationLabel, 'Duration label should be "Duration"').toHaveText('Duration');
+        await expect(this.contractDetailsDuration, `Duration should be "${auditDuration}"`).toHaveText(auditDuration);
+
+        // Target (digit prediction) — reuses the barrier audit row (dt_bt_label) with a "Target" label
+        await expect(this.contractDetailsBarrierLabel, 'Target label should be "Target"').toHaveText('Target');
+        await expect(this.contractDetailsBarrier, `Target should contain "${targetText}"`).toContainText(targetText);
+
+        // Start time
+        await expect(this.contractDetailsStartTimeLabel, 'Start time label should be "Start time"').toHaveText(
+            'Start time'
+        );
+        await expect(this.contractDetailsStartTime, `Start time should contain "${buyDate}"`).toContainText(buyDate);
+
+        // Exit spot + Exit time (digit contracts have no Entry spot)
+        await expect(this.contractDetailsExitSpotLabel, 'Exit spot label should be "Exit spot"').toHaveText(
+            'Exit spot'
+        );
+        await expect(this.contractDetailsExitSpot, 'Exit spot price should have a value').not.toBeEmpty();
+        await expect(this.contractDetailsExitSpotTime, `Exit spot time should contain "${buyDate}"`).toContainText(
+            buyDate
+        );
+        await expect(this.contractDetailsExitTimeLabel, 'Exit time label should be "Exit time"').toHaveText(
+            'Exit time'
+        );
+        await expect(this.contractDetailsExitTime, `Exit time should contain "${buyDate}"`).toContainText(buyDate);
+
+        return sellId;
+    }
+
+    /**
      * Verify the contract details page for a closed contract.
      * Delegates to the mobile or desktop implementation based on the current viewport.
      *

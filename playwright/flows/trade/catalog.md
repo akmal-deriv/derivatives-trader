@@ -7,42 +7,42 @@
 
 ## Section 1 — Journey Index
 
-| Journey ID | Spec File                                            | Tags                             |
-| ---------- | ---------------------------------------------------- | -------------------------------- |
-| Flow 1     | `trade/verify-trade-form-loads.spec.ts`              | `@trade @smoke @desktop @mobile` |
-| Flow 2.1   | `trade/verify-rise-fall.spec.ts`                     | `@trade @smoke @desktop @mobile` |
-| Flow 2.2   | `trade/verify-rise-fall.spec.ts`                     | `@trade @smoke @desktop @mobile` |
-| Flow 2.3   | `trade/rise-fall/verify-rise-fall.spec.ts`           | `@trade @smoke @desktop @mobile` |
-| Flow 2.4   | `trade/rise-fall/verify-rise-fall.spec.ts`           | `@trade @smoke @desktop @mobile` |
-| Flow 3.1   | `trade/higher-lower/verify-higher-lower.spec.ts`     | `@trade @desktop @mobile`        |
-| Flow 3.2   | `trade/higher-lower/verify-higher-lower.spec.ts`     | `@trade @desktop @mobile`        |
-| Flow 4.1   | `trade/touch-no-touch/verify-touch-no-touch.spec.ts` | `@trade @desktop @mobile`        |
-| Flow 4.2   | `trade/touch-no-touch/verify-touch-no-touch.spec.ts` | `@trade @desktop @mobile`        |
-| Flow 5.1   | `trade/verify-matches-differs.spec.ts`               | `@trade @smoke @desktop @mobile` |
-| Flow 5.2   | `trade/verify-matches-differs.spec.ts`               | `@trade @smoke @desktop @mobile` |
-| Flow 6.1   | `trade/verify-over-under.spec.ts`                    | `@trade @desktop @mobile`        |
-| Flow 6.2   | `trade/verify-over-under.spec.ts`                    | `@trade @desktop @mobile`        |
-| Flow 7.1   | `trade/verify-even-odd.spec.ts`                      | `@trade @desktop @mobile`        |
-| Flow 7.2   | `trade/verify-even-odd.spec.ts`                      | `@trade @desktop @mobile`        |
-| Flow 8.1   | `trade/verify-accumulators.spec.ts`                  | `@trade @smoke @desktop @mobile` |
-| Flow 8.2   | `trade/verify-accumulators.spec.ts`                  | `@trade @smoke @desktop @mobile` |
-| Flow 9.1   | `trade/verify-multipliers-no-tpsl.spec.ts`           | `@trade @smoke @desktop @mobile` |
-| Flow 9.2   | `trade/verify-multipliers-no-tpsl.spec.ts`           | `@trade @smoke @desktop @mobile` |
-| Flow 10.1  | `trade/verify-multipliers-with-tp.spec.ts`           | `@trade @smoke @desktop @mobile` |
-| Flow 10.2  | `trade/verify-multipliers-with-tp.spec.ts`           | `@trade @smoke @desktop @mobile` |
-| Flow 11.1  | `trade/verify-multipliers-with-sl.spec.ts`           | `@trade @desktop @mobile`        |
-| Flow 11.2  | `trade/verify-multipliers-with-sl.spec.ts`           | `@trade @desktop @mobile`        |
-| Flow 12.1  | `trade/verify-multipliers-deal-cancellation.spec.ts` | `@trade @desktop @mobile`        |
-| Flow 12.2  | `trade/verify-multipliers-deal-cancellation.spec.ts` | `@trade @desktop @mobile`        |
-| Flow 13.1  | `trade/verify-turbos.spec.ts`                        | `@trade @desktop @mobile`        |
-| Flow 13.2  | `trade/verify-turbos.spec.ts`                        | `@trade @desktop @mobile`        |
-| Flow 13.3  | `trade/verify-turbos.spec.ts`                        | `@trade @desktop @mobile`        |
-| Flow 13.4  | `trade/verify-turbos.spec.ts`                        | `@trade @desktop @mobile`        |
-| Flow 14.1  | `trade/verify-vanillas.spec.ts`                      | `@trade @desktop @mobile`        |
-| Flow 14.2  | `trade/verify-vanillas.spec.ts`                      | `@trade @desktop @mobile`        |
-| Flow 15    | `trade/verify-closed-market.spec.ts`                 | `@trade @desktop @mobile`        |
-| G1         | `trade/verify-insufficient-balance.spec.ts`          | `@trade`                         |
-| G2         | `trade/verify-unauthenticated-purchase.spec.ts`      | `@trade`                         |
+| Journey ID | Spec File                                              | Tags                             |
+| ---------- | ------------------------------------------------------ | -------------------------------- |
+| Flow 1     | `trade/verify-trade-form-loads.spec.ts`                | `@trade @smoke @desktop @mobile` |
+| Flow 2.1   | `trade/verify-rise-fall.spec.ts`                       | `@trade @smoke @desktop @mobile` |
+| Flow 2.2   | `trade/verify-rise-fall.spec.ts`                       | `@trade @smoke @desktop @mobile` |
+| Flow 2.3   | `trade/rise-fall/verify-rise-fall.spec.ts`             | `@trade @smoke @desktop @mobile` |
+| Flow 2.4   | `trade/rise-fall/verify-rise-fall.spec.ts`             | `@trade @smoke @desktop @mobile` |
+| Flow 3.1   | `trade/higher-lower/verify-higher-lower.spec.ts`       | `@trade @desktop @mobile`        |
+| Flow 3.2   | `trade/higher-lower/verify-higher-lower.spec.ts`       | `@trade @desktop @mobile`        |
+| Flow 4.1   | `trade/touch-no-touch/verify-touch-no-touch.spec.ts`   | `@trade @desktop @mobile`        |
+| Flow 4.2   | `trade/touch-no-touch/verify-touch-no-touch.spec.ts`   | `@trade @desktop @mobile`        |
+| Flow 5.1   | `trade/matches-differs/verify-matches-differs.spec.ts` | `@trade @smoke @desktop @mobile` |
+| Flow 5.2   | `trade/matches-differs/verify-matches-differs.spec.ts` | `@trade @smoke @desktop @mobile` |
+| Flow 6.1   | `trade/over-under/verify-over-under.spec.ts`           | `@trade @desktop @mobile`        |
+| Flow 6.2   | `trade/over-under/verify-over-under.spec.ts`           | `@trade @desktop @mobile`        |
+| Flow 7.1   | `trade/even-odd/verify-even-odd.spec.ts`               | `@trade @desktop @mobile`        |
+| Flow 7.2   | `trade/even-odd/verify-even-odd.spec.ts`               | `@trade @desktop @mobile`        |
+| Flow 8.1   | `trade/verify-accumulators.spec.ts`                    | `@trade @smoke @desktop @mobile` |
+| Flow 8.2   | `trade/verify-accumulators.spec.ts`                    | `@trade @smoke @desktop @mobile` |
+| Flow 9.1   | `trade/verify-multipliers-no-tpsl.spec.ts`             | `@trade @smoke @desktop @mobile` |
+| Flow 9.2   | `trade/verify-multipliers-no-tpsl.spec.ts`             | `@trade @smoke @desktop @mobile` |
+| Flow 10.1  | `trade/verify-multipliers-with-tp.spec.ts`             | `@trade @smoke @desktop @mobile` |
+| Flow 10.2  | `trade/verify-multipliers-with-tp.spec.ts`             | `@trade @smoke @desktop @mobile` |
+| Flow 11.1  | `trade/verify-multipliers-with-sl.spec.ts`             | `@trade @desktop @mobile`        |
+| Flow 11.2  | `trade/verify-multipliers-with-sl.spec.ts`             | `@trade @desktop @mobile`        |
+| Flow 12.1  | `trade/verify-multipliers-deal-cancellation.spec.ts`   | `@trade @desktop @mobile`        |
+| Flow 12.2  | `trade/verify-multipliers-deal-cancellation.spec.ts`   | `@trade @desktop @mobile`        |
+| Flow 13.1  | `trade/verify-turbos.spec.ts`                          | `@trade @desktop @mobile`        |
+| Flow 13.2  | `trade/verify-turbos.spec.ts`                          | `@trade @desktop @mobile`        |
+| Flow 13.3  | `trade/verify-turbos.spec.ts`                          | `@trade @desktop @mobile`        |
+| Flow 13.4  | `trade/verify-turbos.spec.ts`                          | `@trade @desktop @mobile`        |
+| Flow 14.1  | `trade/verify-vanillas.spec.ts`                        | `@trade @desktop @mobile`        |
+| Flow 14.2  | `trade/verify-vanillas.spec.ts`                        | `@trade @desktop @mobile`        |
+| Flow 15    | `trade/verify-closed-market.spec.ts`                   | `@trade @desktop @mobile`        |
+| G1         | `trade/verify-insufficient-balance.spec.ts`            | `@trade`                         |
+| G2         | `trade/verify-unauthenticated-purchase.spec.ts`        | `@trade`                         |
 
 ---
 
@@ -301,159 +301,144 @@ test.describe('Trade — Touch/No Touch', { tag: ['@desktop', '@mobile', '@trade
 
 ---
 
-### Flow 5.1 — Matches/Differs: set last digit → buy Matches → wait for expiry
+### Flow 5.1 / 5.2 — Matches/Differs: buy → settle in place → verify closed
+
+Digit contracts are **Ticks-only** and **auto-expire** (no manual close). The POM opens the open
+position's contract details right after buy, captures its buy reference ID, waits for the contract to
+settle in place, then verifies the settled contract in Positions, contract details, balance, and Reports.
+All locators live in `TradeMatchesDiffersPage` / `ContractDetailsPage` (no inline locators in the test).
 
 ```typescript
-test.describe('Trade — Matches/Differs', { tag: ['@trade', '@smoke', '@desktop', '@mobile'] }, () => {
-    test.beforeEach(async ({ loginPage, tradePage, page }) => {
-        await loginPage.login();
-        await tradePage.goto();
-        await NavigationUtils.waitForDerivApiSettled(page);
-        await tradePage.selectTradeType('Matches/Differs');
+import { test } from '../../../fixtures/fixtures';
+import { TradeBasePage } from '../../../pages/TradeBasePage';
+
+test.describe('Trade — Matches/Differs', { tag: ['@desktop', '@mobile', '@trade', '@smoke'] }, () => {
+    test.describe.configure({ mode: 'serial' });
+
+    // Dedicated funded real USD account (custom password) — logs in directly.
+    test.beforeEach(async ({ page, loginPage }) => {
+        await TradeBasePage.seedLocalStorageOnOrigin(page);
+        await loginPage.login(accountEmail, accountPassword);
     });
 
-    test('VERIFY buy Matches contract and wait for expiry', async ({ tradePage, page }) => {
-        await expect(
-            page.getByTestId('dt_digit_stats_percentage').first(),
-            'Digit selector should be visible'
-        ).toBeVisible();
-        await tradePage.setStake('10.00');
-        await tradePage.selectDigit('5');
-        await tradePage.clickMatches();
-        await expect(
-            page.locator('.trade-notification--purchase'),
-            'Purchase notification should appear'
-        ).toBeVisible();
-        await tradePage.gotoPositions();
-        await NavigationUtils.waitForDerivApiSettled(page);
-        await expect(
-            page.getByTestId('dt_contract_card').first(),
-            'Contract card should appear in positions'
-        ).toBeVisible();
+    test('VERIFY Buy "Matches" Contract', async ({ tradeMatchesDiffersPage }) => {
+        await tradeMatchesDiffersPage.buyMatchesAndVerify({
+            market: 'Volatility 10 Index',
+            durationValue: '10 ticks',
+            stake: '10.00',
+            currency: 'USD',
+            digit: '5',
+        });
     });
 
-    test('VERIFY buy Differs contract and wait for expiry', async ({ tradePage, page }) => {
-        await tradePage.setStake('10.00');
-        await tradePage.selectDigit('5');
-        await tradePage.clickDiffers();
-        await expect(
-            page.locator('.trade-notification--purchase'),
-            'Purchase notification should appear'
-        ).toBeVisible();
-        await tradePage.gotoPositions();
-        await NavigationUtils.waitForDerivApiSettled(page);
-        await expect(
-            page.getByTestId('dt_contract_card').first(),
-            'Contract card should appear in positions'
-        ).toBeVisible();
+    test('VERIFY Buy "Differs" Contract', async ({ tradeMatchesDiffersPage }) => {
+        await tradeMatchesDiffersPage.buyDiffersAndVerify({
+            market: 'Volatility 10 Index',
+            durationValue: '10 ticks',
+            stake: '10.00',
+            currency: 'USD',
+            digit: '5',
+        });
     });
 });
 ```
 
-> **Digit contracts auto-expire** — no manual close. Test only verifies purchase + position card.
-> **Flow 5.1** = `VERIFY buy Matches contract and wait for expiry` · **Flow 5.2** = `VERIFY buy Differs contract and wait for expiry`
+> **`buyMatchesAndVerify` / `buyDiffersAndVerify` cover (in order):** select market → select Matches/Differs →
+> select Matches/Differs tab → `selectTicksDuration` → `setStake` → `selectDigit` → `clickBuy` →
+> verify balance deducted → open the open position's details + capture `buyId` → `waitForContractSettled` →
+> Closed tab `verifyClosedPositionsTab` (signed P/L) → `verifyClosedDigitContractDetailsPage` (Target digit, `sellId`) →
+> `verifyBalanceAfterContractClose` → Reports `verifyClosedContractInReports` (Trade table + Statement).
+> **Flow 5.1** = `VERIFY Buy "Matches" Contract` · **Flow 5.2** = `VERIFY Buy "Differs" Contract`
 
 ---
 
-### Flow 6.1 — Over/Under: set digit → buy Over → wait for expiry
+### Flow 6.1 / 6.2 — Over/Under: buy → settle in place → verify closed
+
+Same digit-contract pattern as Matches/Differs (Flow 5.1/5.2). The `TradeOverUnderPage` fixture shares
+its logic with `TradeMatchesDiffersPage` via the common `TradeDigitsPage` base; only the outcome labels
+differ. **Invalid digits:** Over cannot predict 9, Under cannot predict 0 — use a middle digit (e.g. 5).
 
 ```typescript
-test.describe('Trade — Over/Under', { tag: ['@trade', '@desktop', '@mobile'] }, () => {
-    test.beforeEach(async ({ loginPage, tradePage, page }) => {
-        await loginPage.login();
-        await tradePage.goto();
-        await NavigationUtils.waitForDerivApiSettled(page);
-        await tradePage.selectTradeType('Over/Under');
+import { test } from '../../../fixtures/fixtures';
+import { TradeBasePage } from '../../../pages/TradeBasePage';
+
+test.describe('Trade — Over/Under', { tag: ['@desktop', '@mobile', '@trade'] }, () => {
+    test.describe.configure({ mode: 'serial' });
+
+    test.beforeEach(async ({ page, loginPage }) => {
+        await TradeBasePage.seedLocalStorageOnOrigin(page);
+        await loginPage.login(accountEmail, accountPassword);
     });
 
-    test('VERIFY buy Over contract and wait for expiry', async ({ tradePage, page }) => {
-        await expect(
-            page.getByTestId('dt_digit_stats_percentage').first(),
-            'Digit selector should be visible'
-        ).toBeVisible();
-        await tradePage.setStake('10.00');
-        await tradePage.selectDigit('5');
-        await tradePage.clickOver();
-        await expect(
-            page.locator('.trade-notification--purchase'),
-            'Purchase notification should appear'
-        ).toBeVisible();
-        await tradePage.gotoPositions();
-        await NavigationUtils.waitForDerivApiSettled(page);
-        await expect(
-            page.getByTestId('dt_contract_card').first(),
-            'Contract card should appear in positions'
-        ).toBeVisible();
+    test('VERIFY Buy "Over" Contract', async ({ tradeOverUnderPage }) => {
+        await tradeOverUnderPage.buyOverAndVerify({
+            market: 'Volatility 10 Index',
+            durationValue: '10 ticks',
+            stake: '10.00',
+            currency: 'USD',
+            digit: '5',
+        });
     });
 
-    test('VERIFY buy Under contract and wait for expiry', async ({ tradePage, page }) => {
-        await tradePage.setStake('10.00');
-        await tradePage.selectDigit('5');
-        await tradePage.clickUnder();
-        await expect(
-            page.locator('.trade-notification--purchase'),
-            'Purchase notification should appear'
-        ).toBeVisible();
-        await tradePage.gotoPositions();
-        await NavigationUtils.waitForDerivApiSettled(page);
-        await expect(
-            page.getByTestId('dt_contract_card').first(),
-            'Contract card should appear in positions'
-        ).toBeVisible();
+    test('VERIFY Buy "Under" Contract', async ({ tradeOverUnderPage }) => {
+        await tradeOverUnderPage.buyUnderAndVerify({
+            market: 'Volatility 10 Index',
+            durationValue: '10 ticks',
+            stake: '10.00',
+            currency: 'USD',
+            digit: '5',
+        });
     });
 });
 ```
+
+> `buyOverAndVerify` / `buyUnderAndVerify` run the same chain as `buyMatchesAndVerify` (see Flow 5.1/5.2),
+> differing only in the outcome tab (`Over`/`Under`) and audit Target text (`Over N` / `Under N`).
+> **Flow 6.1** = `VERIFY Buy "Over" Contract` · **Flow 6.2** = `VERIFY Buy "Under" Contract`
 
 ---
 
-### Flow 7.1 — Even/Odd: buy Even → wait for expiry
+### Flow 7.1 / 7.2 — Even/Odd: buy → settle in place → verify closed
+
+Simplest digit type — **no last-digit selector** (the outcome is even vs odd). The `TradeEvenOddPage`
+fixture shares its logic with the other digit types via the common `TradeDigitsPage` base; `buyEvenAndVerify`
+/ `buyOddAndVerify` take no `digit`, and the audit Target row reads "Even" / "Odd".
 
 ```typescript
-test.describe('Trade — Even/Odd', { tag: ['@trade', '@desktop', '@mobile'] }, () => {
-    test.beforeEach(async ({ loginPage, tradePage, page }) => {
-        await loginPage.login();
-        await tradePage.goto();
-        await NavigationUtils.waitForDerivApiSettled(page);
-        await tradePage.selectTradeType('Even/Odd');
+import { test } from '../../../fixtures/fixtures';
+import { TradeBasePage } from '../../../pages/TradeBasePage';
+
+test.describe('Trade — Even/Odd', { tag: ['@desktop', '@mobile', '@trade'] }, () => {
+    test.describe.configure({ mode: 'serial' });
+
+    test.beforeEach(async ({ page, loginPage }) => {
+        await TradeBasePage.seedLocalStorageOnOrigin(page);
+        await loginPage.login(accountEmail, accountPassword);
     });
 
-    test('VERIFY buy Even contract and wait for expiry', async ({ tradePage, page }) => {
-        await expect(
-            page.getByTestId('dt_digit_stats_percentage'),
-            'Digit selector should NOT be visible for Even/Odd'
-        ).not.toBeVisible();
-        await tradePage.setStake('10.00');
-        await tradePage.clickEven();
-        await expect(
-            page.locator('.trade-notification--purchase'),
-            'Purchase notification should appear'
-        ).toBeVisible();
-        await tradePage.gotoPositions();
-        await NavigationUtils.waitForDerivApiSettled(page);
-        await expect(
-            page.getByTestId('dt_contract_card').first(),
-            'Contract card should appear in positions'
-        ).toBeVisible();
+    test('VERIFY Buy "Even" Contract', async ({ tradeEvenOddPage }) => {
+        await tradeEvenOddPage.buyEvenAndVerify({
+            market: 'Volatility 10 Index',
+            durationValue: '10 ticks',
+            stake: '10.00',
+            currency: 'USD',
+        });
     });
 
-    test('VERIFY buy Odd contract and wait for expiry', async ({ tradePage, page }) => {
-        await tradePage.setStake('10.00');
-        await tradePage.clickOdd();
-        await expect(
-            page.locator('.trade-notification--purchase'),
-            'Purchase notification should appear'
-        ).toBeVisible();
-        await tradePage.gotoPositions();
-        await NavigationUtils.waitForDerivApiSettled(page);
-        await expect(
-            page.getByTestId('dt_contract_card').first(),
-            'Contract card should appear in positions'
-        ).toBeVisible();
+    test('VERIFY Buy "Odd" Contract', async ({ tradeEvenOddPage }) => {
+        await tradeEvenOddPage.buyOddAndVerify({
+            market: 'Volatility 10 Index',
+            durationValue: '10 ticks',
+            stake: '10.00',
+            currency: 'USD',
+        });
     });
 });
 ```
 
-> **Flow 7.1** = `VERIFY buy Even contract and wait for expiry` · **Flow 7.2** = `VERIFY buy Odd contract and wait for expiry`
+> `buyEvenAndVerify` / `buyOddAndVerify` run the same chain as `buyMatchesAndVerify` (see Flow 5.1/5.2)
+> minus the digit selection, differing in the outcome tab (`Even`/`Odd`) and audit Target text (`Even` / `Odd`).
+> **Flow 7.1** = `VERIFY Buy "Even" Contract` · **Flow 7.2** = `VERIFY Buy "Odd" Contract`
 
 ---
 

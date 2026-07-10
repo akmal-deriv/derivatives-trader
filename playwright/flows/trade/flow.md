@@ -268,132 +268,106 @@
 
 ## Matches/Differs
 
-> **Structural exception — no manual close:** Digit contracts expire automatically at end of duration. Steps 11–16 of the standard chain (close contract → closed tab → balance after close → reports closed) are not applicable. The flow ends after verifying the contract appears in Positions and Reports while open.
+> **Structural exception — Ticks-only + no manual close:** Digit contracts support **Ticks duration only** (the duration popover has no unit-tab sidebar, just tick chips), and they **expire automatically** — there is no manual Close button. The tick duration is too short to reliably inspect the contract while open, so the flow opens the **open position's contract details right after purchase**, captures its buy reference ID, then **waits for the contract to settle in place** and verifies the **settled (closed)** contract — details page, Positions Closed tab, balance, and Reports (Trade table + Statement). The digit audit grid has **no Entry spot/Barrier** — instead a **Target** row (e.g. "Equals 5").
 
-### Flow 5.1 — Matches/Differs: buy Matches → wait for expiry
+### Flow 5.1 — Matches/Differs: buy Matches → settle → verify closed
 
 **Prerequisites:** Authenticated with funded account. Digits symbol (e.g. Volatility 10 Index).
 **Spec:** `playwright/tests/trade/matches-differs/verify-matches-differs.spec.ts` — `VERIFY Buy "Matches" Contract`
 **Unique params:** Last digit prediction, Duration (ticks), Stake (`10.00`)
 
-| #   | Step                                 | Action                                                         | Expected Result                                            | Platform |
-| --- | ------------------------------------ | -------------------------------------------------------------- | ---------------------------------------------------------- | -------- |
-| 1   | Navigate to trade page               | `page.goto(BASE_URL)` + `waitForDerivApiSettled`               | Trade page loaded                                          | Both     |
-| 2   | Select market                        | `selectMarket('Volatility 10 Index')`                          | Market selector shows "Volatility 10 Index"                | Both     |
-| 3   | Select Matches/Differs trade type    | `selectTradeType('Matches/Differs')`                           | Chip selected; last digit prediction, Stake visible        | Both     |
-| 4   | Verify last digit prediction visible | Observe parameters                                             | Digit selector (0–9) visible (`dt_digit_stats_percentage`) | Both     |
-| 5   | Select duration                      | `selectDuration('Ticks', '5 ticks')`                           | Duration field shows `5 ticks`                             | Both     |
-| 6   | Set stake                            | `setStake('10.00')`                                            | Stake field shows `10.00`                                  | Both     |
-| 7   | Select digit prediction              | Click digit "5" in the digit selector                          | Digit 5 selected                                           | Both     |
-| 8   | Buy Matches contract                 | `clickBuy()` — captures payout                                 | Contract purchased                                         | Both     |
-| 9   | Verify open position in Positions    | `verifyOpenPositionsVisible()` + `verifyContractCardDetails()` | Card visible; balance reduced by stake                     | Both     |
-| 10  | Verify open position in Reports      | `verifyOpenPositionsInReports()` — captures `buyId`            | Headers, row values, footer totals correct                 | Both     |
-| 11  | Wait for contract to expire          | Observe contract status                                        | Contract closes automatically at expiry                    | Both     |
+| #   | Step                                 | Action                                                                             | Expected Result                                      | Platform |
+| --- | ------------------------------------ | ---------------------------------------------------------------------------------- | ---------------------------------------------------- | -------- |
+| 1   | Select market                        | `selectMarket('Volatility 10 Index')`                                              | Market selector shows "Volatility 10 Index"          | Both     |
+| 2   | Select Matches/Differs trade type    | `selectTradeType('Matches/Differs')`                                               | Chip selected; last digit prediction + Stake visible | Both     |
+| 3   | Select Matches                       | `clickMatchesDiffersOption('Matches')`                                             | Purchase button turns green                          | Both     |
+| 4   | Select duration (ticks only)         | `selectTicksDuration('10 ticks')`                                                  | Duration field shows `10 ticks`                      | Both     |
+| 5   | Set stake                            | `setStake('10.00')`                                                                | Stake field shows `10.00`                            | Both     |
+| 6   | Select digit prediction              | `selectDigit('5')`                                                                 | Digit 5 selected                                     | Both     |
+| 7   | Buy Matches contract                 | `clickBuy()` — captures payout                                                     | Contract purchased; balance reduced by stake         | Both     |
+| 8   | Open the open position's details     | `openFirstContract()` + `getBuyReferenceId()`                                      | Buy reference ID captured (pins this contract)       | Both     |
+| 9   | Wait for auto-expiry in place        | `waitForContractSettled()`                                                         | Sell reference ID appears (contract settled)         | Both     |
+| 10  | Verify settled contract in Positions | Closed tab → `verifyClosedPositionsTab()` — captures signed P/L                    | Closed card shows market/type/stake/Closed + P/L     | Both     |
+| 11  | Verify settled contract details      | `verifyClosedDigitContractDetailsPage()` — asserts Target digit, extracts `sellId` | Ref IDs, Duration, Target, Exit spot/time correct    | Both     |
+| 12  | Verify final balance                 | `verifyBalanceAfterContractClose()`                                                | Balance = afterBuy + stake + P/L                     | Both     |
+| 13  | Verify settled contract in Reports   | `verifyClosedContractInReports(buyId, sellId, …)`                                  | Trade table + Statement rows match                   | Both     |
 
-### Flow 5.2 — Matches/Differs: buy Differs → wait for expiry
+### Flow 5.2 — Matches/Differs: buy Differs → settle → verify closed
 
 **Prerequisites:** Same as Flow 5.1.
 **Spec:** `playwright/tests/trade/matches-differs/verify-matches-differs.spec.ts` — `VERIFY Buy "Differs" Contract`
 **Unique params:** Duration (ticks), Stake (`10.00`)
 
-| #   | Step                              | Action                                                         | Expected Result                                     | Platform |
-| --- | --------------------------------- | -------------------------------------------------------------- | --------------------------------------------------- | -------- |
-| 1   | Navigate to trade page            | `page.goto(BASE_URL)` + `waitForDerivApiSettled`               | Trade page loaded                                   | Both     |
-| 2   | Select market                     | `selectMarket('Volatility 10 Index')`                          | Market selector shows "Volatility 10 Index"         | Both     |
-| 3   | Select Matches/Differs trade type | `selectTradeType('Matches/Differs')`                           | Chip selected; last digit prediction, Stake visible | Both     |
-| 4   | Select duration                   | `selectDuration('Ticks', '5 ticks')`                           | Duration field shows `5 ticks`                      | Both     |
-| 5   | Set stake                         | `setStake('10.00')`                                            | Stake field shows `10.00`                           | Both     |
-| 6   | Select digit prediction           | Click digit "5" in the digit selector                          | Digit 5 selected                                    | Both     |
-| 7   | Buy Differs contract              | `clickBuy()` — captures payout                                 | Contract purchased                                  | Both     |
-| 8   | Verify open position in Positions | `verifyOpenPositionsVisible()` + `verifyContractCardDetails()` | Card visible; balance reduced by stake              | Both     |
-| 9   | Verify open position in Reports   | `verifyOpenPositionsInReports()` — captures `buyId`            | Headers, row values, footer totals correct          | Both     |
-| 10  | Wait for contract to expire       | Observe contract status                                        | Contract closes automatically at expiry             | Both     |
+Identical chain to Flow 5.1 with `clickMatchesDiffersOption('Differs')` (purchase button turns red) — buy Differs → open details → settle in place → verify the closed contract in Positions, contract details, balance, and Reports.
 
 ---
 
 ## Over/Under
 
-> **Structural exception — no manual close:** Digit contracts expire automatically at end of duration. Steps 11–16 of the standard chain are not applicable.
+> **Structural exception — Ticks-only + no manual close:** Same digit-contract structure as Matches/Differs (see that section). Over/Under uses the same Ticks-only duration, tab selector → single colored purchase button, last-digit selector, and the **settle-in-place** verification chain. The audit **Target** row reads "Over N" / "Under N". **Invalid digits:** Over cannot predict 9, Under cannot predict 0 — use a middle digit (e.g. 5), valid for both.
 
-### Flow 6.1 — Over/Under: buy Over → wait for expiry
+### Flow 6.1 — Over/Under: buy Over → settle → verify closed
 
 **Prerequisites:** Authenticated with funded account. Digits symbol (e.g. Volatility 10 Index).
 **Spec:** `playwright/tests/trade/over-under/verify-over-under.spec.ts` — `VERIFY Buy "Over" Contract`
-**Unique params:** Last digit barrier, Duration (ticks), Stake (`10.00`)
+**Unique params:** Last digit prediction, Duration (ticks), Stake (`10.00`)
 
-| #   | Step                                 | Action                                                         | Expected Result                                      | Platform |
-| --- | ------------------------------------ | -------------------------------------------------------------- | ---------------------------------------------------- | -------- |
-| 1   | Navigate to trade page               | `page.goto(BASE_URL)` + `waitForDerivApiSettled`               | Trade page loaded                                    | Both     |
-| 2   | Select market                        | `selectMarket('Volatility 10 Index')`                          | Market selector shows "Volatility 10 Index"          | Both     |
-| 3   | Select Over/Under trade type         | `selectTradeType('Over/Under')`                                | Chip selected; digit selector, Stake visible         | Both     |
-| 4   | Verify last digit prediction visible | Observe parameters                                             | Digit selector visible (`dt_digit_stats_percentage`) | Both     |
-| 5   | Select duration                      | `selectDuration('Ticks', '5 ticks')`                           | Duration field shows `5 ticks`                       | Both     |
-| 6   | Set stake                            | `setStake('10.00')`                                            | Stake field shows `10.00`                            | Both     |
-| 7   | Select digit barrier                 | Click digit "5" in the digit selector                          | Digit 5 selected                                     | Both     |
-| 8   | Buy Over contract                    | `clickBuy()` — captures payout                                 | Contract purchased                                   | Both     |
-| 9   | Verify open position in Positions    | `verifyOpenPositionsVisible()` + `verifyContractCardDetails()` | Card visible; balance reduced by stake               | Both     |
-| 10  | Verify open position in Reports      | `verifyOpenPositionsInReports()` — captures `buyId`            | Headers, row values, footer totals correct           | Both     |
-| 11  | Wait for contract to expire          | Observe contract status                                        | Contract closes automatically at expiry              | Both     |
+| #   | Step                                 | Action                                                                             | Expected Result                                  | Platform |
+| --- | ------------------------------------ | ---------------------------------------------------------------------------------- | ------------------------------------------------ | -------- |
+| 1   | Select market                        | `selectMarket('Volatility 10 Index')`                                              | Market selector shows "Volatility 10 Index"      | Both     |
+| 2   | Select Over/Under trade type         | `selectTradeType('Over/Under')`                                                    | Chip selected; last digit prediction + Stake     | Both     |
+| 3   | Select Over                          | `selectPredictionOption('Over', 'top')`                                            | Purchase button turns green                      | Both     |
+| 4   | Select duration (ticks only)         | `selectTicksDuration('10 ticks')`                                                  | Duration field shows `10 ticks`                  | Both     |
+| 5   | Set stake                            | `setStake('10.00')`                                                                | Stake field shows `10.00`                        | Both     |
+| 6   | Select digit prediction              | `selectDigit('5')`                                                                 | Digit 5 selected                                 | Both     |
+| 7   | Buy Over contract                    | `clickBuy()` — captures payout                                                     | Contract purchased; balance reduced by stake     | Both     |
+| 8   | Open the open position's details     | `openFirstContract()` + `getBuyReferenceId()`                                      | Buy reference ID captured (pins this contract)   | Both     |
+| 9   | Wait for auto-expiry in place        | `waitForContractSettled()`                                                         | Sell reference ID appears (contract settled)     | Both     |
+| 10  | Verify settled contract in Positions | Closed tab → `verifyClosedPositionsTab()` — captures signed P/L                    | Closed card shows market/type/stake/Closed + P/L | Both     |
+| 11  | Verify settled contract details      | `verifyClosedDigitContractDetailsPage()` — asserts Target digit, extracts `sellId` | Ref IDs, Duration, Target, Exit spot/time        | Both     |
+| 12  | Verify final balance                 | `verifyBalanceAfterContractClose()`                                                | Balance = afterBuy + stake + P/L                 | Both     |
+| 13  | Verify settled contract in Reports   | `verifyClosedContractInReports(buyId, sellId, …)`                                  | Trade table + Statement rows match               | Both     |
 
-### Flow 6.2 — Over/Under: buy Under → wait for expiry
+### Flow 6.2 — Over/Under: buy Under → settle → verify closed
 
 **Prerequisites:** Same as Flow 6.1.
 **Spec:** `playwright/tests/trade/over-under/verify-over-under.spec.ts` — `VERIFY Buy "Under" Contract`
 
-| #   | Step                              | Action                                                         | Expected Result                              | Platform |
-| --- | --------------------------------- | -------------------------------------------------------------- | -------------------------------------------- | -------- |
-| 1   | Navigate to trade page            | `page.goto(BASE_URL)` + `waitForDerivApiSettled`               | Trade page loaded                            | Both     |
-| 2   | Select market                     | `selectMarket('Volatility 10 Index')`                          | Market selector shows "Volatility 10 Index"  | Both     |
-| 3   | Select Over/Under trade type      | `selectTradeType('Over/Under')`                                | Chip selected; digit selector, Stake visible | Both     |
-| 4   | Select duration                   | `selectDuration('Ticks', '5 ticks')`                           | Duration field shows `5 ticks`               | Both     |
-| 5   | Set stake                         | `setStake('10.00')`                                            | Stake field shows `10.00`                    | Both     |
-| 6   | Select digit barrier              | Click digit "5" in the digit selector                          | Digit 5 selected                             | Both     |
-| 7   | Buy Under contract                | `clickBuy()` — captures payout                                 | Contract purchased                           | Both     |
-| 8   | Verify open position in Positions | `verifyOpenPositionsVisible()` + `verifyContractCardDetails()` | Card visible; balance reduced by stake       | Both     |
-| 9   | Verify open position in Reports   | `verifyOpenPositionsInReports()` — captures `buyId`            | Headers, row values, footer totals correct   | Both     |
-| 10  | Wait for contract to expire       | Observe contract status                                        | Contract closes automatically at expiry      | Both     |
+Identical chain to Flow 6.1 with `selectPredictionOption('Under', 'bottom')` (purchase button turns red) — buy Under → open details → settle in place → verify the closed contract in Positions, contract details, balance, and Reports.
 
 ---
 
 ## Even/Odd
 
-> **Structural exception — no manual close:** Digit contracts expire automatically at end of duration. Steps 11–16 of the standard chain are not applicable.
+> **Structural exception — Ticks-only + no digit selector + no manual close:** Same digit-contract structure as Matches/Differs (see that section), but Even/Odd is the **simplest digit type — there is no last-digit selector** (the outcome is whether the final digit is even or odd). Uses the same Ticks-only duration, tab selector → single colored purchase button, and **settle-in-place** verification chain. The audit **Target** row reads "Even" / "Odd".
 
-### Flow 7.1 — Even/Odd: buy Even → wait for expiry
+### Flow 7.1 — Even/Odd: buy Even → settle → verify closed
 
 **Prerequisites:** Authenticated with funded account. Digits symbol (e.g. Volatility 10 Index).
 **Spec:** `playwright/tests/trade/even-odd/verify-even-odd.spec.ts` — `VERIFY Buy "Even" Contract`
-**Unique params:** Duration (ticks), Stake (`10.00`) — no digit selector (any even final digit wins)
+**Unique params:** Duration (ticks), Stake (`10.00`) — no digit selector
 
-| #   | Step                              | Action                                                         | Expected Result                             | Platform |
-| --- | --------------------------------- | -------------------------------------------------------------- | ------------------------------------------- | -------- |
-| 1   | Navigate to trade page            | `page.goto(BASE_URL)` + `waitForDerivApiSettled`               | Trade page loaded                           | Both     |
-| 2   | Select market                     | `selectMarket('Volatility 10 Index')`                          | Market selector shows "Volatility 10 Index" | Both     |
-| 3   | Select Even/Odd trade type        | `selectTradeType('Even/Odd')`                                  | Chip selected; Stake visible                | Both     |
-| 4   | Verify no last digit param        | Observe parameters                                             | Last digit prediction NOT visible           | Both     |
-| 5   | Select duration                   | `selectDuration('Ticks', '5 ticks')`                           | Duration field shows `5 ticks`              | Both     |
-| 6   | Set stake                         | `setStake('10.00')`                                            | Stake field shows `10.00`                   | Both     |
-| 7   | Buy Even contract                 | `clickBuy()` — captures payout                                 | Contract purchased                          | Both     |
-| 8   | Verify open position in Positions | `verifyOpenPositionsVisible()` + `verifyContractCardDetails()` | Card visible; balance reduced by stake      | Both     |
-| 9   | Verify open position in Reports   | `verifyOpenPositionsInReports()` — captures `buyId`            | Headers, row values, footer totals correct  | Both     |
-| 10  | Wait for contract to expire       | Observe contract status                                        | Contract closes automatically at expiry     | Both     |
+| #   | Step                                 | Action                                                                            | Expected Result                                  | Platform |
+| --- | ------------------------------------ | --------------------------------------------------------------------------------- | ------------------------------------------------ | -------- |
+| 1   | Select market                        | `selectMarket('Volatility 10 Index')`                                             | Market selector shows "Volatility 10 Index"      | Both     |
+| 2   | Select Even/Odd trade type           | `selectTradeType('Even/Odd')`                                                     | Chip selected; Last digit prediction NOT visible | Both     |
+| 3   | Select Even                          | `selectPredictionOption('Even', 'top')`                                           | Purchase button turns green                      | Both     |
+| 4   | Select duration (ticks only)         | `selectTicksDuration('10 ticks')`                                                 | Duration field shows `10 ticks`                  | Both     |
+| 5   | Set stake                            | `setStake('10.00')`                                                               | Stake field shows `10.00`                        | Both     |
+| 6   | Buy Even contract                    | `clickBuy()` — captures payout                                                    | Contract purchased; balance reduced by stake     | Both     |
+| 7   | Open the open position's details     | `openFirstContract()` + `getBuyReferenceId()`                                     | Buy reference ID captured (pins this contract)   | Both     |
+| 8   | Wait for auto-expiry in place        | `waitForContractSettled()`                                                        | Sell reference ID appears (contract settled)     | Both     |
+| 9   | Verify settled contract in Positions | Closed tab → `verifyClosedPositionsTab()` — captures signed P/L                   | Closed card shows market/type/stake/Closed + P/L | Both     |
+| 10  | Verify settled contract details      | `verifyClosedDigitContractDetailsPage()` — Target reads "Even", extracts `sellId` | Ref IDs, Duration, Target, Exit spot/time        | Both     |
+| 11  | Verify final balance                 | `verifyBalanceAfterContractClose()`                                               | Balance = afterBuy + stake + P/L                 | Both     |
+| 12  | Verify settled contract in Reports   | `verifyClosedContractInReports(buyId, sellId, …)`                                 | Trade table + Statement rows match               | Both     |
 
-### Flow 7.2 — Even/Odd: buy Odd → wait for expiry
+### Flow 7.2 — Even/Odd: buy Odd → settle → verify closed
 
 **Prerequisites:** Same as Flow 7.1.
 **Spec:** `playwright/tests/trade/even-odd/verify-even-odd.spec.ts` — `VERIFY Buy "Odd" Contract`
 
-| #   | Step                              | Action                                                         | Expected Result                             | Platform |
-| --- | --------------------------------- | -------------------------------------------------------------- | ------------------------------------------- | -------- |
-| 1   | Navigate to trade page            | `page.goto(BASE_URL)` + `waitForDerivApiSettled`               | Trade page loaded                           | Both     |
-| 2   | Select market                     | `selectMarket('Volatility 10 Index')`                          | Market selector shows "Volatility 10 Index" | Both     |
-| 3   | Select Even/Odd trade type        | `selectTradeType('Even/Odd')`                                  | Chip selected; Stake visible                | Both     |
-| 4   | Select duration                   | `selectDuration('Ticks', '5 ticks')`                           | Duration field shows `5 ticks`              | Both     |
-| 5   | Set stake                         | `setStake('10.00')`                                            | Stake field shows `10.00`                   | Both     |
-| 6   | Buy Odd contract                  | `clickBuy()` — captures payout                                 | Contract purchased                          | Both     |
-| 7   | Verify open position in Positions | `verifyOpenPositionsVisible()` + `verifyContractCardDetails()` | Card visible; balance reduced by stake      | Both     |
-| 8   | Verify open position in Reports   | `verifyOpenPositionsInReports()` — captures `buyId`            | Headers, row values, footer totals correct  | Both     |
-| 9   | Wait for contract to expire       | Observe contract status                                        | Contract closes automatically at expiry     | Both     |
+Identical chain to Flow 7.1 with `selectPredictionOption('Odd', 'bottom')` (purchase button turns red) — buy Odd → open details → settle in place → verify the closed contract in Positions, contract details, balance, and Reports.
 
 ---
 
