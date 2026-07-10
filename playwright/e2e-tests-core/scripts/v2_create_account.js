@@ -95,6 +95,10 @@ function applyProductionSafety(args) {
         return;
     }
 
+    if (args.p2p) {
+        throw new Error('--p2p is staging-only and cannot be used in production.');
+    }
+
     if (args.poi || args.poa) {
         throw new Error(
             'POI/POA automation is disabled in production because it uses staging-only internal KYC helpers.'
@@ -224,6 +228,18 @@ const ENCRYPTED_KYC_CREDENTIALS = {
         'U2FsdGVkX19wBDDD8gZy/29AvIPdqy3VKdzuQ49vvP5oI8qQp4XxfJdu1Bv14KIL3lUip3o1ynRYvKuYfjOk6u4J3sPYjcXSdooJlF8movM=',
 };
 
+// Encrypted ORY app token (x-app-token), per environment. Injected into the
+// transient_payload of ORY registration + email-verification calls — without it
+// ORY signup is rate-limited/rejected under load (HTTP 400, no session_token).
+// Encrypted with AES-256-CBC + PBKDF2 using the Mailisk API key as passphrase
+// (same scheme as ENCRYPTED_M2M_CREDENTIALS; the Mailisk key is identical on both envs).
+const ENCRYPTED_X_APP_TOKEN = {
+    staging:
+        'U2FsdGVkX18TaOn5jW+9Lp6B5W3Rwh4mzCm2OwrE+khrcAx5W4WUdF6SnR9oumqLPDlzzoA+Mk9/gc9htejfnpHJo5WTEVYUGtzLvglt0dkGzUSU5ZV+6Uz1pg3BcJU+8k/MEs4vOqOG7oCTFWghMk28/Pyr8NBVFZ68uap6+xmhR0TyFJm7wtrPbBDeFg7+',
+    production:
+        'U2FsdGVkX19+JyqDmkbDnZk2fHFhJrwe0Nx0/LpR7uO97joAdhBw0AayHgccoGZNS47kF4sAUaMrdI64vYWV1uU/kkXxi6qzgNVFjpXuEbR7wk6o7yZMftQ7fk3W0qL/MytXuCJR2FcbxWkvuc6MkdnmgM7aU1irSJP2NRk5QoyBo8KaN9VKLWPF6oraKTvc',
+};
+
 /**
  * Decrypt credentials using OpenSSL command
  * @param {string} encryptedData - Base64 encrypted data
@@ -247,6 +263,19 @@ async function decryptCredential(encryptedData, passphrase) {
     } catch (error) {
         throw new Error(`Failed to decrypt credential: ${error.message}`);
     }
+}
+
+/**
+ * Decrypt the environment-appropriate ORY app token (x-app-token).
+ * @param {string} apiKey - Mailisk API key used as the decryption passphrase
+ * @returns {Promise<string>} Decrypted x-app-token for the ACTIVE_ENVIRONMENT
+ */
+async function getAppToken(apiKey) {
+    const encrypted = ENCRYPTED_X_APP_TOKEN[ACTIVE_ENVIRONMENT];
+    if (!encrypted) {
+        throw new Error(`No x-app-token configured for environment "${ACTIVE_ENVIRONMENT}"`);
+    }
+    return decryptCredential(encrypted, apiKey);
 }
 
 /**
@@ -433,7 +462,7 @@ async function initializeORYSignupFlow() {
  * @param {string} countryCode - 2-letter country code (e.g., 'al')
  * @returns {Promise<Object>} Response data
  */
-async function signupWithORY(signupFlowId, email, countryCode) {
+async function signupWithORY(signupFlowId, email, countryCode, appToken) {
     const url = `${ORY_AUTH_BASE}/registration?flow=${signupFlowId}`;
     const signupData = {
         method: 'code',
@@ -442,6 +471,7 @@ async function signupWithORY(signupFlowId, email, countryCode) {
         },
         transient_payload: {
             cor: countryCode,
+            'x-app-token': appToken,
             lang: 'en',
             tracking_data: {
                 utm_data: {
@@ -519,10 +549,10 @@ async function signupWithORY(signupFlowId, email, countryCode) {
  * @param {string} countryCode - 2-letter country code (e.g., 'al')
  * @returns {Promise<Object>} Response data with flow ID
  */
-async function signup(email, countryCode) {
+async function signup(email, countryCode, appToken) {
     debug.log(`Starting signup process for ${email} from ${countryCode}`);
     const signupFlowId = await initializeORYSignupFlow();
-    const result = await signupWithORY(signupFlowId, email, countryCode);
+    const result = await signupWithORY(signupFlowId, email, countryCode, appToken);
     return result;
 }
 
@@ -632,7 +662,7 @@ async function getOTPFromMailisk(email, apiKey, signupTimestamp = null) {
  * @param {string} countryCode - 2-letter country code (e.g., 'al')
  * @returns {Promise<Object>} Response data with session_token
  */
-async function verifyEmailWithORY(signupFlowId, email, otp, countryCode) {
+async function verifyEmailWithORY(signupFlowId, email, otp, countryCode, appToken) {
     const url = `${ORY_AUTH_BASE}/registration?flow=${signupFlowId}`;
     const verifyData = {
         code: otp,
@@ -642,6 +672,7 @@ async function verifyEmailWithORY(signupFlowId, email, otp, countryCode) {
         },
         transient_payload: {
             cor: countryCode,
+            'x-app-token': appToken,
         },
     };
 
@@ -2537,7 +2568,7 @@ async function runPartnersAccountFlow(sessionToken, partnerArgs) {
     console.log('📝 Accepting Partners T&C...');
     const tncResult = await partnersRequest('POST', '/client/tnc', {
         brand_code: 'partners',
-        compliance: { fatca: false, pep: true },
+        compliance: { fatca: false, pep: false },
         account: { create_options: false },
     });
     let tncAccepted = false;
@@ -2886,6 +2917,11 @@ cTrader Options:
                            If a number (1-5) is provided, creates that many accounts.
                            If 'all' is provided, creates all 5 cTrader accounts (maximum).
 
+P2P Options:
+  --p2p                    Create a P2P-ready real account: automatically sets POI and POA to approved.
+                           Requires --type real. Cannot be combined with --poi rejected or --poa rejected.
+                           Staging only (uses internal KYC helpers).
+
 Trading Options:
   --trading                Staging only: top-up USD wallet with 2000 USD and direct top-up 1000 USD to Options trading account
 
@@ -2895,6 +2931,8 @@ Partners Account Options (only active when --client_type affiliate is set):
                            GET /v1/client/kyc-status, POST /v1/client/tnc (Partners payload),
                            POST /v1/partners/wallets.
                            Emits structured output lines prefixed "🤝 Partners ..." for the caller to parse.
+                           Can be combined with --walletCurrency to also create a consumer trading
+                           wallet (consumer T&C is accepted first, then the partner flow runs).
   --entity_type <type>     Partners entity type: 'retail' (default) or 'corporate'
   --partner_type <type>    Partner sub-type: 'individual' (default) or 'company'
                            When 'company', also pass --company_name and --company_registration_number
@@ -2982,6 +3020,15 @@ Examples:
   # Create real account and all 5 cTrader accounts
   node v2_create_account.js --email test@webapps.mailisk.net --password Test123! --country ar --type real --apikey YOUR_KEY --ctrader all
 
+  # Create P2P-ready real account (POI + POA auto-approved)
+  node v2_create_account.js --email test@webapps.mailisk.net --password Test123! --country ar --type real --apikey YOUR_KEY --p2p
+
+  # Create P2P-ready real account with a USD wallet
+  node v2_create_account.js --email test@webapps.mailisk.net --password Test123! --country ar --type real --apikey YOUR_KEY --p2p --walletCurrency USD
+
+  # Create affiliate (Partners) account that also has a consumer USD trading wallet
+  node v2_create_account.js --email test@webapps.mailisk.net --password Test123! --country ar --type real --apikey YOUR_KEY --client_type affiliate --partner_type individual --walletCurrency USD
+
 `);
 }
 
@@ -3001,12 +3048,51 @@ async function main() {
         args.environment =
             args.environment || args.env || process.env.DERIV_ENVIRONMENT || process.env.DERIV_ENV || 'staging';
         configureEnvironment(args.environment);
+
+        // --p2p validation and auto-setup
+        if (args.p2p) {
+            if (!ACTIVE_ENVIRONMENT_CONFIG.allowInternalTestHelpers) {
+                console.error('❌ --p2p is staging-only and cannot be used in production');
+                process.exit(1);
+            }
+            if (args.type !== 'real') {
+                console.error('❌ --p2p requires --type real');
+                process.exit(1);
+            }
+            if ((args.poi && args.poi !== 'approved') || (args.poa && args.poa !== 'approved')) {
+                console.error(
+                    '❌ --p2p sets POI and POA to approved automatically. Remove --poi/--poa or set both to approved.'
+                );
+                process.exit(1);
+            }
+            args.poi = 'approved';
+            args.poa = 'approved';
+            console.log('ℹ️  P2P mode: POI and POA will be set to approved');
+            if (!args.walletCurrency) {
+                args.walletCurrency = 'USD';
+                console.log('ℹ️  P2P mode: defaulting --walletCurrency to USD');
+            }
+        }
+
         applyProductionSafety(args);
 
         args.mailiskApiKey = args.mailisk_api_key || args.mailiskApiKey || args.apikey || process.env.MAILISK_API_KEY;
         args.topupApiKey =
             args.topup_api_key || args.topupApiKey || process.env.TOPUP_API_KEY || args.apikey || args.mailiskApiKey;
         args.apikey = args.mailiskApiKey;
+
+        // Validate --walletCurrency: reject the bare flag (parser turns it into `true`) and
+        // empty / whitespace-only strings. Both downstream gates — the affiliate TNC branch
+        // and the wallet-operations block — depend on the truthiness/shape of this value,
+        // so fail fast instead of silently mis-routing or crashing later on String methods.
+        if (args.walletCurrency !== undefined) {
+            if (typeof args.walletCurrency !== 'string' || args.walletCurrency.trim() === '') {
+                console.error(
+                    '❌ --walletCurrency requires a non-empty value (e.g., USD or USD,BTC). Pass the flag with a currency code, or omit it entirely.'
+                );
+                process.exit(1);
+            }
+        }
 
         // Set debug mode
         if (args.debug) {
@@ -3066,8 +3152,11 @@ async function main() {
         const signupTimestamp = Math.floor(Date.now() / 1000);
         debug.log(`Signup initiated at timestamp: ${signupTimestamp} (${new Date().toISOString()})`);
 
+        // Decrypt the environment-appropriate ORY app token (x-app-token)
+        const appToken = await getAppToken(args.apikey);
+
         // Step 1-2: Signup with ORY
-        const signupResult = await signup(args.email, args.country);
+        const signupResult = await signup(args.email, args.country, appToken);
         console.log(`✅ Signup completed successfully`);
 
         console.log('\n==================================================');
@@ -3082,7 +3171,7 @@ async function main() {
         console.log('==================================================');
 
         // Step 4: Verify email with OTP
-        const verifyResult = await verifyEmailWithORY(signupResult.flow_id, args.email, otp, args.country);
+        const verifyResult = await verifyEmailWithORY(signupResult.flow_id, args.email, otp, args.country, appToken);
         const sessionToken = verifyResult.session_token;
         console.log(`✅ Email verification successful`);
 
@@ -3151,11 +3240,18 @@ async function main() {
             console.log('🔄 Step 9: Accept Terms and Create Real Account');
             console.log('==================================================');
 
-            if (args.client_type === 'affiliate') {
+            if (args.client_type === 'affiliate' && !args.walletCurrency) {
                 // TNC for affiliates is handled entirely inside runPartnersAccountFlow() (Step 5).
                 // No inline TNC call here to avoid a redundant double-POST.
                 console.log('ℹ️  Affiliate flow: TNC will be accepted inside runPartnersAccountFlow()');
             } else {
+                // Accept consumer TNC when:
+                //   - Standard non-affiliate real account, OR
+                //   - Affiliate flow with --walletCurrency (consumer TNC is required to create a consumer wallet;
+                //     the Partners flow will additionally accept its own brand_code='partners' TNC).
+                if (args.client_type === 'affiliate') {
+                    console.log('ℹ️  Affiliate flow with --walletCurrency: accepting consumer T&C before partner flow');
+                }
                 await acceptTermsAndCreateAccount(sessionToken);
             }
         }
@@ -3176,7 +3272,7 @@ async function main() {
         // Store wallet ID for later use
         let walletId = null;
 
-        if (args.type === 'real' && args.walletCurrency && args.client_type !== 'affiliate') {
+        if (args.type === 'real' && args.walletCurrency) {
             console.log('\n==================================================');
             console.log('🔄 Wallet Operations');
             console.log('==================================================');
