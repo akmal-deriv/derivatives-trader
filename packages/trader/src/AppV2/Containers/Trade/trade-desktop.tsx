@@ -4,7 +4,7 @@ import { observer } from 'mobx-react-lite';
 
 import { useLocalStorageData } from '@deriv/api';
 import { Loading } from '@deriv/components';
-import { getIsMigratedUser, getSymbolDisplayName, trackAnalyticsEvent } from '@deriv/shared';
+import { getIsMigratedUser, getSymbolDisplayName, getViewMarketsFromURL, trackAnalyticsEvent } from '@deriv/shared';
 import { useStore } from '@deriv/stores';
 import { Loader } from '@deriv-com/ui';
 
@@ -27,6 +27,7 @@ import TradeParamsFooter from 'AppV2/Components/TradeParamsFooter';
 import useAutomationSupportedTradeTypes from 'AppV2/Hooks/useAutomationSupportedTradeTypes';
 import useAutomationSymbolFallback from 'AppV2/Hooks/useAutomationSymbolFallback';
 import useAutomationTradeTypeFallback from 'AppV2/Hooks/useAutomationTradeTypeFallback';
+import useChartMarketSelectorOpen from 'AppV2/Hooks/useChartMarketSelectorOpen';
 // Commented out to use chart's native market selector instead
 // import MarketSelector from 'AppV2/Components/MarketSelector';
 import useContractsFor from 'AppV2/Hooks/useContractsFor';
@@ -103,6 +104,13 @@ const TradeDesktop = observer(() => {
     });
 
     const is_migrated_user = getIsMigratedUser();
+
+    // On a `view_markets=true` landing the chart's native selector opens on load; defer onboarding until it's
+    // closed so they don't overlap. Read the param on first render (before TradeChart clears it); the hook then
+    // tracks the selector's open/close. Not persisted — a normal visit shows onboarding as usual.
+    const [is_market_selector_opened_on_load] = React.useState(() => getViewMarketsFromURL());
+    const is_market_selector_open = useChartMarketSelectorOpen(is_market_selector_opened_on_load);
+    const should_defer_onboarding = is_market_selector_opened_on_load && is_market_selector_open;
 
     // For handling edge cases of snackbar:
     const contract_types = getDisplayedContractTypes(trade_types_store, contract_type, trade_type_tab);
@@ -211,15 +219,20 @@ const TradeDesktop = observer(() => {
                         </div>
                         {is_automation_enabled && <TradePanelTabs />}
                     </div>
+                    {/* Deferred while the selector is open on load; shows once closed. */}
                     {/* Existing onboarding for non-migrated users */}
-                    {!is_migrated_user && !guide_dtrader_v2?.trade_page && is_logged_in && (
+                    {!is_migrated_user && !guide_dtrader_v2?.trade_page && is_logged_in && !should_defer_onboarding && (
                         <OnboardingGuide type='trade_page' />
                     )}
-                    {!is_migrated_user && is_logged_in && <OnboardingGuideDesktop type='trade_page' />}
+                    {!is_migrated_user && is_logged_in && !should_defer_onboarding && (
+                        <OnboardingGuideDesktop type='trade_page' />
+                    )}
                     {/* New onboarding for migrated users */}
-                    {is_migrated_user && is_logged_in && <MigrationOnboarding is_dark_mode_on={is_dark_mode_on} />}
+                    {is_migrated_user && is_logged_in && !should_defer_onboarding && (
+                        <MigrationOnboarding is_dark_mode_on={is_dark_mode_on} />
+                    )}
                     {/* Automation intro — self-gates on the intro onboarding being done */}
-                    {is_logged_in && is_automation_enabled && <AutomationOnboarding />}
+                    {is_logged_in && is_automation_enabled && !should_defer_onboarding && <AutomationOnboarding />}
                 </div>
             ) : (
                 <Loading.DTraderV2 />

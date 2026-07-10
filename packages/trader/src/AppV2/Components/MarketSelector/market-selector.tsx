@@ -19,8 +19,14 @@ import { useTraderStore } from 'Stores/useTraderStores';
 import ActiveSymbolsList from '../ActiveSymbolsList';
 import SymbolIconsMapper from '../SymbolIconsMapper/symbol-icons-mapper';
 
-const MarketSelector = observer(() => {
-    const [isOpen, setIsOpen] = useState(false);
+type TMarketSelector = {
+    /** Notifies the parent when the selector opens or closes. */
+    onOpenChange?: (is_open: boolean) => void;
+};
+
+const MarketSelector = observer(({ onOpenChange }: TMarketSelector) => {
+    // Open on load when "View all markets" sets `view_markets=true` (symbol is handled by the `symbol` param).
+    const [isOpen, setIsOpen] = useState(() => getViewMarketsFromURL());
     const { activeSymbols, isLoading } = useActiveSymbols();
     const { symbol: storeSymbol, tick_data, is_market_closed, contract_type } = useTraderStore();
     const { addSnackbar } = useSnackbar();
@@ -30,14 +36,15 @@ const MarketSelector = observer(() => {
 
     const contract_name = trade_types?.find((item: TContractType) => item.value === contract_type)?.text;
 
-    // Open the market selector on load when Deriv Home's "View all markets" entry sets `view_markets=true`.
-    // The selected market itself is handled by the existing `symbol` URL param, so we only open the sheet here.
+    // Strip the one-time `view_markets` param (never persisted).
     useEffect(() => {
-        if (getViewMarketsFromURL()) {
-            setIsOpen(true);
-            removeViewMarketsFromURL();
-        }
+        removeViewMarketsFromURL();
     }, []);
+
+    // Report open state so the parent can defer onboarding while the selector is open.
+    useEffect(() => {
+        onOpenChange?.(isOpen);
+    }, [isOpen, onOpenChange]);
 
     useEffect(() => {
         if (!currentSymbol && !isLoading) {
@@ -90,6 +97,8 @@ const MarketSelector = observer(() => {
     useEffect(() => {
         if (activeSymbols?.length > 0 && !currentSymbol && storeSymbol) {
             setHasError(true);
+            // The error state replaces the sheet, so report it closed (unblocks any deferred onboarding).
+            setIsOpen(false);
         } else if (hasError && currentSymbol) {
             setHasError(false);
         }

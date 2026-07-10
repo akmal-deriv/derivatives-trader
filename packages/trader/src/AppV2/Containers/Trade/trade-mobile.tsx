@@ -4,7 +4,7 @@ import { observer } from 'mobx-react-lite';
 
 import { useLocalStorageData } from '@deriv/api';
 import { Loading } from '@deriv/components';
-import { getIsMigratedUser, getSymbolDisplayName, trackAnalyticsEvent } from '@deriv/shared';
+import { getIsMigratedUser, getSymbolDisplayName, getViewMarketsFromURL, trackAnalyticsEvent } from '@deriv/shared';
 import { useStore } from '@deriv/stores';
 
 import AccumulatorStats from 'AppV2/Components/AccumulatorStats';
@@ -62,6 +62,14 @@ const Trade = observer(() => {
     });
 
     const is_migrated_user = getIsMigratedUser();
+
+    // On a `view_markets=true` landing the selector opens on load; defer onboarding until it's closed so they
+    // don't overlap. One-shot: seed from the param on first render (before MarketSelector clears it), then
+    // MarketSelector's first close unblocks it for good. Not persisted — a normal visit shows onboarding as usual.
+    const [should_defer_onboarding, setShouldDeferOnboarding] = React.useState(() => getViewMarketsFromURL());
+    const handleMarketSelectorOpenChange = React.useCallback((is_open: boolean) => {
+        if (!is_open) setShouldDeferOnboarding(false);
+    }, []);
 
     // For handling edge cases of snackbar:
     const contract_types = getDisplayedContractTypes(trade_types_store, contract_type, trade_type_tab);
@@ -131,7 +139,7 @@ const Trade = observer(() => {
                             is_dark_mode_on={is_dark_mode_on}
                         />
                         <div className='trade__market-selector-guide'>
-                            <MarketSelector />
+                            <MarketSelector onOpenChange={handleMarketSelectorOpenChange} />
                             <Guide show_guide_for_selected_contract />
                         </div>
                         {isDigitTradeType(contract_type) && <CurrentSpot />}
@@ -154,14 +162,17 @@ const Trade = observer(() => {
                         {is_accumulator && <AccumulatorStats />}
                     </div>
                     <TradeParametersContainer is_market_closed={is_market_closed} />
+                    {/* Deferred while the selector is open on load; shows once closed. */}
                     {/* Existing onboarding for non-migrated users */}
-                    {!is_migrated_user && is_logged_in && (
+                    {!is_migrated_user && is_logged_in && !should_defer_onboarding && (
                         <OnboardingGuide type='trade_page' is_dark_mode_on={is_dark_mode_on} />
                     )}
                     {/* New onboarding for migrated users */}
-                    {is_migrated_user && is_logged_in && <MigrationOnboarding is_dark_mode_on={is_dark_mode_on} />}
+                    {is_migrated_user && is_logged_in && !should_defer_onboarding && (
+                        <MigrationOnboarding is_dark_mode_on={is_dark_mode_on} />
+                    )}
                     {/* Automation intro — self-gates on the intro onboarding being done */}
-                    {is_logged_in && is_automation_enabled && <AutomationOnboarding />}
+                    {is_logged_in && is_automation_enabled && !should_defer_onboarding && <AutomationOnboarding />}
                 </React.Fragment>
             ) : (
                 <Loading.DTraderV2 />

@@ -85,10 +85,10 @@ describe('MarketSelector', () => {
         });
     });
 
-    const MockedMarketSelector = () => {
+    const MockedMarketSelector = ({ onOpenChange }: { onOpenChange?: (is_open: boolean) => void } = {}) => {
         return (
             <TraderProviders store={default_trade_store}>
-                <MarketSelector />
+                <MarketSelector onOpenChange={onOpenChange} />
             </TraderProviders>
         );
     };
@@ -154,6 +154,18 @@ describe('MarketSelector', () => {
 
             const opened_with_true = mocked_active_symbols_list.mock.calls.some(([props]) => props.isOpen);
             expect(opened_with_true).toBe(false);
+        });
+
+        it('reports the selector closed via onOpenChange when the symbol errors after opening on load', () => {
+            // Land with the selector open, but on a symbol that is not in the active symbols list.
+            default_trade_store.modules.trade.symbol = 'USDJPY';
+            window.history.pushState({}, document.title, '/?view_markets=true');
+            const onOpenChange = jest.fn();
+
+            render(MockedMarketSelector({ onOpenChange }));
+
+            // Error state must report closed so a deferred onboarding isn't stuck for the session.
+            expect(onOpenChange).toHaveBeenLastCalledWith(false);
         });
     });
 });

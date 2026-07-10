@@ -4,8 +4,9 @@ import { createMemoryHistory } from 'history';
 
 import { ReportsStoreProvider } from '@deriv/reports/src/Stores/useReportsStores';
 import { mockStore } from '@deriv/stores';
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 
+import MarketSelector from 'AppV2/Components/MarketSelector';
 import ModulesProvider from 'Stores/Providers/modules-providers';
 
 import TraderProviders from '../../../../trader-providers';
@@ -366,6 +367,37 @@ describe('Trade', () => {
             renderTrade();
 
             expect(screen.queryByTestId('onboarding-guide')).not.toBeInTheDocument();
+        });
+
+        it('should not render OnboardingGuide while the market selector is opened on load via view_markets=true', () => {
+            const { useLocalStorageData } = jest.requireMock('@deriv/api');
+            useLocalStorageData.mockReturnValue([{ trade_page: false }]);
+            window.history.pushState({}, document.title, '/?view_markets=true');
+
+            renderTrade();
+
+            expect(screen.queryByTestId('onboarding-guide')).not.toBeInTheDocument();
+
+            window.history.replaceState({}, document.title, '/');
+        });
+
+        it('should render OnboardingGuide once the market selector is closed after a view_markets=true landing', () => {
+            const { useLocalStorageData } = jest.requireMock('@deriv/api');
+            useLocalStorageData.mockReturnValue([{ trade_page: false }]);
+            window.history.pushState({}, document.title, '/?view_markets=true');
+
+            renderTrade();
+
+            // Deferred while the selector is open.
+            expect(screen.queryByTestId('onboarding-guide')).not.toBeInTheDocument();
+
+            // Simulate the user closing the market selector.
+            const { onOpenChange } = (MarketSelector as unknown as jest.Mock).mock.calls.at(-1)[0];
+            act(() => onOpenChange(false));
+
+            expect(screen.getByTestId('onboarding-guide')).toBeInTheDocument();
+
+            window.history.replaceState({}, document.title, '/');
         });
     });
 

@@ -101,10 +101,9 @@ const TradeChart = observer(() => {
     const is_accumulator = isAccumulatorContract(contract_type);
     const timeoutsMapRef = React.useRef<Map<number, NodeJS.Timeout>>(new Map());
 
-    // On desktop the chart's native market selector (ChartTitle) is used, so we open it here when
-    // Deriv Home's "View all markets" entry sets `view_markets=true`. On mobile the custom MarketSelector
-    // handles this instead, so we skip it to avoid consuming the one-time param before MarketSelector reads it.
-    // Read from the URL on first render so `open` is already true when ChartTitle mounts.
+    // Desktop uses the chart's native selector (ChartTitle), so open it on a `view_markets=true` landing.
+    // Mobile is handled by MarketSelector, so gate on !isMobile to not consume the param before it reads it.
+    // Read on first render so `open` is already true when ChartTitle mounts.
     const [should_open_market_selector] = React.useState(() => !isMobile && getViewMarketsFromURL());
     React.useEffect(() => {
         if (should_open_market_selector) removeViewMarketsFromURL();

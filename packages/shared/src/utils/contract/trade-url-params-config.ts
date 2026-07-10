@@ -88,19 +88,13 @@ export const getTradeURLParams = ({ active_symbols = [], contract_types_list = {
     return result;
 };
 
-/**
- * Reads the one-time `view_markets=true` param used by Deriv Home's "View all markets"
- * entry point to request that DTrader opens the market selector on load.
- */
+/** Reads Deriv Home's one-time `view_markets=true` param (opens the market selector on load). */
 export const getViewMarketsFromURL = () => {
     const searchParams = new URLSearchParams(window.location.search);
     return searchParams.get(TRADE_URL_PARAMS.VIEW_MARKETS) === 'true';
 };
 
-/**
- * Removes the one-time `view_markets` param from the URL after it has been consumed.
- * It is not persisted anywhere, so it should never survive a reload.
- */
+/** Removes the one-time `view_markets` param once consumed (never persisted). */
 export const removeViewMarketsFromURL = () => {
     const searchParams = new URLSearchParams(window.location.search);
     if (!searchParams.has(TRADE_URL_PARAMS.VIEW_MARKETS)) return;
