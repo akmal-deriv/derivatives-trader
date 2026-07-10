@@ -83,8 +83,15 @@ const main = async () => {
     write(`### 🚀 [View TestDino Report](${linkUrl})`);
     write('');
 
-    if (!TESTDINO_ACCESS_TOKEN || !TESTDINO_RUN_ID || !TESTDINO_PROJECT_ID) {
-        write('_TestDino summary unavailable (missing token, project ID, or run ID)._');
+    if (!TESTDINO_ACCESS_TOKEN || !TESTDINO_PROJECT_ID) {
+        write('_TestDino summary unavailable (missing token or project ID)._');
+        return;
+    }
+
+    if (!TESTDINO_RUN_ID) {
+        write(
+            '_TestDino summary unavailable — no run ID was produced. This usually means the `tdpw upload` step was skipped or failed (e.g. browser install failure, no test report generated)._'
+        );
         return;
     }
 

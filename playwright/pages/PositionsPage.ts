@@ -160,6 +160,15 @@ export class PositionsPage extends TradeBasePage {
     }
 
     /**
+     * Risk management badge label on the first open contract card.
+     * Shows "TP", "SL", "DC", or a combined pill when multiple are set.
+     * Source: .risk-management.tag p.custom inside .tag__wrapper
+     */
+    get contractCardRiskTag(): Locator {
+        return this.firstContractCard.locator('.risk-management.tag p.custom');
+    }
+
+    /**
      * First closed contract link card — mobile Closed tab only.
      * The Closed tab on mobile renders <a> link cards (not dt_contract_card).
      * Source: tabpanel[name="Closed"] > a (first link)
@@ -356,6 +365,56 @@ export class PositionsPage extends TradeBasePage {
                 'Close button should be visible on the contract card'
             ).toBeVisible();
             await this.verifyPositionsFooter();
+        }
+    }
+
+    /**
+     * Verify the open contract card for a Multipliers position, including the risk management badge.
+     * Delegates common field checks to `verifyContractCardDetails`, then additionally asserts
+     * the TP / SL / DC badge label visible on the card.
+     *
+     * Badge text rules (mirrors the app's label logic):
+     * - TP only  → "TP"
+     * - SL only  → "SL"
+     * - DC only  → "DC"
+     * - TP + SL  → "TP/SL"
+     *
+     * @param market         - Market symbol, e.g. "Volatility 25 (1s) Index"
+     * @param tradeType      - "Multipliers Up" or "Multipliers Down"
+     * @param currency       - Currency code, e.g. "USD"
+     * @param stake          - Stake amount as displayed, e.g. "10.00"
+     * @param riskManagement - Optional risk management config set before purchase
+     */
+    async verifyMultipliersContractCardDetails(
+        market: string,
+        tradeType: string,
+        currency: string,
+        stake: string,
+        riskManagement?: {
+            takeProfit?: string;
+            stopLoss?: string;
+            dealCancellation?: string;
+        }
+    ): Promise<void> {
+        await this.verifyContractCardDetails(market, tradeType, currency, stake, null);
+
+        if (riskManagement) {
+            const { takeProfit, stopLoss, dealCancellation } = riskManagement;
+            let expectedTag: string;
+            if (dealCancellation) {
+                expectedTag = 'DC';
+            } else if (takeProfit && stopLoss) {
+                expectedTag = 'TP/SL';
+            } else if (takeProfit) {
+                expectedTag = 'TP';
+            } else if (stopLoss) {
+                expectedTag = 'SL';
+            } else {
+                return;
+            }
+            await expect(this.contractCardRiskTag, `Risk management badge should show "${expectedTag}"`).toHaveText(
+                expectedTag
+            );
         }
     }
 

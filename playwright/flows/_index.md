@@ -5,7 +5,7 @@ This folder contains plain-English journey specifications, coverage scorecards, 
 
 Updated when new flows are added, tests are implemented, or coverage status changes.
 
-Last updated: 2026-07-07
+Last updated: 2026-07-10
 
 ---
 
@@ -36,13 +36,13 @@ Each module section lists every documented flow with its current **status** and 
 
 | Module          | Total Flows | Documented | Automated |
 | --------------- | ----------- | ---------- | --------- |
-| `trade`         | 34          | 34         | 3         |
+| `trade`         | 34          | 34         | 21        |
 | `positions`     | 11          | 11         | 0         |
-| `reports`       | 10          | 10         | 0         |
+| `reports`       | 8           | 8          | 0         |
 | `notifications` | 9           | 9          | 0         |
-| `auth`          | 4           | 4          | 3         |
+| `auth`          | 3           | 3          | 3         |
 | `automation`    | 9           | 9          | 3         |
-| **Total**       | **77**      | **77**     | **9**     |
+| **Total**       | **74**      | **74**     | **27**    |
 
 > Status advances: `documented` → `automated`
 
@@ -57,35 +57,35 @@ Each module section lists every documented flow with its current **status** and 
 | Flow 1    | P0       | Trade form loads with default state visible                | authenticated                | `automated`  |
 | Flow 2.1  | P0       | Rise/Fall — buy Rise → close                               | authenticated, funded        | `automated`  |
 | Flow 2.2  | P0       | Rise/Fall — buy Fall → close                               | authenticated, funded        | `automated`  |
-| Flow 3.1  | P2       | Rise/Fall Allow Equals — buy Rise → close                  | authenticated, funded        | `documented` |
-| Flow 3.2  | P2       | Rise/Fall Allow Equals — buy Fall → close                  | authenticated, funded        | `documented` |
-| Flow 4.1  | P1       | Higher/Lower — buy Higher → close                          | authenticated, funded        | `documented` |
-| Flow 4.2  | P1       | Higher/Lower — buy Lower → close                           | authenticated, funded        | `documented` |
-| Flow 5.1  | P2       | Touch/No Touch — buy Touch → close                         | authenticated, funded        | `documented` |
-| Flow 5.2  | P2       | Touch/No Touch — buy No Touch → close                      | authenticated, funded        | `documented` |
-| Flow 6.1  | P0       | Matches/Differs — buy Matches → expiry                     | authenticated, funded        | `documented` |
-| Flow 6.2  | P0       | Matches/Differs — buy Differs → expiry                     | authenticated, funded        | `documented` |
-| Flow 7.1  | P2       | Over/Under — buy Over → expiry                             | authenticated, funded        | `documented` |
-| Flow 7.2  | P2       | Over/Under — buy Under → expiry                            | authenticated, funded        | `documented` |
-| Flow 8.1  | P2       | Even/Odd — buy Even → expiry                               | authenticated, funded        | `documented` |
-| Flow 8.2  | P2       | Even/Odd — buy Odd → expiry                                | authenticated, funded        | `documented` |
-| Flow 9.1  | P0       | Accumulators without TP — buy → close                      | authenticated, funded        | `documented` |
-| Flow 9.2  | P0       | Accumulators with TP — buy → verify TP set → close         | authenticated, funded        | `documented` |
-| Flow 10.1 | P0       | Multipliers no TP/SL — buy Up → close                      | authenticated, funded        | `documented` |
-| Flow 10.2 | P0       | Multipliers no TP/SL — buy Down → close                    | authenticated, funded        | `documented` |
-| Flow 11.1 | P0       | Multipliers with TP — buy Up → close                       | authenticated, funded        | `documented` |
-| Flow 11.2 | P0       | Multipliers with TP — buy Down → close                     | authenticated, funded        | `documented` |
-| Flow 12.1 | P1       | Multipliers with SL — buy Up → close                       | authenticated, funded        | `documented` |
-| Flow 12.2 | P1       | Multipliers with SL — buy Down → close                     | authenticated, funded        | `documented` |
-| Flow 13.1 | P2       | Multipliers with Deal Cancellation — buy Up → cancel       | authenticated, funded        | `documented` |
-| Flow 13.2 | P2       | Multipliers with Deal Cancellation — buy Down → cancel     | authenticated, funded        | `documented` |
-| Flow 14.1 | P1       | Turbos without TP — buy Up → verify in positions           | authenticated, funded        | `documented` |
-| Flow 14.2 | P1       | Turbos without TP — buy Down → verify in positions         | authenticated, funded        | `documented` |
-| Flow 14.3 | P1       | Turbos with TP — buy Up → verify TP set in positions       | authenticated, funded        | `documented` |
-| Flow 14.4 | P1       | Turbos with TP — buy Down → verify TP set in positions     | authenticated, funded        | `documented` |
-| Flow 15.1 | P1       | Vanillas — buy Call → verify in positions                  | authenticated, funded        | `documented` |
-| Flow 15.2 | P1       | Vanillas — buy Put → verify in positions                   | authenticated, funded        | `documented` |
-| Flow 16   | P2       | Market closed → purchase hidden, countdown visible         | authenticated, closed market | `documented` |
+| Flow 2.3  | P2       | Rise/Fall Allow Equals — buy Rise → close                  | authenticated, funded        | `automated`  |
+| Flow 2.4  | P2       | Rise/Fall Allow Equals — buy Fall → close                  | authenticated, funded        | `automated`  |
+| Flow 3.1  | P1       | Higher/Lower — buy Higher → close                          | authenticated, funded        | `automated`  |
+| Flow 3.2  | P1       | Higher/Lower — buy Lower → close                           | authenticated, funded        | `automated`  |
+| Flow 4.1  | P2       | Touch/No Touch — buy Touch → close                         | authenticated, funded        | `automated`  |
+| Flow 4.2  | P2       | Touch/No Touch — buy No Touch → close                      | authenticated, funded        | `automated`  |
+| Flow 5.1  | P0       | Matches/Differs — buy Matches → expiry                     | authenticated, funded        | `automated`  |
+| Flow 5.2  | P0       | Matches/Differs — buy Differs → expiry                     | authenticated, funded        | `automated`  |
+| Flow 6.1  | P2       | Over/Under — buy Over → expiry                             | authenticated, funded        | `automated`  |
+| Flow 6.2  | P2       | Over/Under — buy Under → expiry                            | authenticated, funded        | `automated`  |
+| Flow 7.1  | P2       | Even/Odd — buy Even → expiry                               | authenticated, funded        | `automated`  |
+| Flow 7.2  | P2       | Even/Odd — buy Odd → expiry                                | authenticated, funded        | `automated`  |
+| Flow 8.1  | P0       | Accumulators without TP — buy → close                      | authenticated, funded        | `documented` |
+| Flow 8.2  | P0       | Accumulators with TP — buy → verify TP set → close         | authenticated, funded        | `documented` |
+| Flow 9.1  | P0       | Multipliers no TP/SL — buy Up → close                      | authenticated, funded        | `automated`  |
+| Flow 9.2  | P0       | Multipliers no TP/SL — buy Down → close                    | authenticated, funded        | `automated`  |
+| Flow 9.3  | P0       | Multipliers with TP — buy Up → close                       | authenticated, funded        | `automated`  |
+| Flow 9.4  | P0       | Multipliers with TP — buy Down → close                     | authenticated, funded        | `automated`  |
+| Flow 9.5  | P1       | Multipliers with SL — buy Up → close                       | authenticated, funded        | `automated`  |
+| Flow 9.6  | P1       | Multipliers with SL — buy Down → close                     | authenticated, funded        | `automated`  |
+| Flow 9.7  | P2       | Multipliers with Deal Cancellation — buy Up → cancel       | authenticated, funded        | `documented` |
+| Flow 9.8  | P2       | Multipliers with Deal Cancellation — buy Down → cancel     | authenticated, funded        | `documented` |
+| Flow 10.1 | P1       | Turbos without TP — buy Up → verify in positions           | authenticated, funded        | `documented` |
+| Flow 10.2 | P1       | Turbos without TP — buy Down → verify in positions         | authenticated, funded        | `documented` |
+| Flow 10.3 | P1       | Turbos with TP — buy Up → verify TP set in positions       | authenticated, funded        | `documented` |
+| Flow 10.4 | P1       | Turbos with TP — buy Down → verify TP set in positions     | authenticated, funded        | `documented` |
+| Flow 11.1 | P1       | Vanillas — buy Call → verify in positions                  | authenticated, funded        | `documented` |
+| Flow 11.2 | P1       | Vanillas — buy Put → verify in positions                   | authenticated, funded        | `documented` |
+| Flow 12   | P2       | Market closed → purchase hidden, countdown visible         | authenticated, closed market | `documented` |
 | —         | P2       | Insufficient balance → ServiceErrorSheet (G1)              | authenticated, zero balance  | `documented` |
 | —         | P3       | Unauthenticated purchase attempt → login prompt sheet (G2) | unauthenticated              | `documented` |
 
@@ -181,14 +181,13 @@ Each module section lists every documented flow with its current **status** and 
 
 ## Implementation Priority Order
 
-| Priority | Module          | Key Flows to Implement First                                                                         |
-| -------- | --------------- | ---------------------------------------------------------------------------------------------------- |
-| **Now**  | `automation`    | Flow 1 (start → Running → Stop lifecycle) first; then Flow 6 (panel loads) + Flow 2 (pause/resume)   |
-| **Next** | `trade`         | Flow 6.1/6.2 (Matches/Differs) + Flow 9.1/9.2 (Accumulators) + Flow 10.1/10.2 (Multipliers no TP/SL) |
-| **Next** | `positions`     | Flow 1 (open positions mobile), Flow 2 (desktop flyout)                                              |
-| **Next** | `reports`       | Flow 1 (page load), Flow 5 (Trade Table), Flow 6 (Statement)                                         |
-| **Soon** | `auth`          | Flow 1 (email+password login), Flow 3 (logout)                                                       |
-| **Soon** | `notifications` | Flow 3 (bell → dialog desktop), Flow 4 (bell → modal mobile), Flow 1 (trade banner)                  |
+| Priority | Module          | Key Flows to Implement First                                                             |
+| -------- | --------------- | ---------------------------------------------------------------------------------------- |
+| **Now**  | `trade`         | Flow 8.1/8.2 (Accumulators) + Flow 9.7/9.8 (Deal Cancellation) + Flow 10.1–10.4 (Turbos) |
+| **Now**  | `positions`     | Flow 1 (open positions mobile), Flow 2 (desktop flyout)                                  |
+| **Next** | `reports`       | Flow 1 (page load), Flow 5 (Trade Table), Flow 6 (Statement)                             |
+| **Next** | `notifications` | Flow 3 (bell → dialog desktop), Flow 4 (bell → modal mobile), Flow 1 (trade banner)      |
+| **Soon** | `automation`    | Flow 3 (risk threshold auto-stop) + Flow 4 (strategy selection) + Flow 5 (resync)        |
 
 ---
 

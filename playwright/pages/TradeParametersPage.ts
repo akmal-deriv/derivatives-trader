@@ -749,7 +749,13 @@ export class TradeParametersPage extends TradeBasePage {
         } else {
             await this.stakeManualInputToggle.click();
             await this.stakePopoverInput.click();
-            await this.stakePopoverInput.fill(amount);
+            await this.stakePopoverInput.clear();
+            await this.stakePopoverInput.pressSequentially(amount, { delay: 70 });
+            await expect(this.stakePopoverInput, `Stake input should show '${amount}'`).toHaveValue(amount);
+            await expect(
+                this.stakeSaveButton,
+                'Stake save button should be enabled — confirms proposal validated'
+            ).toBeEnabled();
             await this.stakeSaveButton.click();
             if (this.isMobile) {
                 await expect(

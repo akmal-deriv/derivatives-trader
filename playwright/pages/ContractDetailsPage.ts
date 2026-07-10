@@ -106,11 +106,123 @@ export class ContractDetailsPage extends TradeBasePage {
     }
 
     /**
+     * Mobile contract card — stake amount shown as the subtitle next to the trade type.
+     * Rendered as a subtle-coloured paragraph: e.g. "21.01 USD"
+     * Source: second `.contract-card__details` row inside `.contract-card__details-col` > `p.quill-typography__color--subtle`
+     */
+    get mobileContractCardStake(): Locator {
+        return this.page.locator(
+            '.contract-card__details-col .contract-card__details p.quill-typography__color--subtle'
+        );
+    }
+
+    /**
      * Mobile Entry & exit details section — wraps start time, entry spot, exit spot rows.
      * Source: EntryExitDetails component
      */
     get mobileEntryExitDetails(): Locator {
         return this.page.locator('.entry-exit-details');
+    }
+
+    /**
+     * Mobile risk management card — TP toggle button.
+     * `aria-pressed="true"` when TP is active, `"false"` when not set.
+     */
+    get mobileRiskManagementTpToggle(): Locator {
+        return this.page
+            .locator('.risk-management-item__container', {
+                has: this.page.locator('p', { hasText: 'Take profit' }),
+            })
+            .locator('button.toggle-switch');
+    }
+
+    /**
+     * Mobile risk management card — SL toggle button.
+     * `aria-pressed="true"` when SL is active, `"false"` when not set.
+     */
+    get mobileRiskManagementSlToggle(): Locator {
+        return this.page
+            .locator('.risk-management-item__container', {
+                has: this.page.locator('p', { hasText: 'Stop loss' }),
+            })
+            .locator('button.toggle-switch');
+    }
+
+    /**
+     * Mobile risk management card — TP value input (only present when TP is active).
+     * Value format: "10.00 USD"
+     */
+    get mobileRiskManagementTpInput(): Locator {
+        return this.page
+            .locator('.risk-management-item__container', {
+                has: this.page.locator('p', { hasText: 'Take profit' }),
+            })
+            .locator('input');
+    }
+
+    /**
+     * Mobile risk management card — SL value input (only present when SL is active).
+     * Value format: "-10.00 USD" (negative prefix rendered by the app)
+     */
+    get mobileRiskManagementSlInput(): Locator {
+        return this.page
+            .locator('.risk-management-item__container', {
+                has: this.page.locator('p', { hasText: 'Stop loss' }),
+            })
+            .locator('input');
+    }
+
+    /**
+     * Mobile contract card — "TP" badge shown when take profit is active.
+     * Source: `.tag__wrapper .risk-management` > `p` with text "TP"
+     */
+    get mobileContractCardTpBadge(): Locator {
+        return this.page.locator('.contract-card__details .tag__wrapper .risk-management', {
+            hasText: 'TP',
+        });
+    }
+
+    /**
+     * Mobile contract card — "SL" badge shown when stop loss is active.
+     * Source: `.tag__wrapper .risk-management` > `p` with text "SL"
+     */
+    get mobileContractCardSlBadge(): Locator {
+        return this.page.locator('.contract-card__details .tag__wrapper .risk-management', {
+            hasText: 'SL',
+        });
+    }
+
+    /**
+     * Mobile TP & SL History section title — visible when the card-wrapper is present.
+     * Source: `.card-wrapper.take-profit-history > p.title`
+     */
+    get mobileTpSlHistoryTitle(): Locator {
+        return this.page.locator('.card-wrapper.take-profit-history .title');
+    }
+
+    /**
+     * Mobile TP & SL History — a single row by zero-based index inside the carousel.
+     * Each row has a label cell ("Take profit" / "Stop loss") and a value cell.
+     * Source: `.take-profit-history__table-row`
+     */
+    mobileTpSlHistoryRow(index: number): Locator {
+        return this.page.locator('.take-profit-history__table-row').nth(index);
+    }
+
+    /**
+     * Mobile TP & SL History — label text of a row (e.g. "Take profit", "Stop loss").
+     * Source: second `.take-profit-history__table-cell > p` (subtle coloured)
+     */
+    mobileTpSlHistoryRowLabel(index: number): Locator {
+        return this.mobileTpSlHistoryRow(index).locator('.take-profit-history__table-cell').last().locator('p').first();
+    }
+
+    /**
+     * Mobile TP & SL History — value text of a row (e.g. "30.01 USD", "-12.00 USD").
+     * Source: second `.take-profit-history__table-cell > p` (default coloured, second p)
+     */
+    mobileTpSlHistoryRowValue(index: number): Locator {
+        return this.mobileTpSlHistoryRow(index).locator('.take-profit-history__table-cell').last().locator('p').last();
     }
 
     /**
@@ -337,6 +449,40 @@ export class ContractDetailsPage extends TradeBasePage {
      */
     get multTpSlHistoryEmptyDescription(): Locator {
         return this.page.locator('.contract-audit__empty span');
+    }
+
+    /**
+     * A single TP/SL history entry by zero-based index.
+     * Source: `.contract-audit__grid[data-testid="dt_history_label_{index}"]`
+     */
+    multTpSlHistoryEntry(index: number): Locator {
+        return this.page.getByTestId(`dt_history_label_${index}`);
+    }
+
+    /**
+     * Label text of a TP/SL history entry (e.g. "Take profit", "Stop loss").
+     * Source: `.contract-audit__label` inside the entry grid
+     */
+    multTpSlHistoryEntryLabel(index: number): Locator {
+        return this.multTpSlHistoryEntry(index).locator('.contract-audit__label');
+    }
+
+    /**
+     * Value of a TP/SL history entry (e.g. "30.01").
+     * The amount lives in a nested `dt_span`; spot price follows in a `<br><span>`.
+     * Source: `[data-testid="dt_span"]` inside `.contract-audit__value`
+     */
+    multTpSlHistoryEntryValue(index: number): Locator {
+        return this.multTpSlHistoryEntry(index).locator('.contract-audit__value').getByTestId('dt_span');
+    }
+
+    /**
+     * Date portion of a TP/SL history entry timestamp (e.g. "2026-07-08").
+     * Two `.contract-audit__timestamp-value` spans exist per entry — first is date, second is time.
+     * Source: `.contract-audit__timestamp-value` first span inside the entry grid
+     */
+    multTpSlHistoryEntryDate(index: number): Locator {
+        return this.multTpSlHistoryEntry(index).locator('.contract-audit__timestamp-value').first();
     }
 
     /**
@@ -1323,10 +1469,21 @@ export class ContractDetailsPage extends TradeBasePage {
         stake: string,
         multiplier: string,
         buyDate: string,
-        commission: string
+        commission: string,
+        takeProfit?: string | null,
+        stopLoss?: string | null
     ): Promise<{ buyId: string; entrySpot: string }> {
         return this.isMobile
-            ? this.verifyMultipliersContractDetailsMobile(market, direction, stake, multiplier, commission)
+            ? this.verifyMultipliersContractDetailsMobile(
+                  market,
+                  direction,
+                  stake,
+                  multiplier,
+                  buyDate,
+                  commission,
+                  takeProfit,
+                  stopLoss
+              )
             : this.verifyMultipliersContractDetailsDesktop(
                   market,
                   direction,
@@ -1334,7 +1491,9 @@ export class ContractDetailsPage extends TradeBasePage {
                   stake,
                   multiplier,
                   buyDate,
-                  commission
+                  commission,
+                  takeProfit,
+                  stopLoss
               );
     }
 
@@ -1364,7 +1523,9 @@ export class ContractDetailsPage extends TradeBasePage {
         profitLossAmount: string,
         commission: string,
         entrySpot: string,
-        stopOut: string
+        stopOut: string,
+        takeProfit?: string | null,
+        stopLoss?: string | null
     ): Promise<string> {
         return this.isMobile
             ? this.verifyClosedMultipliersContractDetailsMobile(
@@ -1377,7 +1538,9 @@ export class ContractDetailsPage extends TradeBasePage {
                   profitLossAmount,
                   commission,
                   entrySpot,
-                  stopOut
+                  stopOut,
+                  takeProfit,
+                  stopLoss
               )
             : this.verifyClosedMultipliersContractDetailsDesktop(
                   market,
@@ -1389,7 +1552,9 @@ export class ContractDetailsPage extends TradeBasePage {
                   buyDate,
                   profitLossAmount,
                   commission,
-                  entrySpot
+                  entrySpot,
+                  takeProfit,
+                  stopLoss
               );
     }
 
@@ -1400,7 +1565,9 @@ export class ContractDetailsPage extends TradeBasePage {
         stake: string,
         multiplier: string,
         buyDate: string,
-        commission: string
+        commission: string,
+        takeProfit?: string | null,
+        stopLoss?: string | null
     ): Promise<{ buyId: string; entrySpot: string }> {
         // Header
         await expect(
@@ -1426,8 +1593,22 @@ export class ContractDetailsPage extends TradeBasePage {
             '-'
         );
         await expect(this.contractCardItem('Stake:'), `Stake should be "${stake}"`).toContainText(stake);
-        await expect(this.contractCardItem('Take profit:'), 'Take profit should be "-" (not set)').toHaveText('-');
-        await expect(this.contractCardItem('Stop loss:'), 'Stop loss should be "-" (not set)').toHaveText('-');
+        if (takeProfit) {
+            await expect(this.contractCardItem('Take profit:'), `Take profit should show "${takeProfit}"`).toHaveText(
+                takeProfit
+            );
+        } else {
+            await expect(this.contractCardItem('Take profit:'), 'Take profit should be "-" (not set)').toHaveText('-');
+        }
+        if (stopLoss) {
+            // The UI renders SL as "-15.00 " (negative sign + trailing space from a child <strong>).
+            // Pass a regex to toHaveText so leading/trailing whitespace is handled automatically.
+            await expect(this.contractCardItem('Stop loss:'), `Stop loss should show "-${stopLoss}"`).toHaveText(
+                new RegExp(`^-${stopLoss}\\s*$`)
+            );
+        } else {
+            await expect(this.contractCardItem('Stop loss:'), 'Stop loss should be "-" (not set)').toHaveText('-');
+        }
         await expect(
             this.contractCardItem('Total profit/loss:'),
             'Total profit/loss should have a value'
@@ -1469,15 +1650,55 @@ export class ContractDetailsPage extends TradeBasePage {
             buyDate
         );
 
-        // TP & SL History tab — verify empty state (no TP/SL set)
+        // TP & SL History tab
         await this.multTpSlHistoryTab.click();
-        await expect(this.multTpSlHistoryEmptyHeader, '"No history" should be shown when no TP/SL is set').toHaveText(
-            'No history'
-        );
-        await expect(
-            this.multTpSlHistoryEmptyDescription,
-            'Empty state description should indicate no TP/SL has been set'
-        ).toHaveText('You have yet to update either take profit or stop loss');
+        if (takeProfit || stopLoss) {
+            await expect(
+                this.multTpSlHistoryEmptyHeader,
+                'TP/SL history should NOT show "No history" when TP or SL is set'
+            ).not.toBeVisible();
+            // Entries appear in reverse-chronological order; index 0 is the most recent change.
+            // When both TP and SL are set in one save, they may appear as separate entries.
+            let entryIndex = 0;
+            if (takeProfit) {
+                await expect(
+                    this.multTpSlHistoryEntryLabel(entryIndex),
+                    `History entry ${entryIndex} label should be "Take profit"`
+                ).toHaveText('Take profit');
+                await expect(
+                    this.multTpSlHistoryEntryValue(entryIndex),
+                    `History entry ${entryIndex} value should contain "${takeProfit}"`
+                ).toContainText(takeProfit);
+                await expect(
+                    this.multTpSlHistoryEntryDate(entryIndex),
+                    `History entry ${entryIndex} date should contain "${buyDate}"`
+                ).toContainText(buyDate);
+                entryIndex++;
+            }
+            if (stopLoss) {
+                await expect(
+                    this.multTpSlHistoryEntryLabel(entryIndex),
+                    `History entry ${entryIndex} label should be "Stop loss"`
+                ).toHaveText('Stop loss');
+                await expect(
+                    this.multTpSlHistoryEntryValue(entryIndex),
+                    `History entry ${entryIndex} value should contain "${stopLoss}"`
+                ).toContainText(stopLoss);
+                await expect(
+                    this.multTpSlHistoryEntryDate(entryIndex),
+                    `History entry ${entryIndex} date should contain "${buyDate}"`
+                ).toContainText(buyDate);
+            }
+        } else {
+            await expect(
+                this.multTpSlHistoryEmptyHeader,
+                '"No history" should be shown when no TP/SL is set'
+            ).toHaveText('No history');
+            await expect(
+                this.multTpSlHistoryEmptyDescription,
+                'Empty state description should indicate no TP/SL has been set'
+            ).toHaveText('You have yet to update either take profit or stop loss');
+        }
 
         return { buyId, entrySpot };
     }
@@ -1487,7 +1708,10 @@ export class ContractDetailsPage extends TradeBasePage {
         direction: 'Up' | 'Down',
         stake: string,
         multiplier: string,
-        commission: string
+        buyDate: string,
+        commission: string,
+        takeProfit?: string | null,
+        stopLoss?: string | null
     ): Promise<{ buyId: string; entrySpot: string }> {
         // Header
         await expect(
@@ -1495,15 +1719,63 @@ export class ContractDetailsPage extends TradeBasePage {
             'Contract details header should show "Contract details"'
         ).toHaveText('Contract details');
 
-        // Contract card — market, trade type contains direction
+        // Contract card — market, trade type, stake, profit/loss
         await expect(this.mobileContractMarket, `Mobile contract card should show market "${market}"`).toHaveText(
             market
         );
         await expect(
             this.mobileContractTradeType,
-            `Mobile contract card should contain direction "${direction}"`
-        ).toContainText(direction);
+            `Mobile contract card should show "Multipliers ${direction}"`
+        ).toHaveText(`Multipliers ${direction}`);
+        await expect(this.mobileContractCardStake, `Mobile contract card should show stake "${stake} USD"`).toHaveText(
+            `${stake} USD`
+        );
         await expect(this.mobileContractProfit, 'Mobile profit/loss should have a value').not.toBeEmpty();
+
+        // Contract card — TP/SL badges (visible only when the respective param is active)
+        if (takeProfit) {
+            await expect(
+                this.mobileContractCardTpBadge,
+                'TP badge should be visible when take profit is set'
+            ).toBeVisible();
+        } else {
+            await expect(
+                this.mobileContractCardTpBadge,
+                'TP badge should not be visible when take profit is not set'
+            ).not.toBeVisible();
+        }
+        if (stopLoss) {
+            await expect(
+                this.mobileContractCardSlBadge,
+                'SL badge should be visible when stop loss is set'
+            ).toBeVisible();
+        } else {
+            await expect(
+                this.mobileContractCardSlBadge,
+                'SL badge should not be visible when stop loss is not set'
+            ).not.toBeVisible();
+        }
+
+        // Risk management card — TP/SL toggles and input values
+        await expect(
+            this.mobileRiskManagementTpToggle,
+            `TP toggle should be ${takeProfit ? 'on' : 'off'}`
+        ).toHaveAttribute('aria-pressed', takeProfit ? 'true' : 'false');
+        await expect(
+            this.mobileRiskManagementSlToggle,
+            `SL toggle should be ${stopLoss ? 'on' : 'off'}`
+        ).toHaveAttribute('aria-pressed', stopLoss ? 'true' : 'false');
+        if (takeProfit) {
+            await expect(this.mobileRiskManagementTpInput, `TP input should show "${takeProfit} USD"`).toHaveValue(
+                `${takeProfit} USD`
+            );
+        }
+        if (stopLoss) {
+            // The app renders the SL input value with a leading negative sign: "-10.00 USD"
+            await expect(this.mobileRiskManagementSlInput, `SL input should show "-${stopLoss} USD"`).toHaveValue(
+                `-${stopLoss} USD`
+            );
+        }
 
         // Order Details — Reference ID (extract and return)
         await expect(this.mobileOrderDetailsValue('Reference ID'), 'Reference ID should have a value').not.toBeEmpty();
@@ -1525,6 +1797,32 @@ export class ContractDetailsPage extends TradeBasePage {
             `Commission should match pre-buy value "${commission}"`
         ).toContainText(commission);
 
+        // Order Details — Take profit (when set)
+        if (takeProfit) {
+            await expect(
+                this.mobileOrderDetailsValue('Take profit'),
+                `Take profit should contain "${takeProfit}"`
+            ).toContainText(takeProfit);
+        }
+
+        // Order Details — Stop loss (when set)
+        if (stopLoss) {
+            await expect(
+                this.mobileOrderDetailsValue('Stop loss'),
+                `Stop loss should contain "${stopLoss}"`
+            ).toContainText(stopLoss);
+        }
+
+        // Entry & exit details — Start time
+        const startTimeRow = this.page.locator('.entry-exit-details__table-row', {
+            has: this.page.locator('.entry-exit-details__table-cell', { hasText: 'Start time' }),
+        });
+        await expect(startTimeRow, 'Start time row should be visible').toBeVisible();
+        const startTimeCell = startTimeRow.locator('.entry-exit-details__table-cell').last();
+        await expect(startTimeCell.locator('p').first(), `Start time date should contain "${buyDate}"`).toContainText(
+            buyDate
+        );
+
         // Entry & exit details — Entry spot
         const entrySpotRow = this.page.locator('.entry-exit-details__table-row', {
             has: this.page.locator('.entry-exit-details__table-cell', { hasText: 'Entry spot' }),
@@ -1533,6 +1831,36 @@ export class ContractDetailsPage extends TradeBasePage {
         const entrySpotCell = entrySpotRow.locator('.entry-exit-details__table-cell').last();
         await expect(entrySpotCell.locator('p').first(), 'Entry spot price should have a value').not.toBeEmpty();
         const entrySpot = (await entrySpotCell.locator('p').first().innerText()).trim();
+
+        // TP & SL History section
+        await expect(this.mobileTpSlHistoryTitle, 'TP & SL History section should be visible').toBeVisible();
+        if (takeProfit || stopLoss) {
+            // Entries appear in reverse-chronological order; most recent change is row 0.
+            // When both TP and SL are set in one save they appear as separate rows.
+            let rowIndex = 0;
+            if (takeProfit) {
+                await expect(
+                    this.mobileTpSlHistoryRowLabel(rowIndex),
+                    `History row ${rowIndex} label should be "Take profit"`
+                ).toHaveText('Take profit');
+                await expect(
+                    this.mobileTpSlHistoryRowValue(rowIndex),
+                    `History row ${rowIndex} value should show "${takeProfit} USD"`
+                ).toHaveText(`${takeProfit} USD`);
+                rowIndex++;
+            }
+            if (stopLoss) {
+                await expect(
+                    this.mobileTpSlHistoryRowLabel(rowIndex),
+                    `History row ${rowIndex} label should be "Stop loss"`
+                ).toHaveText('Stop loss');
+                // The app renders the SL history value with a leading negative sign: "-12.00 USD"
+                await expect(
+                    this.mobileTpSlHistoryRowValue(rowIndex),
+                    `History row ${rowIndex} value should show "-${stopLoss} USD"`
+                ).toHaveText(`-${stopLoss} USD`);
+            }
+        }
 
         // Close button visible
         await expect(
@@ -1543,6 +1871,8 @@ export class ContractDetailsPage extends TradeBasePage {
         return { buyId, entrySpot };
     }
 
+    // Note: stopOut is not asserted here — the desktop closed contract page does not render
+    // a "Stop out level" row (it is a pre-buy stake-details field, mobile Order Details only).
     private async verifyClosedMultipliersContractDetailsDesktop(
         market: string,
         direction: 'Up' | 'Down',
@@ -1553,7 +1883,9 @@ export class ContractDetailsPage extends TradeBasePage {
         buyDate: string,
         profitLossAmount: string,
         commission: string,
-        entrySpot: string
+        entrySpot: string,
+        takeProfit?: string | null,
+        stopLoss?: string | null
     ): Promise<string> {
         // Header
         await expect(
@@ -1582,6 +1914,22 @@ export class ContractDetailsPage extends TradeBasePage {
             this.contractCardItem('Total profit/loss:'),
             `Total profit/loss should contain "${profitLossNumeric}"`
         ).toContainText(profitLossNumeric);
+        if (takeProfit) {
+            await expect(this.contractCardItem('Take profit:'), `Take profit should show "${takeProfit}"`).toHaveText(
+                takeProfit
+            );
+        } else {
+            await expect(this.contractCardItem('Take profit:'), 'Take profit should be "-" (not set)').toHaveText('-');
+        }
+        if (stopLoss) {
+            // The UI renders SL as "-15.00 " (negative sign + trailing space from a child <strong>).
+            // Pass a regex to toHaveText so leading/trailing whitespace is handled automatically.
+            await expect(this.contractCardItem('Stop loss:'), `Stop loss should show "-${stopLoss}"`).toHaveText(
+                new RegExp(`^-${stopLoss}\\s*$`)
+            );
+        } else {
+            await expect(this.contractCardItem('Stop loss:'), 'Stop loss should be "-" (not set)').toHaveText('-');
+        }
 
         // Close button absent (contract settled)
         await expect(
@@ -1643,7 +1991,9 @@ export class ContractDetailsPage extends TradeBasePage {
         profitLossAmount: string,
         commission: string,
         entrySpot: string,
-        stopOut: string
+        stopOut: string,
+        takeProfit?: string | null,
+        stopLoss?: string | null
     ): Promise<string> {
         // Header
         await expect(
@@ -1700,11 +2050,27 @@ export class ContractDetailsPage extends TradeBasePage {
             `Commission should match pre-buy value "${commission}"`
         ).toContainText(commission);
 
-        // Order Details — Take profit / Stop loss (no TP/SL set)
-        await expect(this.mobileOrderDetailsValue('Take profit'), 'Take profit should be "Not set"').toHaveText(
-            'Not set'
-        );
-        await expect(this.mobileOrderDetailsValue('Stop loss'), 'Stop loss should be "Not set"').toHaveText('Not set');
+        // Order Details — Take profit / Stop loss
+        if (takeProfit) {
+            await expect(
+                this.mobileOrderDetailsValue('Take profit'),
+                `Take profit should contain "${takeProfit}"`
+            ).toContainText(takeProfit);
+        } else {
+            await expect(this.mobileOrderDetailsValue('Take profit'), 'Take profit should be "Not set"').toHaveText(
+                'Not set'
+            );
+        }
+        if (stopLoss) {
+            await expect(
+                this.mobileOrderDetailsValue('Stop loss'),
+                `Stop loss should contain "${stopLoss}"`
+            ).toContainText(stopLoss);
+        } else {
+            await expect(this.mobileOrderDetailsValue('Stop loss'), 'Stop loss should be "Not set"').toHaveText(
+                'Not set'
+            );
+        }
 
         // Order Details — Stop out level
         await expect(

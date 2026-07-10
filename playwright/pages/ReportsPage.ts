@@ -891,7 +891,9 @@ export class ReportsPage extends TradeBasePage {
     async verifyOpenPositionsInReportsForMultipliers(
         currency: string,
         stake: string,
-        multiplier: string
+        multiplier: string,
+        takeProfit?: string,
+        stopLoss?: string
     ): Promise<void> {
         if (this.isMobile) {
             await this.reportsRoutePicker.selectOption(ReportsPage.ROUTE_OPEN_POSITIONS_MOB);
@@ -909,13 +911,22 @@ export class ReportsPage extends TradeBasePage {
         ).toBeAttached();
 
         if (this.isMobile) {
-            await this.verifyMultOpenPositionsMobile(currency, stake, multiplier);
+            await this.verifyMultOpenPositionsMobile(currency, stake, multiplier, takeProfit, stopLoss);
         } else {
-            await this.verifyMultOpenPositionsDesktop(currency, stake, multiplier);
+            await this.verifyMultOpenPositionsDesktop(currency, stake, multiplier, takeProfit, stopLoss);
         }
     }
 
-    private async verifyMultOpenPositionsDesktop(currency: string, stake: string, multiplier: string): Promise<void> {
+    private async verifyMultOpenPositionsDesktop(
+        currency: string,
+        stake: string,
+        multiplier: string,
+        takeProfit?: string,
+        stopLoss?: string
+    ): Promise<void> {
+        const expectedTp = takeProfit ? `+${takeProfit}` : '-';
+        const expectedSl = stopLoss ? `-${stopLoss}` : '-';
+
         // Verify static cell values
         await expect(this.multOpenPositionsFirstRowMultiplier, `Multiplier cell should be "${multiplier}"`).toHaveText(
             multiplier
@@ -931,8 +942,12 @@ export class ReportsPage extends TradeBasePage {
             'Deal cancel. fee cell should be "-" (no deal cancellation)'
         ).toHaveText('-');
         await expect(this.multOpenPositionsFirstRowStake, `Stake cell should be "${stake}"`).toHaveText(stake);
-        await expect(this.multOpenPositionsFirstRowTakeProfit, 'Take profit should be "-" (not set)').toHaveText('-');
-        await expect(this.multOpenPositionsFirstRowStopLoss, 'Stop loss should be "-" (not set)').toHaveText('-');
+        await expect(this.multOpenPositionsFirstRowTakeProfit, `Take profit cell should be "${expectedTp}"`).toHaveText(
+            expectedTp
+        );
+        await expect(this.multOpenPositionsFirstRowStopLoss, `Stop loss cell should be "${expectedSl}"`).toHaveText(
+            expectedSl
+        );
 
         // Live values — only assert non-empty
         await expect(
@@ -947,7 +962,16 @@ export class ReportsPage extends TradeBasePage {
         await expect(this.multOpenPositionsFirstRowCloseButton, 'Close button should be visible').toBeVisible();
     }
 
-    private async verifyMultOpenPositionsMobile(currency: string, stake: string, multiplier: string): Promise<void> {
+    private async verifyMultOpenPositionsMobile(
+        currency: string,
+        stake: string,
+        multiplier: string,
+        takeProfit?: string,
+        stopLoss?: string
+    ): Promise<void> {
+        const expectedTp = takeProfit ?? '-';
+        const expectedSl = stopLoss ?? '-';
+
         // Card header — trade type label contains multiplier (e.g. "Up x200")
         await expect(
             this.multOpenPositionsMobFirstRowMultiplier,
@@ -969,10 +993,16 @@ export class ReportsPage extends TradeBasePage {
             'Deal cancel. fee value should be "-" (no deal cancellation)'
         ).toHaveText('-');
         await expect(this.multOpenPositionsMobFirstRowStake, `Stake value should be "${stake}"`).toContainText(stake);
-        await expect(this.multOpenPositionsMobFirstRowTakeProfit, 'Take profit should be "-" (not set)').toHaveText(
-            '-'
+        await expect(
+            this.multOpenPositionsMobFirstRowTakeProfit,
+            `Take profit value should be "${expectedTp}"`
+        ).toHaveText(expectedTp);
+        // The mobile card renders SL as "-21.10 " (<strong>-</strong> + text + trailing space).
+        // Use a regex to anchor the negative prefix and tolerate trailing whitespace.
+        const slMatcher = stopLoss ? new RegExp(`^-${stopLoss}\\s*$`) : expectedSl;
+        await expect(this.multOpenPositionsMobFirstRowStopLoss, `Stop loss value should be "${expectedSl}"`).toHaveText(
+            slMatcher
         );
-        await expect(this.multOpenPositionsMobFirstRowStopLoss, 'Stop loss should be "-" (not set)').toHaveText('-');
 
         // Live values — only assert non-empty
         await expect(

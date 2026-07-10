@@ -89,18 +89,229 @@ export class TradeMultipliersPage extends TradeParametersPage {
 
     /**
      * Stop out value shown below the trade params (e.g. "10.00 USD").
-     * Source: multipliers-information__row containing "Stop out" label > span[data-testid="dt_span"]
+     * Desktop: .multipliers-information__row > dt_span
+     * Mobile: second <p> in .stake-content__details-row containing "Stop out" — only visible while stake action sheet is open.
      */
     get stopOutValue(): Locator {
         return this.page.locator('.multipliers-information__row', { hasText: 'Stop out' }).getByTestId('dt_span');
     }
 
     /**
-     * Commission value shown below the trade params (e.g. "0.15 USD").
-     * Source: multipliers-information__row containing "Commission" label > span[data-testid="dt_span"]
+     * Commission value from .multipliers-information__container on the trade page.
+     * Same locator on both desktop and mobile.
      */
     get commissionValue(): Locator {
         return this.page.locator('.multipliers-information__row', { hasText: 'Commission' }).getByTestId('dt_span');
+    }
+
+    /**
+     * Risk management field (read-only TextField that opens the risk management panel).
+     * Desktop: TradeParameterPopover; Mobile: ActionSheet.
+     * Source: risk-management.tsx + risk-management-desktop.tsx
+     */
+    get riskManagementField(): Locator {
+        return this.page.getByLabel('Risk management').first();
+    }
+
+    /**
+     * "TP & SL" tab in the desktop risk management popover sidebar.
+     * Source: risk-management-desktop.tsx — vertical-tab-selector first tab.
+     */
+    get tpSlTabDesktop(): Locator {
+        return this.page.locator('.vertical-tab-selector').getByRole('tab', { name: 'TP & SL' });
+    }
+
+    /**
+     * "DC" tab in the desktop risk management popover sidebar.
+     * Source: risk-management-desktop.tsx — vertical-tab-selector second tab.
+     */
+    get dcTabDesktop(): Locator {
+        return this.page.locator('.vertical-tab-selector').getByRole('tab', { name: 'DC' });
+    }
+
+    /**
+     * Take profit toggle switch in the desktop risk management popover.
+     * Scoped to the .risk-management-desktop__field containing the "Take profit" label.
+     */
+    get tpToggleDesktop(): Locator {
+        return this.page
+            .locator('.risk-management-desktop__field', { has: this.page.locator('p', { hasText: 'Take profit' }) })
+            .locator('button.toggle-switch');
+    }
+
+    /**
+     * Take profit input (the Quill Textfield wrapper) in the desktop risk management popover.
+     * Scoped to the .risk-management-desktop__field containing the "Take profit" label.
+     */
+    get tpInputDesktop(): Locator {
+        return this.page
+            .locator('.risk-management-desktop__field', { has: this.page.locator('p', { hasText: 'Take profit' }) })
+            .getByRole('textbox', { name: 'Amount' });
+    }
+
+    /**
+     * Take profit toggle switch in the mobile risk management ActionSheet.
+     * Source: take-profit-and-stop-loss-input.tsx — button.toggle-switch inside the TP wrapper.
+     * Scoped via the .take-profit__wrapper containing "Take profit" text.
+     */
+    get tpToggleMobile(): Locator {
+        return this.page
+            .locator('.take-profit__wrapper', { has: this.page.locator('p', { hasText: 'Take profit' }) })
+            .locator('button.toggle-switch');
+    }
+
+    /**
+     * Take profit input in the mobile risk management ActionSheet.
+     * Source: take-profit-and-stop-loss-input.tsx — data-testid="dt_tp_input" is on the <input> itself.
+     */
+    get tpInputMobile(): Locator {
+        return this.page.getByTestId('dt_tp_input');
+    }
+
+    /**
+     * "Acceptable range" hint below the TP input — only visible after the proposal API responds.
+     * Used as a readiness signal before clicking Save on mobile.
+     */
+    get tpAcceptableRangeHint(): Locator {
+        return this.page
+            .locator('.take-profit__wrapper', { has: this.page.locator('p', { hasText: 'Take profit' }) })
+            .locator('.message__container__text', { hasText: 'Acceptable range' });
+    }
+
+    /**
+     * "Acceptable range" hint below the SL input — only visible after the proposal API responds.
+     * Used as a readiness signal before clicking Save on mobile.
+     */
+    get slAcceptableRangeHint(): Locator {
+        return this.page
+            .locator('.take-profit__wrapper', { has: this.page.locator('p', { hasText: 'Stop loss' }) })
+            .locator('.message__container__text', { hasText: 'Acceptable range' });
+    }
+
+    /**
+     * Stop loss toggle switch in the desktop risk management popover.
+     * Scoped to the .risk-management-desktop__field containing the "Stop loss" label.
+     */
+    get slToggleDesktop(): Locator {
+        return this.page
+            .locator('.risk-management-desktop__field', { has: this.page.locator('p', { hasText: 'Stop loss' }) })
+            .locator('button.toggle-switch');
+    }
+
+    /**
+     * Stop loss input (the Quill Textfield wrapper) in the desktop risk management popover.
+     * Scoped to the .risk-management-desktop__field containing the "Stop loss" label.
+     */
+    get slInputDesktop(): Locator {
+        return this.page
+            .locator('.risk-management-desktop__field', { has: this.page.locator('p', { hasText: 'Stop loss' }) })
+            .getByRole('textbox', { name: 'Amount' });
+    }
+
+    /**
+     * Stop loss toggle in the mobile risk management ActionSheet.
+     * Source: take-profit-and-stop-loss-input.tsx — button.toggle-switch inside the SL wrapper.
+     * Scoped via the .take-profit__wrapper containing "Stop loss" text.
+     */
+    get slToggleMobile(): Locator {
+        return this.page
+            .locator('.take-profit__wrapper', { has: this.page.locator('p', { hasText: 'Stop loss' }) })
+            .locator('button.toggle-switch');
+    }
+
+    /**
+     * Stop loss input in the mobile risk management ActionSheet.
+     * Source: take-profit-and-stop-loss-input.tsx — data-testid="dt_sl_input"
+     */
+    get slInputMobile(): Locator {
+        return this.page.getByTestId('dt_sl_input');
+    }
+
+    /**
+     * "TP & SL" tab in the mobile segmented control.
+     * Source: risk-management-picker.tsx — segmented-control-single first button.item.
+     */
+    get tpSlTabMobile(): Locator {
+        return this.page.locator('.risk-management__picker .segmented-control-single button.item', {
+            hasText: 'TP & SL',
+        });
+    }
+
+    /**
+     * "Deal cancellation" tab in the mobile segmented control.
+     * Source: risk-management-picker.tsx — segmented-control-single second button.item.
+     */
+    get dcTabMobile(): Locator {
+        return this.page.locator('.risk-management__picker .segmented-control-single button.item', {
+            hasText: 'Deal cancellation',
+        });
+    }
+
+    /**
+     * Deal cancellation toggle in the mobile ActionSheet.
+     * Source: deal-cancellation.tsx — button.toggle-switch inside .deal-cancellation__toggle.
+     */
+    get dcToggleMobile(): Locator {
+        return this.page.locator('.deal-cancellation__toggle').locator('button.toggle-switch');
+    }
+
+    /**
+     * Deal cancellation toggle in the desktop popover.
+     * Source: deal-cancellation-desktop.tsx — button.toggle-switch inside .deal-cancellation-desktop__wrapper.
+     * Uses aria-pressed (not aria-checked) — same as TP/SL toggles.
+     */
+    get dcToggleDesktop(): Locator {
+        return this.page.locator('.deal-cancellation-desktop__wrapper').locator('button.toggle-switch');
+    }
+
+    /**
+     * A DC duration chip in the desktop popover.
+     * Valid values: '5 min', '10 min', '15 min', '30 min', '60 min'.
+     * Source: deal-cancellation-desktop.tsx — value-chips__chip with aria-label="Select value <n> min"
+     *
+     * @param duration - Duration label as shown on the chip (e.g. '60 min')
+     */
+    dcChipDesktop(duration: '5 min' | '10 min' | '15 min' | '30 min' | '60 min'): Locator {
+        return this.page
+            .locator('.deal-cancellation-desktop__chips')
+            .getByRole('button', { name: `Select value ${duration}` });
+    }
+
+    /**
+     * A DC duration option in the mobile ActionSheet WheelPicker.
+     * Valid values: '5 min', '10 min', '15 min', '30 min', '60 min'.
+     * Source: deal-cancellation.tsx — quill-wheel-picker items with role="option".
+     *
+     * @param duration - Duration label as shown in the wheel (e.g. '60 min')
+     */
+    dcChipMobile(duration: '5 min' | '10 min' | '15 min' | '30 min' | '60 min'): Locator {
+        return this.page
+            .locator('.deal-cancellation__wheel-picker')
+            .getByRole('option', { name: duration, exact: true });
+    }
+
+    /**
+     * "Save" button inside the risk management panel.
+     * Desktop TP/SL: .risk-management-desktop__tp-sl-wrapper > Save
+     * Desktop DC:    .deal-cancellation-desktop__footer > Save
+     * Mobile TP/SL:  Quill ActionSheet hoists Save to .quill-action-sheet--footer outside
+     *                .risk-management__tp-sl__wrapper — scope via .risk-management__picker instead
+     * Mobile DC:     Same picker container, use .last() to disambiguate when segmented control visible
+     * Source: take-profit-stop-loss-desktop.tsx, deal-cancellation-desktop.tsx,
+     *         take-profit-and-stop-loss-container.tsx, deal-cancellation.tsx, risk-management-picker.tsx
+     */
+    riskManagementSaveButton(mode: 'tp_sl' | 'dc' = 'tp_sl'): Locator {
+        if (this.isMobile) {
+            // Mobile TP/SL: Save button has class .risk-management__save-button, rendered inside
+            // .risk-management__tp-sl__wrapper (within the ActionSheet content — not hoisted to footer).
+            // Mobile DC: same picker container, scoped via .risk-management__picker.
+            return mode === 'dc'
+                ? this.page.locator('.risk-management__picker').getByRole('button', { name: 'Save' })
+                : this.page.locator('.risk-management__tp-sl__wrapper').getByRole('button', { name: 'Save' });
+        }
+        return mode === 'dc'
+            ? this.page.locator('.deal-cancellation-desktop__footer').getByRole('button', { name: 'Save' })
+            : this.page.locator('.risk-management-desktop__tp-sl-wrapper').getByRole('button', { name: 'Save' });
     }
 
     /**
@@ -155,7 +366,28 @@ export class TradeMultipliersPage extends TradeParametersPage {
                 this.page.locator('.multiplier__wheel-picker'),
                 'Multiplier wheel picker should be visible on mobile'
             ).toBeVisible();
-            await this.multiplierWheelItem(value).click();
+
+            // The wheel is a CSS scroll-snap picker (scroll-snap-type: y mandatory).
+            // Snap positions are index*48+24. Setting scrollTop directly to the snap-aligned
+            // value is the only reliable approach — touch drag and mouse.wheel are unreliable
+            // in Playwright's hasTouch emulation context.
+            const listbox = this.page.locator('.multiplier__wheel-picker [role="listbox"]');
+            const options = await this.page.locator('.multiplier__wheel-picker [role="option"]').all();
+            const labels = await Promise.all(options.map(o => o.innerText()));
+            const targetIndex = labels.findIndex(t => t.trim() === value);
+            if (targetIndex < 0) throw new Error(`Multiplier option '${value}' not found in wheel picker`);
+
+            // Snap formula: index*48+24 (item height 48px, half-item snap offset 24px)
+            const targetScrollTop = targetIndex * 48 + 24;
+            await listbox.evaluate((el, scrollTop) => {
+                el.scrollTop = scrollTop;
+            }, targetScrollTop);
+
+            // Verify the field reflects the selection before saving
+            await expect(this.multiplierField, `Multiplier field should show '${value}' before saving`).toHaveValue(
+                value
+            );
+
             await this.multiplierMobileSaveButton.click();
             await expect(
                 this.page.locator('.multiplier__wheel-picker'),
@@ -196,6 +428,173 @@ export class TradeMultipliersPage extends TradeParametersPage {
         await this.buyButton.click();
     }
 
+    /**
+     * Open the Risk management panel, configure the requested params, and Save.
+     *
+     * Supports two mutually exclusive modes — pass TP/SL (can combine both), or DC alone:
+     * - `takeProfit`: enable TP toggle and enter the given amount
+     * - `stopLoss`:   enable SL toggle and enter the given amount (can be combined with takeProfit)
+     * - `dealCancellation`: switch to the DC tab (mobile) or DC panel (desktop), enable the
+     *   DC toggle, and select the given duration chip
+     *
+     * Desktop flow: opens TradeParameterPopover → configures the requested field → clicks Save.
+     * Mobile flow:  opens ActionSheet → selects the correct tab if needed → configures → clicks Save.
+     *
+     * @param params.takeProfit        - TP amount to enter (e.g. '30.00')
+     * @param params.stopLoss          - SL amount to enter (e.g. '15.00')
+     * @param params.dealCancellation  - DC duration chip to select (e.g. '60 min')
+     */
+    async setRiskManagement({
+        takeProfit,
+        stopLoss,
+        dealCancellation,
+    }: {
+        takeProfit?: string;
+        stopLoss?: string;
+        dealCancellation?: '5 min' | '10 min' | '15 min' | '30 min' | '60 min';
+    }): Promise<void> {
+        await this.riskManagementField.click();
+
+        if (this.isMobile) {
+            await expect(
+                this.page.locator('.risk-management__picker'),
+                'Risk management ActionSheet should open on mobile'
+            ).toBeVisible();
+
+            if (dealCancellation) {
+                await this.dcTabMobile.click();
+                const isPressed = (await this.dcToggleMobile.getAttribute('aria-pressed')) === 'true';
+                if (!isPressed) {
+                    await this.dcToggleMobile.click();
+                }
+                await this.dcChipMobile(dealCancellation).click();
+                await this.riskManagementSaveButton('dc').click();
+            } else {
+                await this.tpSlTabMobile.click();
+                if (takeProfit !== undefined) {
+                    const isPressed = (await this.tpToggleMobile.getAttribute('aria-pressed')) === 'true';
+                    if (!isPressed) {
+                        await this.tpToggleMobile.click();
+                    }
+                    await expect(this.tpInputMobile, 'TP input should appear after enabling toggle').toBeVisible();
+                    await this.tpInputMobile.clear();
+                    await this.tpInputMobile.pressSequentially(takeProfit, { delay: 70 });
+                    await expect(this.tpInputMobile, `TP input should show "${takeProfit}"`).toHaveValue(takeProfit);
+                    await this.tpInputMobile.press('Tab');
+                    // Wait for the proposal round-trip to populate min/max — the hint only renders
+                    // numeric values after is_api_response_received_ref is set to true. This replaces
+                    // a fixed timeout and ties progress to actual app readiness.
+                    await expect(
+                        this.tpAcceptableRangeHint,
+                        'TP acceptable range hint should contain a numeric range'
+                    ).toContainText(/\d/);
+                }
+                if (stopLoss !== undefined) {
+                    const isPressed = (await this.slToggleMobile.getAttribute('aria-pressed')) === 'true';
+                    if (!isPressed) {
+                        await this.slToggleMobile.click();
+                    }
+                    await expect(this.slInputMobile, 'SL input should appear after enabling toggle').toBeVisible();
+                    await this.slInputMobile.clear();
+                    await this.slInputMobile.pressSequentially(stopLoss, { delay: 70 });
+                    await expect(this.slInputMobile, `SL input should show "${stopLoss}"`).toHaveValue(stopLoss);
+                    await this.slInputMobile.press('Tab');
+                    // Same as TP: wait for numeric range to confirm proposal round-trip completed.
+                    await expect(
+                        this.slAcceptableRangeHint,
+                        'SL acceptable range hint should contain a numeric range'
+                    ).toContainText(/\d/);
+                }
+                await this.riskManagementSaveButton('tp_sl').click();
+            }
+
+            await expect(
+                this.page.locator('.risk-management__picker'),
+                'Risk management ActionSheet should close after saving'
+            ).not.toBeVisible();
+        } else {
+            await expect(
+                this.page.locator('.risk-management-popover__main'),
+                'Risk management popover should open on desktop'
+            ).toBeVisible();
+
+            if (dealCancellation) {
+                await this.dcTabDesktop.click();
+                const isPressed = (await this.dcToggleDesktop.getAttribute('aria-pressed')) === 'true';
+                if (!isPressed) {
+                    await this.dcToggleDesktop.click();
+                }
+                await this.dcChipDesktop(dealCancellation).click();
+                await this.riskManagementSaveButton('dc').click();
+            } else {
+                await this.tpSlTabDesktop.click();
+                if (takeProfit !== undefined) {
+                    const isPressed = (await this.tpToggleDesktop.getAttribute('aria-pressed')) === 'true';
+                    if (!isPressed) {
+                        await this.tpToggleDesktop.click();
+                    }
+                    await expect(this.tpInputDesktop, 'TP input should be enabled after toggle').toBeEnabled();
+                    await this.tpInputDesktop.clear();
+                    await this.tpInputDesktop.pressSequentially(takeProfit, { delay: 70 });
+                    await expect(this.tpInputDesktop, `TP input should show "${takeProfit}"`).toHaveValue(takeProfit);
+                }
+                if (stopLoss !== undefined) {
+                    const isPressed = (await this.slToggleDesktop.getAttribute('aria-pressed')) === 'true';
+                    if (!isPressed) {
+                        await this.slToggleDesktop.click();
+                    }
+                    await expect(this.slInputDesktop, 'SL input should be enabled after toggle').toBeEnabled();
+                    await this.slInputDesktop.clear();
+                    await this.slInputDesktop.pressSequentially(stopLoss, { delay: 70 });
+                    await expect(this.slInputDesktop, `SL input should show "${stopLoss}"`).toHaveValue(stopLoss);
+                }
+                await this.riskManagementSaveButton('tp_sl').click();
+            }
+
+            await expect(
+                this.page.locator('.risk-management-popover__main'),
+                'Risk management popover should close after saving'
+            ).not.toBeVisible();
+        }
+
+        // After the panel closes, verify the Risk management field reflects the saved value.
+        // Both TP and SL set: "TP: 10 USD / SL: 9 USD"; only one: "TP: 10 USD" or "SL: 9 USD".
+        if (takeProfit !== undefined && stopLoss !== undefined) {
+            await expect(
+                this.riskManagementField,
+                `Risk management field should show "TP: ${takeProfit} USD / SL: ${stopLoss} USD" after saving`
+            ).toHaveValue(`TP: ${takeProfit} USD / SL: ${stopLoss} USD`);
+        } else if (takeProfit !== undefined) {
+            await expect(
+                this.riskManagementField,
+                `Risk management field should show "TP: ${takeProfit} USD" after saving`
+            ).toHaveValue(`TP: ${takeProfit} USD`);
+        } else if (stopLoss !== undefined) {
+            await expect(
+                this.riskManagementField,
+                `Risk management field should show "SL: ${stopLoss} USD" after saving`
+            ).toHaveValue(`SL: ${stopLoss} USD`);
+        } else if (dealCancellation) {
+            const dcMinutes = dealCancellation.replace(' min', '');
+            await expect(
+                this.riskManagementField,
+                `Risk management field should show "DC: ${dcMinutes} minutes" after saving deal cancellation`
+            ).toHaveValue(`DC: ${dcMinutes} minutes`);
+        }
+    }
+
+    /**
+     * Read commission and stop out values from .multipliers-information__container on the trade page.
+     * Same element on both desktop and mobile — no need to open the stake action sheet.
+     */
+    private async readCommissionAndStopOut(): Promise<{ commission: string; stopOut: string }> {
+        await expect(this.commissionValue, 'Commission value should be visible and non-empty').not.toBeEmpty();
+        await expect(this.stopOutValue, 'Stop out value should be visible and non-empty').not.toBeEmpty();
+        const commission = (await this.commissionValue.innerText()).trim();
+        const stopOut = (await this.stopOutValue.innerText()).trim();
+        return { commission, stopOut };
+    }
+
     // ============================================
     // FULL FLOW METHODS
     // ============================================
@@ -217,11 +616,17 @@ export class TradeMultipliersPage extends TradeParametersPage {
         multiplier,
         stake,
         currency,
+        riskManagement,
     }: {
         market: string;
         multiplier: string;
         stake: string;
         currency: string;
+        riskManagement?: {
+            takeProfit?: string;
+            stopLoss?: string;
+            dealCancellation?: '5 min' | '10 min' | '15 min' | '30 min' | '60 min';
+        };
     }): Promise<void> {
         // 1. Configure and buy
         await this.selectMarket(market);
@@ -229,8 +634,10 @@ export class TradeMultipliersPage extends TradeParametersPage {
         await this.clickUpDownOption('Up');
         await this.setMultiplier(multiplier);
         await this.setStake(stake);
-        const commission = (await this.commissionValue.innerText()).trim();
-        const stopOut = (await this.stopOutValue.innerText()).trim();
+        if (riskManagement) {
+            await this.setRiskManagement(riskManagement);
+        }
+        const { commission, stopOut } = await this.readCommissionAndStopOut();
         const balanceBefore = await this.getBalance();
         const buyDate = this.getCurrentDate();
         await this.clickMultipliersBuy();
@@ -238,13 +645,25 @@ export class TradeMultipliersPage extends TradeParametersPage {
         // 2. Verify contract card appears in Positions and balance deducted
         await this.positionsPage.verifyOpenPositionsVisible();
         await this.verifyBalanceAfterContractPurchase(balanceBefore, stake);
-        await this.positionsPage.verifyContractCardDetails(market, 'Multipliers Up', currency, stake, null);
+        await this.positionsPage.verifyMultipliersContractCardDetails(
+            market,
+            'Multipliers Up',
+            currency,
+            stake,
+            riskManagement
+        );
 
         // 3. Capture balance, verify open position in Reports
         const balanceBeforeClose = await this.getBalance();
         await this.goToReports();
         await this.reportsPage.verifyReportsPage();
-        await this.reportsPage.verifyOpenPositionsInReportsForMultipliers(currency, stake, multiplier);
+        await this.reportsPage.verifyOpenPositionsInReportsForMultipliers(
+            currency,
+            stake,
+            multiplier,
+            riskManagement?.takeProfit,
+            riskManagement?.stopLoss
+        );
         await this.reportsPage.closeReports();
 
         // 4. Open contract details — verify and extract buyId from the audit grid
@@ -257,7 +676,9 @@ export class TradeMultipliersPage extends TradeParametersPage {
             stake,
             multiplier,
             buyDate,
-            commission
+            commission,
+            riskManagement?.takeProfit,
+            riskManagement?.stopLoss
         );
         await this.contractDetailsPage.closeContractDetails();
         await this.goToPositions();
@@ -283,7 +704,9 @@ export class TradeMultipliersPage extends TradeParametersPage {
             contractProfitLossAmount,
             commission,
             entrySpot,
-            stopOut
+            stopOut,
+            riskManagement?.takeProfit,
+            riskManagement?.stopLoss
         );
         await this.contractDetailsPage.closeContractDetails();
 
@@ -327,11 +750,17 @@ export class TradeMultipliersPage extends TradeParametersPage {
         multiplier,
         stake,
         currency,
+        riskManagement,
     }: {
         market: string;
         multiplier: string;
         stake: string;
         currency: string;
+        riskManagement?: {
+            takeProfit?: string;
+            stopLoss?: string;
+            dealCancellation?: '5 min' | '10 min' | '15 min' | '30 min' | '60 min';
+        };
     }): Promise<void> {
         // 1. Configure and buy
         await this.selectMarket(market);
@@ -339,8 +768,10 @@ export class TradeMultipliersPage extends TradeParametersPage {
         await this.clickUpDownOption('Down');
         await this.setMultiplier(multiplier);
         await this.setStake(stake);
-        const commission = (await this.commissionValue.innerText()).trim();
-        const stopOut = (await this.stopOutValue.innerText()).trim();
+        if (riskManagement) {
+            await this.setRiskManagement(riskManagement);
+        }
+        const { commission, stopOut } = await this.readCommissionAndStopOut();
         const balanceBefore = await this.getBalance();
         const buyDate = this.getCurrentDate();
         await this.clickMultipliersBuy();
@@ -348,13 +779,25 @@ export class TradeMultipliersPage extends TradeParametersPage {
         // 2. Verify contract card appears in Positions and balance deducted
         await this.positionsPage.verifyOpenPositionsVisible();
         await this.verifyBalanceAfterContractPurchase(balanceBefore, stake);
-        await this.positionsPage.verifyContractCardDetails(market, 'Multipliers Down', currency, stake, null);
+        await this.positionsPage.verifyMultipliersContractCardDetails(
+            market,
+            'Multipliers Down',
+            currency,
+            stake,
+            riskManagement
+        );
 
         // 3. Capture balance, verify open position in Reports
         const balanceBeforeClose = await this.getBalance();
         await this.goToReports();
         await this.reportsPage.verifyReportsPage();
-        await this.reportsPage.verifyOpenPositionsInReportsForMultipliers(currency, stake, multiplier);
+        await this.reportsPage.verifyOpenPositionsInReportsForMultipliers(
+            currency,
+            stake,
+            multiplier,
+            riskManagement?.takeProfit,
+            riskManagement?.stopLoss
+        );
         await this.reportsPage.closeReports();
 
         // 4. Open contract details — verify and extract buyId from the audit grid
@@ -367,7 +810,9 @@ export class TradeMultipliersPage extends TradeParametersPage {
             stake,
             multiplier,
             buyDate,
-            commission
+            commission,
+            riskManagement?.takeProfit,
+            riskManagement?.stopLoss
         );
         await this.contractDetailsPage.closeContractDetails();
         await this.goToPositions();
@@ -393,7 +838,9 @@ export class TradeMultipliersPage extends TradeParametersPage {
             contractProfitLossAmount,
             commission,
             entrySpot,
-            stopOut
+            stopOut,
+            riskManagement?.takeProfit,
+            riskManagement?.stopLoss
         );
         await this.contractDetailsPage.closeContractDetails();
 

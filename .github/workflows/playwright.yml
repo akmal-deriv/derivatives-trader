@@ -246,7 +246,7 @@ jobs:
         run: node playwright/e2e-tests-core/scripts/slack-notify-testdino.js
         env:
           SLACK_OAUTH_TOKEN: ${{ secrets.AUTO_OPS_BOT_TOKEN }}
-          SLACK_CHANNEL_ID: ${{ vars.QA_SLACK_CHANNEL_ID }}
+          SLACK_CHANNEL_ID: ${{ (needs.validate-inputs.outputs.cron_env || inputs.test_env || github.event.inputs.test_env || 'staging') == 'production' && vars.PROD_QA_SLACK_CHANNEL_ID || vars.QA_SLACK_CHANNEL_ID }}
           TESTDINO_ACCESS_TOKEN: ${{ secrets.TESTDINO_ACCESS_TOKEN }}
           TESTDINO_PROJECT_ID: ${{ vars.TESTDINO_PROJECT_ID }}
           TESTDINO_RUN_ID: ${{ env.TESTDINO_RUN_ID }}
@@ -378,7 +378,7 @@ jobs:
         run: node playwright/e2e-tests-core/scripts/slack-notify-testdino.js
         env:
           SLACK_OAUTH_TOKEN: ${{ secrets.AUTO_OPS_BOT_TOKEN }}
-          SLACK_CHANNEL_ID: ${{ vars.QA_SLACK_CHANNEL_ID }}
+          SLACK_CHANNEL_ID: ${{ (needs.validate-inputs.outputs.cron_env || inputs.test_env || github.event.inputs.test_env || 'staging') == 'production' && vars.PROD_QA_SLACK_CHANNEL_ID || vars.QA_SLACK_CHANNEL_ID }}
           TESTDINO_ACCESS_TOKEN: ${{ secrets.TESTDINO_ACCESS_TOKEN }}
           TESTDINO_PROJECT_ID: ${{ vars.TESTDINO_PROJECT_ID }}
           TESTDINO_RUN_ID: ${{ env.TESTDINO_RUN_ID }}
