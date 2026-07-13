@@ -4,9 +4,9 @@ run-name: "Playwright | ${{ (github.event.schedule == '45 1 * * *' && 'productio
 
 on:
   schedule:
-    - cron: '0 22 * * *'   # 06:00AM MYT — staging regression (all)
-    - cron: '30 1 * * *'   # 09:30AM MYT — staging smoke (all)
-    - cron: '45 1 * * *'   # 09:45AM MYT — production smoke (all)
+    - cron: '0 22 * * 0-4'   # 06:00AM MYT Mon–Fri — staging regression (all)
+    - cron: '30 1 * * *'     # 09:30AM MYT — staging smoke (all)
+    - cron: '45 1 * * *'     # 09:45AM MYT — production smoke (all)
   workflow_call:
     inputs:
       test_env:
@@ -54,8 +54,11 @@ on:
         type: choice
         options:
           - all
-          - desktop
-          - mobile
+          - chromium
+          - chromium-mobile
+          - firefox
+          - webkit
+          - webkit-mobile
       spec_file:
         description: 'Spec file name (e.g. login.spec.ts). Leave blank to run the full suite'
         required: false
@@ -84,6 +87,7 @@ jobs:
       resolved_spec: ${{ steps.resolve-spec.outputs.resolved_spec }}
       cron_env: ${{ steps.resolve-cron.outputs.cron_env }}
       cron_suite: ${{ steps.resolve-cron.outputs.cron_suite }}
+      matrix: ${{ steps.resolve-matrix.outputs.matrix }}
     steps:
       - name: Checkout
         if: ${{ (github.event.inputs.spec_file || inputs.spec_file) != '' }}
@@ -102,15 +106,15 @@ jobs:
         if: ${{ github.event_name == 'schedule' }}
         run: |
           case "${{ github.event.schedule }}" in
-            "0 22 * * *")  ENV="staging"    SUITE="regression" ;;
-            "30 1 * * *")  ENV="staging"    SUITE="smoke" ;;
-            "45 1 * * *")  ENV="production" SUITE="smoke" ;;
+            "0 22 * * 0-4")  ENV="staging"    SUITE="regression" ;;
+            "30 1 * * *")    ENV="staging"    SUITE="smoke" ;;
+            "45 1 * * *")    ENV="production" SUITE="smoke" ;;
             *)
               echo "::error::No mapping for schedule '${{ github.event.schedule }}'"
               exit 1
               ;;
           esac
-          echo "cron_env=${ENV}"   >> "$GITHUB_OUTPUT"
+          echo "cron_env=${ENV}"     >> "$GITHUB_OUTPUT"
           echo "cron_suite=${SUITE}" >> "$GITHUB_OUTPUT"
 
       - name: Resolve and validate spec file
@@ -133,13 +137,28 @@ jobs:
           echo "resolved_spec=${MATCHES}" >> "$GITHUB_OUTPUT"
           echo "::notice::Resolved spec: ${MATCHES}"
 
-  playwright-desktop:
-    name: Playwright Tests - Desktop (${{ needs.validate-inputs.outputs.cron_env || inputs.test_env || github.event.inputs.test_env || 'staging' }} / ${{ needs.validate-inputs.outputs.cron_suite || inputs.test_suite || github.event.inputs.test_suite || 'smoke' }})
+      - name: Resolve matrix platforms
+        id: resolve-matrix
+        run: |
+          ALL='[{"platform":"chromium","name":"Chromium","browser":"chromium","grep_tag":"desktop"},{"platform":"chromium-mobile","name":"Chromium Mobile","browser":"chromium","grep_tag":"mobile"},{"platform":"firefox","name":"Firefox","browser":"firefox","grep_tag":"desktop"},{"platform":"webkit","name":"WebKit","browser":"webkit","grep_tag":"desktop"},{"platform":"webkit-mobile","name":"WebKit Mobile","browser":"webkit","grep_tag":"mobile"}]'
+          SELECTED="${{ inputs.platform || github.event.inputs.platform || 'all' }}"
+          SCHEDULE="${{ github.event.schedule }}"
+          if [ "$SCHEDULE" = "45 1 * * *" ]; then
+            MATRIX=$(echo "$ALL" | jq -c '[.[] | select(.platform == "chromium-mobile")]')
+          elif [ "${{ github.event_name }}" = "schedule" ] || [ "$SELECTED" = "all" ]; then
+            MATRIX="$ALL"
+          else
+            MATRIX=$(echo "$ALL" | jq -c --arg sel "$SELECTED" '[.[] | select(.platform == $sel)]')
+          fi
+          echo "matrix=${MATRIX}" >> "$GITHUB_OUTPUT"
+
+  playwright-tests:
+    name: Playwright Tests - ${{ matrix.name }} (${{ needs.validate-inputs.outputs.cron_env || inputs.test_env || github.event.inputs.test_env || 'staging' }} / ${{ needs.validate-inputs.outputs.cron_suite || inputs.test_suite || github.event.inputs.test_suite || 'smoke' }})
     needs: validate-inputs
-    if: >-
-      github.event_name == 'schedule' ||
-      inputs.platform == 'all' || inputs.platform == 'desktop' ||
-      github.event.inputs.platform == 'all' || github.event.inputs.platform == 'desktop'
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.validate-inputs.outputs.matrix) }}
     runs-on: github-hosted-playwright01
     environment: ${{ needs.validate-inputs.outputs.cron_env || inputs.test_env || github.event.inputs.test_env || 'staging' }}
     permissions:
@@ -159,7 +178,7 @@ jobs:
         run: npm ci --legacy-peer-deps
 
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install --with-deps ${{ matrix.browser }}
 
       - name: Decrypt Playwright env files
         env:
@@ -172,25 +191,26 @@ jobs:
           esac
           ./playwright/e2e-tests-core/scripts/env-cipher.sh decrypt "$TEST_ENV"
 
-      - name: Run Playwright tests (Desktop)
+      - name: Run Playwright tests (${{ matrix.name }})
         env:
           TEST_ENV: ${{ needs.validate-inputs.outputs.cron_env || inputs.test_env || github.event.inputs.test_env || 'staging' }}
           TEST_SUITE: ${{ needs.validate-inputs.outputs.cron_suite || inputs.test_suite || github.event.inputs.test_suite || 'smoke' }}
           RESOLVED_SPEC: ${{ needs.validate-inputs.outputs.resolved_spec }}
+          GREP_TAG: ${{ matrix.grep_tag }}
         run: |
           RESOLVED_SPEC="${RESOLVED_SPEC//[[:space:]]/}"
           if [ -n "$RESOLVED_SPEC" ]; then
-            npx playwright test --project=chromium "$RESOLVED_SPEC"
+            npx playwright test --project=${{ matrix.platform }} "$RESOLVED_SPEC"
           else
             if [ "$TEST_SUITE" = "regression" ]; then
-              GREP_PATTERN="(?=.*@desktop)"
+              GREP_PATTERN="(?=.*@${GREP_TAG})"
             else
-              GREP_PATTERN="(?=.*@desktop)(?=.*@${TEST_SUITE})"
+              GREP_PATTERN="(?=.*@${GREP_TAG})(?=.*@${TEST_SUITE})"
             fi
             if [ "$TEST_ENV" = "production" ]; then
               GREP_PATTERN="${GREP_PATTERN}(?=.*@production)"
             fi
-            npx playwright test --project=chromium --grep "$GREP_PATTERN"
+            npx playwright test --project=${{ matrix.platform }} --grep "$GREP_PATTERN"
           fi
 
       - name: Upload TestDino Report
@@ -207,7 +227,7 @@ jobs:
           RESULT=$(npx tdpw@1.0.36 upload ./playwright/playwright-report \
             --token="$TESTDINO_TOKEN" \
             --environment="$TEST_ENV" \
-            --tag="desktop" \
+            --tag="${{ matrix.platform }}" \
             --upload-full-json \
             --json)
           URL=$(echo "$RESULT" | jq -r '.data.url // empty')
@@ -228,7 +248,7 @@ jobs:
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f #v7.0.0
         if: always()
         with:
-          name: playwright-report-desktop-${{ needs.validate-inputs.outputs.cron_env || inputs.test_env || github.event.inputs.test_env || 'staging' }}
+          name: playwright-report-${{ matrix.platform }}-${{ needs.validate-inputs.outputs.cron_env || inputs.test_env || github.event.inputs.test_env || 'staging' }}
           path: playwright/playwright-report/
           retention-days: 30
 
@@ -236,11 +256,11 @@ jobs:
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f #v7.0.0
         if: failure()
         with:
-          name: playwright-test-results-desktop-${{ needs.validate-inputs.outputs.cron_env || inputs.test_env || github.event.inputs.test_env || 'staging' }}
+          name: playwright-test-results-${{ matrix.platform }}-${{ needs.validate-inputs.outputs.cron_env || inputs.test_env || github.event.inputs.test_env || 'staging' }}
           path: playwright/test-results/
           retention-days: 7
 
-      - name: Send Slack Notification (Desktop)
+      - name: Send Slack Notification (${{ matrix.name }})
         if: (success() || failure()) && (inputs.notify || github.event.inputs.notify) != 'skip'
         continue-on-error: true
         run: node playwright/e2e-tests-core/scripts/slack-notify-testdino.js
@@ -253,139 +273,7 @@ jobs:
           TESTDINO_RUN_URL: ${{ env.TESTDINO_RUN_URL }}
           TEST_ENV: ${{ needs.validate-inputs.outputs.cron_env || inputs.test_env || github.event.inputs.test_env || 'staging' }}
           TEST_SUITE: ${{ needs.validate-inputs.outputs.cron_suite || inputs.test_suite || github.event.inputs.test_suite || 'smoke' }}
-          PLATFORM: desktop
-          EVENT_NAME: ${{ github.event_name }}
-          ACTOR: ${{ github.actor }}
-          NOTIFY: ${{ inputs.notify || github.event.inputs.notify || (github.event_name == 'schedule' && 'trading_apps_qa') || '' }}
-          BRANCH: ${{ github.ref_name }}
-          GITHUB_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-
-      - name: Clean-up Decrypted Env Files
-        if: always()
-        run: rm -f playwright/.env.staging playwright/.env.production
-
-
-  playwright-mobile:
-    name: Playwright Tests - Mobile (${{ needs.validate-inputs.outputs.cron_env || inputs.test_env || github.event.inputs.test_env || 'staging' }} / ${{ needs.validate-inputs.outputs.cron_suite || inputs.test_suite || github.event.inputs.test_suite || 'smoke' }})
-    needs: validate-inputs
-    if: >-
-      github.event_name == 'schedule' ||
-      inputs.platform == 'all' || inputs.platform == 'mobile' ||
-      github.event.inputs.platform == 'all' || github.event.inputs.platform == 'mobile'
-    runs-on: github-hosted-playwright01
-    environment: ${{ needs.validate-inputs.outputs.cron_env || inputs.test_env || github.event.inputs.test_env || 'staging' }}
-    permissions:
-      contents: read
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
-
-      - name: Setup Node.js
-        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f #v6.3.0
-        with:
-          node-version: 24.15.0
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci --legacy-peer-deps
-
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
-
-      - name: Decrypt Playwright env files
-        env:
-          ENV_ENCRYPTION_KEY: ${{ secrets.ENV_ENCRYPTION_KEY }}
-          TEST_ENV: ${{ needs.validate-inputs.outputs.cron_env || inputs.test_env || github.event.inputs.test_env || 'staging' }}
-        run: |
-          case "$TEST_ENV" in
-            staging|production) ;;
-            *) echo "::error::Invalid TEST_ENV: $TEST_ENV"; exit 1 ;;
-          esac
-          ./playwright/e2e-tests-core/scripts/env-cipher.sh decrypt "$TEST_ENV"
-
-      - name: Run Playwright tests (Mobile)
-        env:
-          TEST_ENV: ${{ needs.validate-inputs.outputs.cron_env || inputs.test_env || github.event.inputs.test_env || 'staging' }}
-          TEST_SUITE: ${{ needs.validate-inputs.outputs.cron_suite || inputs.test_suite || github.event.inputs.test_suite || 'smoke' }}
-          RESOLVED_SPEC: ${{ needs.validate-inputs.outputs.resolved_spec }}
-        run: |
-          RESOLVED_SPEC="${RESOLVED_SPEC//[[:space:]]/}"
-          if [ -n "$RESOLVED_SPEC" ]; then
-            npx playwright test --project=chromium-mobile "$RESOLVED_SPEC"
-          else
-            if [ "$TEST_SUITE" = "regression" ]; then
-              GREP_PATTERN="(?=.*@mobile)"
-            else
-              GREP_PATTERN="(?=.*@mobile)(?=.*@${TEST_SUITE})"
-            fi
-            if [ "$TEST_ENV" = "production" ]; then
-              GREP_PATTERN="${GREP_PATTERN}(?=.*@production)"
-            fi
-            npx playwright test --project=chromium-mobile --grep "$GREP_PATTERN"
-          fi
-
-      - name: Upload TestDino Report
-        if: always()
-        continue-on-error: true
-        env:
-          TESTDINO_TOKEN: ${{ secrets.TESTDINO_TOKEN }}
-          TEST_ENV: ${{ needs.validate-inputs.outputs.cron_env || inputs.test_env || github.event.inputs.test_env || 'staging' }}
-        run: |
-          if [ -z "$TESTDINO_TOKEN" ]; then
-            echo "::warning::TESTDINO_TOKEN is not set; skipping upload."
-            exit 0
-          fi
-          RESULT=$(npx tdpw@1.0.36 upload ./playwright/playwright-report \
-            --token="$TESTDINO_TOKEN" \
-            --environment="$TEST_ENV" \
-            --tag="mobile" \
-            --upload-full-json \
-            --json)
-          URL=$(echo "$RESULT" | jq -r '.data.url // empty')
-          RUN_ID=$(echo "$RESULT" | jq -r '.data.testRunId // empty')
-          echo "TESTDINO_RUN_URL=${URL}" >> $GITHUB_ENV
-          echo "TESTDINO_RUN_ID=${RUN_ID}" >> $GITHUB_ENV
-
-      - name: Publish TestDino Summary
-        if: always()
-        continue-on-error: true
-        env:
-          TESTDINO_ACCESS_TOKEN: ${{ secrets.TESTDINO_ACCESS_TOKEN }}
-          TESTDINO_PROJECT_ID: ${{ vars.TESTDINO_PROJECT_ID }}
-          TESTDINO_ORG_ID: ${{ vars.TESTDINO_ORG_ID }}
-        run: node playwright/e2e-tests-core/scripts/github-summary-testdino.js
-
-      - name: Upload Playwright Report
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f #v7.0.0
-        if: always()
-        with:
-          name: playwright-report-mobile-${{ needs.validate-inputs.outputs.cron_env || inputs.test_env || github.event.inputs.test_env || 'staging' }}
-          path: playwright/playwright-report/
-          retention-days: 30
-
-      - name: Upload Test Results
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f #v7.0.0
-        if: failure()
-        with:
-          name: playwright-test-results-mobile-${{ needs.validate-inputs.outputs.cron_env || inputs.test_env || github.event.inputs.test_env || 'staging' }}
-          path: playwright/test-results/
-          retention-days: 7
-
-      - name: Send Slack Notification (Mobile)
-        if: (success() || failure()) && (inputs.notify || github.event.inputs.notify) != 'skip'
-        continue-on-error: true
-        run: node playwright/e2e-tests-core/scripts/slack-notify-testdino.js
-        env:
-          SLACK_OAUTH_TOKEN: ${{ secrets.AUTO_OPS_BOT_TOKEN }}
-          SLACK_CHANNEL_ID: ${{ (needs.validate-inputs.outputs.cron_env || inputs.test_env || github.event.inputs.test_env || 'staging') == 'production' && vars.PROD_QA_SLACK_CHANNEL_ID || vars.QA_SLACK_CHANNEL_ID }}
-          TESTDINO_ACCESS_TOKEN: ${{ secrets.TESTDINO_ACCESS_TOKEN }}
-          TESTDINO_PROJECT_ID: ${{ vars.TESTDINO_PROJECT_ID }}
-          TESTDINO_RUN_ID: ${{ env.TESTDINO_RUN_ID }}
-          TESTDINO_RUN_URL: ${{ env.TESTDINO_RUN_URL }}
-          TEST_ENV: ${{ needs.validate-inputs.outputs.cron_env || inputs.test_env || github.event.inputs.test_env || 'staging' }}
-          TEST_SUITE: ${{ needs.validate-inputs.outputs.cron_suite || inputs.test_suite || github.event.inputs.test_suite || 'smoke' }}
-          PLATFORM: mobile
+          PLATFORM: ${{ matrix.platform }}
           EVENT_NAME: ${{ github.event_name }}
           ACTOR: ${{ github.actor }}
           NOTIFY: ${{ inputs.notify || github.event.inputs.notify || (github.event_name == 'schedule' && 'trading_apps_qa') || '' }}

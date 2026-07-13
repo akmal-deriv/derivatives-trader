@@ -92,18 +92,9 @@ export default defineConfig({
         screenshot: 'only-on-failure',
         video: 'retain-on-failure',
 
-        /* Launch options */
+        /* Launch options — browser-specific args are set per project below */
         launchOptions: {
             slowMo: 0,
-            args: [
-                '--no-sandbox',
-                '--disable-dev-shm-usage',
-                '--disable-web-security',
-                '--disable-features=VizDisplayCompositor',
-                // KYC capture flows require a camera device even when tests upload files.
-                '--use-fake-ui-for-media-stream',
-                '--use-fake-device-for-media-stream',
-            ],
         },
 
         /* Timeouts */
@@ -121,7 +112,18 @@ export default defineConfig({
             use: {
                 ...devices['Desktop Chrome'],
                 viewport: { width: 1536, height: 864 },
-                userAgent: 'Playwright-Agent/deriv/1.9',
+                userAgent: `${devices['Desktop Chrome'].userAgent} Playwright-Agent/deriv/1.9`,
+                launchOptions: {
+                    args: [
+                        '--no-sandbox',
+                        '--disable-dev-shm-usage',
+                        '--disable-web-security',
+                        '--disable-features=VizDisplayCompositor',
+                        // KYC capture flows require a camera device even when tests upload files.
+                        '--use-fake-ui-for-media-stream',
+                        '--use-fake-device-for-media-stream',
+                    ],
+                },
             },
         },
         {
@@ -130,22 +132,48 @@ export default defineConfig({
                 ...devices['Pixel 7'],
                 viewport: { width: 412, height: 915 },
                 userAgent: `${devices['Pixel 7'].userAgent} Playwright-Agent/deriv/1.9`,
+                launchOptions: {
+                    args: [
+                        '--no-sandbox',
+                        '--disable-dev-shm-usage',
+                        '--disable-web-security',
+                        '--disable-features=VizDisplayCompositor',
+                        // KYC capture flows require a camera device even when tests upload files.
+                        '--use-fake-ui-for-media-stream',
+                        '--use-fake-device-for-media-stream',
+                    ],
+                },
             },
         },
-        // {
-        //   name: 'firefox',
-        //   use: {
-        //     ...devices['Desktop Firefox'],
-        //     viewport: { width: 1728, height: 1117 },
-        //   },
-        // },
-        // {
-        //   name: 'webkit',
-        //   use: {
-        //     ...devices['Desktop Safari'],
-        //     viewport: { width: 1728, height: 1117 },
-        //   },
-        // },
+        {
+            name: 'firefox',
+            use: {
+                ...devices['Desktop Firefox'],
+                viewport: { width: 1536, height: 864 },
+                userAgent: `${devices['Desktop Firefox'].userAgent} Playwright-Agent/deriv/1.9`,
+                launchOptions: {
+                    firefoxUserPrefs: {
+                        'media.navigator.streams.fake': true,
+                        'media.navigator.permission.disabled': true,
+                    },
+                },
+            },
+        },
+        {
+            name: 'webkit',
+            use: {
+                ...devices['Desktop Safari'],
+                viewport: { width: 1536, height: 864 },
+                userAgent: `${devices['Desktop Safari'].userAgent} Playwright-Agent/deriv/1.9`,
+            },
+        },
+        {
+            name: 'webkit-mobile',
+            use: {
+                ...devices['iPhone 15 Plus'],
+                userAgent: `${devices['iPhone 15 Plus'].userAgent} Playwright-Agent/deriv/1.9`,
+            },
+        },
     ],
 
     /* Output directory for test artifacts (screenshots, traces, videos) */

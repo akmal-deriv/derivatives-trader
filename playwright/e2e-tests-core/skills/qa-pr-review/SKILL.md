@@ -73,18 +73,13 @@ Ask each missing field as a **plain text message** and wait for the user's reply
 
 ## Message Template
 
-```
 :wave: <!subteam^S0AP2400XLZ> could you please help with the review of my PR?
 
 Summary:
-```
+`{summary}`
 
-{summary}
-
-```
 • PR: {pr}
 • ClickUp Card: {clickup}
-```
 
 - If `clickup` is `NA`, omit that line entirely
 
