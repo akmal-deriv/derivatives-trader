@@ -34,10 +34,10 @@
 | Flow 9.6   | `trade/multipliers/verify-multipliers-with-sl.spec.ts`           | `@trade @desktop @mobile`        |
 | Flow 9.7   | `trade/multipliers/verify-multipliers-deal-cancellation.spec.ts` | `@trade @desktop @mobile`        |
 | Flow 9.8   | `trade/multipliers/verify-multipliers-deal-cancellation.spec.ts` | `@trade @desktop @mobile`        |
-| Flow 10.1  | `trade/verify-turbos.spec.ts`                                    | `@trade @desktop @mobile`        |
-| Flow 10.2  | `trade/verify-turbos.spec.ts`                                    | `@trade @desktop @mobile`        |
-| Flow 10.3  | `trade/verify-turbos.spec.ts`                                    | `@trade @desktop @mobile`        |
-| Flow 10.4  | `trade/verify-turbos.spec.ts`                                    | `@trade @desktop @mobile`        |
+| Flow 10.1  | `trade/turbos/verify-turbos.spec.ts`                             | `@trade @desktop @mobile`        |
+| Flow 10.2  | `trade/turbos/verify-turbos.spec.ts`                             | `@trade @desktop @mobile`        |
+| Flow 10.3  | `trade/turbos/verify-turbos-tp.spec.ts`                          | `@trade @desktop @mobile`        |
+| Flow 10.4  | `trade/turbos/verify-turbos-tp.spec.ts`                          | `@trade @desktop @mobile`        |
 | Flow 11.1  | `trade/verify-vanillas.spec.ts`                                  | `@trade @desktop @mobile`        |
 | Flow 11.2  | `trade/verify-vanillas.spec.ts`                                  | `@trade @desktop @mobile`        |
 | Flow 12    | `trade/verify-closed-market.spec.ts`                             | `@trade @desktop @mobile`        |
@@ -730,102 +730,54 @@ test.describe('Trade — Multipliers with Deal Cancellation', { tag: ['@trade', 
 
 ---
 
-### Flow 10.1 — Turbos without TP: buy Up → verify in positions
+### Flow 10.1 / 10.2 / 10.3 / 10.4 — Turbos: buy → verify open → close early → verify closed
+
+Turbos use **Up/Down tabs** (`.trade-params__option`) → a **single "Buy" button** (`.purchase-button--single`),
+with unique **Payout per point** + **Barrier info** params and an optional **Take profit** (shared
+standalone widget). They are early-sellable, so `TradeTurbosPage.buyTurbosAndVerify` uses a **Minutes**
+duration + `verifyContractCardDetails` (remaining-time works), then closes early via
+`ContractDetailsPage.sellContract()` (retries on `PriceMoved` slippage) and verifies the full closed
+chain (Closed tab → balance → Reports). TP flows also assert the TP amount on the open contract details.
+No inline locators — all via `TradeTurbosPage`.
 
 ```typescript
-test.describe('Trade — Turbos', { tag: ['@trade', '@desktop', '@mobile'] }, () => {
-    test.beforeEach(async ({ loginPage, tradePage, page }) => {
-        await loginPage.login();
-        await tradePage.goto();
-        await NavigationUtils.waitForDerivApiSettled(page);
-        await tradePage.selectTradeType('Turbos');
+import { test } from '../../../fixtures/fixtures';
+import { TradeBasePage } from '../../../pages/TradeBasePage';
+
+// verify-turbos.spec.ts (Flow 10.1 / 10.2 — no Take Profit)
+test.describe('Trade — Turbos', { tag: ['@desktop', '@mobile', '@trade'] }, () => {
+    test.describe.configure({ mode: 'serial' });
+
+    test.beforeEach(async ({ page, loginPage }) => {
+        await TradeBasePage.seedLocalStorageOnOrigin(page);
+        await loginPage.login(accountEmail, accountPassword);
     });
 
-    test('VERIFY buy Turbos Up contract without TP and verify in positions', async ({ tradePage, page }) => {
-        await expect(page.getByText('Payout per point'), 'Payout per point param should be visible').toBeVisible();
-        await expect(page.getByText('Duration'), 'Duration param should be visible for Turbos').toBeVisible();
-        await tradePage.setStake('10.00');
-        await tradePage.clickUp();
-        await expect(
-            page.locator('.trade-notification--purchase'),
-            'Purchase notification should appear'
-        ).toBeVisible();
-        await tradePage.gotoPositions();
-        await NavigationUtils.waitForDerivApiSettled(page);
-        await expect(
-            page.getByTestId('dt_contract_card').first(),
-            'Turbos contract card should appear in positions'
-        ).toBeVisible();
+    test('VERIFY Buy "Up" Turbos Contract', async ({ tradeTurbosPage }) => {
+        await tradeTurbosPage.buyTurbosAndVerify({
+            market: 'Volatility 100 (1s) Index',
+            direction: 'Up',
+            stake: '10.50',
+            currency: 'USD',
+        });
     });
 
-    test('VERIFY buy Turbos Down contract without TP and verify in positions', async ({ tradePage, page }) => {
-        await tradePage.setStake('10.00');
-        await tradePage.clickDown();
-        await expect(
-            page.locator('.trade-notification--purchase'),
-            'Purchase notification should appear'
-        ).toBeVisible();
-        await tradePage.gotoPositions();
-        await NavigationUtils.waitForDerivApiSettled(page);
-        await expect(
-            page.getByTestId('dt_contract_card').first(),
-            'Turbos contract card should appear in positions'
-        ).toBeVisible();
-    });
-
-    test('VERIFY buy Turbos Up contract with TP set and verify in positions', async ({ tradePage, page }, testInfo) => {
-        await tradePage.setStake('10.00');
-        await tradePage.enableTakeProfit();
-        const tpInput = testInfo.project.name.includes('mobile')
-            ? page.getByTestId('dt_tp_input')
-            : page.getByTestId('dt_take_profit_input');
-        await tpInput.fill('20.00');
-        await tradePage.saveTakeProfit();
-        await tradePage.clickUp();
-        await expect(
-            page.locator('.trade-notification--purchase'),
-            'Purchase notification should appear'
-        ).toBeVisible();
-        await tradePage.gotoPositions();
-        await NavigationUtils.waitForDerivApiSettled(page);
-        await expect(
-            page.getByTestId('dt_contract_card').first(),
-            'Turbos contract card should appear in positions'
-        ).toBeVisible();
-    });
-
-    test('VERIFY buy Turbos Down contract with TP set and verify in positions', async ({
-        tradePage,
-        page,
-    }, testInfo) => {
-        await tradePage.setStake('10.00');
-        await tradePage.enableTakeProfit();
-        const tpInput = testInfo.project.name.includes('mobile')
-            ? page.getByTestId('dt_tp_input')
-            : page.getByTestId('dt_take_profit_input');
-        await tpInput.fill('20.00');
-        await tradePage.saveTakeProfit();
-        await tradePage.clickDown();
-        await expect(
-            page.locator('.trade-notification--purchase'),
-            'Purchase notification should appear'
-        ).toBeVisible();
-        await tradePage.gotoPositions();
-        await NavigationUtils.waitForDerivApiSettled(page);
-        await expect(
-            page.getByTestId('dt_contract_card').first(),
-            'Turbos contract card should appear in positions'
-        ).toBeVisible();
+    test('VERIFY Buy "Down" Turbos Contract', async ({ tradeTurbosPage }) => {
+        await tradeTurbosPage.buyTurbosAndVerify({
+            market: 'Volatility 100 (1s) Index',
+            direction: 'Down',
+            stake: '10.50',
+            currency: 'USD',
+        });
     });
 });
+
+// verify-turbos-tp.spec.ts (Flow 10.3 / 10.4 — Take Profit 20.00) — same as above with `takeProfit: '20.00'`.
 ```
 
-> **Turbos buttons are "Up" / "Down"** — NOT "Long" / "Short". Source: `CONTRACT_TYPES.TURBOS.LONG → name 'Up'`, `CONTRACT_TYPES.TURBOS.SHORT → name 'Down'`.
-> **Turbos auto-expire** — no manual close. Test only verifies purchase + position card.
-> **Flow 10.1** = `VERIFY buy Turbos Up contract without TP and verify in positions`
-> **Flow 10.2** = `VERIFY buy Turbos Down contract without TP and verify in positions`
-> **Flow 10.3** = `VERIFY buy Turbos Up contract with TP set and verify in positions`
-> **Flow 10.4** = `VERIFY buy Turbos Down contract with TP set and verify in positions`
+> `buyTurbosAndVerify` covers (in order): select market → select Turbos (asserts Duration / Payout per point / Take profit / Barrier info visible) → `selectDirection` → (TP flows) `setTakeProfit('20.00')` asserted on the form → `selectDuration('Minutes','5 min')` → `setStake` → `clickTurbosBuy` → verify open card + balance → open details `getBuyReferenceId` (+ TP flows assert TP on details) → `sellContract()` (early close, slippage-tolerant) → Closed tab `verifyClosedPositionsTab` + `getSellReferenceId` → `verifyBalanceAfterContractClose` → `verifyClosedContractInReports`.
+> **Turbos buttons are "Up" / "Down"** (card label "Turbos Up" / "Turbos Down"). Source: `CONTRACT_TYPES.TURBOS.LONG → name 'Up'`, `SHORT → 'Down'`.
+> **Flow 10.1/10.2** = `VERIFY Buy "Up"/"Down" Turbos Contract` · **Flow 10.3/10.4** = `... With Take Profit`
 
 ---
 

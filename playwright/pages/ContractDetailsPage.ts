@@ -550,16 +550,19 @@ export class ContractDetailsPage extends TradeBasePage {
 
         await expect(sellBtn, 'Sell/Close button should be visible on the contract details').toBeVisible();
         await expect(sellBtn, 'Sell/Close button should be enabled before selling').toBeEnabled();
-        await sellBtn.click();
+        // Clicks are swallowed: the contract card re-renders on every tick, so the button can detach
+        // mid-click ("element not stable / detached"). The poll below re-clicks until it is gone (sold).
+        await sellBtn.click().catch(() => {});
 
-        // Poll: re-click if rejected (PriceMoved) — button re-enables without navigating away
+        // Poll: re-click if rejected (PriceMoved) or if a tick re-render detached the button — it
+        // re-enables without navigating away, so keep clicking until it disappears (contract sold).
         await expect
             .poll(
                 async () => {
-                    const isGone = !(await sellBtn.isVisible());
+                    const isGone = !(await sellBtn.isVisible().catch(() => false));
                     if (isGone) return true;
-                    const isEnabled = await sellBtn.isEnabled();
-                    if (isEnabled) await sellBtn.click();
+                    const isEnabled = await sellBtn.isEnabled().catch(() => false);
+                    if (isEnabled) await sellBtn.click().catch(() => {});
                     return false;
                 },
                 {

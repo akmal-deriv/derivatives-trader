@@ -12,6 +12,7 @@ import { TradeOverUnderPage } from '../pages/TradeOverUnderPage';
 import { TradeEvenOddPage } from '../pages/TradeEvenOddPage';
 import { TradeMultipliersPage } from '../pages/TradeMultipliersPage';
 import { TradeAccumulatorsPage } from '../pages/TradeAccumulatorsPage';
+import { TradeTurbosPage } from '../pages/TradeTurbosPage';
 import { TradeAutomationPage } from '../pages/TradeAutomationPage';
 import { PositionsPage } from '../pages/PositionsPage';
 import { ReportsPage } from '../pages/ReportsPage';
@@ -74,6 +75,7 @@ export const test = base.extend<{
     tradeEvenOddPage: TradeEvenOddPage;
     tradeMultipliersPage: TradeMultipliersPage;
     tradeAccumulatorsPage: TradeAccumulatorsPage;
+    tradeTurbosPage: TradeTurbosPage;
     tradeAutomationPage: TradeAutomationPage;
     positionsPage: PositionsPage;
     reportsPage: ReportsPage;
@@ -174,6 +176,13 @@ export const test = base.extend<{
      */
     tradeAccumulatorsPage: async ({ page }, use) => {
         await use(new TradeAccumulatorsPage(page));
+    },
+
+    /**
+     * Trade Turbos page fixture — provides initialized TradeTurbosPage instance
+     */
+    tradeTurbosPage: async ({ page }, use) => {
+        await use(new TradeTurbosPage(page));
     },
 
     /**

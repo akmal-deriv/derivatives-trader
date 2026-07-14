@@ -1,6 +1,6 @@
 # Trade Journey Coverage
 
-**Analysis date:** 2026-07-13
+**Analysis date:** 2026-07-14
 
 ---
 
@@ -33,10 +33,10 @@
 | Flow 9.6  | Multipliers with SL — buy Down → close                 | ✅      | ✅     |       |
 | Flow 9.7  | Multipliers with Deal Cancellation — buy Up → cancel   | ❌      | ❌     |       |
 | Flow 9.8  | Multipliers with Deal Cancellation — buy Down → cancel | ❌      | ❌     |       |
-| Flow 10.1 | Turbos without TP — buy Up → verify in positions       | ❌      | ❌     |       |
-| Flow 10.2 | Turbos without TP — buy Down → verify in positions     | ❌      | ❌     |       |
-| Flow 10.3 | Turbos with TP — buy Up → verify TP set in positions   | ❌      | ❌     |       |
-| Flow 10.4 | Turbos with TP — buy Down → verify TP set in positions | ❌      | ❌     |       |
+| Flow 10.1 | Turbos without TP — buy Up → verify in positions       | ✅      | ✅     |       |
+| Flow 10.2 | Turbos without TP — buy Down → verify in positions     | ✅      | ✅     |       |
+| Flow 10.3 | Turbos with TP — buy Up → verify TP set in positions   | ✅      | ✅     |       |
+| Flow 10.4 | Turbos with TP — buy Down → verify TP set in positions | ✅      | ✅     |       |
 | Flow 11.1 | Vanillas — buy Call → verify in positions              | ❌      | ❌     |       |
 | Flow 11.2 | Vanillas — buy Put → verify in positions               | ❌      | ❌     |       |
 | Flow 12   | Market closed → purchase hidden, countdown visible     | ❌      | ❌     |       |

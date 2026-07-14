@@ -654,7 +654,7 @@ Identical chain to Flow 7.1 with `selectPredictionOption('Odd', 'bottom')` (purc
 
 ## Turbos
 
-> **Structural exception:** Turbos contracts expire at barrier breach or duration end — there is no manual close button. The buy flow verifies purchase and presence in positions only (steps 1–11). Steps 12–18 of the standard chain (closed tab, contract details closed, balance after close, Reports) are not applicable.
+> **Implementation note:** Turbos have no _trade-page_ (Accumulator-style) close button, but they **are early-sellable from the contract-details footer** (`isValidToSell`). The tests use a short **Minutes** duration (so the positions card shows a remaining-time countdown and `verifyContractCardDetails` works unchanged), stake **`10.50`**, verify the open position, then **close early via `ContractDetailsPage.sellContract()`** (which retries on `PriceMoved` slippage) and verify the full closed chain (Closed tab → balance-after-close → Reports). TP flows also assert the TP amount on the open contract details before closing.
 
 ### Flow 10.1 — Turbos without TP: buy Up → verify in positions
 

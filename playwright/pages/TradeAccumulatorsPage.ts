@@ -76,41 +76,6 @@ export class TradeAccumulatorsPage extends TradeParametersPage {
     }
 
     /**
-     * Take profit field trigger (readOnly TextField, value "-" or "1.00 USD").
-     * Source: take-profit.tsx / take-profit-desktop.tsx — label "Take profit".
-     */
-    get takeProfitField(): Locator {
-        return this.page.getByLabel('Take profit').first();
-    }
-
-    /**
-     * Overlay covering the disabled take-profit input; clicking it enables take profit.
-     * Present on both viewports while TP is off. Source: dt_take_profit_overlay.
-     */
-    get takeProfitOverlay(): Locator {
-        return this.page.getByTestId('dt_take_profit_overlay');
-    }
-
-    /**
-     * Take profit amount input — viewport-aware.
-     * Desktop: dt_take_profit_input (take-profit-input-desktop.tsx).
-     * Mobile: dt_tp_input (take-profit-and-stop-loss-input.tsx).
-     */
-    get takeProfitInput(): Locator {
-        return this.isMobile ? this.page.getByTestId('dt_tp_input') : this.page.getByTestId('dt_take_profit_input');
-    }
-
-    /**
-     * Save button in the take-profit popover/action-sheet — viewport-aware.
-     * Desktop: `.take-profit-input-desktop__save-button`. Mobile: action-sheet footer "Save".
-     */
-    get takeProfitSaveButton(): Locator {
-        return this.isMobile
-            ? this.page.locator('.quill-action-sheet--footer').getByRole('button', { name: 'Save' })
-            : this.page.locator('.take-profit-input-desktop__save-button');
-    }
-
-    /**
      * "Save" button inside the mobile growth-rate action sheet footer (if present).
      */
     get growthRateSaveButton(): Locator {
@@ -162,38 +127,6 @@ export class TradeAccumulatorsPage extends TradeParametersPage {
         await expect(this.growthRateField, `Growth rate field should show '${value}' after selection`).toHaveValue(
             value
         );
-    }
-
-    /**
-     * Enable Take profit and set its amount.
-     * Opens the Take profit field, clicks the overlay to enable, fills the amount, saves, and asserts
-     * the trigger field reflects the amount (e.g. "1.00 USD").
-     *
-     * @param amount - Take profit amount as a string (e.g. '1.00')
-     */
-    async setTakeProfit(amount: string): Promise<void> {
-        await this.takeProfitField.click();
-        if (await this.takeProfitOverlay.isVisible().catch(() => false)) {
-            await this.takeProfitOverlay.click();
-        }
-        // The Save handler is a no-op until the backend validates the amount (it guards on the
-        // validation response), so an immediate click leaves the sheet open. Retry Save until it
-        // commits — i.e. the trade-form Take profit field reflects the saved amount. Re-fill the
-        // input on every attempt in case the action sheet re-rendered (e.g. after a validation error)
-        // and reset the field between retries.
-        const expectedValue = new RegExp(amount.replace(/\./g, '\\.'));
-        await expect(async () => {
-            if (await this.takeProfitInput.isVisible().catch(() => false)) {
-                await this.takeProfitInput.fill(amount).catch(() => {});
-            }
-            if (await this.takeProfitSaveButton.isVisible().catch(() => false)) {
-                await this.takeProfitSaveButton.click().catch(() => {});
-            }
-            await expect(this.takeProfitField, `Take profit field should show '${amount}' after saving`).toHaveValue(
-                expectedValue,
-                { timeout: 2_000 }
-            );
-        }).toPass({ timeout: 20_000 });
     }
 
     /**

@@ -121,11 +121,65 @@ export class TradeParametersPage extends TradeBasePage {
     }
 
     /**
+     * Take profit field trigger (readOnly TextField, value "-" or "20.00 USD").
+     * Shared by trade types that use the standalone TakeProfit widget (Accumulators, Turbos).
+     * Source: take-profit.tsx / take-profit-desktop.tsx — label "Take profit".
+     */
+    get takeProfitField(): Locator {
+        return this.page.getByLabel('Take profit').first();
+    }
+
+    /**
+     * Overlay covering the disabled take-profit input; clicking it enables take profit.
+     * Present on both viewports while TP is off. Source: dt_take_profit_overlay.
+     */
+    get takeProfitOverlay(): Locator {
+        return this.page.getByTestId('dt_take_profit_overlay');
+    }
+
+    /**
+     * Take profit amount input — viewport-aware.
+     * Desktop: dt_take_profit_input (take-profit-input-desktop.tsx).
+     * Mobile: dt_tp_input (take-profit-and-stop-loss-input.tsx).
+     */
+    get takeProfitInput(): Locator {
+        return this.isMobile ? this.page.getByTestId('dt_tp_input') : this.page.getByTestId('dt_take_profit_input');
+    }
+
+    /**
+     * Save button in the take-profit popover/action-sheet — viewport-aware.
+     * Desktop: `.take-profit-input-desktop__save-button`. Mobile: action-sheet footer "Save".
+     */
+    get takeProfitSaveButton(): Locator {
+        return this.isMobile
+            ? this.page.locator('.quill-action-sheet--footer').getByRole('button', { name: 'Save' })
+            : this.page.locator('.take-profit-input-desktop__save-button');
+    }
+
+    /**
      * Accumulators stats panel — Accumulators only.
      * Source: accumulators-stats-v2.tsx
      */
     get accumulatorsStats(): Locator {
         return this.page.locator('.accumulators-stats-v2');
+    }
+
+    /**
+     * Payout per point param — Turbos only.
+     * Desktop: TradeParameterPopover labelled "Payout per point"; Mobile: readOnly TextField opening a
+     * wheel-picker action sheet. Matched by label text on both viewports.
+     * Source: PayoutPerPoint/payout-per-point(-desktop).tsx
+     */
+    get payoutPerPointParam(): Locator {
+        return this.page.getByText('Payout per point').first();
+    }
+
+    /**
+     * Barrier info panel — Turbos (read-only display of the barrier below the params row).
+     * Source: BarrierInfo/barrier-info.tsx — `.barrier-info__container`.
+     */
+    get barrierInfoPanel(): Locator {
+        return this.page.locator('.barrier-info__container');
     }
 
     /**
@@ -785,6 +839,37 @@ export class TradeParametersPage extends TradeBasePage {
     }
 
     /**
+     * Enable Take profit and set its amount, for trade types using the standalone TakeProfit widget
+     * (Accumulators, Turbos). Opens the Take profit field, enables it via the overlay, fills the amount,
+     * saves, and asserts the trigger field reflects the amount (e.g. "20.00 USD").
+     *
+     * The Save handler is a no-op until the backend validates the amount, so an immediate click leaves
+     * the sheet open. This retries Save until it commits, re-filling the input each attempt in case the
+     * action sheet re-rendered (e.g. after a validation error) and reset the field between retries.
+     *
+     * @param amount - Take profit amount as a string (e.g. '20.00')
+     */
+    async setTakeProfit(amount: string): Promise<void> {
+        await this.takeProfitField.click();
+        if (await this.takeProfitOverlay.isVisible().catch(() => false)) {
+            await this.takeProfitOverlay.click();
+        }
+        const expectedValue = new RegExp(amount.replace(/\./g, '\\.'));
+        await expect(async () => {
+            if (await this.takeProfitInput.isVisible().catch(() => false)) {
+                await this.takeProfitInput.fill(amount).catch(() => {});
+            }
+            if (await this.takeProfitSaveButton.isVisible().catch(() => false)) {
+                await this.takeProfitSaveButton.click().catch(() => {});
+            }
+            await expect(this.takeProfitField, `Take profit field should show '${amount}' after saving`).toHaveValue(
+                expectedValue,
+                { timeout: 2_000 }
+            );
+        }).toPass({ timeout: 20_000 });
+    }
+
+    /**
      * Click the purchase / buy button to submit the trade.
      * Waits for the button to be enabled before clicking.
      *
@@ -947,7 +1032,19 @@ export class TradeParametersPage extends TradeBasePage {
                 await expect(this.stakeLabel, 'Stake param should be visible for Even/Odd').toBeVisible();
                 await expect(this.purchaseButton, 'Buy button should be visible for Even/Odd').toBeVisible();
                 break;
-            // Add cases for Multipliers, Turbos, Vanillas, etc. as they are implemented
+            case 'Turbos':
+                await expect(this.durationLabel, 'Duration param should be visible for Turbos').toBeVisible();
+                await expect(
+                    this.payoutPerPointParam,
+                    'Payout per point param should be visible for Turbos'
+                ).toBeVisible();
+                await expect(this.stakeLabel, 'Stake param should be visible for Turbos').toBeVisible();
+                await expect(this.takeProfitLabel, 'Take profit param should be visible for Turbos').toBeVisible();
+                await expect(this.barrierInfoPanel, 'Barrier info panel should be visible for Turbos').toBeVisible();
+                // Turbos render a single buy button with no payout content wrapper.
+                await expect(this.singlePurchaseButton, 'Buy button should be visible for Turbos').toBeVisible();
+                break;
+            // Add cases for Multipliers, Vanillas, etc. as they are implemented
         }
     }
 
