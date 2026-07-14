@@ -95,6 +95,46 @@ export class TradeAutomationPage extends TradeParametersPage {
         return this.page.getByRole('button', { name: 'Stop', exact: true });
     }
 
+    /**
+     * "Loss threshold" (stop-loss) field trigger in the Risk management section — a readonly
+     * `TradeParameterPopover` (desktop) / readonly `TextField` (mobile) that opens the editor.
+     * Source: ThresholdInput/threshold-input-{desktop,mobile}.tsx — `label = localize('Loss threshold')`.
+     * `exact` avoids also matching the inner "Loss threshold (USD)" input while the editor is open.
+     */
+    get lossThresholdField(): Locator {
+        return this.page.getByLabel('Loss threshold', { exact: true }).first();
+    }
+
+    /**
+     * "Profit threshold" (take-profit) field trigger in the Risk management section — the same
+     * `ThresholdInput` component as the loss threshold (`threshold_type='take_profit'`).
+     * `exact` avoids also matching the inner "Profit threshold (USD)" input while the editor is open.
+     */
+    get profitThresholdField(): Locator {
+        return this.page.getByLabel('Profit threshold', { exact: true }).first();
+    }
+
+    /**
+     * Numeric input inside whichever threshold popover/action-sheet is currently open. Both
+     * viewports wrap it in `.automation-popover__input-wrapper` (source: threshold-input-*.tsx),
+     * and only one editor is open at a time, so a single selector serves both threshold fields.
+     */
+    get thresholdInput(): Locator {
+        return this.page.locator('.automation-popover__input-wrapper input');
+    }
+
+    /**
+     * Save button that commits a threshold value (shared by both threshold editors).
+     * - Desktop: `.automation-popover__save-button` (threshold-input-desktop.tsx).
+     * - Mobile: the ActionSheet footer "Save" button (threshold-input-mobile.tsx `ActionSheet.Footer`),
+     *   matching the barrier action-sheet pattern in `TradeParametersPage`.
+     */
+    get thresholdSaveButton(): Locator {
+        return this.isMobile
+            ? this.page.locator('.quill-action-sheet--footer').getByRole('button', { name: 'Save' })
+            : this.page.locator('.automation-popover__save-button');
+    }
+
     // ============================================
     // ACTIONS
     // ============================================
@@ -181,6 +221,49 @@ export class TradeAutomationPage extends TradeParametersPage {
         await this.resumeButton.click();
     }
 
+    /**
+     * Open a Risk-management threshold field's editor, type the amount, save, and confirm the
+     * field reflects it. Shared by the loss- and profit-threshold setters.
+     *
+     * @param field  - The threshold field trigger locator (loss or profit).
+     * @param amount - Threshold in the account currency as a string.
+     * @returns Promise that resolves once the field shows the saved value.
+     */
+    private async setThreshold(field: Locator, amount: string): Promise<void> {
+        await field.click();
+        await expect(this.thresholdInput, 'Threshold input should be visible after opening the field').toBeVisible();
+        await this.thresholdInput.fill(amount);
+        await this.thresholdSaveButton.click();
+        await expect(field, `Threshold field should reflect '${amount}' after saving`).toHaveValue(
+            // Escape every '.' (not just the first) so the literal amount is matched, not "any char".
+            new RegExp(`^${amount.replace(/\./g, '\\.')}\\b`)
+        );
+    }
+
+    /**
+     * Set the Loss threshold (stop-loss). Use a small value (e.g. `'1'`) so a losing run
+     * auto-stops quickly — the safety control Flow 3 exercises.
+     *
+     * @param amount - Threshold in the account currency as a string, e.g. `'1'`.
+     * @returns Promise that resolves once the field shows the saved value.
+     */
+    async setLossThreshold(amount: string): Promise<void> {
+        await this.setThreshold(this.lossThresholdField, amount);
+    }
+
+    /**
+     * Set the Profit threshold (take-profit). Set it high (e.g. `'1000'`) so the run cannot stop
+     * on profit and can only stop on the loss threshold — this makes the loss auto-stop, and the
+     * resulting negative closed P/L, deterministic (otherwise a few early wins could occasionally
+     * trip the profit threshold instead, leaving a positive P/L).
+     *
+     * @param amount - Threshold in the account currency as a string, e.g. `'1000'`.
+     * @returns Promise that resolves once the field shows the saved value.
+     */
+    async setProfitThreshold(amount: string): Promise<void> {
+        await this.setThreshold(this.profitThresholdField, amount);
+    }
+
     // ============================================
     // VERIFICATIONS
     // ============================================
@@ -238,5 +321,39 @@ export class TradeAutomationPage extends TradeParametersPage {
             timeout: 30_000,
         });
         await expect(this.statusRunning, 'Running status should no longer be visible after stopping').not.toBeVisible();
+    }
+
+    /**
+     * Verify the run auto-stopped once the loss threshold was reached — i.e. the controls
+     * returned to the idle Run button *by themselves*, with no manual Stop click.
+     *
+     * Why the durable idle state and not the snackbar: the "Loss threshold reached. Automation
+     * stopped." snackbar is rendered with `hasCloseButton: false` and auto-dismisses after a few
+     * seconds, so asserting it directly is inherently racy — it can appear and vanish between
+     * polls (observed: caught on one run, already gone on the next). The return to the idle Run
+     * button (with Running/Pause cleared) is the reliable, durable proof that the run stopped on
+     * its own. The caller sets the profit threshold high (unreachable) and the loss threshold tiny,
+     * so a self-triggered stop can only be the loss threshold — the durable idle state is therefore
+     * sufficient to confirm a loss-threshold auto-stop without reading the transient snackbar.
+     *
+     * Timing: the bot trades live contracts until cumulative loss ≥ the threshold, so a bounded
+     * (never fixed) wait is used to allow a few contracts to settle.
+     *
+     * @returns Promise that resolves once the auto-stop (idle state) is confirmed.
+     */
+    async verifyLossThresholdAutoStop(): Promise<void> {
+        await expect(
+            this.runButton,
+            'Run button should reappear once the run auto-stops at the loss threshold (no manual Stop)'
+        ).toBeVisible({ timeout: 120_000 });
+        await expect(
+            this.statusRunning,
+            'Running status should no longer be visible after the auto-stop'
+        ).not.toBeVisible();
+        await expect(
+            this.pauseButton,
+            'Pause button should no longer be visible after the auto-stop'
+        ).not.toBeVisible();
+        await expect(this.stopButton, 'Stop button should no longer be visible after the auto-stop').not.toBeVisible();
     }
 }

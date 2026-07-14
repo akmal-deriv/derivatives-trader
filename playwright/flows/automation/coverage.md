@@ -1,22 +1,22 @@
 # Automation (Automated Trading) Journey Coverage
 
-**Analysis date:** 2026-07-07
+**Analysis date:** 2026-07-09
 
 ---
 
 ## Section 1 — Coverage at a Glance
 
-| #      | Journey                                               | Desktop | Mobile | Notes                                    |
-| ------ | ----------------------------------------------------- | ------- | ------ | ---------------------------------------- |
-| Flow 1 | Lifecycle — start strategy → Running → Stop           | ✅      | ✅     | `verify-automation-lifecycle.spec.ts`    |
-| Flow 2 | Pause and Resume a running automation                 | ✅      | ✅     | `verify-automation-pause-resume.spec.ts` |
-| Flow 3 | Risk threshold auto-stop (loss/profit threshold)      | ❌      | ❌     | Timing-dependent; set a tiny threshold   |
-| Flow 4 | Strategy selection & params (Martingale / D'Alembert) | ❌      | ❌     |                                          |
-| Flow 5 | Resync after account switch (stays Running)           | ❌      | ❌     | Guards GRWT-9318 "stuck on Starting…"    |
-| Flow 6 | Automation panel loads with default state             | ✅      | ✅     | `verify-automation-panel-loads.spec.ts`  |
-| Flow 7 | Automation unavailable for EU account (gating)        | ❌      | ❌     | Requires an EU/DIEL account              |
-| G1     | "Automation already running" adoption snackbar        | ❌      | ❌     |                                          |
-| G2     | Validation / unsupported-contract-type error          | ❌      | ❌     |                                          |
+| #      | Journey                                               | Desktop | Mobile | Notes                                                                                                                                                                                                                                                                                    |
+| ------ | ----------------------------------------------------- | ------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Flow 1 | Lifecycle — start strategy → Running → Stop           | ✅      | ✅     | `verify-automation-lifecycle.spec.ts`                                                                                                                                                                                                                                                    |
+| Flow 2 | Pause and Resume a running automation                 | ✅      | ✅     | `verify-automation-pause-resume.spec.ts`                                                                                                                                                                                                                                                 |
+| Flow 3 | Risk threshold auto-stop (loss/profit threshold)      | ✅      | ✅     | `verify-automation-threshold-stop.spec.ts` — sets 5-tick duration + tiny loss threshold (`1`), asserts durable auto-stop (idle Run returns, no manual Stop). Snackbar is transient (`hasCloseButton:false`) so the durable stopped-state is asserted instead. 3/3 pass desktop + mobile. |
+| Flow 4 | Strategy selection & params (Martingale / D'Alembert) | ❌      | ❌     |                                                                                                                                                                                                                                                                                          |
+| Flow 5 | Resync after account switch (stays Running)           | ❌      | ❌     | Guards GRWT-9318 "stuck on Starting…"                                                                                                                                                                                                                                                    |
+| Flow 6 | Automation panel loads with default state             | ✅      | ✅     | `verify-automation-panel-loads.spec.ts`                                                                                                                                                                                                                                                  |
+| Flow 7 | Automation unavailable for EU account (gating)        | ❌      | ❌     | Requires an EU/DIEL account                                                                                                                                                                                                                                                              |
+| G1     | "Automation already running" adoption snackbar        | ❌      | ❌     |                                                                                                                                                                                                                                                                                          |
+| G2     | Validation / unsupported-contract-type error          | ❌      | ❌     |                                                                                                                                                                                                                                                                                          |
 
 ---
 
