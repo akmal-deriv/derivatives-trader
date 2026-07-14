@@ -76,7 +76,10 @@ Ask each missing field as a **plain text message** and wait for the user's reply
 :wave: <!subteam^S0AP2400XLZ> could you please help with the review of my PR?
 
 Summary:
-`{summary}`
+
+```
+{summary}
+```
 
 • PR: {pr}
 • ClickUp Card: {clickup}

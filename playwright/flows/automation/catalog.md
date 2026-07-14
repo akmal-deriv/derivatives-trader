@@ -8,17 +8,17 @@
 
 ## Section 1 — Journey Index
 
-| Journey ID | Spec File                                                 | Tags                                           |
-| ---------- | --------------------------------------------------------- | ---------------------------------------------- |
-| Flow 1     | `automation/verify-automation-lifecycle.spec.ts`          | `@automation @smoke @desktop @mobile @staging` |
-| Flow 2     | `automation/verify-automation-pause-resume.spec.ts`       | `@automation @desktop @mobile @staging`        |
-| Flow 3     | `automation/verify-automation-threshold-stop.spec.ts`     | `@automation @desktop @mobile @staging`        |
-| Flow 4     | `automation/verify-automation-strategy-selection.spec.ts` | `@automation @desktop @mobile @staging`        |
-| Flow 5     | `automation/verify-automation-resync.spec.ts`             | `@automation @desktop @mobile @staging`        |
-| Flow 6     | `automation/verify-automation-panel-loads.spec.ts`        | `@automation @smoke @desktop @mobile @staging` |
-| Flow 7     | `automation/verify-automation-eu-gating.spec.ts`          | `@automation @desktop @mobile @staging`        |
-| G1         | `automation/verify-automation-already-running.spec.ts`    | `@automation @desktop @mobile @staging`        |
-| G2         | `automation/verify-automation-validation.spec.ts`         | `@automation @desktop @mobile @staging`        |
+| Journey ID | Spec File                                                 | Tags                                  |
+| ---------- | --------------------------------------------------------- | ------------------------------------- |
+| Flow 1     | `automation/verify-automation-lifecycle.spec.ts`          | `@automation @smoke @desktop @mobile` |
+| Flow 2     | `automation/verify-automation-pause-resume.spec.ts`       | `@automation @desktop @mobile`        |
+| Flow 3     | `automation/verify-automation-threshold-stop.spec.ts`     | `@automation @desktop @mobile`        |
+| Flow 4     | `automation/verify-automation-strategy-selection.spec.ts` | `@automation @desktop @mobile`        |
+| Flow 5     | `automation/verify-automation-resync.spec.ts`             | `@automation @desktop @mobile`        |
+| Flow 6     | `automation/verify-automation-panel-loads.spec.ts`        | `@automation @smoke @desktop @mobile` |
+| Flow 7     | `automation/verify-automation-eu-gating.spec.ts`          | `@automation @desktop @mobile`        |
+| G1         | `automation/verify-automation-already-running.spec.ts`    | `@automation @desktop @mobile`        |
+| G2         | `automation/verify-automation-validation.spec.ts`         | `@automation @desktop @mobile`        |
 
 ---
 
@@ -83,9 +83,10 @@ Lower priority — implement after Flow 1. See `flow.md` for step tables. They r
 | ------------- | -------------------------------------------------------------- |
 | `@automation` | All Automated Trading tests (this module)                      |
 | `@smoke`      | Critical path — the lifecycle (Flow 1) and panel-load (Flow 6) |
-| `@staging`    | Uses account creation (`createAccountV2viaJS`) — not prod-safe |
 | `@desktop`    | Desktop viewport (chromium project)                            |
 | `@mobile`     | Mobile viewport (chromium-mobile project)                      |
+
+> **Note:** Automation specs use `createAccountV2viaJS` (staging-only). They intentionally do not carry `@production` — do not add it without first adding `TEST_ENV=production` branching to `beforeAll` (see `verify-rise-fall.spec.ts` for the pattern).
 
 ---
 

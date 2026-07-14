@@ -7,11 +7,11 @@
 
 ## Section 1 — Journey Index
 
-| Journey ID | Spec File                                      | Tags                            |
-| ---------- | ---------------------------------------------- | ------------------------------- |
-| Flow 1     | `auth/verify-login-via-email-password.spec.ts` | `@auth @smoke @desktop @mobile` |
-| Flow 2     | `auth/verify-login-via-otp.spec.ts`            | `@auth @smoke @desktop @mobile` |
-| Flow 3     | `auth/verify-logout.spec.ts`                   | `@auth @smoke @desktop @mobile` |
+| Journey ID | Spec File                                      | Tags                                        |
+| ---------- | ---------------------------------------------- | ------------------------------------------- |
+| Flow 1     | `auth/verify-login-via-email-password.spec.ts` | `@auth @smoke @desktop @mobile @production` |
+| Flow 2     | `auth/verify-login-via-otp.spec.ts`            | `@auth @smoke @desktop @mobile @production` |
+| Flow 3     | `auth/verify-logout.spec.ts`                   | `@auth @smoke @desktop @mobile @production` |
 
 ---
 
@@ -24,7 +24,7 @@
 **Test pattern:**
 
 ```typescript
-test.describe('Login — Email and Password', { tag: ['@auth', '@smoke', '@desktop', '@mobile'] }, () => {
+test.describe('Login — Email and Password', { tag: ['@auth', '@smoke', '@desktop', '@mobile', '@production'] }, () => {
     test('VERIFY email and password login redirects back to DTrader successfully', async ({
         loginPage,
         passwordPage,
@@ -55,7 +55,7 @@ test.describe('Login — Email and Password', { tag: ['@auth', '@smoke', '@deskt
 
 ```typescript
 test.describe.configure({ mode: 'serial' });
-test.describe('Login - One-Time Code', { tag: ['@auth', '@smoke', '@desktop', '@mobile'] }, () => {
+test.describe('Login - One-Time Code', { tag: ['@auth', '@smoke', '@desktop', '@mobile', '@production'] }, () => {
     let testEmail: string = undefined!;
 
     test.beforeAll(async ({}, testInfo) => {
@@ -109,7 +109,7 @@ test.describe('Login - One-Time Code', { tag: ['@auth', '@smoke', '@desktop', '@
 **Test pattern:**
 
 ```typescript
-test.describe('Logout', { tag: ['@auth', '@smoke', '@desktop', '@mobile'] }, () => {
+test.describe('Logout', { tag: ['@auth', '@smoke', '@desktop', '@mobile', '@production'] }, () => {
     test.beforeAll(async () => {
         if (!process.env.TEST_EMAIL || !process.env.TEST_PASSWORD) {
             throw new Error(

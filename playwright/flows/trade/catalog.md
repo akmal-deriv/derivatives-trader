@@ -7,42 +7,42 @@
 
 ## Section 1 — Journey Index
 
-| Journey ID | Spec File                                                        | Tags                             |
-| ---------- | ---------------------------------------------------------------- | -------------------------------- |
-| Flow 1     | `trade/verify-trade-form-loads.spec.ts`                          | `@trade @smoke @desktop @mobile` |
-| Flow 2.1   | `trade/verify-rise-fall.spec.ts`                                 | `@trade @smoke @desktop @mobile` |
-| Flow 2.2   | `trade/verify-rise-fall.spec.ts`                                 | `@trade @smoke @desktop @mobile` |
-| Flow 2.3   | `trade/rise-fall/verify-rise-fall.spec.ts`                       | `@trade @smoke @desktop @mobile` |
-| Flow 2.4   | `trade/rise-fall/verify-rise-fall.spec.ts`                       | `@trade @smoke @desktop @mobile` |
-| Flow 3.1   | `trade/higher-lower/verify-higher-lower.spec.ts`                 | `@trade @desktop @mobile`        |
-| Flow 3.2   | `trade/higher-lower/verify-higher-lower.spec.ts`                 | `@trade @desktop @mobile`        |
-| Flow 4.1   | `trade/touch-no-touch/verify-touch-no-touch.spec.ts`             | `@trade @desktop @mobile`        |
-| Flow 4.2   | `trade/touch-no-touch/verify-touch-no-touch.spec.ts`             | `@trade @desktop @mobile`        |
-| Flow 5.1   | `trade/matches-differs/verify-matches-differs.spec.ts`           | `@trade @smoke @desktop @mobile` |
-| Flow 5.2   | `trade/matches-differs/verify-matches-differs.spec.ts`           | `@trade @smoke @desktop @mobile` |
-| Flow 6.1   | `trade/over-under/verify-over-under.spec.ts`                     | `@trade @desktop @mobile`        |
-| Flow 6.2   | `trade/over-under/verify-over-under.spec.ts`                     | `@trade @desktop @mobile`        |
-| Flow 7.1   | `trade/even-odd/verify-even-odd.spec.ts`                         | `@trade @desktop @mobile`        |
-| Flow 7.2   | `trade/even-odd/verify-even-odd.spec.ts`                         | `@trade @desktop @mobile`        |
-| Flow 8.1   | `trade/accumulators/verify-accumulators.spec.ts`                 | `@trade @smoke @desktop @mobile` |
-| Flow 8.2   | `trade/accumulators/verify-accumulators.spec.ts`                 | `@trade @smoke @desktop @mobile` |
-| Flow 9.1   | `trade/multipliers/verify-multipliers-no-tpsl.spec.ts`           | `@trade @smoke @desktop @mobile` |
-| Flow 9.2   | `trade/multipliers/verify-multipliers-no-tpsl.spec.ts`           | `@trade @smoke @desktop @mobile` |
-| Flow 9.3   | `trade/multipliers/verify-multipliers-with-tp.spec.ts`           | `@trade @smoke @desktop @mobile` |
-| Flow 9.4   | `trade/multipliers/verify-multipliers-with-tp.spec.ts`           | `@trade @smoke @desktop @mobile` |
-| Flow 9.5   | `trade/multipliers/verify-multipliers-with-sl.spec.ts`           | `@trade @desktop @mobile`        |
-| Flow 9.6   | `trade/multipliers/verify-multipliers-with-sl.spec.ts`           | `@trade @desktop @mobile`        |
-| Flow 9.7   | `trade/multipliers/verify-multipliers-deal-cancellation.spec.ts` | `@trade @desktop @mobile`        |
-| Flow 9.8   | `trade/multipliers/verify-multipliers-deal-cancellation.spec.ts` | `@trade @desktop @mobile`        |
-| Flow 10.1  | `trade/turbos/verify-turbos.spec.ts`                             | `@trade @desktop @mobile`        |
-| Flow 10.2  | `trade/turbos/verify-turbos.spec.ts`                             | `@trade @desktop @mobile`        |
-| Flow 10.3  | `trade/turbos/verify-turbos-tp.spec.ts`                          | `@trade @desktop @mobile`        |
-| Flow 10.4  | `trade/turbos/verify-turbos-tp.spec.ts`                          | `@trade @desktop @mobile`        |
-| Flow 11.1  | `trade/verify-vanillas.spec.ts`                                  | `@trade @desktop @mobile`        |
-| Flow 11.2  | `trade/verify-vanillas.spec.ts`                                  | `@trade @desktop @mobile`        |
-| Flow 12    | `trade/verify-closed-market.spec.ts`                             | `@trade @desktop @mobile`        |
-| G1         | `trade/verify-insufficient-balance.spec.ts`                      | `@trade`                         |
-| G2         | `trade/verify-unauthenticated-purchase.spec.ts`                  | `@trade`                         |
+| Journey ID | Spec File                                                        | Tags                                         |
+| ---------- | ---------------------------------------------------------------- | -------------------------------------------- |
+| Flow 1     | `trade/verify-trade-form-loads.spec.ts`                          | `@trade @smoke @desktop @mobile @production` |
+| Flow 2.1   | `trade/rise-fall/verify-rise-fall.spec.ts`                       | `@trade @smoke @desktop @mobile @production` |
+| Flow 2.2   | `trade/rise-fall/verify-rise-fall.spec.ts`                       | `@trade @smoke @desktop @mobile`             |
+| Flow 2.3   | `trade/rise-fall/verify-rise-fall.spec.ts`                       | `@trade @smoke @desktop @mobile`             |
+| Flow 2.4   | `trade/rise-fall/verify-rise-fall.spec.ts`                       | `@trade @smoke @desktop @mobile`             |
+| Flow 3.1   | `trade/higher-lower/verify-higher-lower.spec.ts`                 | `@trade @desktop @mobile`                    |
+| Flow 3.2   | `trade/higher-lower/verify-higher-lower.spec.ts`                 | `@trade @desktop @mobile`                    |
+| Flow 4.1   | `trade/touch-no-touch/verify-touch-no-touch.spec.ts`             | `@trade @desktop @mobile`                    |
+| Flow 4.2   | `trade/touch-no-touch/verify-touch-no-touch.spec.ts`             | `@trade @desktop @mobile`                    |
+| Flow 5.1   | `trade/matches-differs/verify-matches-differs.spec.ts`           | `@trade @smoke @desktop @mobile`             |
+| Flow 5.2   | `trade/matches-differs/verify-matches-differs.spec.ts`           | `@trade @smoke @desktop @mobile`             |
+| Flow 6.1   | `trade/over-under/verify-over-under.spec.ts`                     | `@trade @desktop @mobile`                    |
+| Flow 6.2   | `trade/over-under/verify-over-under.spec.ts`                     | `@trade @desktop @mobile`                    |
+| Flow 7.1   | `trade/even-odd/verify-even-odd.spec.ts`                         | `@trade @desktop @mobile`                    |
+| Flow 7.2   | `trade/even-odd/verify-even-odd.spec.ts`                         | `@trade @desktop @mobile`                    |
+| Flow 8.1   | `trade/accumulators/verify-accumulators.spec.ts`                 | `@trade @smoke @desktop @mobile`             |
+| Flow 8.2   | `trade/accumulators/verify-accumulators.spec.ts`                 | `@trade @smoke @desktop @mobile`             |
+| Flow 9.1   | `trade/multipliers/verify-multipliers-no-tpsl.spec.ts`           | `@trade @smoke @desktop @mobile`             |
+| Flow 9.2   | `trade/multipliers/verify-multipliers-no-tpsl.spec.ts`           | `@trade @smoke @desktop @mobile`             |
+| Flow 9.3   | `trade/multipliers/verify-multipliers-with-tp.spec.ts`           | `@trade @smoke @desktop @mobile`             |
+| Flow 9.4   | `trade/multipliers/verify-multipliers-with-tp.spec.ts`           | `@trade @smoke @desktop @mobile`             |
+| Flow 9.5   | `trade/multipliers/verify-multipliers-with-sl.spec.ts`           | `@trade @desktop @mobile`                    |
+| Flow 9.6   | `trade/multipliers/verify-multipliers-with-sl.spec.ts`           | `@trade @desktop @mobile`                    |
+| Flow 9.7   | `trade/multipliers/verify-multipliers-deal-cancellation.spec.ts` | `@trade @desktop @mobile`                    |
+| Flow 9.8   | `trade/multipliers/verify-multipliers-deal-cancellation.spec.ts` | `@trade @desktop @mobile`                    |
+| Flow 10.1  | `trade/turbos/verify-turbos.spec.ts`                             | `@trade @desktop @mobile`                    |
+| Flow 10.2  | `trade/turbos/verify-turbos.spec.ts`                             | `@trade @desktop @mobile`                    |
+| Flow 10.3  | `trade/turbos/verify-turbos-tp.spec.ts`                          | `@trade @desktop @mobile`                    |
+| Flow 10.4  | `trade/turbos/verify-turbos-tp.spec.ts`                          | `@trade @desktop @mobile`                    |
+| Flow 11.1  | `trade/verify-vanillas.spec.ts`                                  | `@trade @desktop @mobile`                    |
+| Flow 11.2  | `trade/verify-vanillas.spec.ts`                                  | `@trade @desktop @mobile`                    |
+| Flow 12    | `trade/verify-closed-market.spec.ts`                             | `@trade @desktop @mobile`                    |
+| G1         | `trade/verify-insufficient-balance.spec.ts`                      | `@trade`                                     |
+| G2         | `trade/verify-unauthenticated-purchase.spec.ts`                  | `@trade`                                     |
 
 ---
 
@@ -51,7 +51,7 @@
 ### Flow 1 — Trade form loads with default state visible
 
 ```typescript
-test.describe('Trade — Form Loads', { tag: ['@trade', '@smoke', '@desktop', '@mobile'] }, () => {
+test.describe('Trade — Form Loads', { tag: ['@trade', '@smoke', '@desktop', '@mobile', '@production'] }, () => {
     test.beforeEach(async ({ loginPage }) => {
         await loginPage.login();
     });

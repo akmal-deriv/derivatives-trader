@@ -50,15 +50,17 @@ on:
       platform:
         description: 'Platform to test'
         required: true
-        default: 'all'
+        default: 'chromium-all'
         type: choice
         options:
           - all
           - chromium
           - chromium-mobile
+          - chromium-all
           - firefox
           - webkit
           - webkit-mobile
+          - webkit-all
       spec_file:
         description: 'Spec file name (e.g. login.spec.ts). Leave blank to run the full suite'
         required: false
@@ -147,6 +149,10 @@ jobs:
             MATRIX=$(echo "$ALL" | jq -c '[.[] | select(.platform == "chromium-mobile")]')
           elif [ "${{ github.event_name }}" = "schedule" ] || [ "$SELECTED" = "all" ]; then
             MATRIX="$ALL"
+          elif [ "$SELECTED" = "chromium-all" ]; then
+            MATRIX=$(echo "$ALL" | jq -c '[.[] | select(.browser == "chromium")]')
+          elif [ "$SELECTED" = "webkit-all" ]; then
+            MATRIX=$(echo "$ALL" | jq -c '[.[] | select(.browser == "webkit")]')
           else
             MATRIX=$(echo "$ALL" | jq -c --arg sel "$SELECTED" '[.[] | select(.platform == $sel)]')
           fi
@@ -155,6 +161,7 @@ jobs:
   playwright-tests:
     name: Playwright Tests - ${{ matrix.name }} (${{ needs.validate-inputs.outputs.cron_env || inputs.test_env || github.event.inputs.test_env || 'staging' }} / ${{ needs.validate-inputs.outputs.cron_suite || inputs.test_suite || github.event.inputs.test_suite || 'smoke' }})
     needs: validate-inputs
+    timeout-minutes: 120
     strategy:
       fail-fast: false
       matrix:
@@ -260,13 +267,13 @@ jobs:
           path: playwright/test-results/
           retention-days: 7
 
-      - name: Send Slack Notification (${{ matrix.name }})
-        if: (success() || failure()) && (inputs.notify || github.event.inputs.notify) != 'skip'
+      - name: Save Slack Result Artifact (${{ matrix.name }})
+        if: always() && (inputs.notify || github.event.inputs.notify) != 'skip'
         continue-on-error: true
         run: node playwright/e2e-tests-core/scripts/slack-notify-testdino.js
         env:
-          SLACK_OAUTH_TOKEN: ${{ secrets.AUTO_OPS_BOT_TOKEN }}
-          SLACK_CHANNEL_ID: ${{ (needs.validate-inputs.outputs.cron_env || inputs.test_env || github.event.inputs.test_env || 'staging') == 'production' && vars.PROD_QA_SLACK_CHANNEL_ID || vars.QA_SLACK_CHANNEL_ID }}
+          MODE: collect
+          RESULT_OUTPUT_PATH: playwright/agent/.healing/slack-results/_result-${{ matrix.platform }}.json
           TESTDINO_ACCESS_TOKEN: ${{ secrets.TESTDINO_ACCESS_TOKEN }}
           TESTDINO_PROJECT_ID: ${{ vars.TESTDINO_PROJECT_ID }}
           TESTDINO_RUN_ID: ${{ env.TESTDINO_RUN_ID }}
@@ -280,6 +287,49 @@ jobs:
           BRANCH: ${{ github.ref_name }}
           GITHUB_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
+      - name: Upload Slack Result Artifact (${{ matrix.name }})
+        if: always() && (inputs.notify || github.event.inputs.notify) != 'skip'
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f #v7.0.0
+        with:
+          name: _playwright-slack-result-${{ matrix.platform }}
+          path: playwright/agent/.healing/slack-results/_result-${{ matrix.platform }}.json
+          if-no-files-found: ignore
+          include-hidden-files: true
+          retention-days: 1
+
       - name: Clean-up Decrypted Env Files
         if: always()
         run: rm -f playwright/.env.staging playwright/.env.production
+
+  notify:
+    name: Slack Notification
+    needs: [validate-inputs, playwright-tests]
+    runs-on: github-hosted-playwright01
+    # Does not fire on cancellation — intentional (cancelled runs are not notified)
+    # '' (empty string, e.g. scheduled runs) means "use default channel" — only 'skip' suppresses notification
+    if: (success() || failure()) && (inputs.notify || github.event.inputs.notify) != 'skip'
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
+
+      - name: Download all Slack result artifacts
+        continue-on-error: true
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c #v8.0.1
+        with:
+          pattern: _playwright-slack-result-*
+          path: playwright/agent/.healing/slack-results
+          merge-multiple: true
+
+      - name: Send Slack Notification
+        continue-on-error: true
+        run: node playwright/e2e-tests-core/scripts/slack-notify-testdino.js
+        env:
+          MODE: notify
+          SLACK_OAUTH_TOKEN: ${{ secrets.AUTO_OPS_BOT_TOKEN }}
+          SLACK_CHANNEL_ID: ${{ (needs.validate-inputs.outputs.cron_env || inputs.test_env || github.event.inputs.test_env || 'staging') == 'production' && vars.PROD_QA_SLACK_CHANNEL_ID || vars.QA_SLACK_CHANNEL_ID }}
+          RESULTS_DIR: playwright/agent/.healing/slack-results
+          GITHUB_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          NOTIFY: ${{ inputs.notify || github.event.inputs.notify || (github.event_name == 'schedule' && 'trading_apps_qa') || '' }}

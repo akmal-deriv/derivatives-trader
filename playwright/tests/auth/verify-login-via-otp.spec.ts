@@ -13,7 +13,7 @@ import { MailiskUtils } from '../../utils';
  * Desktop and mobile use dedicated accounts to avoid OTP conflicts in parallel.
  * Tests run serially to prevent OTP inbox conflicts between test cases.
  */
-test.describe('Login - One-Time Code', { tag: ['@auth', '@smoke', '@desktop', '@mobile'] }, () => {
+test.describe('Login - One-Time Code', { tag: ['@auth', '@smoke', '@desktop', '@mobile', '@production'] }, () => {
     let testEmail: string = undefined!;
 
     test.beforeAll(async ({}, testInfo) => {
@@ -21,9 +21,7 @@ test.describe('Login - One-Time Code', { tag: ['@auth', '@smoke', '@desktop', '@
         const emailVar = isMobile ? 'TEST_EMAIL_MOBILE' : 'TEST_EMAIL';
         const email = process.env[emailVar];
 
-        if (!email) {
-            throw new Error(`${emailVar} is not set in playwright/.env.staging`);
-        }
+        if (!email) throw new Error(`${emailVar} is not set in playwright/.env`);
         testEmail = email;
     });
 

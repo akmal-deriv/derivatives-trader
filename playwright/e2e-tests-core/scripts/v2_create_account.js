@@ -1340,6 +1340,7 @@ async function topUpWallet(accessToken, walletId, walletCurrency = 'USD', amount
     const topupData = {
         data: {
             net_amount: amount,
+            adjustment_type: 'Test Account', // required by Wallet V2 transaction API; staging-only ledger category for QA top-ups
             currency: walletCurrency,
             direction: 'to_wallet',
             request_id: requestId,

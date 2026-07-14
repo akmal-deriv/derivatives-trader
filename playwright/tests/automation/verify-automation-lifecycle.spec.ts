@@ -11,7 +11,7 @@ import { createAccountV2viaJS } from '../../utils';
 let accountEmail: string;
 let accountPassword: string;
 
-test.describe('Automation — Lifecycle', { tag: ['@automation', '@smoke', '@desktop', '@mobile', '@staging'] }, () => {
+test.describe('Automation — Lifecycle', { tag: ['@automation', '@smoke', '@desktop', '@mobile'] }, () => {
     test.describe.configure({ mode: 'serial' });
 
     test.beforeAll(async ({}, testInfo) => {

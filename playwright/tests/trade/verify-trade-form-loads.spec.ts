@@ -7,7 +7,7 @@
 import { test } from '../../fixtures/fixtures';
 import { TradeBasePage } from '../../pages/TradeBasePage';
 
-test.describe('Trade', { tag: ['@desktop', '@mobile', '@trade', '@smoke'] }, () => {
+test.describe('Trade', { tag: ['@desktop', '@mobile', '@trade', '@smoke', '@production'] }, () => {
     let testEmail: string = undefined!;
 
     test.beforeAll(async ({}, testInfo) => {
@@ -15,7 +15,7 @@ test.describe('Trade', { tag: ['@desktop', '@mobile', '@trade', '@smoke'] }, () 
         const emailVar = isMobile ? 'TEST_EMAIL_MOBILE' : 'TEST_EMAIL';
         const email = process.env[emailVar];
 
-        if (!email) throw new Error(`${emailVar} is not set in playwright/.env.staging`);
+        if (!email) throw new Error(`${emailVar} is not set in playwright/.env`);
 
         testEmail = email;
     });
