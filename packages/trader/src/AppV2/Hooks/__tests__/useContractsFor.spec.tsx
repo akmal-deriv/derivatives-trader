@@ -58,6 +58,7 @@ describe('useContractsFor', () => {
             modules: {
                 trade: {
                     setContractTypesListV2: jest.fn(),
+                    setIsAwaitingContractsFor: jest.fn(),
                     onChange: jest.fn(),
                     processContractsForV2: jest.fn(),
                     symbol: 'R_50',
@@ -127,6 +128,56 @@ describe('useContractsFor', () => {
             expect(result.current.contract_types_list).toEqual([]);
             expect(mocked_store.modules.trade.setContractTypesListV2).not.toHaveBeenCalled();
         });
+    });
+
+    it('should release the proposal hold when the API errors', async () => {
+        (useQuery as jest.Mock).mockReturnValue({
+            data: null,
+            error: { message: 'Some error' },
+            isLoading: false,
+        });
+
+        renderHook(() => useContractsFor(), { wrapper });
+
+        await waitFor(() => {
+            expect(mocked_store.modules.trade.setIsAwaitingContractsFor).toHaveBeenCalledWith(false);
+        });
+    });
+
+    it('should release the proposal hold when the response has no available contracts', async () => {
+        // A settled empty response never reaches processContractsForV2 — without an
+        // explicit release the trade panel would stay frozen with no error.
+        (useQuery as jest.Mock).mockReturnValue({
+            data: { contracts_for: { available: [], hit_count: 0 } },
+            error: null,
+            isLoading: false,
+        });
+
+        renderHook(() => useContractsFor(), { wrapper });
+
+        await waitFor(() => {
+            expect(mocked_store.modules.trade.setIsAwaitingContractsFor).toHaveBeenCalledWith(false);
+        });
+    });
+
+    it('should not release the proposal hold directly on the success path (processContractsForV2 owns it)', async () => {
+        (useQuery as jest.Mock).mockReturnValue({
+            data: {
+                contracts_for: {
+                    available: [{ contract_type: 'type_1', underlying_symbol: 'EURUSD', default_stake: 10 }],
+                    hit_count: 1,
+                },
+            },
+            error: null,
+            isLoading: false,
+        });
+
+        renderHook(() => useContractsFor(), { wrapper });
+
+        await waitFor(() => {
+            expect(mocked_store.modules.trade.processContractsForV2).toHaveBeenCalled();
+        });
+        expect(mocked_store.modules.trade.setIsAwaitingContractsFor).not.toHaveBeenCalled();
     });
 
     it('should not set unsupported contract types', async () => {

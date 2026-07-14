@@ -425,9 +425,11 @@ export const getSmallestDuration = (
                 smallestValueInSeconds = obj[key].min;
 
                 if (key === 'intraday') {
-                    if (smallestValueInSeconds >= 60 && smallestValueInSeconds < 3600) {
+                    if (smallestValueInSeconds < 60) {
+                        smallestUnit = 's';
+                    } else if (smallestValueInSeconds < 3600) {
                         smallestUnit = 'm';
-                    } else if (smallestValueInSeconds >= 3600 && smallestValueInSeconds < 86400) {
+                    } else if (smallestValueInSeconds < 86400) {
                         smallestUnit = 'h';
                     }
                 } else if (key === 'daily') {
@@ -441,15 +443,19 @@ export const getSmallestDuration = (
         const validUnit = durationUnits.find((item: { value: string; text: string }) => item.value === smallestUnit);
         if (validUnit) {
             let convertedValue;
+            // Round up: durations are sent as integers, so 1.5m would truncate below the minimum.
             switch (smallestUnit) {
+                case 's':
+                    convertedValue = smallestValueInSeconds;
+                    break;
                 case 'm':
-                    convertedValue = smallestValueInSeconds / 60;
+                    convertedValue = Math.ceil(smallestValueInSeconds / 60);
                     break;
                 case 'h':
-                    convertedValue = smallestValueInSeconds / 3600;
+                    convertedValue = Math.ceil(smallestValueInSeconds / 3600);
                     break;
                 case 'd':
-                    convertedValue = smallestValueInSeconds / 86400;
+                    convertedValue = Math.ceil(smallestValueInSeconds / 86400);
                     break;
                 default:
                     convertedValue = 1;

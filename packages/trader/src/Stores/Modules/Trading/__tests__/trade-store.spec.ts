@@ -1,11 +1,12 @@
 import { configure } from 'mobx';
 
 import { TActiveSymbolsResponse } from '@deriv/api';
-import { dayjs, TRADE_TYPES } from '@deriv/shared';
+import { dayjs, TRADE_TYPES, WS } from '@deriv/shared';
 import { mockStore } from '@deriv/stores';
 
 import { TRootStore } from 'Types';
 
+import { ContractType } from '../Helpers/contract-type';
 import TradeStore from '../trade-store';
 
 configure({ safeDescriptors: false });
@@ -839,7 +840,182 @@ describe('TradeStore', () => {
             } as typeof tradeStore.contract_types_list_v2;
 
             expect(tradeStore.contract_type).toBe(TRADE_TYPES.RISE_FALL);
+            expect(tradeStore.url_trade_type).toBe(TRADE_TYPES.RISE_FALL);
             expect(mockRootStore.ui.toggleUrlUnavailableModal).not.toHaveBeenCalled();
+        });
+
+        it('does not record url_trade_type for a trade type the market does not offer', () => {
+            setUrlTradeType(TRADE_TYPES.MATCH_DIFF);
+            tradeStore.contract_types_list_v2 = {
+                'Ups & Downs': {
+                    name: 'Ups & Downs',
+                    categories: [{ value: TRADE_TYPES.RISE_FALL, text: 'Rise/Fall' }],
+                },
+            } as typeof tradeStore.contract_types_list_v2;
+
+            expect(tradeStore.url_trade_type).toBeNull();
+        });
+
+        it('clearUrlTradeType consumes the signal', () => {
+            tradeStore.url_trade_type = TRADE_TYPES.RISE_FALL;
+            tradeStore.clearUrlTradeType();
+            expect(tradeStore.url_trade_type).toBeNull();
+        });
+    });
+
+    describe('processContractsForV2 duration reconciliation', () => {
+        // State right after a new symbol's contracts_for is applied, with a duration
+        // retained from the previous symbol that is out of range for the new one.
+        const setStaleDurationState = (duration: number, duration_unit: string) => {
+            tradeStore.contract_type = TRADE_TYPES.RISE_FALL;
+            tradeStore.duration = duration;
+            tradeStore.duration_unit = duration_unit;
+            tradeStore.duration_min_max = {
+                intraday: { min: 900, max: 86400 }, // 15 minutes to 1 day
+                daily: { min: 86400, max: 8640000 },
+            };
+            tradeStore.duration_units_list = [
+                { value: 'm', text: 'Minutes' },
+                { value: 'h', text: 'Hours' },
+                { value: 'd', text: 'Days' },
+            ];
+        };
+
+        it('resets a retained duration that is out of range for the new symbol to the smallest supported one', async () => {
+            setStaleDurationState(2, 'm'); // 2 minutes < intraday minimum of 15 minutes
+
+            await tradeStore.processContractsForV2();
+
+            expect(tradeStore.duration).toBe(15);
+            expect(tradeStore.duration_unit).toBe('m');
+            expect(tradeStore.expiry_type).toBe('duration');
+        });
+
+        it('leaves a retained duration unchanged when it is valid for the new symbol', async () => {
+            setStaleDurationState(30, 'm'); // 30 minutes is within [15 minutes, 1 day]
+
+            await tradeStore.processContractsForV2();
+
+            expect(tradeStore.duration).toBe(30);
+            expect(tradeStore.duration_unit).toBe('m');
+        });
+
+        it('does not reconcile the duration before a contract type is set', async () => {
+            setStaleDurationState(2, 'm');
+            tradeStore.contract_type = '';
+
+            await tradeStore.processContractsForV2();
+
+            expect(tradeStore.duration).toBe(2);
+            expect(tradeStore.duration_unit).toBe('m');
+        });
+
+        it('releases the proposal hold once contract values are applied', async () => {
+            setStaleDurationState(2, 'm');
+            expect(tradeStore.is_awaiting_contracts_for).toBe(true);
+
+            await tradeStore.processContractsForV2();
+
+            expect(tradeStore.is_awaiting_contracts_for).toBe(false);
+        });
+
+        it('re-validates the corrected duration so a stale validation error cannot block the proposal', async () => {
+            setStaleDurationState(2, 'm');
+            tradeStore.contract_expiry_type = 'intraday';
+            tradeStore.form_components = ['duration', 'amount'];
+            tradeStore.validation_rules = {
+                duration: { rules: [['number', { min: 15, max: 1440 }]] },
+            } as unknown as typeof tradeStore.validation_rules;
+            // The shared Validator isn't initialised in this unit context — spy instead.
+            const validate_spy = jest.spyOn(tradeStore, 'validateProperty').mockImplementation(() => undefined);
+
+            await tradeStore.processContractsForV2();
+
+            expect(tradeStore.duration).toBe(15);
+            expect(validate_spy).toHaveBeenCalledWith('duration', 15);
+        });
+    });
+
+    describe('proposal hold until contracts_for is applied', () => {
+        const subscribe_mock = WS.subscribeProposal as jest.Mock;
+
+        const setProposalReadyState = () => {
+            tradeStore.symbol = 'frxXAUUSD';
+            tradeStore.currency = 'USD';
+            tradeStore.trade_types = { CALL: 'Higher' } as unknown as typeof tradeStore.trade_types;
+        };
+
+        beforeEach(() => {
+            subscribe_mock.mockClear();
+        });
+
+        it('does not send proposals while awaiting contracts_for values for the symbol', () => {
+            setProposalReadyState();
+
+            tradeStore.requestProposal();
+
+            expect(subscribe_mock).not.toHaveBeenCalled();
+        });
+
+        it('sends proposals once processContractsForV2 has applied the contract values', async () => {
+            setProposalReadyState();
+            await tradeStore.processContractsForV2();
+
+            tradeStore.requestProposal();
+
+            expect(subscribe_mock).toHaveBeenCalled();
+        });
+
+        it('re-arms the hold when the symbol changes', async () => {
+            setProposalReadyState();
+            await tradeStore.processContractsForV2();
+            expect(tradeStore.is_awaiting_contracts_for).toBe(false);
+
+            tradeStore.updateStore({ symbol: '1HZ100V' } as Partial<TradeStore>);
+
+            expect(tradeStore.is_awaiting_contracts_for).toBe(true);
+            tradeStore.requestProposal();
+            expect(subscribe_mock).not.toHaveBeenCalled();
+        });
+
+        it('re-arms the hold when the symbol is assigned directly, bypassing updateStore', async () => {
+            // The URL when-block and loadActiveSymbols assign this.symbol directly —
+            // the symbol reaction must re-arm or a stale-config proposal goes out.
+            setProposalReadyState();
+            await tradeStore.processContractsForV2();
+            expect(tradeStore.is_awaiting_contracts_for).toBe(false);
+
+            tradeStore.symbol = '1HZ100V';
+
+            expect(tradeStore.is_awaiting_contracts_for).toBe(true);
+            tradeStore.requestProposal();
+            expect(subscribe_mock).not.toHaveBeenCalled();
+        });
+
+        it('setIsAwaitingContractsFor(false) releases the hold when contracts_for fails', () => {
+            // Called by useContractsFor on failure so errors surface instead of a dead page.
+            setProposalReadyState();
+            tradeStore.setIsAwaitingContractsFor(false);
+
+            tradeStore.requestProposal();
+
+            expect(subscribe_mock).toHaveBeenCalled();
+        });
+
+        it('keeps holding when the symbol changes mid-processContractsForV2', async () => {
+            setProposalReadyState();
+            const values_spy = jest.spyOn(ContractType, 'getContractValues').mockImplementation(() => {
+                // Simulate the user switching symbols while the old symbol's run is in flight.
+                tradeStore.symbol = '1HZ100V';
+                return {};
+            });
+
+            await tradeStore.processContractsForV2();
+
+            expect(tradeStore.is_awaiting_contracts_for).toBe(true);
+            tradeStore.requestProposal();
+            expect(subscribe_mock).not.toHaveBeenCalled();
+            values_spy.mockRestore();
         });
     });
 });

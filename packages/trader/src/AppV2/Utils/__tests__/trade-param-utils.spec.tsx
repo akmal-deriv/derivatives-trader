@@ -394,6 +394,23 @@ describe('getSmallestDuration', () => {
         const result = getSmallestDuration(obj, durationUnits);
         expect(result).toBeNull();
     });
+
+    it('should return seconds for a sub-minute intraday minimum when no tick unit exists', () => {
+        const obj = { intraday: { min: 30 } };
+        const no_tick_units = durationUnits.filter(({ value }) => value !== 't');
+        const result = getSmallestDuration(obj, no_tick_units);
+        expect(result).toEqual({ value: 30, unit: 's' });
+    });
+
+    it('should round a non-whole-unit minimum up so the integer duration stays valid', () => {
+        // 90s min: 1.5m would be truncated to 1m (below minimum) by the proposal's parseInt.
+        const obj = { intraday: { min: 90 } };
+        const result = getSmallestDuration(
+            obj,
+            durationUnits.filter(({ value }) => value !== 't')
+        );
+        expect(result).toEqual({ value: 2, unit: 'm' });
+    });
 });
 
 describe('getDatePickerStartDate', () => {

@@ -63,6 +63,7 @@ import { localize } from '@deriv-com/translations';
 
 import { TRADE_PANEL_TABS, type TTradePanelTab } from 'AppV2/Components/AutomationPanel/automation-config';
 import { isDigitContractType, isDigitTradeType } from 'AppV2/Utils/digits';
+import { getSmallestDuration, isValidPersistedDuration } from 'AppV2/Utils/trade-params-utils';
 import { getMultiplierValidationRules, getValidationRules } from 'Stores/Modules/Trading/Constants/validation-rules';
 import { ContractType } from 'Stores/Modules/Trading/Helpers/contract-type';
 import { TContractTypesList, TRootStore, TTextValueNumber, TTextValueStrings } from 'Types';
@@ -383,6 +384,13 @@ export default class TradeStore extends BaseStore {
     debouncedProposal = debounce(this.requestProposal, 500);
     proposal_requests: Record<string, Partial<TPriceProposalRequest>> = {};
     is_purchasing_contract = false;
+    // V2: hold proposals until the current symbol's contracts_for values are applied —
+    // an earlier proposal carries the previous symbol's params and errors. Armed on load
+    // and on every symbol change; released by processContractsForV2 or on fetch failure.
+    is_awaiting_contracts_for = true;
+    // Trade type applied from the URL's trade_type param. Consumed one-shot by
+    // useAutomationTradeTypeFallback to prioritise tab switching over overriding the type.
+    url_trade_type: string | null = null;
 
     initial_barriers?: { barrier_1: string; barrier_2: string };
     is_initial_barrier_applied = false;
@@ -478,6 +486,7 @@ export default class TradeStore extends BaseStore {
             is_chart_loading: observable,
             is_digits_widget_active: observable,
             is_dtrader_v2: computed,
+            is_awaiting_contracts_for: observable,
             is_equal: observable,
             is_market_closed: observable,
             is_mobile_digit_view_selected: observable,
@@ -528,6 +537,9 @@ export default class TradeStore extends BaseStore {
             active_trade_panel_tab: observable,
             is_automation_tab: computed,
             setActiveTradePanelTab: action.bound,
+            setIsAwaitingContractsFor: action.bound,
+            url_trade_type: observable,
+            clearUrlTradeType: action.bound,
             open_payout_wheelpicker: observable,
             togglePayoutWheelPicker: action.bound,
             v2_params_initial_values: observable.ref, // Object - use ref
@@ -633,6 +645,10 @@ export default class TradeStore extends BaseStore {
                         tradeStoreObj.contract_type = urlContractType;
                         sessionStorage.setItem('trade_store', JSON.stringify(tradeStoreObj));
                         this.contract_type = urlContractType;
+                        // Set atomically with contract_type so consumers can tell a URL landing
+                        // from manual navigation. The app mirrors trade_type into the URL, so
+                        // reloads count as URL landings too — deliberate.
+                        this.url_trade_type = urlContractType;
                     } else if (!Object.keys(getContractTypesConfig()).includes(urlContractType)) {
                         // Unknown/invalid trade type in the URL (a genuine dead-end deep link) — show the modal.
                         this.root_store.ui.toggleUrlUnavailableModal(true);
@@ -681,6 +697,10 @@ export default class TradeStore extends BaseStore {
         reaction(
             () => this.symbol,
             () => {
+                // Re-arm the proposal hold on every symbol change. Some flows assign
+                // this.symbol directly (URL when-blocks, loadActiveSymbols) without going
+                // through updateStore, so this reaction is the only spot covering all paths.
+                this.is_awaiting_contracts_for = true;
                 const date = resetEndTimeOnVolatilityIndices(this.symbol, this.expiry_type);
                 if (date) {
                     this.expiry_date = date;
@@ -892,6 +912,8 @@ export default class TradeStore extends BaseStore {
     }
 
     async processContractsForV2() {
+        // So a symbol change mid-await can't release the proposal hold for the wrong symbol.
+        const symbol_at_start = this.symbol;
         const contract_categories = ContractType.getContractCategories();
         // Await sequentially: first sets contract_types_list, second sets barrier/duration values.
         // Without await, these race each other and the second call's forgetAllProposal
@@ -904,10 +926,48 @@ export default class TradeStore extends BaseStore {
             false
         );
         await this.processNewValuesAsync(ContractType.getContractValues(this), false, null, false);
+
+        // Reconcile a duration retained from the previous symbol that is out of range here:
+        // the standard clamp (Duration.onChangeContractType) is gated out on this path and
+        // the duration.tsx fallback skips its 500ms initial-mount window, so without this
+        // the stale duration reaches the proposal and is rejected by the server.
+        if (
+            this.contract_type &&
+            !isValidPersistedDuration(
+                this.duration,
+                this.duration_unit,
+                this.duration_min_max,
+                this.duration_units_list
+            )
+        ) {
+            const smallest_duration = getSmallestDuration(this.duration_min_max, this.duration_units_list);
+            if (smallest_duration) {
+                await this.processNewValuesAsync(
+                    {
+                        duration_unit: smallest_duration.unit,
+                        duration: smallest_duration.value,
+                        expiry_time: null,
+                        expiry_type: 'duration',
+                    },
+                    false,
+                    null,
+                    false
+                );
+                // Re-validate explicitly: the validation reaction fired against the stale
+                // duration when the new limits arrived and won't re-fire on a duration-only
+                // change — a leftover error would block requestProposal.
+                this.changeDurationValidationRules();
+            }
+        }
         // For Turbo contracts, initialize payout_per_point from contracts_for payout_choices
         // before the first proposal to avoid sending an invalid fallback value.
         if (this.is_turbos && this.payout_choices.length && !this.payout_per_point) {
             this.payout_per_point = String(this.payout_choices[Math.floor(this.payout_choices.length / 2)]);
+        }
+        // Release the hold — unless the symbol changed mid-flight (the new symbol's
+        // own run releases it).
+        if (this.symbol === symbol_at_start) {
+            this.is_awaiting_contracts_for = false;
         }
         // Explicitly trigger proposal after all contract values (barriers, duration, stake)
         // are applied. The processNewValuesAsync calls above use is_changed_by_user=false
@@ -1722,6 +1782,16 @@ export default class TradeStore extends BaseStore {
             this.forgetAllProposal();
             return;
         }
+
+        // Hold proposals until the symbol's contracts_for values are applied
+        // (see is_awaiting_contracts_for); processContractsForV2 re-triggers once released.
+        if (this.is_dtrader_v2 && this.is_awaiting_contracts_for) {
+            runInAction(() => {
+                this.proposal_info = {};
+                this.purchase_info = {};
+            });
+            return;
+        }
         const requests = createProposalRequests(this);
         if (Object.values(this.validation_errors).some(e => e.length)) {
             runInAction(() => {
@@ -2021,6 +2091,11 @@ export default class TradeStore extends BaseStore {
                 this.validation_rules.duration.rules?.push(['number', duration_options]);
             }
             this.validateProperty('duration', this.duration);
+        } else {
+            // No limits for this expiry bucket (e.g. daily-only symbol while
+            // contract_expiry_type says 'intraday') — a min/max error from the previous
+            // bucket can't be re-validated and would block proposals; clear it.
+            this.validation_errors.duration = [];
         }
     }
 
@@ -2506,6 +2581,14 @@ export default class TradeStore extends BaseStore {
     setActiveTradePanelTab(tab: TTradePanelTab) {
         this.active_trade_panel_tab = tab;
         localStorage.setItem('active_trade_panel_tab', tab);
+    }
+
+    setIsAwaitingContractsFor(is_awaiting: boolean) {
+        this.is_awaiting_contracts_for = is_awaiting;
+    }
+
+    clearUrlTradeType() {
+        this.url_trade_type = null;
     }
 
     /**

@@ -4,9 +4,9 @@ import { useMobileBridge, useQuery } from '@deriv/api';
 import { cloneObject, getContractCategoriesConfig, getContractTypesConfig, setTradeURLParams } from '@deriv/shared';
 import { useStore } from '@deriv/stores';
 
+import { TContractType } from 'AppV2/Types/contract-type';
 import { checkContractTypePrefix } from 'AppV2/Utils/contract-type';
 import { getTradeTypesList } from 'AppV2/Utils/trade-types-utils';
-import { TContractType } from 'AppV2/Types/contract-type';
 import { ContractType } from 'Stores/Modules/Trading/Helpers/contract-type';
 import { useTraderStore } from 'Stores/useTraderStores';
 import { TConfig, TContractTypesList } from 'Types';
@@ -23,6 +23,7 @@ const useContractsFor = () => {
         processContractsForV2,
         setContractTypesListV2,
         setDefaultStake,
+        setIsAwaitingContractsFor,
         symbol,
         active_symbols,
     } = useTraderStore();
@@ -236,13 +237,24 @@ const useContractsFor = () => {
                 processContractsForV2();
             } else {
                 setTradeTypes([]);
+                // A settled response with no available contracts never reaches
+                // processContractsForV2 — release the hold so the panel isn't frozen.
+                setIsAwaitingContractsFor(false);
             }
         } catch (err) {
             /* eslint-disable no-console */
             console.error(err);
+            // Release the proposal hold so failures surface as server errors, not a dead page.
+            setIsAwaitingContractsFor(false);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [response, isLoading, isMobileApp, nativeAppAllowedTradeTypes]);
+
+    // Same degradation when the contracts_for request itself fails — otherwise the
+    // proposal hold is never released for this symbol.
+    useEffect(() => {
+        if (error) setIsAwaitingContractsFor(false);
+    }, [error, setIsAwaitingContractsFor]);
 
     const resetTradeTypes = () => {
         setTradeTypes([]);
