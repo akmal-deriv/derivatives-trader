@@ -140,10 +140,17 @@ export class TradeBasePage {
     }
 
     /**
-     * Log out button — visible in sidebar dropdown (desktop) or menu page (mobile).
+     * Log out control — rendered differently per viewport:
+     *  - Desktop: a real `button` in the sidebar account dropdown (role=button, name "Log out").
+     *  - Mobile: the logout row on the menu page — a `div.header__menu-logout` (NOT a button role,
+     *    so `getByRole('button')` never matches). This class is unique to the logout row and owns
+     *    the `handleLogout` click handler, so we target it directly rather than the generic
+     *    `.header__menu-mobile-link` container (shared by every menu item) — this is also
+     *    language-independent, unlike a text-based match.
+     * The `.or()` chain resolves to exactly one element per viewport, avoiding strict-mode conflicts.
      */
     get logoutButton(): Locator {
-        return this.page.getByRole('button', { name: 'Log out' });
+        return this.page.getByRole('button', { name: 'Log out' }).or(this.page.locator('.header__menu-logout'));
     }
 
     /** Selected trade type chip — confirms the trade form is fully loaded */

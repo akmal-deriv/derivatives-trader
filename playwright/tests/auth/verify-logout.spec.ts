@@ -7,6 +7,7 @@
  * @env TEST_PASSWORD
  */
 import { test } from '../../fixtures/fixtures';
+import { TradeBasePage } from '../../pages/TradeBasePage';
 
 /**
  * Flow 3 — Logout → success modal → session cleared
@@ -23,7 +24,12 @@ test.describe('Logout', { tag: ['@auth', '@smoke', '@desktop', '@mobile'] }, () 
         }
     });
 
-    test('VERIFY logout and re-login', async ({ loginPage, tradeBasePage }) => {
+    test('VERIFY logout and re-login', async ({ page, loginPage, tradeBasePage }) => {
+        // Seed onboarding-suppression flags so the desktop "Welcome to the new Deriv Trader"
+        // modal (onboarding-guide-desktop.tsx) does not open ~800ms after load and intercept
+        // pointer events on the sidebar account button during logout.
+        await TradeBasePage.seedLocalStorageOnOrigin(page);
+
         // Step 1 — Login with valid credentials
         await loginPage.login();
         await tradeBasePage.verifySuccessfulLogin();
