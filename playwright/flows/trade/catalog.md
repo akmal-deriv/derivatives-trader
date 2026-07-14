@@ -24,8 +24,8 @@
 | Flow 6.2   | `trade/over-under/verify-over-under.spec.ts`                     | `@trade @desktop @mobile`        |
 | Flow 7.1   | `trade/even-odd/verify-even-odd.spec.ts`                         | `@trade @desktop @mobile`        |
 | Flow 7.2   | `trade/even-odd/verify-even-odd.spec.ts`                         | `@trade @desktop @mobile`        |
-| Flow 8.1   | `trade/verify-accumulators.spec.ts`                              | `@trade @smoke @desktop @mobile` |
-| Flow 8.2   | `trade/verify-accumulators.spec.ts`                              | `@trade @smoke @desktop @mobile` |
+| Flow 8.1   | `trade/accumulators/verify-accumulators.spec.ts`                 | `@trade @smoke @desktop @mobile` |
+| Flow 8.2   | `trade/accumulators/verify-accumulators.spec.ts`                 | `@trade @smoke @desktop @mobile` |
 | Flow 9.1   | `trade/multipliers/verify-multipliers-no-tpsl.spec.ts`           | `@trade @smoke @desktop @mobile` |
 | Flow 9.2   | `trade/multipliers/verify-multipliers-no-tpsl.spec.ts`           | `@trade @smoke @desktop @mobile` |
 | Flow 9.3   | `trade/multipliers/verify-multipliers-with-tp.spec.ts`           | `@trade @smoke @desktop @mobile` |
@@ -442,67 +442,56 @@ test.describe('Trade — Even/Odd', { tag: ['@desktop', '@mobile', '@trade'] }, 
 
 ---
 
-### Flow 8.1 — Accumulators without Take Profit: buy → close from trade page
+### Flow 8.1 / 8.2 — Accumulators: buy → settle → verify closed
+
+Accumulators have **no duration**, a **Growth rate** param (set 5%), and an optional **Take profit**
+(Flow 8.2 sets 4.00). They close from the **trade page** ("Close [amount]" purchase button), and can
+also auto-settle when spot hits the **barrier** or the **take profit**. `TradeAccumulatorsPage` uses a
+close-reason-agnostic settle helper (manual close for 8.1; wait-for-auto-settle with manual fallback
+for 8.2) and verifies the closed contract in Positions, contract details, balance, and Reports. TP is
+asserted on the **form** before buying (deterministic); open-position Reports grid is not verified.
 
 ```typescript
-test.describe('Trade — Accumulators', { tag: ['@trade', '@smoke', '@desktop', '@mobile'] }, () => {
-    test.beforeEach(async ({ loginPage, tradePage, page }) => {
-        await loginPage.login();
-        await tradePage.goto();
-        await NavigationUtils.waitForDerivApiSettled(page);
-        await tradePage.selectTradeType('Accumulators');
+import { test } from '../../../fixtures/fixtures';
+import { TradeBasePage } from '../../../pages/TradeBasePage';
+
+test.describe('Trade — Accumulators', { tag: ['@desktop', '@mobile', '@trade', '@smoke'] }, () => {
+    test.describe.configure({ mode: 'serial' });
+
+    test.beforeEach(async ({ page, loginPage }) => {
+        await TradeBasePage.seedLocalStorageOnOrigin(page);
+        await loginPage.login(accountEmail, accountPassword);
     });
 
-    test('VERIFY buy Accumulators without TP and close from trade page', async ({ tradePage, page }) => {
-        await expect(page.getByText('Duration'), 'Duration should NOT be visible for Accumulators').not.toBeVisible();
-        await expect(page.getByText('Growth rate'), 'Growth rate param should be visible').toBeVisible();
-        await tradePage.setStake('10.00');
-        // Take profit left off by default
-        await tradePage.clickBuy();
-        await expect(
-            page.locator('.trade-notification--purchase'),
-            'Purchase notification should appear'
-        ).toBeVisible();
-        await expect(
-            page.getByRole('button', { name: /^Close/ }),
-            'Close button should appear on trade page for active accumulator'
-        ).toBeVisible();
-        await page.getByRole('button', { name: /^Close/ }).click();
+    test('VERIFY Buy Accumulators Contract Without Take Profit and Close', async ({ tradeAccumulatorsPage }) => {
+        await tradeAccumulatorsPage.buyAccumulatorAndVerify({
+            market: 'Volatility 100 Index',
+            growthRate: '5%',
+            stake: '10.00',
+            currency: 'USD',
+        });
     });
 
-    test('VERIFY buy Accumulators with TP set and close from trade page', async ({ tradePage, page }, testInfo) => {
-        await tradePage.setStake('10.00');
-        await tradePage.enableTakeProfit();
-        const tpInput = testInfo.project.name.includes('mobile')
-            ? page.getByTestId('dt_tp_input')
-            : page.getByTestId('dt_take_profit_input');
-        await tpInput.fill('20.00');
-        await tradePage.saveTakeProfit();
-        await tradePage.clickBuy();
-        await expect(
-            page.locator('.trade-notification--purchase'),
-            'Purchase notification should appear'
-        ).toBeVisible();
-        await tradePage.gotoPositions();
-        await NavigationUtils.waitForDerivApiSettled(page);
-        await expect(
-            page.getByTestId('dt_contract_card').first(),
-            'Contract card should appear in positions'
-        ).toBeVisible();
-        // Navigate back and close from trade page
-        await tradePage.goto();
-        await NavigationUtils.waitForDerivApiSettled(page);
-        await expect(
-            page.getByRole('button', { name: /^Close/ }),
-            'Close button should appear on trade page for active accumulator'
-        ).toBeVisible();
-        await page.getByRole('button', { name: /^Close/ }).click();
+    test('VERIFY Buy Accumulators Contract With Take Profit and Close', async ({ tradeAccumulatorsPage }) => {
+        await tradeAccumulatorsPage.buyAccumulatorAndVerify({
+            market: 'Volatility 100 Index',
+            growthRate: '5%',
+            stake: '10.00',
+            currency: 'USD',
+            takeProfit: '4.00',
+        });
     });
 });
 ```
 
-> **`closeAccumulatorButton`:** The PurchaseButton on the trade page changes to "Close [amount] [currency]" when an active accumulator is open for the current symbol. No `data-testid` — use `getByRole('button', { name: /^Close/ })`.
-> **Flow 8.1** = `VERIFY buy Accumulators without TP and close from trade page` · **Flow 8.2** = `VERIFY buy Accumulators with TP set and close from trade page`
+> **`buyAccumulatorAndVerify` covers (in order):** select market → select Accumulators (asserts no Duration)
+> → `setGrowthRate('5%')` → (8.2) `setTakeProfit('4.00')` asserted on the form → `setStake` →
+> `clickAccumulatorsBuy` → `settleAccumulatorContract` (manual / auto-settle) → Closed tab
+> `verifyClosedPositionsTab` (signed P/L) → closed contract details `getBuyReferenceId` + `getSellReferenceId`
+> → `verifyBalanceAfterContractClose` → Reports `verifyClosedContractInReports`.
+> **Close button:** the trade-page purchase button becomes "Close [amount] [currency]" while an
+> accumulator is open (`.purchase-button--single`); it reverts to "Buy" on any auto-close.
+> **Flow 8.1** = `VERIFY Buy Accumulators Contract Without Take Profit and Close` · **Flow 8.2** = `VERIFY Buy Accumulators Contract With Take Profit and Close`
 
 ---
 

@@ -11,6 +11,7 @@ import { TradeMatchesDiffersPage } from '../pages/TradeMatchesDiffersPage';
 import { TradeOverUnderPage } from '../pages/TradeOverUnderPage';
 import { TradeEvenOddPage } from '../pages/TradeEvenOddPage';
 import { TradeMultipliersPage } from '../pages/TradeMultipliersPage';
+import { TradeAccumulatorsPage } from '../pages/TradeAccumulatorsPage';
 import { TradeAutomationPage } from '../pages/TradeAutomationPage';
 import { PositionsPage } from '../pages/PositionsPage';
 import { ReportsPage } from '../pages/ReportsPage';
@@ -72,6 +73,7 @@ export const test = base.extend<{
     tradeOverUnderPage: TradeOverUnderPage;
     tradeEvenOddPage: TradeEvenOddPage;
     tradeMultipliersPage: TradeMultipliersPage;
+    tradeAccumulatorsPage: TradeAccumulatorsPage;
     tradeAutomationPage: TradeAutomationPage;
     positionsPage: PositionsPage;
     reportsPage: ReportsPage;
@@ -165,6 +167,13 @@ export const test = base.extend<{
      */
     tradeMultipliersPage: async ({ page }, use) => {
         await use(new TradeMultipliersPage(page));
+    },
+
+    /**
+     * Trade Accumulators page fixture — provides initialized TradeAccumulatorsPage instance
+     */
+    tradeAccumulatorsPage: async ({ page }, use) => {
+        await use(new TradeAccumulatorsPage(page));
     },
 
     /**

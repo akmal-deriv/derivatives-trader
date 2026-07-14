@@ -469,9 +469,23 @@ export class TradeParametersPage extends TradeBasePage {
     /**
      * Purchase / buy button wrapper — same testid on both viewports.
      * Source: purchase-button-content.tsx data-testid='dt_purchase_button_wrapper'
+     *
+     * Note: this wrapper holds the button's payout content, which is NOT rendered for contract types
+     * with no button content (Accumulators without an open contract, Multipliers, Turbos, Vanillas).
+     * For those, use {@link singlePurchaseButton} instead.
      */
     get purchaseButton(): Locator {
         return this.page.getByTestId('dt_purchase_button_wrapper').first();
+    }
+
+    /**
+     * Single purchase/action button — used by contract types that render one full-width button with no
+     * payout content wrapper (e.g. Accumulators, Multipliers). While an accumulator is open this same
+     * element becomes the "Close [amount]" button.
+     * Source: purchase-button.tsx className 'purchase-button purchase-button--single'.
+     */
+    get singlePurchaseButton(): Locator {
+        return this.page.locator('.purchase-button--single');
     }
 
     /**
@@ -890,7 +904,8 @@ export class TradeParametersPage extends TradeBasePage {
                     this.accumulatorsStats,
                     'Accumulators stats panel should be visible for Accumulators'
                 ).toBeVisible();
-                await expect(this.purchaseButton, 'Buy button should be visible for Accumulators').toBeVisible();
+                // Accumulators render a single buy button with no payout content wrapper.
+                await expect(this.singlePurchaseButton, 'Buy button should be visible for Accumulators').toBeVisible();
                 break;
             case 'Higher/Lower':
                 await expect(this.barrierLabel, 'Barrier param should be visible for Higher/Lower').toBeVisible();

@@ -373,13 +373,13 @@ Identical chain to Flow 7.1 with `selectPredictionOption('Odd', 'bottom')` (purc
 
 ## Accumulators
 
-> **Structural exception — close from trade page, not contract details:** When an active accumulator is open, the purchase button on the trade page changes to "Close [amount] [currency]". Close is performed from the trade page directly. Steps 10–13 (open contract details, close via details footer, closed tab, closed contract details) are replaced by trade-page close + positions verification.
+> **Structural exception — close from trade page + auto-settle:** When an active accumulator is open, the purchase button on the trade page changes to "Close [amount] [currency]"; close is performed from the trade page directly (not the contract details footer). An accumulator can also **auto-settle** at any time — the spot hitting the **barrier** (loss) or the **take profit** (win) sells the contract, and the "Close" button reverts to "Buy". The implementation is therefore **close-reason agnostic**: it ensures the contract ends settled (manual close for 8.1; wait-for-auto-settle with a manual-close fallback for 8.2) and verifies the **settled (closed)** contract — Positions Closed tab, contract details, balance, and Reports — without asserting _how_ it closed. Because a low take profit can auto-settle within a tick or two, open-position assertions and the open-position Reports grid are **not** verified; the Take profit is instead asserted on the **trade form** before buying.
 
 ### Flow 8.1 — Accumulators without Take Profit: buy → close
 
 **Prerequisites:** Authenticated with funded account. Symbol supporting Accumulators (e.g. Volatility 100 Index). Only one active accumulator per symbol at a time.
 **Spec:** `playwright/tests/trade/accumulators/verify-accumulators.spec.ts` — `VERIFY Buy Accumulators Contract Without Take Profit and Close`
-**Unique params:** Growth rate, Stake (`10.00`) — NO Duration, Take profit left off
+**Unique params:** Growth rate (`5%`), Stake (`10.00`) — NO Duration, Take profit left off
 
 | #   | Step                              | Action                                                            | Expected Result                                                 | Platform |
 | --- | --------------------------------- | ----------------------------------------------------------------- | --------------------------------------------------------------- | -------- |
@@ -387,7 +387,7 @@ Identical chain to Flow 7.1 with `selectPredictionOption('Odd', 'bottom')` (purc
 | 2   | Select market                     | `selectMarket('Volatility 100 Index')`                            | Market selector shows "Volatility 100 Index"                    | Both     |
 | 3   | Select Accumulators trade type    | `selectTradeType('Accumulators')`                                 | Chip selected; Growth rate, Take profit, Stake visible          | Both     |
 | 4   | Verify no Duration param          | Observe parameters                                                | "Duration" NOT visible                                          | Both     |
-| 5   | Verify Growth rate param visible  | Observe parameters                                                | "Growth rate" parameter visible                                 | Both     |
+| 5   | Set growth rate to 5%             | `setGrowthRate('5%')`                                             | Growth rate shows `5%`                                          | Both     |
 | 6   | Verify Take profit param visible  | Observe parameters                                                | "Take profit" parameter visible                                 | Both     |
 | 7   | Verify Take profit is off         | Observe take profit toggle                                        | Take profit toggle is off by default                            | Both     |
 | 8   | Set stake                         | `setStake('10.00')`                                               | Stake field shows `10.00`                                       | Both     |
@@ -404,23 +404,24 @@ Identical chain to Flow 7.1 with `selectPredictionOption('Odd', 'bottom')` (purc
 
 **Prerequisites:** Same as Flow 8.1.
 **Spec:** `playwright/tests/trade/accumulators/verify-accumulators.spec.ts` — `VERIFY Buy Accumulators Contract With Take Profit and Close`
-**Unique params:** Take profit toggle + input (`20.00`) enabled
+**Unique params:** Growth rate (`5%`), Take profit toggle + input (`4.00`) enabled
 
 | #   | Step                              | Action                                                            | Expected Result                                                    | Platform |
 | --- | --------------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------ | -------- |
 | 1   | Navigate to trade page            | `page.goto(BASE_URL)` + `waitForDerivApiSettled`                  | Trade page loaded                                                  | Both     |
 | 2   | Select market                     | `selectMarket('Volatility 100 Index')`                            | Market selector shows "Volatility 100 Index"                       | Both     |
 | 3   | Select Accumulators trade type    | `selectTradeType('Accumulators')`                                 | Chip selected; Growth rate, Take profit, Stake visible             | Both     |
-| 4   | Set stake                         | `setStake('10.00')`                                               | Stake field shows `10.00`                                          | Both     |
-| 5   | Enable take profit                | Toggle take profit on                                             | Take profit input appears (`dt_take_profit_input` / `dt_tp_input`) | Both     |
-| 6   | Set take profit amount            | Enter `20.00` in take profit input                                | Take profit shows `20.00`                                          | Both     |
-| 7   | Save take profit                  | Click "Save"                                                      | Take profit applied                                                | Both     |
-| 8   | Buy Accumulators contract         | `clickBuy()` — captures payout                                    | Contract purchased                                                 | Both     |
-| 9   | Verify open position in Positions | `verifyOpenPositionsVisible()` + `verifyContractCardDetails()`    | Card visible; balance reduced by stake                             | Both     |
-| 10  | Verify TP set in contract details | `openFirstContract()` + observe TP field                          | Contract details shows TP amount `20.00`                           | Both     |
-| 11  | Close contract from trade page    | Click "Close [amount] [currency]" on purchase button (trade page) | Contract closed                                                    | Both     |
-| 12  | Verify closed contract card       | `verifyClosedPositionsTab()` — captures P&L                       | Card shows market, trade type, stake, "Closed" status, P&L         | Both     |
-| 13  | Verify balance after close        | `verifyBalanceAfterContractClose()`                               | Balance = balanceBeforeClose + stake + P&L                         | Both     |
+| 4   | Set growth rate to 5%             | `setGrowthRate('5%')`                                             | Growth rate shows `5%`                                             | Both     |
+| 5   | Set stake                         | `setStake('10.00')`                                               | Stake field shows `10.00`                                          | Both     |
+| 6   | Enable take profit                | Toggle take profit on                                             | Take profit input appears (`dt_take_profit_input` / `dt_tp_input`) | Both     |
+| 7   | Set take profit amount            | Enter `4.00` in take profit input                                 | Take profit shows `4.00`                                           | Both     |
+| 8   | Save take profit                  | Click "Save"                                                      | Take profit applied                                                | Both     |
+| 9   | Buy Accumulators contract         | `clickBuy()` — captures payout                                    | Contract purchased                                                 | Both     |
+| 10  | Verify open position in Positions | `verifyOpenPositionsVisible()` + `verifyContractCardDetails()`    | Card visible; balance reduced by stake                             | Both     |
+| 11  | Verify TP set in contract details | `openFirstContract()` + observe TP field                          | Contract details shows TP amount `4.00`                            | Both     |
+| 12  | Close contract from trade page    | Click "Close [amount] [currency]" on purchase button (trade page) | Contract closed                                                    | Both     |
+| 13  | Verify closed contract card       | `verifyClosedPositionsTab()` — captures P&L                       | Card shows market, trade type, stake, "Closed" status, P&L         | Both     |
+| 14  | Verify balance after close        | `verifyBalanceAfterContractClose()`                               | Balance = balanceBeforeClose + stake + P&L                         | Both     |
 
 ---
 

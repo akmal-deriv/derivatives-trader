@@ -948,6 +948,36 @@ export class ContractDetailsPage extends TradeBasePage {
     }
 
     /**
+     * Read the sell Reference ID from a settled contract's details page, stripped of the " (Sell)"
+     * suffix. Viewport-aware. Mirror of {@link getBuyReferenceId}; use to cross-check the Reports
+     * Statement sell row for contracts closed without a captured open reference ID.
+     *
+     * @returns The sell reference ID, e.g. "1071699"
+     */
+    async getSellReferenceId(): Promise<string> {
+        if (this.isMobile) {
+            const sellRefIdParagraph = this.page
+                .locator('.order-details__table-row', {
+                    has: this.page.locator('.order-details__table-row-cell', { hasText: 'Reference ID' }),
+                })
+                .locator('.order-details__table-row-cell')
+                .last()
+                .locator('p')
+                .filter({ hasText: '(Sell)' });
+            await expect(
+                sellRefIdParagraph,
+                'Sell Reference ID should be visible on the closed contract details page'
+            ).toBeVisible();
+            return (await sellRefIdParagraph.innerText()).trim().replace(' (Sell)', '');
+        }
+        await expect(
+            this.contractDetailsReferenceIDSell,
+            'Sell Reference ID should be visible on the closed contract details page'
+        ).toBeVisible();
+        return (await this.contractDetailsReferenceIDSell.innerText()).trim().replace(' (Sell)', '');
+    }
+
+    /**
      * Wait, on the contract details page of the currently-open contract, for it to settle in place.
      * Settlement is detected by the Sell reference ID appearing in the audit grid. Use for short
      * (tick-duration) contracts so the SAME contract is verified after it auto-expires.
