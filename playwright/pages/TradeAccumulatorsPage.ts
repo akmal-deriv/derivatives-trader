@@ -66,16 +66,6 @@ export class TradeAccumulatorsPage extends TradeParametersPage {
     }
 
     /**
-     * Growth rate wheel-picker value — mobile only (inside the ActionSheet carousel).
-     * Source: growth-rate-picker.tsx `.growth-rate__picker`.
-     *
-     * @param value - Growth rate label as rendered (e.g. '5%')
-     */
-    growthRateWheelItem(value: string): Locator {
-        return this.page.locator('.growth-rate__picker').getByText(value, { exact: true });
-    }
-
-    /**
      * "Save" button inside the mobile growth-rate action sheet footer (if present).
      */
     get growthRateSaveButton(): Locator {
@@ -109,11 +99,10 @@ export class TradeAccumulatorsPage extends TradeParametersPage {
     async setGrowthRate(value: string): Promise<void> {
         await this.growthRateField.click();
         if (this.isMobile) {
-            await expect(
-                this.page.locator('.growth-rate__picker'),
-                'Growth rate wheel picker should be visible on mobile'
-            ).toBeVisible();
-            await this.growthRateWheelItem(value).click();
+            // Scroll-snap the wheel to the target rate. A bare `.click()` on the wheel item does not
+            // reliably re-center the scroll-snap carousel — it can leave the wheel on the default rate
+            // (committing '3%' for '5%'). The shared helper sets scrollTop to the snap-aligned position.
+            await this.selectWheelPickerOption('.growth-rate__wheel-picker', value);
             if (await this.growthRateSaveButton.isVisible().catch(() => false)) {
                 await this.growthRateSaveButton.click();
             }

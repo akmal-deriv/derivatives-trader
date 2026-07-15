@@ -764,8 +764,12 @@ export class TradeParametersPage extends TradeBasePage {
             await this.page.locator('.duration-popover').getByRole('button', { name: 'Save' }).click();
         }
 
-        // Mobile expands abbreviations to full words (e.g. "15 min" → "15 minutes"); desktop keeps chip abbreviation
-        const displayValue = this.isMobile ? this.expandDurationForDisplay(formattedValue) : formattedValue;
+        // Mobile expands all abbreviations to full words (e.g. "15 min" → "15 minutes"). On desktop most
+        // units keep the chip abbreviation, EXCEPT hours, which the app renders in full ("1 hr" → "1 hour",
+        // "1h 30m" → "1 hour 30 minutes"). So expand hours on both viewports; other units only on mobile.
+        const isHoursFormat = /\bhr\b/.test(formattedValue) || /^\d+h(\s+\d+m)?$/.test(formattedValue);
+        const displayValue =
+            this.isMobile || isHoursFormat ? this.expandDurationForDisplay(formattedValue) : formattedValue;
         await expect(this.durationField, `Duration field should show '${displayValue}' after selection`).toHaveValue(
             new RegExp(`^${displayValue.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`)
         );
@@ -788,6 +792,13 @@ export class TradeParametersPage extends TradeBasePage {
         const hrMatch = formattedValue.match(/^(\d+) hr$/);
         if (hrMatch) {
             const n = parseInt(hrMatch[1], 10);
+            return `${n} ${n === 1 ? 'hour' : 'hours'}`;
+        }
+        // Custom hours-only format '2h' — app renders "2 hours". `isHoursFormat` accepts bare "Xh"
+        // (minutes group optional), so handle it here too, otherwise it would fall through unchanged.
+        const hoursOnlyMatch = formattedValue.match(/^(\d+)h$/);
+        if (hoursOnlyMatch) {
+            const n = parseInt(hoursOnlyMatch[1], 10);
             return `${n} ${n === 1 ? 'hour' : 'hours'}`;
         }
         return formattedValue
@@ -835,6 +846,49 @@ export class TradeParametersPage extends TradeBasePage {
 
         await expect(this.stakeField, `Stake field should contain '${amount}' after saving`).toHaveValue(
             new RegExp(amount.replace('.', '\\.'))
+        );
+    }
+
+    /**
+     * Select a value in a quill-ui `WheelPicker` action sheet — shared by Growth rate, Multiplier,
+     * Payout per point and Strike (all render the same `WheelPicker` from `@deriv-com/quill-ui`).
+     *
+     * The wheel is a CSS scroll-snap list (`scroll-snap-type: y mandatory`) whose snap positions are
+     * `index * 48 + 24` (48px item height, 24px half-item offset). Touch-drag and `mouse.wheel` are
+     * unreliable under Playwright's `hasTouch` emulation, so we set `scrollTop` directly — the picker's
+     * scroll handler then updates the selected value (debounced ~200ms, absorbed by the caller's
+     * subsequent field assertion which auto-retries).
+     *
+     * The options render **asynchronously**: the picker shows a `<Skeleton>` until the range list loads,
+     * so we first wait for the target option to attach before measuring indices — this is what makes the
+     * selection robust against the "option not found" race on a slow/degraded environment.
+     *
+     * @param wheelSelector - CSS selector of the wheel-picker wrapper (e.g. '.multiplier__wheel-picker')
+     * @param value - Option label exactly as rendered (e.g. 'x200', '5%')
+     */
+    protected async selectWheelPickerOption(wheelSelector: string, value: string): Promise<void> {
+        const wheel = this.page.locator(wheelSelector);
+        await expect(wheel, `Wheel picker '${wheelSelector}' should be visible`).toBeVisible();
+
+        // Options load asynchronously (Skeleton → WheelPicker). Wait for the target option to render
+        // before reading the option list, otherwise the labels array can be read empty/partial.
+        await expect(
+            wheel.getByText(value, { exact: true }).first(),
+            `Wheel picker option '${value}' should render (range list loaded)`
+        ).toBeAttached({ timeout: 15_000 });
+
+        const listbox = wheel.locator('[role="listbox"]');
+        const options = await wheel.locator('[role="option"]').all();
+        const labels = await Promise.all(options.map(o => o.innerText()));
+        const targetIndex = labels.findIndex(t => t.trim() === value);
+        if (targetIndex < 0) throw new Error(`Wheel picker option '${value}' not found in ${wheelSelector}`);
+
+        // Snap formula: index*48+24 (item height 48px, half-item snap offset 24px).
+        await listbox.evaluate(
+            (el, scrollTop) => {
+                (el as HTMLElement).scrollTop = scrollTop;
+            },
+            targetIndex * 48 + 24
         );
     }
 

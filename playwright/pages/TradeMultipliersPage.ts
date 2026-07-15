@@ -362,26 +362,9 @@ export class TradeMultipliersPage extends TradeParametersPage {
         await this.multiplierField.click();
 
         if (this.isMobile) {
-            await expect(
-                this.page.locator('.multiplier__wheel-picker'),
-                'Multiplier wheel picker should be visible on mobile'
-            ).toBeVisible();
-
-            // The wheel is a CSS scroll-snap picker (scroll-snap-type: y mandatory).
-            // Snap positions are index*48+24. Setting scrollTop directly to the snap-aligned
-            // value is the only reliable approach — touch drag and mouse.wheel are unreliable
-            // in Playwright's hasTouch emulation context.
-            const listbox = this.page.locator('.multiplier__wheel-picker [role="listbox"]');
-            const options = await this.page.locator('.multiplier__wheel-picker [role="option"]').all();
-            const labels = await Promise.all(options.map(o => o.innerText()));
-            const targetIndex = labels.findIndex(t => t.trim() === value);
-            if (targetIndex < 0) throw new Error(`Multiplier option '${value}' not found in wheel picker`);
-
-            // Snap formula: index*48+24 (item height 48px, half-item snap offset 24px)
-            const targetScrollTop = targetIndex * 48 + 24;
-            await listbox.evaluate((el, scrollTop) => {
-                el.scrollTop = scrollTop;
-            }, targetScrollTop);
+            // Scroll-snap the wheel to the target value (waits for the range list to load first —
+            // avoids the "option not found" race when the picker still shows its Skeleton).
+            await this.selectWheelPickerOption('.multiplier__wheel-picker', value);
 
             // Verify the field reflects the selection before saving
             await expect(this.multiplierField, `Multiplier field should show '${value}' before saving`).toHaveValue(

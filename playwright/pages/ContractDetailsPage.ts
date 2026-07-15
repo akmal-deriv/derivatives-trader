@@ -1852,9 +1852,13 @@ export class ContractDetailsPage extends TradeBasePage {
         });
         await expect(startTimeRow, 'Start time row should be visible').toBeVisible();
         const startTimeCell = startTimeRow.locator('.entry-exit-details__table-cell').last();
-        await expect(startTimeCell.locator('p').first(), `Start time date should contain "${buyDate}"`).toContainText(
-            buyDate
-        );
+        // The Start time cell renders the date as "DD Mon YYYY" (e.g. "14 Jul 2026"), not raw ISO —
+        // format the captured ISO buyDate to match (consistent with the other contract-details verifiers).
+        const buyDateFormatted = TradeBasePage.formatISODate(buyDate);
+        await expect(
+            startTimeCell.locator('p').first(),
+            `Start time date should contain "${buyDateFormatted}"`
+        ).toContainText(buyDateFormatted);
 
         // Entry & exit details — Entry spot
         const entrySpotRow = this.page.locator('.entry-exit-details__table-row', {
@@ -1865,9 +1869,11 @@ export class ContractDetailsPage extends TradeBasePage {
         await expect(entrySpotCell.locator('p').first(), 'Entry spot price should have a value').not.toBeEmpty();
         const entrySpot = (await entrySpotCell.locator('p').first().innerText()).trim();
 
-        // TP & SL History section
-        await expect(this.mobileTpSlHistoryTitle, 'TP & SL History section should be visible').toBeVisible();
+        // TP & SL History section — the app renders this card only when the contract actually has
+        // TP/SL history. A contract opened without TP/SL shows no history card (Order Details reads
+        // "Take profit: Not set" / "Stop loss: Not set"), so assert the section only when one was set.
         if (takeProfit || stopLoss) {
+            await expect(this.mobileTpSlHistoryTitle, 'TP & SL History section should be visible').toBeVisible();
             // Entries appear in reverse-chronological order; most recent change is row 0.
             // When both TP and SL are set in one save they appear as separate rows.
             let rowIndex = 0;
