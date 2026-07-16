@@ -66,7 +66,7 @@ const AutomateMobile = observer(() => {
     const supported_automation_trade_types = useAutomationSupportedTradeTypes();
     const { localize } = useTranslations();
     useDefaultSymbol();
-    useAutomationTradeTypeFallback();
+    useAutomationTradeTypeFallback(true);
     useAutomationSymbolFallback();
     useAutomationTicks();
 

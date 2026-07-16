@@ -6,18 +6,11 @@ import { useTraderStore } from 'Stores/useTraderStores';
 import useAutomationSupportedTradeTypes from './useAutomationSupportedTradeTypes';
 
 /**
- * Resolves an automation-unsupported `contract_type` on the automation tab:
- * - URL landing (`url_trade_type`, set by the store's URL when-block together
- *   with `contract_type`): keep the requested type and switch to the manual
- *   Trade tab. Consumed one-shot; reloads count as URL landings since the app
- *   mirrors trade_type into the URL.
- * - Manual navigation: fall back to the first supported trade type, so the
- *   automation tab is always enterable from the panel tabs.
- *
- * Desktop-only in practice — the mobile /automate route uses the
- * `is_automation` prop, not `is_automation_tab`.
+ * On an automation-unsupported `contract_type`, falls back to the first supported type.
+ * Desktop uses `is_automation_tab`; the mobile /automate route passes `is_on_automation_route`.
+ * Desktop-only exception: a URL landing keeps the requested type and drops to the manual tab.
  */
-const useAutomationTradeTypeFallback = () => {
+const useAutomationTradeTypeFallback = (is_on_automation_route = false) => {
     const { is_automation_tab, contract_type, onChange, setActiveTradePanelTab, url_trade_type, clearUrlTradeType } =
         useTraderStore();
     const supported = useAutomationSupportedTradeTypes();
@@ -29,9 +22,11 @@ const useAutomationTradeTypeFallback = () => {
         const is_url_landing = !!url_trade_type && url_trade_type === contract_type;
         if (url_trade_type) clearUrlTradeType();
 
-        if (!is_automation_tab || supported.has(contract_type)) return;
+        const is_automation_context = is_automation_tab || is_on_automation_route;
+        if (!is_automation_context || supported.has(contract_type)) return;
 
-        if (is_url_landing) {
+        // Mobile has no manual tab to drop to, so it falls back instead.
+        if (is_url_landing && !is_on_automation_route) {
             setActiveTradePanelTab(TRADE_PANEL_TABS.TRADE);
             return;
         }
@@ -40,6 +35,7 @@ const useAutomationTradeTypeFallback = () => {
         if (first) onChange({ target: { name: 'contract_type', value: first } });
     }, [
         is_automation_tab,
+        is_on_automation_route,
         contract_type,
         supported,
         url_trade_type,

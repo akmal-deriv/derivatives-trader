@@ -44,11 +44,12 @@ describe('useAutomationTradeTypeFallback', () => {
 
     const setup = (
         store: { is_automation_tab?: boolean; contract_type?: string; url_trade_type?: string | null },
-        supported = SUPPORTED
+        supported = SUPPORTED,
+        is_on_automation_route = false
     ) => {
         setStore(store);
         mockUseSupported.mockReturnValue(supported);
-        return renderHook(() => useAutomationTradeTypeFallback());
+        return renderHook(() => useAutomationTradeTypeFallback(is_on_automation_route));
     };
 
     beforeEach(() => {
@@ -128,7 +129,40 @@ describe('useAutomationTradeTypeFallback', () => {
             expect(setActiveTradePanelTab).not.toHaveBeenCalled();
             expect(onChange).toHaveBeenCalledWith({ target: { name: 'contract_type', value: 'rise_fall' } });
         });
+    });
 
+    describe('mobile /automate route (is_on_automation_route)', () => {
+        it('falls back to the first supported type with an unsupported type, even off the panel tab', () => {
+            setup({ is_automation_tab: false, contract_type: 'higher_lower' }, SUPPORTED, true);
+            expect(onChange).toHaveBeenCalledWith({ target: { name: 'contract_type', value: 'rise_fall' } });
+            expect(setActiveTradePanelTab).not.toHaveBeenCalled();
+        });
+
+        it('falls back (not switch to manual tab) on a URL landing with an unsupported type', () => {
+            setup(
+                { is_automation_tab: false, contract_type: 'higher_lower', url_trade_type: 'higher_lower' },
+                SUPPORTED,
+                true
+            );
+            expect(onChange).toHaveBeenCalledWith({ target: { name: 'contract_type', value: 'rise_fall' } });
+            expect(setActiveTradePanelTab).not.toHaveBeenCalled();
+            expect(clearUrlTradeType).toHaveBeenCalled();
+        });
+
+        it('does nothing when the current trade type is supported', () => {
+            setup({ is_automation_tab: false, contract_type: 'rise_fall' }, SUPPORTED, true);
+            expect(onChange).not.toHaveBeenCalled();
+            expect(setActiveTradePanelTab).not.toHaveBeenCalled();
+        });
+
+        it('does nothing while the supported set is still loading (empty)', () => {
+            setup({ is_automation_tab: false, contract_type: 'higher_lower' }, new Set(), true);
+            expect(onChange).not.toHaveBeenCalled();
+            expect(setActiveTradePanelTab).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('one-shot URL landing (desktop)', () => {
         it('does not treat a later manual switch as a URL case (one-shot)', () => {
             // Landing: URL type on automation -> switched to manual, signal consumed.
             const { rerender } = setup({
