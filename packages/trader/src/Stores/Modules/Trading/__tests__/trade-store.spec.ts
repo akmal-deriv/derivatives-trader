@@ -891,8 +891,62 @@ describe('TradeStore', () => {
             expect(tradeStore.expiry_type).toBe('duration');
         });
 
+        it('applies the configured per-trade-type default when the symbol supports it', async () => {
+            tradeStore.contract_type = TRADE_TYPES.RISE_FALL; // configured default: 5 ticks
+            tradeStore.duration = 2;
+            tradeStore.duration_unit = 'm'; // 2 min < 15 min intraday minimum -> invalid
+            tradeStore.duration_min_max = {
+                tick: { min: 1, max: 10 },
+                intraday: { min: 900, max: 86400 },
+            };
+            tradeStore.duration_units_list = [
+                { value: 't', text: 'Ticks' },
+                { value: 'm', text: 'Minutes' },
+            ];
+
+            await tradeStore.processContractsForV2();
+
+            expect(tradeStore.duration).toBe(5);
+            expect(tradeStore.duration_unit).toBe('t');
+        });
+
+        it('applies the configured default on first activation even when the retained duration is valid', async () => {
+            tradeStore.contract_type = TRADE_TYPES.RISE_FALL; // configured default: 5 ticks
+            tradeStore.duration = 8; // valid tick duration, but not the configured default
+            tradeStore.duration_unit = 't';
+            tradeStore.duration_min_max = { tick: { min: 1, max: 10 }, intraday: { min: 900, max: 86400 } };
+            tradeStore.duration_units_list = [
+                { value: 't', text: 'Ticks' },
+                { value: 'm', text: 'Minutes' },
+            ];
+            // duration_default_applied_for starts '' -> this is the first time the type is active.
+
+            await tradeStore.processContractsForV2();
+
+            expect(tradeStore.duration).toBe(5);
+            expect(tradeStore.duration_unit).toBe('t');
+            expect(tradeStore.duration_default_applied_for).toBe(TRADE_TYPES.RISE_FALL);
+        });
+
+        it('leaves a valid manual duration unchanged on a later symbol change for the same type', async () => {
+            tradeStore.contract_type = TRADE_TYPES.RISE_FALL;
+            tradeStore.duration = 8; // manually chosen, valid for the tick range
+            tradeStore.duration_unit = 't';
+            tradeStore.duration_min_max = { tick: { min: 1, max: 10 } };
+            tradeStore.duration_units_list = [{ value: 't', text: 'Ticks' }];
+            // The default was already applied for this type on an earlier run.
+            tradeStore.duration_default_applied_for = TRADE_TYPES.RISE_FALL;
+
+            await tradeStore.processContractsForV2();
+
+            expect(tradeStore.duration).toBe(8);
+            expect(tradeStore.duration_unit).toBe('t');
+        });
+
         it('leaves a retained duration unchanged when it is valid for the new symbol', async () => {
             setStaleDurationState(30, 'm'); // 30 minutes is within [15 minutes, 1 day]
+            // Default already applied for this type -> a valid retained value is preserved.
+            tradeStore.duration_default_applied_for = TRADE_TYPES.RISE_FALL;
 
             await tradeStore.processContractsForV2();
 
@@ -933,6 +987,79 @@ describe('TradeStore', () => {
 
             expect(tradeStore.duration).toBe(15);
             expect(validate_spy).toHaveBeenCalledWith('duration', 15);
+        });
+    });
+
+    describe('applyDefaultDuration', () => {
+        it('applies the configured default for the current type and records its group', async () => {
+            tradeStore.contract_type = TRADE_TYPES.HIGH_LOW; // configured default: 10 ticks
+            tradeStore.duration_min_max = { tick: { min: 1, max: 10 } };
+            tradeStore.duration_units_list = [{ value: 't', text: 'Ticks' }];
+            const on_change_multiple_spy = jest
+                .spyOn(tradeStore, 'onChangeMultiple')
+                .mockResolvedValue(undefined as never);
+
+            await tradeStore.applyDefaultDuration();
+
+            expect(on_change_multiple_spy).toHaveBeenCalledWith({
+                duration_unit: 't',
+                duration: 10,
+                expiry_time: null,
+                expiry_type: 'duration',
+            });
+            // Tracked by trade-type group key, not the raw contract type.
+            expect(tradeStore.duration_default_applied_for).toBe('higher_lower');
+        });
+
+        it('records the shared group for Up/Down turbos sub-types', async () => {
+            tradeStore.contract_type = TRADE_TYPES.TURBOS.SHORT; // configured default: 10 ticks
+            tradeStore.duration_min_max = { tick: { min: 5, max: 10 } };
+            tradeStore.duration_units_list = [{ value: 't', text: 'Ticks' }];
+            jest.spyOn(tradeStore, 'onChangeMultiple').mockResolvedValue(undefined as never);
+
+            await tradeStore.applyDefaultDuration();
+
+            expect(tradeStore.duration_default_applied_for).toBe('turbos');
+        });
+
+        it('does nothing when no contract type is set', async () => {
+            tradeStore.contract_type = '';
+            const on_change_multiple_spy = jest
+                .spyOn(tradeStore, 'onChangeMultiple')
+                .mockResolvedValue(undefined as never);
+
+            await tradeStore.applyDefaultDuration();
+
+            expect(on_change_multiple_spy).not.toHaveBeenCalled();
+            expect(tradeStore.duration_default_applied_for).toBe('');
+        });
+    });
+
+    describe('onChange trade-type switch applies the default duration', () => {
+        beforeEach(() => {
+            // Isolate the switch logic: let processNewValuesAsync just commit the incoming value.
+            jest.spyOn(tradeStore, 'processNewValuesAsync').mockImplementation(async values => {
+                Object.assign(tradeStore, values);
+            });
+            jest.spyOn(tradeStore, 'validateAllProperties').mockImplementation(() => undefined);
+        });
+
+        it('applies the default when switching to a different trade-type group', async () => {
+            tradeStore.contract_type = TRADE_TYPES.RISE_FALL;
+            const apply_spy = jest.spyOn(tradeStore, 'applyDefaultDuration').mockResolvedValue(undefined);
+
+            await tradeStore.onChange({ target: { name: 'contract_type', value: TRADE_TYPES.HIGH_LOW } });
+
+            expect(apply_spy).toHaveBeenCalled();
+        });
+
+        it('does not re-apply the default on an Up/Down sub-toggle within the same group', async () => {
+            tradeStore.contract_type = TRADE_TYPES.TURBOS.LONG;
+            const apply_spy = jest.spyOn(tradeStore, 'applyDefaultDuration').mockResolvedValue(undefined);
+
+            await tradeStore.onChange({ target: { name: 'contract_type', value: TRADE_TYPES.TURBOS.SHORT } });
+
+            expect(apply_spy).not.toHaveBeenCalled();
         });
     });
 

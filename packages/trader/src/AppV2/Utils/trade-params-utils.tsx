@@ -15,6 +15,10 @@ import { Localize, localize } from '@deriv-com/translations';
 import { createProposalRequestForContract, getProposalInfo } from 'Stores/Modules/Trading/Helpers/proposal';
 import { TTradeStore } from 'Types';
 
+import { DEFAULT_DURATION } from '../Config/trade-parameter-presets';
+
+import { mapContractTypeToDurationPresetKey } from './trade-params-preset-utils';
+
 export const DURATION_UNIT = {
     DAYS: 'd',
     TICKS: 't',
@@ -473,6 +477,26 @@ export const getSmallestDuration = (
     }
 
     return null;
+};
+
+/**
+ * Returns the configured per-trade-type default duration if the current symbol supports it,
+ * otherwise falls back to the smallest valid duration. Used on trade-type switch and as the
+ * reset target when a persisted duration is invalid for the current contract constraints.
+ */
+export const getDefaultDuration = (
+    contract_type: string,
+    duration_min_max: Record<string, { min: number; max: number }>,
+    duration_units_list: { value: string }[]
+) => {
+    const key = mapContractTypeToDurationPresetKey(contract_type);
+    const preferred = key ? DEFAULT_DURATION[key] : undefined;
+
+    if (preferred && isValidPersistedDuration(preferred.value, preferred.unit, duration_min_max, duration_units_list)) {
+        return { value: preferred.value, unit: preferred.unit };
+    }
+
+    return getSmallestDuration(duration_min_max, duration_units_list);
 };
 
 export const getDatePickerStartDate = (

@@ -11,6 +11,7 @@ import {
     addUnit,
     focusAndOpenKeyboard,
     getDatePickerStartDate,
+    getDefaultDuration,
     getOptionPerUnit,
     getPayoutInfo,
     getProposalRequestObject,
@@ -410,6 +411,50 @@ describe('getSmallestDuration', () => {
             durationUnits.filter(({ value }) => value !== 't')
         );
         expect(result).toEqual({ value: 2, unit: 'm' });
+    });
+});
+
+describe('getDefaultDuration', () => {
+    const tick_units = [
+        { value: 't', text: 'Ticks' },
+        { value: 'm', text: 'Minutes' },
+    ];
+    const tick_min_max = { tick: { min: 1, max: 10 }, intraday: { min: 60, max: 86400 } };
+
+    it('returns the configured tick default for Rise/Fall when the symbol supports it', () => {
+        expect(getDefaultDuration(TRADE_TYPES.RISE_FALL, tick_min_max, tick_units)).toEqual({ value: 5, unit: 't' });
+    });
+
+    it('returns 10 ticks for Higher/Lower', () => {
+        expect(getDefaultDuration(TRADE_TYPES.HIGH_LOW, tick_min_max, tick_units)).toEqual({ value: 10, unit: 't' });
+    });
+
+    it('returns 10 ticks for Touch/No Touch', () => {
+        expect(getDefaultDuration(TRADE_TYPES.TOUCH, tick_min_max, tick_units)).toEqual({ value: 10, unit: 't' });
+    });
+
+    it('returns 2 ticks for all Digits sub-types', () => {
+        expect(getDefaultDuration(TRADE_TYPES.MATCH_DIFF, tick_min_max, tick_units)).toEqual({ value: 2, unit: 't' });
+        expect(getDefaultDuration(TRADE_TYPES.EVEN_ODD, tick_min_max, tick_units)).toEqual({ value: 2, unit: 't' });
+        expect(getDefaultDuration(TRADE_TYPES.OVER_UNDER, tick_min_max, tick_units)).toEqual({ value: 2, unit: 't' });
+    });
+
+    it('returns 1 minute for Vanillas', () => {
+        expect(getDefaultDuration(TRADE_TYPES.VANILLA.CALL, tick_min_max, tick_units)).toEqual({ value: 1, unit: 'm' });
+    });
+
+    it('returns 10 ticks for Turbos', () => {
+        expect(getDefaultDuration(TRADE_TYPES.TURBOS.LONG, tick_min_max, tick_units)).toEqual({ value: 10, unit: 't' });
+    });
+
+    it('falls back to the smallest duration when the preferred unit is unavailable', () => {
+        const no_tick_units = [{ value: 'm', text: 'Minutes' }];
+        const min_max = { intraday: { min: 900, max: 86400 } }; // 15 min minimum, no ticks
+        expect(getDefaultDuration(TRADE_TYPES.RISE_FALL, min_max, no_tick_units)).toEqual({ value: 15, unit: 'm' });
+    });
+
+    it('falls back to the smallest duration for an unmapped contract type', () => {
+        expect(getDefaultDuration(TRADE_TYPES.ACCUMULATOR, tick_min_max, tick_units)).toEqual({ value: 1, unit: 't' });
     });
 });
 

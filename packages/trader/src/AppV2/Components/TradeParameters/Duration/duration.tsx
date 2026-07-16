@@ -7,7 +7,7 @@ import { useStore } from '@deriv/stores';
 import { ActionSheet, TextField, useSnackbar } from '@deriv-com/quill-ui';
 import { Localize, useTranslations } from '@deriv-com/translations';
 
-import { getSmallestDuration, isValidPersistedDuration } from 'AppV2/Utils/trade-params-utils';
+import { isValidPersistedDuration } from 'AppV2/Utils/trade-params-utils';
 import { getDisplayedContractTypes } from 'AppV2/Utils/trade-types-utils';
 import { useTraderStore } from 'Stores/useTraderStores';
 
@@ -19,6 +19,7 @@ import DurationDesktop from './duration-desktop';
 const Duration = observer(({ is_minimized }: TTradeParametersProps) => {
     const is_mobile = isMobile();
     const {
+        applyDefaultDuration,
         contract_type,
         duration_min_max,
         duration_unit,
@@ -102,7 +103,9 @@ const Duration = observer(({ is_minimized }: TTradeParametersProps) => {
             return () => clearTimeout(timer);
         }
 
-        // Check if current persisted duration values are valid for the new contract constraints
+        // Safety net: reset to the configured default when the persisted duration is invalid for the
+        // current constraints. Trade-type switches themselves are handled in the store (onChange), so
+        // this survives even if the component remounts on a switch.
         const isPersistedDurationValid = isValidPersistedDuration(
             duration,
             duration_unit,
@@ -110,19 +113,8 @@ const Duration = observer(({ is_minimized }: TTradeParametersProps) => {
             duration_units_list
         );
 
-        // Only reset to smallest duration if persisted values are invalid
         if (!isPersistedDurationValid) {
-            const result = getSmallestDuration(duration_min_max, duration_units_list);
-
-            const start_duration = setTimeout(() => {
-                onChangeMultiple({
-                    duration_unit: result?.unit,
-                    duration: result?.value,
-                    expiry_time: null,
-                    expiry_type: 'duration',
-                });
-            }, 10);
-
+            const start_duration = setTimeout(() => applyDefaultDuration(), 10);
             return () => clearTimeout(start_duration);
         }
     }, [symbol, contract_type, duration_min_max, duration_units_list, duration, duration_unit]);

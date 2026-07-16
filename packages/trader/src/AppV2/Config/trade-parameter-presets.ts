@@ -389,6 +389,22 @@ export const TRADE_PARAMETER_PRESETS: TradeParameterPresets = {
 };
 
 /**
+ * Preferred initial duration per trade type.
+ * Applied on trade-type switch, validated against the symbol's server limits;
+ * falls back to the smallest valid duration when the symbol doesn't support it.
+ */
+export const DEFAULT_DURATION: Record<keyof DurationPresets, { value: number; unit: DurationUnit }> = {
+    rise_fall: { value: 5, unit: 't' },
+    higher_lower: { value: 10, unit: 't' },
+    touch_no_touch: { value: 10, unit: 't' },
+    turbos: { value: 10, unit: 't' },
+    vanillas: { value: 1, unit: 'm' },
+    digits_matches_differs: { value: 2, unit: 't' },
+    digits_even_odd: { value: 2, unit: 't' },
+    digits_over_under: { value: 2, unit: 't' },
+};
+
+/**
  * Helper function to get stake presets for a specific trade type
  *
  * @param tradeType - The trade type identifier

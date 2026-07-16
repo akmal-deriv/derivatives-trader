@@ -63,7 +63,8 @@ import { localize } from '@deriv-com/translations';
 
 import { TRADE_PANEL_TABS, type TTradePanelTab } from 'AppV2/Components/AutomationPanel/automation-config';
 import { isDigitContractType, isDigitTradeType } from 'AppV2/Utils/digits';
-import { getSmallestDuration, isValidPersistedDuration } from 'AppV2/Utils/trade-params-utils';
+import { mapContractTypeToDurationPresetKey } from 'AppV2/Utils/trade-params-preset-utils';
+import { getDefaultDuration, isValidPersistedDuration } from 'AppV2/Utils/trade-params-utils';
 import { getMultiplierValidationRules, getValidationRules } from 'Stores/Modules/Trading/Constants/validation-rules';
 import { ContractType } from 'Stores/Modules/Trading/Helpers/contract-type';
 import { TContractTypesList, TRootStore, TTextValueNumber, TTextValueStrings } from 'Types';
@@ -282,6 +283,10 @@ export default class TradeStore extends BaseStore {
     duration_min_max: TDurationMinMax = {};
     duration_unit = '';
     duration_units_list: Array<TTextValueStrings> = [];
+    // Trade-type group key (mapContractTypeToDurationPresetKey) the default duration was last applied
+    // for. Grouped so Up/Down sub-toggles (turboslong/turbosshort) don't reset it. Not observable/
+    // persisted: resets to '' on load so the default re-applies on a fresh session.
+    duration_default_applied_for = '';
     expiry_date: string | null = '';
     expiry_epoch: number | string = '';
     expiry_time: string | null = '';
@@ -568,6 +573,7 @@ export default class TradeStore extends BaseStore {
             loadActiveSymbols: action.bound,
             logoutListener: action.bound,
             main_barrier_flattened: computed,
+            applyDefaultDuration: action.bound,
             networkStatusChangeListener: action.bound,
             onAllowEqualsChange: action.bound,
             onChange: action.bound,
@@ -927,25 +933,31 @@ export default class TradeStore extends BaseStore {
         );
         await this.processNewValuesAsync(ContractType.getContractValues(this), false, null, false);
 
-        // Reconcile a duration retained from the previous symbol that is out of range here:
-        // the standard clamp (Duration.onChangeContractType) is gated out on this path and
-        // the duration.tsx fallback skips its 500ms initial-mount window, so without this
-        // the stale duration reaches the proposal and is rejected by the server.
-        if (
-            this.contract_type &&
+        // Apply the per-trade-type default duration the first time a trade-type group becomes
+        // active (initial load / a symbol whose contracts_for just resolved), or reconcile a
+        // retained duration that is out of range here. Tracking the group it was applied for
+        // means a manually-set duration survives a plain symbol change (same type), while the
+        // configured default still lands on first load — where the retained value may be valid.
+        const current_duration_group = this.current_duration_group;
+        const should_apply_default =
+            this.duration_default_applied_for !== current_duration_group ||
             !isValidPersistedDuration(
                 this.duration,
                 this.duration_unit,
                 this.duration_min_max,
                 this.duration_units_list
-            )
-        ) {
-            const smallest_duration = getSmallestDuration(this.duration_min_max, this.duration_units_list);
-            if (smallest_duration) {
+            );
+        if (this.contract_type && should_apply_default) {
+            const default_duration = getDefaultDuration(
+                this.contract_type,
+                this.duration_min_max,
+                this.duration_units_list
+            );
+            if (default_duration) {
                 await this.processNewValuesAsync(
                     {
-                        duration_unit: smallest_duration.unit,
-                        duration: smallest_duration.value,
+                        duration_unit: default_duration.unit,
+                        duration: default_duration.value,
                         expiry_time: null,
                         expiry_type: 'duration',
                     },
@@ -953,6 +965,7 @@ export default class TradeStore extends BaseStore {
                     null,
                     false
                 );
+                this.duration_default_applied_for = current_duration_group;
                 // Re-validate explicitly: the validation reaction fired against the stale
                 // duration when the new limits arrived and won't re-fire on a duration-only
                 // change — a leftover error would block requestProposal.
@@ -1048,8 +1061,36 @@ export default class TradeStore extends BaseStore {
         this.validateAllProperties(); // then run validation before sending proposal
     }
 
+    // Trade-type group of the current contract type (paired with duration_default_applied_for).
+    get current_duration_group() {
+        return mapContractTypeToDurationPresetKey(this.contract_type) ?? '';
+    }
+
+    // Applies the configured per-trade-type default for the current contract type and records the
+    // trade-type group it was applied for, so processContractsForV2 won't re-force it on a later
+    // symbol change (a manual value survives). Returns early when the type has no configured default.
+    async applyDefaultDuration() {
+        if (!this.contract_type) return;
+        const default_duration = getDefaultDuration(
+            this.contract_type,
+            this.duration_min_max,
+            this.duration_units_list
+        );
+        if (!default_duration) return;
+        this.duration_default_applied_for = this.current_duration_group;
+        await this.onChangeMultiple({
+            duration_unit: default_duration.unit,
+            duration: default_duration.value,
+            expiry_time: null,
+            expiry_type: 'duration',
+        });
+    }
+
     async onChange(e: { target: { name: string; value: unknown } }) {
         const { name, value } = e.target;
+        // Capture the outgoing trade-type group so we can apply the per-type default duration only
+        // on a real trade-type switch (not on Up/Down sub-toggles within the same group).
+        const previous_duration_group = this.current_duration_group;
         if (
             name === 'contract_type' &&
             ['accumulator', 'match_diff', 'even_odd', 'over_under'].includes(value as string)
@@ -1078,11 +1119,9 @@ export default class TradeStore extends BaseStore {
                 this.root_store.ui.advanced_duration_unit = 'm';
                 this.root_store.ui.simple_duration_unit = 'm';
 
-                // Only reset other defaults when switching from non-Vanilla to Vanilla
+                // Only reset the barrier when switching from non-Vanilla to Vanilla.
+                // Duration is owned by applyDefaultDuration (runs after the new limits load).
                 if (!was_vanilla) {
-                    // Reset to safe defaults for Vanilla contracts
-                    // Use minutes (m) with duration 5 to ensure relative barriers (+/-)
-                    this.duration = 5;
                     this.barrier_1 = '+0.1';
                 }
             }
@@ -1113,6 +1152,11 @@ export default class TradeStore extends BaseStore {
             name === 'contract_type' ? { contract_type: this.contract_type } : {}, // refer to [Multiplier validation rules] below
             true
         ); // wait for store to be updated
+        // On a real trade-type switch (a different duration group), apply that type's default
+        // duration now that processNewValuesAsync has loaded the new type's duration limits/units.
+        if (name === 'contract_type' && this.contract_type && this.current_duration_group !== previous_duration_group) {
+            await this.applyDefaultDuration();
+        }
         this.validateAllProperties(); // then run validation before sending proposal
         this.root_store.common.setSelectedContractType(this.contract_type);
     }

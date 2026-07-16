@@ -2,7 +2,7 @@ import { dayjs } from '@deriv/shared';
 import { mockStore } from '@deriv/stores';
 import { TCoreStores } from '@deriv/stores/types';
 import { useSnackbar } from '@deriv-com/quill-ui';
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import TraderProviders from '../../../../../trader-providers';
@@ -323,5 +323,102 @@ describe('Duration - Mobile', () => {
         await userEvent.click(textField);
 
         expect(screen.getByDisplayValue('2 hours 5 minutes')).toBeInTheDocument();
+    });
+});
+
+describe('Duration default on trade-type switch', () => {
+    const mockApplyDefaultDuration = jest.fn();
+
+    const buildStore = (trade_overrides: Record<string, unknown> = {}) =>
+        mockStore({
+            modules: {
+                trade: {
+                    onChange: jest.fn(),
+                    validation_errors: { duration: [] },
+                    duration: 30,
+                    duration_unit: 'm',
+                    expiry_type: 'duration',
+                    expiry_time: '',
+                    proposal_info: {},
+                    onChangeMultiple: jest.fn(),
+                    applyDefaultDuration: mockApplyDefaultDuration,
+                    duration_min_max: {
+                        tick: { min: 1, max: 10 },
+                        intraday: { min: 60, max: 3600 },
+                        daily: { min: 86400, max: 172800 },
+                    },
+                    duration_units_list: [
+                        { value: 't', text: 'Ticks' },
+                        { value: 'm', text: 'Minutes' },
+                        { value: 'h', text: 'Hours' },
+                        { value: 'd', text: 'Days' },
+                    ],
+                    start_time: null,
+                    symbol: 'EURUSD',
+                    contract_type: 'rise_fall',
+                    saved_expiry_date_v2: '',
+                    setSavedExpiryDateV2: jest.fn(),
+                    setUnsavedExpiryDateV2: jest.fn(),
+                    unsaved_expiry_date_v2: '',
+                    ...trade_overrides,
+                },
+            },
+            common: { server_time: dayjs('2024-10-10T11:23:10.895Z') },
+        });
+
+    const renderWith = (store: TCoreStores) =>
+        render(
+            <TraderProviders store={store}>
+                <Duration />
+            </TraderProviders>
+        );
+
+    beforeAll(() => {
+        (useSnackbar as jest.Mock).mockReturnValue({ addSnackbar: jest.fn() });
+    });
+
+    beforeEach(() => {
+        mockApplyDefaultDuration.mockClear();
+        jest.useFakeTimers();
+    });
+
+    afterEach(() => {
+        jest.runOnlyPendingTimers();
+        jest.useRealTimers();
+    });
+
+    it('applies the configured default when the persisted duration is invalid for the constraints', () => {
+        const { rerender } = renderWith(buildStore({ contract_type: 'rise_fall' }));
+
+        // Clear the 500ms initial-mount guard so subsequent runs act on changes.
+        act(() => jest.advanceTimersByTime(500));
+
+        // 999 ticks is out of range for tick max 10 -> invalid persisted duration.
+        rerender(
+            <TraderProviders store={buildStore({ contract_type: 'rise_fall', duration: 999, duration_unit: 't' })}>
+                <Duration />
+            </TraderProviders>
+        );
+
+        act(() => jest.advanceTimersByTime(10)); // flush the reset timer
+
+        expect(mockApplyDefaultDuration).toHaveBeenCalled();
+    });
+
+    it('does not reset when the persisted duration is still valid', () => {
+        const { rerender } = renderWith(buildStore({ contract_type: 'rise_fall' }));
+
+        act(() => jest.advanceTimersByTime(500));
+
+        // Still a valid duration for the same constraints -> no reset.
+        rerender(
+            <TraderProviders store={buildStore({ contract_type: 'rise_fall', duration: 20 })}>
+                <Duration />
+            </TraderProviders>
+        );
+
+        act(() => jest.advanceTimersByTime(10));
+
+        expect(mockApplyDefaultDuration).not.toHaveBeenCalled();
     });
 });
