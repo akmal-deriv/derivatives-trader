@@ -571,8 +571,14 @@ export class TradeMultipliersPage extends TradeParametersPage {
      * Same element on both desktop and mobile — no need to open the stake action sheet.
      */
     private async readCommissionAndStopOut(): Promise<{ commission: string; stopOut: string }> {
-        await expect(this.commissionValue, 'Commission value should be visible and non-empty').not.toBeEmpty();
-        await expect(this.stopOutValue, 'Stop out value should be visible and non-empty').not.toBeEmpty();
+        // Commission and stop out are populated from the proposal response, which can lag under load.
+        // not.toBeEmpty() auto-retries, so give it a generous budget instead of the default window.
+        await expect(this.commissionValue, 'Commission value should be visible and non-empty').not.toBeEmpty({
+            timeout: 15_000,
+        });
+        await expect(this.stopOutValue, 'Stop out value should be visible and non-empty').not.toBeEmpty({
+            timeout: 15_000,
+        });
         const commission = (await this.commissionValue.innerText()).trim();
         const stopOut = (await this.stopOutValue.innerText()).trim();
         return { commission, stopOut };

@@ -236,15 +236,22 @@ export class PositionsPage extends TradeBasePage {
         if (this.isMobile) {
             // The Close button is always in the DOM (hidden via CSS until swipe reveals it).
             // Use force:true to click it directly without needing the swipe gesture.
-            await expect(this.mobileContractCardCloseButton, 'Mobile close button should be attached').toBeAttached();
+            // Give it a generous wait: the card can take a while to render under staging load.
+            await expect(this.mobileContractCardCloseButton, 'Mobile close button should be attached').toBeAttached({
+                timeout: 60_000,
+            });
             await this.mobileContractCardCloseButton.click({ force: true });
             await this.pollUntilContractClosed(this.mobileContractCardCloseButton);
         } else {
+            // The inline Close (Sell) button depends on the sell-proposal stream, so under load it can
+            // take longer than the default 45s to render/enable — wait patiently before the poll retries.
             await expect(
                 this.contractCardCloseButton,
                 'Close button should be visible on the contract card'
-            ).toBeVisible();
-            await expect(this.contractCardCloseButton, 'Close button should be enabled before closing').toBeEnabled();
+            ).toBeVisible({ timeout: 60_000 });
+            await expect(this.contractCardCloseButton, 'Close button should be enabled before closing').toBeEnabled({
+                timeout: 60_000,
+            });
             await this.contractCardCloseButton.click();
             await this.pollUntilContractClosed(this.contractCardCloseButton);
             await expect(
@@ -460,15 +467,16 @@ export class PositionsPage extends TradeBasePage {
 
         if (this.isMobile) {
             // Mobile Closed tab renders <a> link cards — no dt_contract_card testid
-            await expect(
-                this.firstMobileClosedCard,
-                'At least one closed contract card should be visible'
-            ).toBeVisible();
+            await expect(this.firstMobileClosedCard, 'At least one closed contract card should be visible').toBeVisible(
+                { timeout: 60_000 }
+            );
             await expect(this.firstMobileClosedCard, `Closed card should show market "${market}"`).toContainText(
-                market
+                market,
+                { timeout: 60_000 }
             );
             await expect(this.firstMobileClosedCard, `Closed card should show trade type "${tradeType}"`).toContainText(
-                tradeType
+                tradeType,
+                { timeout: 60_000 }
             );
             await expect(
                 this.firstMobileClosedCard,

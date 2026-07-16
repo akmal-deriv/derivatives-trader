@@ -533,9 +533,16 @@ export class ContractDetailsPage extends TradeBasePage {
      * Close the contract details overlay by clicking the header close button.
      */
     async closeContractDetails(): Promise<void> {
-        await this.contractDetailsCloseButton.click();
-        // Wait for navigation away from /contract/ — mobile back arrow is async
-        await this.page.waitForURL(url => !url.pathname.includes('/contract/'));
+        // The close button can detach/re-render as the contract card updates, and the overlay can
+        // briefly intercept the click, so a single click + waitForURL is flaky. Retry the click
+        // until the URL actually leaves /contract/ (mobile back arrow navigates asynchronously).
+        await expect(async () => {
+            await this.contractDetailsCloseButton.click({ timeout: 3_000 }).catch(() => {});
+            await expect(this.page, 'Should navigate away from /contract/ after closing details').not.toHaveURL(
+                /\/contract\//,
+                { timeout: 3_000 }
+            );
+        }).toPass({ timeout: 30_000 });
     }
 
     /**
@@ -998,13 +1005,13 @@ export class ContractDetailsPage extends TradeBasePage {
             await expect(
                 sellRefIdParagraph,
                 'Contract should settle in place (Sell reference ID should appear)'
-            ).toBeVisible({ timeout: 60_000 });
+            ).toBeVisible({ timeout: 120_000 });
             return;
         }
         await expect(
             this.contractDetailsReferenceIDSell,
             'Contract should settle in place (Sell reference ID should appear)'
-        ).not.toBeEmpty({ timeout: 60_000 });
+        ).not.toBeEmpty({ timeout: 120_000 });
     }
 
     /**

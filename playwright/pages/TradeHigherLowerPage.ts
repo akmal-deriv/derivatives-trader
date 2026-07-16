@@ -103,7 +103,8 @@ export class TradeHigherLowerPage extends TradeParametersPage {
         await this.selectTradeType('Higher/Lower');
         await this.clickHigherLowerOption('Higher');
         await this.selectDuration(durationUnit, durationValue);
-        await this.setBarrier(barrier, barrierType);
+        // The app snaps the barrier to a market-valid offset; use the accepted value downstream.
+        const acceptedBarrier = await this.setBarrier(barrier, barrierType);
         await this.setStake(stake);
         const balanceBefore = await this.getBalance();
         const buyDate = this.getCurrentDate();
@@ -133,7 +134,7 @@ export class TradeHigherLowerPage extends TradeParametersPage {
             buyId,
             durationValue,
             buyDate,
-            barrier,
+            acceptedBarrier,
             barrierType
         );
         await this.contractDetailsPage.closeContractDetails();
@@ -160,7 +161,7 @@ export class TradeHigherLowerPage extends TradeParametersPage {
             buyDate,
             contractProfitLossAmount,
             entrySpot,
-            barrier,
+            acceptedBarrier,
             barrierType
         );
         await this.contractDetailsPage.closeContractDetails();
@@ -222,7 +223,8 @@ export class TradeHigherLowerPage extends TradeParametersPage {
         await this.selectTradeType('Higher/Lower');
         await this.clickHigherLowerOption('Lower');
         await this.selectDuration(durationUnit, durationValue);
-        await this.setBarrier(barrier, barrierType);
+        // The app snaps the barrier to a market-valid offset; use the accepted value downstream.
+        const acceptedBarrier = await this.setBarrier(barrier, barrierType);
         await this.setStake(stake);
         const balanceBefore = await this.getBalance();
         const buyDate = this.getCurrentDate();
@@ -252,7 +254,7 @@ export class TradeHigherLowerPage extends TradeParametersPage {
             buyId,
             durationValue,
             buyDate,
-            barrier,
+            acceptedBarrier,
             barrierType
         );
         await this.contractDetailsPage.closeContractDetails();
@@ -279,7 +281,7 @@ export class TradeHigherLowerPage extends TradeParametersPage {
             buyDate,
             contractProfitLossAmount,
             entrySpot,
-            barrier,
+            acceptedBarrier,
             barrierType
         );
         await this.contractDetailsPage.closeContractDetails();

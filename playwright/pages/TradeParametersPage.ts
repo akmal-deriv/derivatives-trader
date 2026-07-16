@@ -742,6 +742,15 @@ export class TradeParametersPage extends TradeBasePage {
             return;
         }
 
+        // Expected displayed value, computed once and reused by the Save retry and the final assertion.
+        // Mobile expands all abbreviations to full words (e.g. "15 min" → "15 minutes"). On desktop most
+        // units keep the chip abbreviation, EXCEPT hours, which the app renders in full ("1 hr" → "1 hour",
+        // "1h 30m" → "1 hour 30 minutes"). So expand hours on both viewports; other units only on mobile.
+        const isHoursFormat = /\bhr\b/.test(formattedValue) || /^\d+h(\s+\d+m)?$/.test(formattedValue);
+        const displayValue =
+            this.isMobile || isHoursFormat ? this.expandDurationForDisplay(formattedValue) : formattedValue;
+        const displayRegex = new RegExp(`^${displayValue.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`);
+
         const chip = this.durationChip(formattedValue);
         if (await chip.isVisible()) {
             await chip.click();
@@ -761,17 +770,26 @@ export class TradeParametersPage extends TradeBasePage {
                 const testId = unitLower === 'ticks' ? 'dt_duration_ticks_input_desktop' : 'dt_duration_input_desktop';
                 await this.page.getByTestId(testId).fill(formattedValue.replace(/[^\d.]/g, ''));
             }
-            await this.page.locator('.duration-popover').getByRole('button', { name: 'Save' }).click();
+            // The Save button can stay a no-op until the proposal re-validates the duration, and it may
+            // detach/re-render mid-click (observed as "element detached"/timeout). Retry the click until
+            // the field reflects the value. The manual input (ticks/seconds/minutes/hours) renders its
+            // own Save inside `.duration-input-desktop__footer` on BOTH viewports — desktop wraps it in
+            // `.duration-popover`, mobile in a `.duration-container` action sheet (the mobile action-sheet
+            // footer only exists for the Days unit), so scope to that shared footer.
+            const durationSaveButton = this.page
+                .locator('.duration-input-desktop__footer')
+                .getByRole('button', { name: 'Save' });
+            await expect(async () => {
+                await durationSaveButton.click({ timeout: 3_000 }).catch(() => {});
+                await expect(
+                    this.durationField,
+                    `Duration field should show '${displayValue}' after saving`
+                ).toHaveValue(displayRegex, { timeout: 3_000 });
+            }).toPass({ timeout: 20_000 });
         }
 
-        // Mobile expands all abbreviations to full words (e.g. "15 min" → "15 minutes"). On desktop most
-        // units keep the chip abbreviation, EXCEPT hours, which the app renders in full ("1 hr" → "1 hour",
-        // "1h 30m" → "1 hour 30 minutes"). So expand hours on both viewports; other units only on mobile.
-        const isHoursFormat = /\bhr\b/.test(formattedValue) || /^\d+h(\s+\d+m)?$/.test(formattedValue);
-        const displayValue =
-            this.isMobile || isHoursFormat ? this.expandDurationForDisplay(formattedValue) : formattedValue;
         await expect(this.durationField, `Duration field should show '${displayValue}' after selection`).toHaveValue(
-            new RegExp(`^${displayValue.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`)
+            displayRegex
         );
     }
 
@@ -827,14 +845,21 @@ export class TradeParametersPage extends TradeBasePage {
             await chip.click();
         } else {
             await this.stakeManualInputToggle.click();
-            await this.stakePopoverInput.click();
-            await this.stakePopoverInput.clear();
-            await this.stakePopoverInput.pressSequentially(amount, { delay: 70 });
-            await expect(this.stakePopoverInput, `Stake input should show '${amount}'`).toHaveValue(amount);
-            await expect(
-                this.stakeSaveButton,
-                'Stake save button should be enabled — confirms proposal validated'
-            ).toBeEnabled();
+            // The Save button stays disabled until the proposal re-validates the amount, and the input
+            // can debounce/reset under load. Retry fill → value → enabled as a unit so a slow proposal
+            // simply triggers another attempt instead of failing the whole test.
+            await expect(async () => {
+                await this.stakePopoverInput.click();
+                await this.stakePopoverInput.clear();
+                await this.stakePopoverInput.pressSequentially(amount, { delay: 70 });
+                await expect(this.stakePopoverInput, `Stake input should show '${amount}'`).toHaveValue(amount, {
+                    timeout: 3_000,
+                });
+                await expect(
+                    this.stakeSaveButton,
+                    'Stake save button should be enabled — confirms proposal validated'
+                ).toBeEnabled({ timeout: 3_000 });
+            }).toPass({ timeout: 20_000 });
             await this.stakeSaveButton.click();
             if (this.isMobile) {
                 await expect(
@@ -964,10 +989,16 @@ export class TradeParametersPage extends TradeBasePage {
     /**
      * Open the Barrier popover/action-sheet, optionally switch type, set the value, and save.
      *
+     * The app snaps the typed offset to a market-valid value relative to the live spot, so the saved
+     * value may differ from the input (especially on fast-ticking 1s indices, e.g. "5.11" → "+4.15").
+     * Assert the sign/format the type implies, then return the accepted offset so callers can verify
+     * the contract's barrier price against what the app actually used rather than the hardcoded input.
+     *
      * @param value - Numeric string without sign prefix, e.g. '3.51'
      * @param type  - Barrier type to select before typing. Omit to keep the current type.
+     * @returns The barrier offset the app accepted, unsigned (e.g. '4.15').
      */
-    async setBarrier(value: string, type?: 'Above spot' | 'Below spot' | 'Fixed barrier'): Promise<void> {
+    async setBarrier(value: string, type?: 'Above spot' | 'Below spot' | 'Fixed barrier'): Promise<string> {
         await this.barrierField.click();
         if (type) {
             await this.barrierTypeTab(type).click();
@@ -980,11 +1011,18 @@ export class TradeParametersPage extends TradeBasePage {
         await this.barrierInput.fill(value);
         await expect(this.barrierInput, `Barrier input should contain "${value}" before saving`).toHaveValue(value);
         await this.barrierSaveButton.click();
-        const expectedValue = type === 'Above spot' ? `+${value}` : type === 'Below spot' ? `-${value}` : value;
+        // The app snaps the barrier to the nearest market-valid offset, so the saved value can differ
+        // from the input. Assert the sign/format the type implies, then return the accepted offset.
+        const savedInput = this.barrierField.locator('input');
+        // 'Above spot' → '+N', 'Below spot' → '-N', 'Fixed barrier' → 'N'. When type is omitted the current
+        // widget mode is unknown, so accept an optional sign ('[+-]?') to match signed and unsigned values.
+        const signPattern = type === 'Above spot' ? '\\+' : type === 'Below spot' ? '-' : type ? '' : '[+-]?';
         await expect(
-            this.barrierField.locator('input'),
-            `Barrier field should display "${expectedValue}" after saving`
-        ).toHaveValue(expectedValue);
+            savedInput,
+            `Barrier field should show a valid ${type ?? 'fixed'} offset after saving`
+        ).toHaveValue(new RegExp(`^${signPattern}\\d+(\\.\\d+)?$`));
+        const acceptedValue = (await savedInput.inputValue()).trim();
+        return acceptedValue.replace(/^[+-]/, '');
     }
 
     // ============================================

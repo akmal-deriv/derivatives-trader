@@ -121,7 +121,8 @@ export class TradeTouchNoTouchPage extends TradeParametersPage {
         await this.selectTradeType('Touch/No Touch');
         await this.clickTouchNoTouchOption('Touch');
         await this.selectDuration(durationUnit, durationValue);
-        await this.setBarrier(barrier, barrierType);
+        // The app snaps the barrier to a market-valid offset; use the accepted value downstream.
+        const acceptedBarrier = await this.setBarrier(barrier, barrierType);
         await this.setStake(stake);
         const balanceBefore = await this.getBalance();
         const buyDate = this.getCurrentDate();
@@ -151,7 +152,7 @@ export class TradeTouchNoTouchPage extends TradeParametersPage {
             buyId,
             durationValue,
             buyDate,
-            barrier,
+            acceptedBarrier,
             barrierType
         );
         await this.contractDetailsPage.closeContractDetails();
@@ -178,7 +179,7 @@ export class TradeTouchNoTouchPage extends TradeParametersPage {
             buyDate,
             contractProfitLossAmount,
             entrySpot,
-            barrier,
+            acceptedBarrier,
             barrierType
         );
         await this.contractDetailsPage.closeContractDetails();
@@ -240,7 +241,8 @@ export class TradeTouchNoTouchPage extends TradeParametersPage {
         await this.selectTradeType('Touch/No Touch');
         await this.clickTouchNoTouchOption('No Touch');
         await this.selectDuration(durationUnit, durationValue);
-        await this.setBarrier(barrier, barrierType);
+        // The app snaps the barrier to a market-valid offset; use the accepted value downstream.
+        const acceptedBarrier = await this.setBarrier(barrier, barrierType);
         await this.setStake(stake);
         const balanceBefore = await this.getBalance();
         const buyDate = this.getCurrentDate();
@@ -270,7 +272,7 @@ export class TradeTouchNoTouchPage extends TradeParametersPage {
             buyId,
             durationValue,
             buyDate,
-            barrier,
+            acceptedBarrier,
             barrierType
         );
         await this.contractDetailsPage.closeContractDetails();
@@ -297,7 +299,7 @@ export class TradeTouchNoTouchPage extends TradeParametersPage {
             buyDate,
             contractProfitLossAmount,
             entrySpot,
-            barrier,
+            acceptedBarrier,
             barrierType
         );
         await this.contractDetailsPage.closeContractDetails();
