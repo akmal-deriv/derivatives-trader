@@ -1,13 +1,13 @@
 import React from 'react';
 
+import { CONTRACT_TYPES, TRADE_TYPES } from '@deriv/shared';
 import { render } from '@testing-library/react';
-
-import { TRADE_TYPES } from '@deriv/shared';
 
 import {
     AVAILABLE_CONTRACTS,
-    getCategoryLabel,
     getAvailableContracts,
+    getCategoryLabel,
+    getDisplayedContractTypes,
     groupTradeTypesByCategory,
     isSameTradeTypeCategory,
     sortCategoriesInTradeTypeOrder,
@@ -281,6 +281,43 @@ describe('trade-types-utils', () => {
             expect(sorted).toHaveLength(3);
             expect(sorted[0].title).toBe('Accumulators 1');
             expect(sorted[1].title).toBe('Accumulators 2');
+        });
+    });
+
+    describe('getDisplayedContractTypes', () => {
+        const rise_fall_types = { [CONTRACT_TYPES.CALL]: 'Rise', [CONTRACT_TYPES.PUT]: 'Fall' };
+
+        it('returns a single default tab for Rise/Fall when trade_type_tab is not set yet (no flash)', () => {
+            // The load-window config that used to return [CALL, PUT] and flash two buttons.
+            expect(getDisplayedContractTypes(rise_fall_types, TRADE_TYPES.RISE_FALL, '')).toEqual([
+                CONTRACT_TYPES.CALL,
+            ]);
+        });
+
+        it('returns the selected side when trade_type_tab is set', () => {
+            expect(getDisplayedContractTypes(rise_fall_types, TRADE_TYPES.RISE_FALL, CONTRACT_TYPES.PUT)).toEqual([
+                CONTRACT_TYPES.PUT,
+            ]);
+        });
+
+        it('returns a single default tab for Multipliers when trade_type_tab is not set yet', () => {
+            const multiplier_types = {
+                [CONTRACT_TYPES.MULTIPLIER.UP]: 'Up',
+                [CONTRACT_TYPES.MULTIPLIER.DOWN]: 'Down',
+            };
+            expect(getDisplayedContractTypes(multiplier_types, TRADE_TYPES.MULTIPLIER, '')).toEqual([
+                CONTRACT_TYPES.MULTIPLIER.UP,
+            ]);
+        });
+
+        it('returns the single available type for a tab-less contract (Accumulator)', () => {
+            expect(
+                getDisplayedContractTypes({ [CONTRACT_TYPES.ACCUMULATOR]: 'Accumulator' }, TRADE_TYPES.ACCUMULATOR, '')
+            ).toEqual([CONTRACT_TYPES.ACCUMULATOR]);
+        });
+
+        it('falls back to the contract_type when trade_types have not loaded yet', () => {
+            expect(getDisplayedContractTypes({}, TRADE_TYPES.RISE_FALL, '')).toEqual([TRADE_TYPES.RISE_FALL]);
         });
     });
 });

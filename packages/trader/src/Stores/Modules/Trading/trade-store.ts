@@ -270,7 +270,7 @@ export default class TradeStore extends BaseStore {
     contract_types_list_v2: TContractTypesList = {};
 
     // Amount
-    amount = 10;
+    amount = 2;
     basis = '';
     basis_list: Array<TTextValueStrings> = [];
     currency = '';

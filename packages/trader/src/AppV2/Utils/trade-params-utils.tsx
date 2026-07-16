@@ -263,6 +263,14 @@ export const getTradeTypeTabsList = (contract_type = '') => {
     return tab_list.filter(({ is_displayed }) => is_displayed);
 };
 
+// The tab TradeTypeTabs defaults to on mount (matching contract_type, else the first tab).
+export const getInitialTradeTypeTab = (contract_type = '') => {
+    const tab_list = getTradeTypeTabsList(contract_type);
+    if (!tab_list.length) return '';
+    const index = tab_list.findIndex(tab => tab.value === contract_type);
+    return tab_list[index < 0 ? 0 : index]?.contract_type ?? '';
+};
+
 export const isSmallScreen = () => window.innerHeight <= 640;
 
 export const addUnit = ({

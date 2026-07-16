@@ -20,7 +20,6 @@ const mock_props = {
     is_multiplier: false,
     is_turbos: false,
     is_vanilla: false,
-    is_reverse: false,
 };
 const wrapper_data_test_id = 'dt_purchase_button_wrapper';
 const localized_basis = getLocalizedBasis();
@@ -44,12 +43,6 @@ describe('PurchaseButtonContent', () => {
         expect(screen.getByText(localized_basis.payout)).toBeInTheDocument();
         expect(screen.getByText(/19.23/)).toBeInTheDocument();
         expect(screen.getByText(/USD/i)).toBeInTheDocument();
-    });
-
-    it('should apply specific className to wrapper when is_reverse is true', () => {
-        render(<PurchaseButtonContent {...mock_props} is_reverse />);
-
-        expect(screen.getByTestId(wrapper_data_test_id)).toHaveClass('purchase-button__information__wrapper--reverse');
     });
 
     it('should render Total cost for Multipliers when Deal Cancellation is enabled', () => {

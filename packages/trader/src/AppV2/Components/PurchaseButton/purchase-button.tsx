@@ -6,7 +6,6 @@ import { Skeleton } from '@deriv/components';
 import { StandaloneStopwatchRegularIcon } from '@deriv/quill-icons';
 import {
     getCardLabelsV2,
-    getContractTypeDisplay,
     getIndicativePrice,
     getMarketName,
     getTradeTypeName,
@@ -40,9 +39,8 @@ type TPurchaseButtonProps = {
 };
 
 const PurchaseButton = observer(({ onPurchaseSuccess }: TPurchaseButtonProps = {}) => {
-    const [loading_button_index, setLoadingButtonIndex] = React.useState<number | null>(null);
+    const [is_purchasing, setIsPurchasing] = React.useState(false);
     const purchaseButtonRef = React.useRef(null);
-    const sellButtonRef = React.useRef(null);
     const { localize } = useTranslations();
     const { isMobile } = useDevice();
     const { addBanner } = useNotifications();
@@ -69,6 +67,7 @@ const PurchaseButton = observer(({ onPurchaseSuccess }: TPurchaseButtonProps = {
         currency,
         has_cancellation,
         is_accumulator,
+        is_chart_loading,
         is_multiplier,
         is_purchase_enabled,
         is_trade_enabled_v2,
@@ -85,6 +84,18 @@ const PurchaseButton = observer(({ onPurchaseSuccess }: TPurchaseButtonProps = {
         trade_types,
     } = useTraderStore();
 
+    // Remember once the chart has finished loading. Used to gate the button on the first load
+    // only — later symbol switches also reload the chart, but shouldn't re-hide the button.
+    const has_chart_loaded_once = React.useRef(false);
+    if (is_chart_loading === false) has_chart_loaded_once.current = true;
+    // Fallback so a chart that never reports ready can't trap the button on a skeleton.
+    const [is_chart_load_timed_out, setIsChartLoadTimedOut] = React.useState(false);
+    React.useEffect(() => {
+        const timer = setTimeout(() => setIsChartLoadTimedOut(true), 10000);
+        return () => clearTimeout(timer);
+    }, []);
+    const is_awaiting_initial_chart = !has_chart_loaded_once.current && !is_chart_load_timed_out;
+
     const active_accu_contract = is_accumulator
         ? all_positions.find(({ contract_info, type }) => {
               const contract_underlying = contract_info.underlying_symbol;
@@ -98,7 +109,6 @@ const PurchaseButton = observer(({ onPurchaseSuccess }: TPurchaseButtonProps = {
         [basis_list]
     );
 
-    const is_high_low = /^high_low$/.test(contract_type.toLowerCase());
     const purchase_button_content_props = {
         currency,
         has_cancellation,
@@ -129,10 +139,10 @@ const PurchaseButton = observer(({ onPurchaseSuccess }: TPurchaseButtonProps = {
         []
     );
 
-    const getButtonType = (index: number, trade_type: string) => {
+    // Green for the up side, red for the down side.
+    const getButtonColor = (trade_type: string) => {
         const tab_index = getTradeTypeTabsList(contract_type).findIndex(tab => tab.contract_type === trade_type);
-        const button_index = tab_index < 0 ? index : tab_index;
-        return button_index ? 'sell' : 'purchase';
+        return tab_index > 0 ? 'sell' : 'purchase';
     };
 
     const addNotificationBannerCallback = (
@@ -167,7 +177,7 @@ const PurchaseButton = observer(({ onPurchaseSuccess }: TPurchaseButtonProps = {
     };
 
     React.useEffect(() => {
-        if (is_purchase_enabled) setLoadingButtonIndex(null);
+        if (is_purchase_enabled) setIsPurchasing(false);
     }, [is_purchase_enabled]);
 
     React.useEffect(() => {
@@ -218,9 +228,8 @@ const PurchaseButton = observer(({ onPurchaseSuccess }: TPurchaseButtonProps = {
 
     const should_show_review_disclosure = is_risk_disclosure_eligible && !is_risk_disclosure_accepted;
 
-    // While the disclosure-eligibility API is in flight, show a skeleton so we
-    // don't flash Buy before swapping to Review.
-    if (is_risk_disclosure_evaluating) {
+    // Skeleton until disclosure eligibility and the initial chart load settle, so Buy never flashes.
+    if (is_risk_disclosure_evaluating || is_awaiting_initial_chart) {
         return (
             <div
                 className={clsx('purchase-button__wrapper', {
@@ -289,10 +298,12 @@ const PurchaseButton = observer(({ onPurchaseSuccess }: TPurchaseButtonProps = {
                         'purchase-button__wrapper__un-auth': !is_logged_in,
                     })}
                 >
-                    {contract_types.map((trade_type, index) => {
+                    {(() => {
+                        // Single unified Buy button; the selected side is contract_types[0].
+                        const [trade_type] = contract_types;
+                        if (!trade_type) return null;
+
                         const info = proposal_info?.[trade_type] || {};
-                        const is_single_button = contract_types.length === 1;
-                        const is_loading = loading_button_index === index;
                         const is_insufficient_balance =
                             (info.has_error && info.error_code === SERVICE_ERROR.INSUFFICIENT_BALANCE) ||
                             (purchase_info as Record<string, any>)?.error?.code === SERVICE_ERROR.INSUFFICIENT_BALANCE;
@@ -301,82 +312,72 @@ const PurchaseButton = observer(({ onPurchaseSuccess }: TPurchaseButtonProps = {
                             (info.has_error && !is_insufficient_balance) ||
                             (!!purchase_info.error && !is_modal_error && !is_insufficient_balance) ||
                             is_switching_account;
-                        const is_button_disabled = is_disabled && !is_loading;
+                        const is_button_disabled = is_disabled && !is_purchasing;
 
                         return (
-                            <React.Fragment key={trade_type}>
-                                <Button
-                                    color={getButtonType(index, trade_type)}
-                                    size='lg'
-                                    label={
-                                        is_single_button
-                                            ? localize('Buy')
-                                            : getContractTypeDisplay(trade_type, {
-                                                  isHighLow: is_high_low,
-                                                  showButtonName: true,
-                                              })
+                            <Button
+                                color={getButtonColor(trade_type)}
+                                size='lg'
+                                label={localize('Buy')}
+                                fullWidth
+                                className={clsx(
+                                    'purchase-button',
+                                    'purchase-button--single',
+                                    is_purchasing && 'purchase-button--loading'
+                                )}
+                                isLoading={is_purchasing}
+                                isOpaque
+                                disabled={is_button_disabled}
+                                onMouseEnter={() => {
+                                    if (isMobile || !is_multiplier || is_button_disabled) return;
+                                    onHoverPurchase(true, trade_type);
+                                }}
+                                onMouseLeave={() => {
+                                    if (isMobile || !is_multiplier) return;
+                                    onHoverPurchase(false, trade_type);
+                                }}
+                                onClick={() => {
+                                    if (!is_logged_in) {
+                                        // Logged-out users can't buy: the server always rejects with
+                                        // AuthorizationRequired. Open the auth sheet directly instead of
+                                        // sending a doomed buy and awaiting proposals — that path can leave
+                                        // the button stuck loading and blank the payout after the sheet closes.
+                                        setServicesError(
+                                            { code: SERVICE_ERROR.AUTHORIZATION_REQUIRED, type: 'buy' },
+                                            true
+                                        );
+                                        return;
                                     }
-                                    fullWidth
-                                    className={clsx(
-                                        'purchase-button',
-                                        is_loading && 'purchase-button--loading',
-                                        is_single_button && 'purchase-button--single'
-                                    )}
-                                    isLoading={is_loading}
-                                    isOpaque
-                                    disabled={is_button_disabled}
-                                    onMouseEnter={() => {
-                                        if (isMobile || !is_multiplier || is_button_disabled) return;
-                                        onHoverPurchase(true, trade_type);
-                                    }}
-                                    onMouseLeave={() => {
-                                        if (isMobile || !is_multiplier) return;
-                                        onHoverPurchase(false, trade_type);
-                                    }}
-                                    onClick={() => {
-                                        if (!is_logged_in) {
-                                            // Logged-out users can't buy: the server always rejects with
-                                            // AuthorizationRequired. Open the auth sheet directly instead of
-                                            // sending a doomed buy and awaiting proposals — that path can leave
-                                            // the button stuck loading and blank the payout after the sheet closes.
-                                            setServicesError(
-                                                { code: SERVICE_ERROR.AUTHORIZATION_REQUIRED, type: 'buy' },
-                                                true
-                                            );
+                                    if (is_insufficient_balance) {
+                                        const error =
+                                            (purchase_info as Record<string, any>)?.error ||
+                                            (info.has_error && {
+                                                code: SERVICE_ERROR.INSUFFICIENT_BALANCE,
+                                                message: info.message,
+                                                type: 'buy',
+                                            });
+                                        if (error) {
+                                            setServicesError(error, true);
                                             return;
                                         }
-                                        if (is_insufficient_balance) {
-                                            const error =
-                                                (purchase_info as Record<string, any>)?.error ||
-                                                (info.has_error && {
-                                                    code: SERVICE_ERROR.INSUFFICIENT_BALANCE,
-                                                    message: info.message,
-                                                    type: 'buy',
-                                                });
-                                            if (error) {
-                                                setServicesError(error, true);
-                                                return;
-                                            }
-                                        }
-                                        setLoadingButtonIndex(index);
-                                        onPurchaseV2(trade_type, isMobile, (params, contract_id) => {
-                                            addNotificationBannerCallback(params, contract_id, trade_type);
-                                            onPurchaseSuccess?.();
-                                        });
-                                    }}
-                                >
-                                    {!is_loading && (
-                                        <PurchaseButtonContent
-                                            {...purchase_button_content_props}
-                                            has_no_button_content={has_no_button_content}
-                                            info={info}
-                                            is_reverse={!!index}
-                                        />
-                                    )}
-                                </Button>
-                            </React.Fragment>
+                                    }
+                                    setIsPurchasing(true);
+                                    onPurchaseV2(trade_type, isMobile, (params, contract_id) => {
+                                        addNotificationBannerCallback(params, contract_id, trade_type);
+                                        onPurchaseSuccess?.();
+                                    });
+                                }}
+                            >
+                                {!is_purchasing && (
+                                    <PurchaseButtonContent
+                                        {...purchase_button_content_props}
+                                        has_no_button_content={has_no_button_content}
+                                        info={info}
+                                    />
+                                )}
+                            </Button>
                         );
-                    })}
+                    })()}
                 </div>
             )}
         </React.Fragment>

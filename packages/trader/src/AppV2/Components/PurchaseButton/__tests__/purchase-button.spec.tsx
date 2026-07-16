@@ -3,7 +3,7 @@ import React from 'react';
 import { ReportsStoreProvider } from '@deriv/reports/src/Stores/useReportsStores';
 import { CONTRACT_TYPES, mockContractInfo, TRADE_TYPES } from '@deriv/shared';
 import { mockStore } from '@deriv/stores';
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import ModulesProvider from 'Stores/Providers/modules-providers';
@@ -36,6 +36,11 @@ jest.mock('AppV2/Hooks/useContractsFor', () => ({
 
 describe('PositionsContent', () => {
     let default_mock_store: ReturnType<typeof mockStore>;
+
+    // Guard against a fake-timer test leaking into later tests (which would hang userEvent)
+    afterEach(() => {
+        jest.useRealTimers();
+    });
 
     beforeEach(() => {
         default_mock_store = mockStore({
@@ -126,6 +131,7 @@ describe('PositionsContent', () => {
                     ...mockStore({}).modules.trade,
                     currency: 'USD',
                     contract_type: 'rise_fall',
+                    is_chart_loading: false,
                     is_purchase_enabled: true,
                     proposal_info: {
                         PUT: {
@@ -189,14 +195,56 @@ describe('PositionsContent', () => {
         );
     };
 
-    it('should render two buttons (for Rise and for Fall) with a proper content from proposal_info', () => {
+    it('should render a single unified Buy button for Rise/Fall even before trade_type_tab is set', () => {
+        // trade_type_tab is unset here (the load-window config that used to flash two
+        // Rise/Fall buttons); it should resolve to the default tab and render one Buy button.
         mockPurchaseButton();
 
-        expect(screen.getAllByText('Payout')).toHaveLength(2);
+        const purchase_button = screen.getByRole('button');
+        expect(purchase_button).toHaveClass('purchase-button--single');
+        expect(screen.getByText('Buy')).toBeInTheDocument();
+        expect(screen.queryByText('Rise')).not.toBeInTheDocument();
+        expect(screen.queryByText('Fall')).not.toBeInTheDocument();
+
+        // Content reflects the default (Rise/CALL) side's payout only, not both sides.
+        expect(screen.getByText('Payout')).toBeInTheDocument();
         expect(screen.getByText(/19.26/)).toBeInTheDocument();
-        expect(screen.getAllByText(/USD/i)).toHaveLength(2);
-        expect(screen.getByText('Rise')).toBeInTheDocument();
-        expect(screen.getByText('Fall')).toBeInTheDocument();
+        expect(screen.getByText(/USD/i)).toBeInTheDocument();
+    });
+
+    it('should render the skeleton (not the Buy button) while the initial chart load is pending', () => {
+        // is_chart_loading true = tick_history not fetched yet; button must stay skeletonized
+        // so it never flashes enabled before proposals/chart settle.
+        default_mock_store.modules.trade.is_chart_loading = true;
+        mockPurchaseButton();
+
+        expect(screen.getByTestId('dt_skeleton')).toBeInTheDocument();
+        expect(screen.queryByText('Buy')).not.toBeInTheDocument();
+    });
+
+    it('should render the Buy button once the chart has loaded (is_chart_loading false)', () => {
+        default_mock_store.modules.trade.is_chart_loading = false;
+        mockPurchaseButton();
+
+        expect(screen.queryByTestId('dt_skeleton')).not.toBeInTheDocument();
+        expect(screen.getByText('Buy')).toBeInTheDocument();
+    });
+
+    it('should reveal the Buy button via the safety timeout if the chart never reports ready', () => {
+        jest.useFakeTimers();
+        // is_chart_loading undefined = chart has not reported ready (e.g. never mounts / errors)
+        default_mock_store.modules.trade.is_chart_loading = undefined;
+        mockPurchaseButton();
+
+        expect(screen.getByTestId('dt_skeleton')).toBeInTheDocument();
+
+        act(() => {
+            jest.advanceTimersByTime(10000);
+        });
+
+        expect(screen.queryByTestId('dt_skeleton')).not.toBeInTheDocument();
+        expect(screen.getByText('Buy')).toBeInTheDocument();
+        jest.useRealTimers();
     });
 
     it('should disable the button if one of the prop is false (is_trade_enabled, is_proposal_empty, !info.id, is_purchase_enabled): button should have a specific attribute and if user clicks on it onPurchase will not be called', async () => {

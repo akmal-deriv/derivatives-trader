@@ -11,7 +11,6 @@ import { useTraderStore } from 'Stores/useTraderStores';
 type TPurchaseButtonContent = {
     has_no_button_content?: boolean;
     info: ReturnType<typeof useTraderStore>['proposal_info'][0] | Record<string, never>;
-    is_reverse?: boolean;
 } & Pick<
     ReturnType<typeof useTraderStore>,
     'currency' | 'has_cancellation' | 'has_open_accu_contract' | 'is_multiplier' | 'is_vanilla' | 'is_turbos'
@@ -26,7 +25,6 @@ const PurchaseButtonContent = ({
     is_multiplier,
     is_turbos,
     is_vanilla,
-    is_reverse,
 }: TPurchaseButtonContent) => {
     const { localize } = useTranslations();
     const { payout } = getLocalizedBasis();
@@ -61,7 +59,6 @@ const PurchaseButtonContent = ({
             size='sm'
             className={clsx(
                 'purchase-button__information__wrapper',
-                is_reverse && 'purchase-button__information__wrapper--reverse',
                 is_content_empty && 'purchase-button__information__wrapper--disabled-placeholder'
             )}
             data-testid='dt_purchase_button_wrapper'

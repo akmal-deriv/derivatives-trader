@@ -11,7 +11,7 @@ import { Localize } from '@deriv-com/translations';
 import { getAvailableContractTypes, getCategoriesSortedByKey } from 'AppV2/Utils/trading-contract-type-helpers';
 import { useTraderStore } from 'Stores/useTraderStores';
 
-import { getTradeTypeTabsList } from './trade-params-utils';
+import { getInitialTradeTypeTab, getTradeTypeTabsList } from './trade-params-utils';
 
 type TContractType = {
     text?: string;
@@ -244,18 +244,20 @@ export const getDisplayedContractTypes = (
         return [contract_type];
     }
 
-    // If trade_type_tab is set, filter by it
-    if (trade_type_tab) {
-        const filtered_types = available_types.filter(type => type === trade_type_tab);
-        // If filtering results in empty array but we have a valid trade_type_tab, return it
-        if (filtered_types.length === 0 && trade_type_tabs.some(tab => tab.contract_type === trade_type_tab)) {
-            return [trade_type_tab];
+    // While trade_type_tab is still empty (before TradeTypeTabs mounts), default to the tab
+    // it will select so we render one settled button instead of flashing one per type.
+    const effective_tab = trade_type_tab || getInitialTradeTypeTab(contract_type);
+
+    if (effective_tab) {
+        const filtered_types = available_types.filter(type => type === effective_tab);
+        // If filtering results in empty array but we have a valid tab, return it
+        if (filtered_types.length === 0 && trade_type_tabs.some(tab => tab.contract_type === effective_tab)) {
+            return [effective_tab];
         }
         return filtered_types.sort((a, b) => getSortedIndex(a) - getSortedIndex(b));
     }
 
-    // If trade_type_tab is not set but there are tabs, return all available types
-    // This ensures buttons are displayed even when trade_type_tab hasn't been initialized yet
+    // Fallback (should be unreachable when tabs exist): return all available types
     return available_types.sort((a, b) => getSortedIndex(a) - getSortedIndex(b));
 };
 

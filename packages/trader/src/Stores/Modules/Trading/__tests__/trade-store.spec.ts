@@ -157,7 +157,7 @@ describe('TradeStore', () => {
 
     describe('Initialization', () => {
         it('should initialize with correct default values', () => {
-            expect(tradeStore.amount).toBe(10);
+            expect(tradeStore.amount).toBe(2);
             expect(tradeStore.duration).toBe(5);
             expect(tradeStore.is_trade_component_mounted).toBe(false);
             expect(tradeStore.is_purchase_enabled).toBe(false);
