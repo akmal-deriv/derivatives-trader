@@ -5,7 +5,7 @@ This folder contains plain-English journey specifications, coverage scorecards, 
 
 Updated when new flows are added, tests are implemented, or coverage status changes.
 
-Last updated: 2026-07-10
+Last updated: 2026-07-15
 
 ---
 
@@ -41,8 +41,8 @@ Each module section lists every documented flow with its current **status** and 
 | `reports`       | 8           | 8          | 0         |
 | `notifications` | 9           | 9          | 0         |
 | `auth`          | 3           | 3          | 3         |
-| `automation`    | 9           | 9          | 3         |
-| **Total**       | **74**      | **74**     | **27**    |
+| `automation`    | 9           | 9          | 5         |
+| **Total**       | **74**      | **74**     | **29**    |
 
 > Status advances: `documented` → `automated`
 
@@ -169,8 +169,8 @@ Each module section lists every documented flow with its current **status** and 
 | ------ | -------- | ----------------------------------------------------- | ---------------------------------------------- | ------------ |
 | Flow 1 | P0       | Lifecycle — start strategy → Running → Stop           | authenticated, funded real/staging (non-EU)    | `automated`  |
 | Flow 2 | P1       | Pause and Resume a running automation                 | authenticated, funded real/staging (non-EU)    | `automated`  |
-| Flow 3 | P1       | Risk threshold auto-stop (loss/profit threshold)      | authenticated, funded real/staging (non-EU)    | `documented` |
-| Flow 4 | P2       | Strategy selection & params (Martingale / D'Alembert) | authenticated, funded real/staging (non-EU)    | `documented` |
+| Flow 3 | P1       | Risk threshold auto-stop (loss/profit threshold)      | authenticated, funded real/staging (non-EU)    | `automated`  |
+| Flow 4 | P2       | Strategy selection & params (Martingale / D'Alembert) | authenticated, funded real/staging (non-EU)    | `automated`  |
 | Flow 5 | P2       | Resync after account switch (stays Running)           | authenticated, funded real/staging, 2 accounts | `documented` |
 | Flow 6 | P1       | Automation panel loads with default state             | authenticated, funded real/staging (non-EU)    | `automated`  |
 | Flow 7 | P3       | Automation unavailable for EU account (gating)        | authenticated, EU/DIEL account                 | `documented` |
@@ -187,7 +187,7 @@ Each module section lists every documented flow with its current **status** and 
 | **Now**  | `positions`     | Flow 1 (open positions mobile), Flow 2 (desktop flyout)                                  |
 | **Next** | `reports`       | Flow 1 (page load), Flow 5 (Trade Table), Flow 6 (Statement)                             |
 | **Next** | `notifications` | Flow 3 (bell → dialog desktop), Flow 4 (bell → modal mobile), Flow 1 (trade banner)      |
-| **Soon** | `automation`    | Flow 3 (risk threshold auto-stop) + Flow 4 (strategy selection) + Flow 5 (resync)        |
+| **Soon** | `automation`    | Flow 5 (resync after account switch) + G1 (already-running snackbar) + G2 (validation)   |
 
 ---
 

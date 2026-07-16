@@ -2,23 +2,23 @@
 
 > Source of truth: `playwright/pages/TradeAutomationPage.ts` (to be created — extends `TradeParametersPage → TradeBasePage`)
 > Source components: `packages/trader/src/AppV2/Components/AutomationPanel/` · `packages/trader/src/AppV2/Hooks/useRunControls.ts` · `packages/trader/src/Stores/Modules/Trading/automation-store.ts` · `packages/trader/src/AppV2/Components/TradePanelTabs/trade-panel-tabs.tsx` · `packages/trader/src/AppV2/Routes/AutomateSwitch.tsx`
-> Created: 2026-07-07 | Last updated: 2026-07-07
+> Created: 2026-07-07 | Last updated: 2026-07-15
 
 ---
 
 ## Section 1 — Journey Index
 
-| Journey ID | Spec File                                                 | Tags                                  |
-| ---------- | --------------------------------------------------------- | ------------------------------------- |
-| Flow 1     | `automation/verify-automation-lifecycle.spec.ts`          | `@automation @smoke @desktop @mobile` |
-| Flow 2     | `automation/verify-automation-pause-resume.spec.ts`       | `@automation @desktop @mobile`        |
-| Flow 3     | `automation/verify-automation-threshold-stop.spec.ts`     | `@automation @desktop @mobile`        |
-| Flow 4     | `automation/verify-automation-strategy-selection.spec.ts` | `@automation @desktop @mobile`        |
-| Flow 5     | `automation/verify-automation-resync.spec.ts`             | `@automation @desktop @mobile`        |
-| Flow 6     | `automation/verify-automation-panel-loads.spec.ts`        | `@automation @smoke @desktop @mobile` |
-| Flow 7     | `automation/verify-automation-eu-gating.spec.ts`          | `@automation @desktop @mobile`        |
-| G1         | `automation/verify-automation-already-running.spec.ts`    | `@automation @desktop @mobile`        |
-| G2         | `automation/verify-automation-validation.spec.ts`         | `@automation @desktop @mobile`        |
+| Journey ID | Spec File                                                 | Tags                                    |
+| ---------- | --------------------------------------------------------- | --------------------------------------- |
+| Flow 1     | `automation/verify-automation-lifecycle.spec.ts`          | `@automation @smoke @desktop @mobile`   |
+| Flow 2     | `automation/verify-automation-pause-resume.spec.ts`       | `@automation @desktop @mobile`          |
+| Flow 3     | `automation/verify-automation-threshold-stop.spec.ts`     | `@automation @desktop @mobile`          |
+| Flow 4     | `automation/verify-automation-strategy-selection.spec.ts` | `@automation @desktop @mobile @staging` |
+| Flow 5     | `automation/verify-automation-resync.spec.ts`             | `@automation @desktop @mobile`          |
+| Flow 6     | `automation/verify-automation-panel-loads.spec.ts`        | `@automation @smoke @desktop @mobile`   |
+| Flow 7     | `automation/verify-automation-eu-gating.spec.ts`          | `@automation @desktop @mobile`          |
+| G1         | `automation/verify-automation-already-running.spec.ts`    | `@automation @desktop @mobile`          |
+| G2         | `automation/verify-automation-validation.spec.ts`         | `@automation @desktop @mobile`          |
 
 ---
 

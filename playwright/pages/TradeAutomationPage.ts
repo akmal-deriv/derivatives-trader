@@ -52,6 +52,47 @@ export class TradeAutomationPage extends TradeParametersPage {
     }
 
     /**
+     * A strategy option inside the open Strategy selector. The two viewports render options with
+     * different anchors, so branch on `isMobile`:
+     * - Desktop: `SelectionListPopover` renders each option as `<button role="option">{label}</button>`.
+     * - Mobile: the ActionSheet renders each option as `<button class="automation-popover__option">{label}</button>`
+     *   with no `option` role.
+     * Source: TradeParameters/Shared/SelectionListPopover.tsx · StrategySelector/strategy-selector-mobile.tsx.
+     *
+     * @param label - The strategy display label, e.g. `'Martingale'` or `"D'Alembert"`.
+     * @returns Locator for that option button within the open selector.
+     */
+    strategyOption(label: string): Locator {
+        return this.isMobile
+            ? this.page.locator('.automation-popover__option', { hasText: label })
+            : this.page.getByRole('option', { name: label });
+    }
+
+    /**
+     * D'Alembert's stake-parameter field. The shared `StakeMultiplier` component renders with the
+     * **"Stake increment"** label for D'Alembert (the `unit` param) — as opposed to Martingale's
+     * "Stake multiplier" (the `multiplier` param) — and its value reads `"{n} unit"`.
+     * Source: StakeMultiplier/stake-multiplier-{desktop,mobile}.tsx
+     * (`is_martingale ? 'Stake multiplier' : 'Stake increment'`).
+     */
+    get stakeIncrementField(): Locator {
+        return this.page.getByLabel('Stake increment').first();
+    }
+
+    /**
+     * A preset value chip inside an open parameter popover. The chips tab is the default view, so
+     * chips are visible immediately after opening the field — no tab switch needed. `ValueChips`
+     * renders each preset as `<button aria-label="Select value {n}">`.
+     * Source: AppV2/Components/InputPopover/value-chips.tsx.
+     *
+     * @param value - The preset numeric value to pick, e.g. `3`.
+     * @returns Locator for that chip button.
+     */
+    valueChip(value: number): Locator {
+        return this.page.getByRole('button', { name: `Select value ${value}`, exact: true });
+    }
+
+    /**
      * Run button (idle state) — Quill Button labelled "Run".
      * Source: automation-actions.tsx — label `localize('Run')`, class `automation-actions__run-button`.
      */
@@ -219,6 +260,46 @@ export class TradeAutomationPage extends TradeParametersPage {
         await expect(this.resumeButton, 'Resume button should be visible while paused').toBeVisible();
         await expect(this.resumeButton, 'Resume button should be enabled before resuming').toBeEnabled();
         await this.resumeButton.click();
+    }
+
+    /**
+     * Open the Strategy selector, confirm both bundled strategies are offered, select one, and
+     * confirm the Strategy field reflects the chosen label after the selector closes.
+     *
+     * Both bundled strategies (Martingale, D'Alembert) are asserted present so the test doubles as
+     * coverage of the selector's contents (Flow 4 step 1).
+     *
+     * @param label - The strategy to select, e.g. `"D'Alembert"`.
+     * @returns Promise that resolves once the Strategy field shows the selected label.
+     */
+    async selectStrategy(label: string): Promise<void> {
+        await this.strategyField.click();
+        await expect(
+            this.strategyOption('Martingale'),
+            'Martingale should be offered in the strategy selector'
+        ).toBeVisible();
+        await expect(
+            this.strategyOption("D'Alembert"),
+            "D'Alembert should be offered in the strategy selector"
+        ).toBeVisible();
+        await this.strategyOption(label).click();
+        await expect(this.strategyField, `Strategy field should show '${label}' after selection`).toHaveValue(label);
+    }
+
+    /**
+     * Set D'Alembert's Stake increment via a preset chip. The chips tab is shown by default, so the
+     * chip is clickable immediately with no tab switch; the field then reads `"{value} unit"`.
+     *
+     * @param value - A preset increment to pick (one of the chip presets, e.g. `3`).
+     * @returns Promise that resolves once the Stake increment field reflects the value.
+     */
+    async setStakeIncrement(value: number): Promise<void> {
+        await this.stakeIncrementField.click();
+        await this.valueChip(value).click();
+        await expect(
+            this.stakeIncrementField,
+            `Stake increment field should reflect '${value}' after selecting the chip`
+        ).toHaveValue(new RegExp(`^${value}\\b`));
     }
 
     /**
