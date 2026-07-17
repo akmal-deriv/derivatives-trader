@@ -4,7 +4,7 @@ import { TActiveSymbolsResponse } from '@deriv/api';
 import { localize } from '@deriv-com/translations';
 
 import { WS } from '../../services';
-import { getMarketNamesMap } from '../constants/contract';
+import { getContractTypesConfig, getMarketNamesMap } from '../constants/contract';
 import { redirectToLogin } from '../login';
 import { LocalStore } from '../storage';
 
@@ -123,6 +123,62 @@ const isSymbolOffered = async (symbol?: string) => {
     if (!symbol) return false;
     const r = await WS.storage.contractsFor(symbol);
     return !['InvalidSymbol', 'InputValidationFailed'].includes(r.error?.code);
+};
+
+/**
+ * Maps a UI trade type (e.g. 'rise_fall') to the API `contract_type` strings that compose it
+ * (e.g. ['CALL', 'PUT']). Returns an empty array for unknown trade types.
+ */
+const getApiContractTypesForTradeType = (trade_type: string): string[] =>
+    (getContractTypesConfig()[trade_type]?.trade_types as string[] | undefined) ?? [];
+
+/**
+ * Checks whether a symbol offers a given UI trade type by inspecting its contracts_for response.
+ */
+export const isTradeTypeOfferedForSymbol = async (symbol: string, trade_type: string) => {
+    const api_contract_types = getApiContractTypesForTradeType(trade_type);
+    if (!symbol || !api_contract_types.length) return false;
+    const r = await WS.storage.contractsFor(symbol);
+    if (['InvalidSymbol', 'InputValidationFailed'].includes(r.error?.code)) return false;
+    const available_contracts: Array<{ contract_type?: string }> = r.contracts_for?.available ?? [];
+    return available_contracts.some(
+        contract => contract.contract_type && api_contract_types.includes(contract.contract_type)
+    );
+};
+
+/**
+ * Finds an open, offered symbol that supports `trade_type`. Lets a trade type coming from a URL
+ * param take priority over a persisted symbol that doesn't support it. The standard default symbol
+ * (which offers the widest range of trade types) is preferred; otherwise the first matching open
+ * symbol is returned. Returns '' when no symbol offers the trade type (or the trade type is unknown).
+ */
+export const findSymbolForTradeType = async (
+    active_symbols: ActiveSymbols = [],
+    trade_type: string
+): Promise<string> => {
+    if (!active_symbols.length || !getApiContractTypesForTradeType(trade_type).length) return '';
+
+    const default_symbol = await pickDefaultSymbol(active_symbols);
+    if (default_symbol && (await isTradeTypeOfferedForSymbol(default_symbol, trade_type))) {
+        return default_symbol;
+    }
+
+    // Fall back to scanning the remaining open symbols for the first that offers the trade type.
+    const candidate_symbols = active_symbols
+        .filter(symbol_info => isSymbolOpen(symbol_info) && symbol_info.underlying_symbol)
+        .map(symbol_info => symbol_info.underlying_symbol as string)
+        .filter(underlying_symbol => underlying_symbol !== default_symbol);
+
+    return findFirstOfferedSymbol(candidate_symbols, trade_type);
+};
+
+/** Sequentially resolves the first symbol in the list that offers `trade_type` (recursion keeps the
+ * short-circuit without a disallowed for-loop). Returns '' when none match. */
+const findFirstOfferedSymbol = async (symbols: string[], trade_type: string): Promise<string> => {
+    const [symbol, ...remaining] = symbols;
+    if (!symbol) return '';
+    if (await isTradeTypeOfferedForSymbol(symbol, trade_type)) return symbol;
+    return findFirstOfferedSymbol(remaining, trade_type);
 };
 
 export type TActiveSymbols = NonNullable<TActiveSymbolsResponse['active_symbols']>;

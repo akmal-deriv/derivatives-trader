@@ -23,6 +23,7 @@ import {
     type Dayjs,
     extractInfoFromShortcode,
     findFirstOpenMarket,
+    findSymbolForTradeType,
     formatMoney,
     getBarrierPipSize,
     getCardLabelsV2,
@@ -396,6 +397,10 @@ export default class TradeStore extends BaseStore {
     // Trade type applied from the URL's trade_type param. Consumed one-shot by
     // useAutomationTradeTypeFallback to prioritise tab switching over overriding the type.
     url_trade_type: string | null = null;
+    // True while reconcileUrlTradeTypeWithSymbol is switching the market to honour a URL trade type
+    // the persisted market didn't offer. Keeps the trade page's full-screen loader up so the user
+    // doesn't briefly see the stale market + wrong trade type before the switch completes.
+    is_reconciling_url_trade_type = false;
 
     initial_barriers?: { barrier_1: string; barrier_2: string };
     is_initial_barrier_applied = false;
@@ -545,6 +550,8 @@ export default class TradeStore extends BaseStore {
             setIsAwaitingContractsFor: action.bound,
             url_trade_type: observable,
             clearUrlTradeType: action.bound,
+            reconcileUrlTradeTypeWithSymbol: action.bound,
+            is_reconciling_url_trade_type: observable,
             open_payout_wheelpicker: observable,
             togglePayoutWheelPicker: action.bound,
             v2_params_initial_values: observable.ref, // Object - use ref
@@ -658,10 +665,13 @@ export default class TradeStore extends BaseStore {
                     } else if (!Object.keys(getContractTypesConfig()).includes(urlContractType)) {
                         // Unknown/invalid trade type in the URL (a genuine dead-end deep link) — show the modal.
                         this.root_store.ui.toggleUrlUnavailableModal(true);
+                    } else {
+                        // A real trade type the current market doesn't offer (e.g. arriving from Deriv Home
+                        // with trade_type=rise_fall while the last-used market was Boom 1000, which only offers
+                        // Multipliers). Prioritise the URL trade type: switch to a market that offers it instead
+                        // of silently overriding the requested trade type with the market's default.
+                        this.reconcileUrlTradeTypeWithSymbol(urlContractType);
                     }
-                    // else: a real trade type the current market doesn't offer (e.g. arriving on Gold then
-                    // selecting Matches/Differs). Keep the current market and let useContractsFor switch the
-                    // trade type to one the market supports — instead of the misleading "URL unavailable" modal.
                 }
             }
         );
@@ -2633,6 +2643,76 @@ export default class TradeStore extends BaseStore {
 
     clearUrlTradeType() {
         this.url_trade_type = null;
+    }
+
+    /**
+     * Prioritise a trade type coming from a URL param over a persisted/loaded symbol that doesn't
+     * offer it. Scenario: the user arrives from Deriv Home with e.g. `trade_type=rise_fall` while the
+     * last-used symbol (restored from storage) was Boom 1000, which only offers Multipliers. Instead
+     * of silently overriding the requested trade type with the symbol's default, switch to a symbol
+     * that offers the requested trade type and keep the trade type.
+     *
+     * If no open symbol offers the trade type, fall back to the URL-unavailable modal (the trade type
+     * is effectively unavailable), leaving the current symbol untouched.
+     */
+    async reconcileUrlTradeTypeWithSymbol(trade_type: string) {
+        // Set synchronously (before the first await) so it is observed in the same render that
+        // useContractsFor unblocks the page loader — keeps the loader up instead of flashing the
+        // stale market + wrong trade type.
+        this.is_reconciling_url_trade_type = true;
+        // Timeout guards so a market list / active_symbols that never settle (API failure, native-app
+        // trade-type filtering) can't leave this awaiting forever. On timeout `when` rejects and the
+        // catch leaves the current state as-is — useContractsFor still keeps the UI consistent.
+        const WAIT_TIMEOUT = 30000;
+        try {
+            // The market list (contract_types_list_v2) can arrive from useContractsFor before
+            // active_symbols land in the store from useActiveSymbols. Wait for the symbols so the
+            // search has candidates — otherwise it would find nothing and wrongly show the modal.
+            await when(() => this.active_symbols.length > 0, { timeout: WAIT_TIMEOUT });
+            const compatible_symbol = await findSymbolForTradeType(this.active_symbols, trade_type);
+            if (!compatible_symbol) {
+                this.root_store.ui.toggleUrlUnavailableModal(true);
+                return;
+            }
+            // Mark this as a URL landing so downstream fallbacks (e.g. automation) honour the intent.
+            runInAction(() => {
+                this.url_trade_type = trade_type;
+            });
+            if (compatible_symbol !== this.symbol) {
+                await this.onChange({ target: { name: 'symbol', value: compatible_symbol } });
+                // useContractsFor refetches for the new market asynchronously and, on that run, defaults
+                // the trade type to the market's first available one. Wait until its list is populated and
+                // offers the requested trade type, then apply it last so default-selection can't override it.
+                await when(() => this.isTradeTypeOfferedInV2List(trade_type), { timeout: WAIT_TIMEOUT });
+            } else if (!this.isTradeTypeOfferedInV2List(trade_type)) {
+                // The compatible market is already the current one, but its processed V2 list doesn't
+                // expose the trade type (e.g. native-app/region filtering that the raw contracts_for the
+                // search relies on doesn't apply). Nothing will refetch to change that, so fail fast to the
+                // modal instead of waiting out the timeout — consistent with the "no available market" path.
+                this.root_store.ui.toggleUrlUnavailableModal(true);
+                return;
+            }
+            if (this.contract_type !== trade_type) {
+                await this.onChange({ target: { name: 'contract_type', value: trade_type } });
+            }
+        } catch (error) {
+            // active_symbols/market list didn't settle in time (when timeout), or a switch failed — leave
+            // the current state untouched rather than surfacing an error. Logged so a timeout is
+            // distinguishable from a genuine programming error during local testing/QA.
+            // eslint-disable-next-line no-console
+            console.error('[reconcileUrlTradeTypeWithSymbol] failed:', error);
+        } finally {
+            runInAction(() => {
+                this.is_reconciling_url_trade_type = false;
+            });
+        }
+    }
+
+    /** Whether the current V2 market list exposes `trade_type` as a selectable (available) category. */
+    isTradeTypeOfferedInV2List(trade_type: string) {
+        return Object.values(this.contract_types_list_v2 ?? {}).some(category =>
+            (category?.categories ?? []).some(item => (item as { value?: string })?.value === trade_type)
+        );
     }
 
     /**

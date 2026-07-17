@@ -51,6 +51,7 @@ const Trade = observer(() => {
         proposal_info,
         trade_types: trade_types_store,
         trade_type_tab,
+        is_reconciling_url_trade_type,
     } = useTraderStore();
     const { trade_types } = useContractsFor();
     const { is_enabled: is_automation_enabled } = useIsAutomationEnabled();
@@ -129,7 +130,7 @@ const Trade = observer(() => {
 
     return (
         <>
-            {symbols.length && trade_types.length ? (
+            {symbols.length && trade_types.length && !is_reconciling_url_trade_type ? (
                 <React.Fragment>
                     <div className='trade'>
                         <TradeTypes

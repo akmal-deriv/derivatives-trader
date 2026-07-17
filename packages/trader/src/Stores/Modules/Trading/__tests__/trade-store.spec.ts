@@ -1,7 +1,7 @@
 import { configure } from 'mobx';
 
 import { TActiveSymbolsResponse } from '@deriv/api';
-import { dayjs, TRADE_TYPES, WS } from '@deriv/shared';
+import { dayjs, findSymbolForTradeType, TRADE_TYPES, WS } from '@deriv/shared';
 import { mockStore } from '@deriv/stores';
 
 import { TRootStore } from 'Types';
@@ -25,6 +25,7 @@ jest.mock('@deriv/shared', () => ({
     ...jest.requireActual('@deriv/shared'),
     pickDefaultSymbol: jest.fn(() => Promise.resolve('1HZ100V')),
     isMarketClosed: jest.fn(() => false),
+    findSymbolForTradeType: jest.fn(() => Promise.resolve('')),
     WS: {
         authorized: {
             activeSymbols: () =>
@@ -800,34 +801,17 @@ describe('TradeStore', () => {
 
     describe('URL trade_type reconciliation (contract_types_list_v2 when-reaction)', () => {
         const setUrlTradeType = (trade_type: string) => window.history.pushState({}, '', `/?trade_type=${trade_type}`);
+        // setImmediate fires only after the entire microtask queue has drained, so this settles the
+        // reconciliation's chained awaits (when → findSymbolForTradeType → onChange → when → onChange)
+        // regardless of how many hops the chain has — unlike a fixed number of setTimeout(0) rounds.
+        const flushPromises = () => new Promise(resolve => jest.requireActual('timers').setImmediate(resolve));
 
-        afterEach(() => window.history.pushState({}, '', '/'));
-
-        it('does NOT show the URL-unavailable modal for a real trade type the current market lacks (e.g. Matches/Differs on Gold)', () => {
-            setUrlTradeType(TRADE_TYPES.MATCH_DIFF);
-            // For a forex market like Gold, Matches/Differs appears only as an unavailable category
-            // string (no selectable { value }) — mirroring the real contracts_for-derived shape.
-            tradeStore.contract_types_list_v2 = {
-                'Ups & Downs': {
-                    name: 'Ups & Downs',
-                    categories: [{ value: TRADE_TYPES.RISE_FALL, text: 'Rise/Fall' }],
-                },
-                Digits: { name: 'Digits', categories: [TRADE_TYPES.MATCH_DIFF] },
-            } as unknown as typeof tradeStore.contract_types_list_v2;
-
-            expect(mockRootStore.ui.toggleUrlUnavailableModal).not.toHaveBeenCalled();
-        });
-
-        it('shows the URL-unavailable modal for an unknown/invalid trade type', () => {
-            setUrlTradeType('not_a_real_trade_type');
-            tradeStore.contract_types_list_v2 = {
-                'Ups & Downs': {
-                    name: 'Ups & Downs',
-                    categories: [{ value: TRADE_TYPES.RISE_FALL, text: 'Rise/Fall' }],
-                },
-            } as typeof tradeStore.contract_types_list_v2;
-
-            expect(mockRootStore.ui.toggleUrlUnavailableModal).toHaveBeenCalledWith(true);
+        afterEach(() => {
+            window.history.pushState({}, '', '/');
+            (findSymbolForTradeType as jest.Mock).mockResolvedValue('');
+            // The valid-trade-type path persists contract_type to sessionStorage; clear it so a later
+            // test's fresh store doesn't restore a leaked contract_type via retrieveFromStorage.
+            sessionStorage.clear();
         });
 
         it('applies a valid URL trade type that the current market supports', () => {
@@ -844,8 +828,8 @@ describe('TradeStore', () => {
             expect(mockRootStore.ui.toggleUrlUnavailableModal).not.toHaveBeenCalled();
         });
 
-        it('does not record url_trade_type for a trade type the market does not offer', () => {
-            setUrlTradeType(TRADE_TYPES.MATCH_DIFF);
+        it('shows the URL-unavailable modal for an unknown/invalid trade type', () => {
+            setUrlTradeType('not_a_real_trade_type');
             tradeStore.contract_types_list_v2 = {
                 'Ups & Downs': {
                     name: 'Ups & Downs',
@@ -853,7 +837,99 @@ describe('TradeStore', () => {
                 },
             } as typeof tradeStore.contract_types_list_v2;
 
-            expect(tradeStore.url_trade_type).toBeNull();
+            expect(mockRootStore.ui.toggleUrlUnavailableModal).toHaveBeenCalledWith(true);
+        });
+
+        it('switches to a compatible symbol and applies the URL trade type once the new market offers it', async () => {
+            // e.g. arriving from Deriv Home with trade_type=rise_fall while the last-used market was
+            // Boom 1000 (Multipliers only). The URL trade type wins: switch to a market that offers it,
+            // then apply the trade type once the new market's list has loaded.
+            (findSymbolForTradeType as jest.Mock).mockResolvedValue('1HZ100V');
+            const onChangeSpy = jest.spyOn(tradeStore, 'onChange').mockResolvedValue(undefined);
+            setUrlTradeType(TRADE_TYPES.RISE_FALL);
+            tradeStore.symbol = 'BOOM1000';
+            tradeStore.active_symbols = [
+                { underlying_symbol: 'BOOM1000', exchange_is_open: 1 },
+                { underlying_symbol: '1HZ100V', exchange_is_open: 1 },
+            ] as NonNullable<TActiveSymbolsResponse['active_symbols']>;
+            // Current market (Boom 1000) offers only Multipliers.
+            tradeStore.contract_types_list_v2 = {
+                Multipliers: {
+                    name: 'Multipliers',
+                    categories: [{ value: TRADE_TYPES.MULTIPLIER, text: 'Multipliers' }],
+                },
+            } as unknown as typeof tradeStore.contract_types_list_v2;
+
+            await flushPromises();
+
+            // The symbol switch is requested and the URL landing recorded, but the trade type isn't
+            // applied yet because the new market's list hasn't arrived.
+            expect(findSymbolForTradeType).toHaveBeenCalledWith(tradeStore.active_symbols, TRADE_TYPES.RISE_FALL);
+            expect(tradeStore.url_trade_type).toBe(TRADE_TYPES.RISE_FALL);
+            expect(onChangeSpy).toHaveBeenCalledWith({ target: { name: 'symbol', value: '1HZ100V' } });
+            expect(onChangeSpy).not.toHaveBeenCalledWith({
+                target: { name: 'contract_type', value: TRADE_TYPES.RISE_FALL },
+            });
+            // The loader flag stays set while the switch is in progress so the page keeps its loader.
+            expect(tradeStore.is_reconciling_url_trade_type).toBe(true);
+
+            // Simulate useContractsFor loading the new market's list (which offers Rise/Fall).
+            tradeStore.contract_types_list_v2 = {
+                'Ups & Downs': {
+                    name: 'Ups & Downs',
+                    categories: [{ value: TRADE_TYPES.RISE_FALL, text: 'Rise/Fall' }],
+                },
+            } as unknown as typeof tradeStore.contract_types_list_v2;
+
+            await flushPromises();
+
+            expect(onChangeSpy).toHaveBeenCalledWith({
+                target: { name: 'contract_type', value: TRADE_TYPES.RISE_FALL },
+            });
+            expect(mockRootStore.ui.toggleUrlUnavailableModal).not.toHaveBeenCalled();
+            // Reconciliation finished — the loader flag is cleared so the page renders.
+            expect(tradeStore.is_reconciling_url_trade_type).toBe(false);
+        });
+
+        it('shows the URL-unavailable modal when no open market offers the requested trade type', async () => {
+            (findSymbolForTradeType as jest.Mock).mockResolvedValue('');
+            setUrlTradeType(TRADE_TYPES.MATCH_DIFF);
+            tradeStore.active_symbols = [{ underlying_symbol: '1HZ100V', exchange_is_open: 1 }] as NonNullable<
+                TActiveSymbolsResponse['active_symbols']
+            >;
+            tradeStore.contract_types_list_v2 = {
+                'Ups & Downs': { name: 'Ups & Downs', categories: [TRADE_TYPES.RISE_FALL] },
+            } as unknown as typeof tradeStore.contract_types_list_v2;
+
+            await flushPromises();
+
+            expect(mockRootStore.ui.toggleUrlUnavailableModal).toHaveBeenCalledWith(true);
+        });
+
+        it('fails fast to the modal when the compatible symbol is already current but its V2 list lacks the type', async () => {
+            // The search (raw contracts_for) resolves to the current symbol, but its processed V2 list
+            // doesn't expose the trade type (e.g. native-app/region filtering). No symbol change means
+            // nothing will refetch, so we must not wait out the timeout — show the modal immediately.
+            (findSymbolForTradeType as jest.Mock).mockResolvedValue('1HZ100V');
+            const onChangeSpy = jest.spyOn(tradeStore, 'onChange').mockResolvedValue(undefined);
+            setUrlTradeType(TRADE_TYPES.RISE_FALL);
+            tradeStore.symbol = '1HZ100V';
+            tradeStore.active_symbols = [{ underlying_symbol: '1HZ100V', exchange_is_open: 1 }] as NonNullable<
+                TActiveSymbolsResponse['active_symbols']
+            >;
+            tradeStore.contract_types_list_v2 = {
+                Multipliers: {
+                    name: 'Multipliers',
+                    categories: [{ value: TRADE_TYPES.MULTIPLIER, text: 'Multipliers' }],
+                },
+            } as unknown as typeof tradeStore.contract_types_list_v2;
+
+            await flushPromises();
+
+            expect(mockRootStore.ui.toggleUrlUnavailableModal).toHaveBeenCalledWith(true);
+            expect(onChangeSpy).not.toHaveBeenCalled();
+            // The loader flag is released rather than left blocking the page for the full timeout.
+            expect(tradeStore.is_reconciling_url_trade_type).toBe(false);
         });
 
         it('clearUrlTradeType consumes the signal', () => {

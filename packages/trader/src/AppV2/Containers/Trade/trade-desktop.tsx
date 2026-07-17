@@ -65,6 +65,7 @@ const TradeDesktop = observer(() => {
         should_show_active_symbols_loading,
         trade_types: trade_types_store,
         trade_type_tab,
+        is_reconciling_url_trade_type,
     } = useTraderStore();
 
     const { trade_types } = useContractsFor();
@@ -169,7 +170,7 @@ const TradeDesktop = observer(() => {
     return (
         <>
             {should_show_portrait_loader && <Loader isFullScreen color='var(--brand-primary)' />}
-            {symbols.length && trade_types.length ? (
+            {symbols.length && trade_types.length && !is_reconciling_url_trade_type ? (
                 <div
                     className={clsx('trade', {
                         trade__logout: !is_logged_in,
