@@ -210,7 +210,7 @@ export const mapSymbolToMarketCategory = (market?: string, submarket?: string, s
             normalized_submarket === 'jump_indices' ||
             normalized_submarket === 'crash_index' ||
             normalized_submarket === 'crash_boom' ||
-            normalized_submarket === 'range_break'
+            normalized_submarket === 'range_index'
         ) {
             return 'daily_reset_indices';
         }

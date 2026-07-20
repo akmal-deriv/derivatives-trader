@@ -63,7 +63,7 @@ export const getSubmarketDisplayName = (submarket: string) => {
         crash_index: localize('Crash/Boom'),
         step_indices: localize('Step indices'),
         step_index: localize('Step indices'),
-        range_break: localize('Range break indices'),
+        range_index: localize('Range break indices'),
         jump_indices: localize('Jump indices'),
         jump_index: localize('Jump indices'),
         cryptocurrency: localize('Cryptocurrencies'),

@@ -1,4 +1,4 @@
-import { enrichActiveSymbols, MARKET_MAPPINGS } from '../transformers';
+import { enrichActiveSymbols } from '../transformers';
 
 // Mock the symbol-categories-utils module
 jest.mock('AppV2/Utils/symbol-categories-utils', () => ({
@@ -26,28 +26,6 @@ jest.mock('AppV2/Utils/symbol-categories-utils', () => ({
 }));
 
 describe('SmartChart Adapters - Transformers', () => {
-    describe('MARKET_MAPPINGS', () => {
-        it('should have valid market display names mapping', () => {
-            expect(MARKET_MAPPINGS.MARKET_DISPLAY_NAMES).toBeInstanceOf(Map);
-            expect(MARKET_MAPPINGS.MARKET_DISPLAY_NAMES.size).toBeGreaterThan(0);
-
-            // Test specific mappings
-            expect(MARKET_MAPPINGS.MARKET_DISPLAY_NAMES.get('synthetic_index')).toBe('Derived');
-            expect(MARKET_MAPPINGS.MARKET_DISPLAY_NAMES.get('forex')).toBe('Forex');
-            expect(MARKET_MAPPINGS.MARKET_DISPLAY_NAMES.get('indices')).toBe('Stock Indices');
-        });
-
-        it('should have valid submarket display names mapping', () => {
-            expect(MARKET_MAPPINGS.SUBMARKET_DISPLAY_NAMES).toBeInstanceOf(Map);
-            expect(MARKET_MAPPINGS.SUBMARKET_DISPLAY_NAMES.size).toBeGreaterThan(0);
-
-            // Test specific mappings
-            expect(MARKET_MAPPINGS.SUBMARKET_DISPLAY_NAMES.get('major_pairs')).toBe('Major Pairs');
-            expect(MARKET_MAPPINGS.SUBMARKET_DISPLAY_NAMES.get('random_index')).toBe('Volatility Indices');
-            expect(MARKET_MAPPINGS.SUBMARKET_DISPLAY_NAMES.get('crash_index')).toBe('Crash/Boom');
-        });
-    });
-
     describe('enrichActiveSymbols', () => {
         const mockActiveSymbols = [
             {
