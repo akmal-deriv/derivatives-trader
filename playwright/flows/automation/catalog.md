@@ -14,7 +14,7 @@
 | Flow 2     | `automation/verify-automation-pause-resume.spec.ts`       | `@automation @desktop @mobile`          |
 | Flow 3     | `automation/verify-automation-threshold-stop.spec.ts`     | `@automation @desktop @mobile`          |
 | Flow 4     | `automation/verify-automation-strategy-selection.spec.ts` | `@automation @desktop @mobile @staging` |
-| Flow 5     | `automation/verify-automation-resync.spec.ts`             | `@automation @desktop @mobile`          |
+| Flow 5     | `automation/verify-automation-resync.spec.ts`             | `@automation @desktop @mobile @staging` |
 | Flow 6     | `automation/verify-automation-panel-loads.spec.ts`        | `@automation @smoke @desktop @mobile`   |
 | Flow 7     | `automation/verify-automation-eu-gating.spec.ts`          | `@automation @desktop @mobile`          |
 | G1         | `automation/verify-automation-already-running.spec.ts`    | `@automation @desktop @mobile`          |

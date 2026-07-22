@@ -5,7 +5,7 @@ This folder contains plain-English journey specifications, coverage scorecards, 
 
 Updated when new flows are added, tests are implemented, or coverage status changes.
 
-Last updated: 2026-07-15
+Last updated: 2026-07-21
 
 ---
 
@@ -41,8 +41,8 @@ Each module section lists every documented flow with its current **status** and 
 | `reports`       | 8           | 8          | 0         |
 | `notifications` | 9           | 9          | 0         |
 | `auth`          | 3           | 3          | 3         |
-| `automation`    | 9           | 9          | 5         |
-| **Total**       | **74**      | **74**     | **29**    |
+| `automation`    | 9           | 9          | 6         |
+| **Total**       | **74**      | **74**     | **30**    |
 
 > Status advances: `documented` → `automated`
 
@@ -171,7 +171,7 @@ Each module section lists every documented flow with its current **status** and 
 | Flow 2 | P1       | Pause and Resume a running automation                 | authenticated, funded real/staging (non-EU)    | `automated`  |
 | Flow 3 | P1       | Risk threshold auto-stop (loss/profit threshold)      | authenticated, funded real/staging (non-EU)    | `automated`  |
 | Flow 4 | P2       | Strategy selection & params (Martingale / D'Alembert) | authenticated, funded real/staging (non-EU)    | `automated`  |
-| Flow 5 | P2       | Resync after account switch (stays Running)           | authenticated, funded real/staging, 2 accounts | `documented` |
+| Flow 5 | P2       | Resync after account switch (stays Running)           | authenticated, funded real/staging, 2 accounts | `automated`  |
 | Flow 6 | P1       | Automation panel loads with default state             | authenticated, funded real/staging (non-EU)    | `automated`  |
 | Flow 7 | P3       | Automation unavailable for EU account (gating)        | authenticated, EU/DIEL account                 | `documented` |
 | —      | P2       | "Automation already running" adoption snackbar (G1)   | authenticated, run active                      | `documented` |

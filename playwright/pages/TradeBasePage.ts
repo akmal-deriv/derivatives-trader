@@ -158,6 +158,47 @@ export class TradeBasePage {
         return this.page.locator('.quill-chip[data-state="selected"]').first();
     }
 
+    /**
+     * The currently-active account's type label shown on the account-info trigger (switcher closed).
+     * Reads "Real account" or "Demo account". AppV2 renders a different container per viewport:
+     * - Desktop: `.account-header__content-header` (account-header.tsx, AppV2)
+     * - Mobile: `.acc-info__account-type-header` (core account-info.tsx)
+     *
+     * These trigger-specific classes are distinct from the switcher's account-item classes, so the
+     * label never collides with the "Real account" / "Demo account" text rendered by the open
+     * switcher's account rows.
+     */
+    get activeAccountTypeLabel(): Locator {
+        return this.isMobile
+            ? this.page.locator('.acc-info__account-type-header')
+            : this.page.locator('.account-header__content-header');
+    }
+
+    /**
+     * The account-list container inside the open switcher — a single element on both viewports
+     * (dropdown on desktop, ActionSheet on mobile). Confirms the switcher opened without colliding
+     * with the individual account rows. Source: account-switcher.tsx `.acc-switcher__accounts`.
+     */
+    get accountSwitcherList(): Locator {
+        return this.page.locator('.acc-switcher__accounts');
+    }
+
+    /**
+     * An account row inside the open account switcher, matched by account type via its aria-label.
+     * The shared `AccountSwitcher` (core/.../account-switcher.tsx) renders each account as
+     * `<button aria-label="{Real|Demo} account {id} with balance {bal} {curr}" data-testid="dt_account_item_{id}">`.
+     * The account_id is dynamic, so the stable anchor is the aria-label prefix ("Real account " /
+     * "Demo account "). The currently-active account renders `disabled`, so clicking a different
+     * type always targets an enabled row.
+     *
+     * @param type - `'real'` or `'demo'`.
+     * @returns Locator for the first switcher row of that account type.
+     */
+    accountSwitcherItem(type: 'real' | 'demo'): Locator {
+        const prefix = type === 'real' ? 'Real account ' : 'Demo account ';
+        return this.page.getByRole('button', { name: new RegExp(`^${prefix}`) }).first();
+    }
+
     // ============================================
     // ACTIONS
     // ============================================
@@ -283,6 +324,53 @@ export class TradeBasePage {
             await this.sidebarAccountButton.click();
         }
         await this.logoutButton.click();
+    }
+
+    /**
+     * Open the account switcher from the account-info trigger and wait for it to list accounts.
+     * Works on both viewports — desktop renders an inline dropdown, mobile an ActionSheet, but
+     * both mount the same account rows.
+     *
+     * @returns Promise that resolves once at least one account row is visible.
+     */
+    async openAccountSwitcher(): Promise<void> {
+        await expect(
+            this.accountInfo,
+            'Account info trigger should be visible before opening the account switcher'
+        ).toBeVisible();
+        await this.accountInfo.click();
+        await expect(
+            this.accountSwitcherList,
+            'Account switcher list should be visible after opening the switcher'
+        ).toBeVisible();
+    }
+
+    /**
+     * Switch to an account of the given type via the account switcher, then wait for the switch to
+     * fully settle (the trigger reflects the new account type and the Deriv API has reconnected).
+     *
+     * `client.switchAccount` is fire-and-forget — it swaps localStorage and reconnects the
+     * WebSocket, showing a skeleton loader in between — so the settle is confirmed by the
+     * account-type label updating rather than by the click alone.
+     *
+     * No-op when the target account is already active — the active row renders `disabled`, so
+     * opening the switcher and clicking it would hang until timeout. Guarding keeps the method
+     * idempotent.
+     *
+     * @param type - The account type to switch to: `'real'` or `'demo'`.
+     * @returns Promise that resolves once the target account is active.
+     */
+    async switchToAccountType(type: 'real' | 'demo'): Promise<void> {
+        const expectedText = type === 'real' ? 'Real account' : 'Demo account';
+        const currentLabel = (await this.activeAccountTypeLabel.textContent())?.trim() ?? '';
+        if (currentLabel.includes(expectedText)) return; // already on the target account — nothing to do
+
+        await this.openAccountSwitcher();
+        const row = this.accountSwitcherItem(type);
+        await expect(row, `A ${type} account row should be available in the switcher`).toBeVisible();
+        await row.click();
+        await this.verifyActiveAccountType(type);
+        await NavigationUtils.waitForDerivApiSettled(this.page);
     }
 
     /**
@@ -425,6 +513,22 @@ export class TradeBasePage {
                 'Sidebar Account button should be visible after login'
             ).toBeVisible();
         }
+    }
+
+    /**
+     * Verify which account is currently active by reading the account-info trigger's type label.
+     * Polls (with a generous timeout) to tolerate the skeleton loader shown mid-switch while the
+     * WebSocket reconnects.
+     *
+     * @param type - Expected active account type: `'real'` or `'demo'`.
+     * @returns Promise that resolves once the trigger reflects the expected account type.
+     */
+    async verifyActiveAccountType(type: 'real' | 'demo'): Promise<void> {
+        const expectedText = type === 'real' ? 'Real account' : 'Demo account';
+        await expect(
+            this.activeAccountTypeLabel,
+            `Account trigger should show "${expectedText}" once the ${type} account is active`
+        ).toContainText(expectedText, { timeout: 30_000 });
     }
 
     /**
