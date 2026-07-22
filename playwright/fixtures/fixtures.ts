@@ -17,6 +17,7 @@ import { TradeAutomationPage } from '../pages/TradeAutomationPage';
 import { PositionsPage } from '../pages/PositionsPage';
 import { ReportsPage } from '../pages/ReportsPage';
 import { ContractDetailsPage } from '../pages/ContractDetailsPage';
+import { FeedPage } from '../pages/FeedPage';
 
 /**
  * Extended test fixtures with page object models for derivatives-trader.
@@ -80,6 +81,7 @@ export const test = base.extend<{
     positionsPage: PositionsPage;
     reportsPage: ReportsPage;
     contractDetailsPage: ContractDetailsPage;
+    feedPage: FeedPage;
     /** True when running under a mobile project (viewport width < 1024px). */
     isMobileViewport: boolean;
 }>({
@@ -211,6 +213,13 @@ export const test = base.extend<{
      */
     contractDetailsPage: async ({ page }, use) => {
         await use(new ContractDetailsPage(page));
+    },
+
+    /**
+     * Feed page fixture — provides initialized FeedPage instance
+     */
+    feedPage: async ({ page }, use) => {
+        await use(new FeedPage(page));
     },
 
     /**

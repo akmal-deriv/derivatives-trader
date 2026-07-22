@@ -4,7 +4,7 @@
  * @flow     playwright/flows/trade/flow.md#flow-1--trade-form-loads-with-default-state-visible
  * @coverage playwright/flows/trade/coverage.md
  */
-import { test } from '../../fixtures/fixtures';
+import { test, expect } from '../../fixtures/fixtures';
 import { TradeBasePage } from '../../pages/TradeBasePage';
 
 test.describe('Trade', { tag: ['@desktop', '@mobile', '@trade', '@smoke', '@production'] }, () => {
@@ -23,6 +23,20 @@ test.describe('Trade', { tag: ['@desktop', '@mobile', '@trade', '@smoke', '@prod
     test('VERIFY trade form default state when logged out', async ({ tradeParametersPage }) => {
         await tradeParametersPage.gotoTradePage();
         await tradeParametersPage.verifyDTraderLandingPageLoggedOut();
+    });
+
+    test('VERIFY default symbol is Volatility 100 (1s) Index and Rise/Fall is the default trade type on landing', async ({
+        tradeParametersPage,
+    }) => {
+        await tradeParametersPage.gotoTradePage();
+        await expect(
+            tradeParametersPage.selectedMarketLabel,
+            'Default symbol should be Volatility 100 (1s) Index'
+        ).toContainText('Volatility 100 (1s) Index');
+        await expect(
+            tradeParametersPage.selectedRiseFallChip,
+            'Rise/Fall should be the default selected trade type'
+        ).toBeVisible();
     });
 
     test('VERIFY trade form default state when logged in', async ({ page, loginPage, tradeParametersPage }) => {

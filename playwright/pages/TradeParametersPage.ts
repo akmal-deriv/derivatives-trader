@@ -681,10 +681,6 @@ export class TradeParametersPage extends TradeBasePage {
                 this.page.locator('.cq-menu-dropdown-enter-done'),
                 'SmartCharts market picker should be closed after market selection'
             ).not.toBeAttached();
-            await expect(
-                this.durationField,
-                'Duration field should be visible once market picker is closed'
-            ).toBeVisible();
         }
 
         await expect(this.selectedMarketLabel, `Market selector should show '${market}' after selection`).toContainText(

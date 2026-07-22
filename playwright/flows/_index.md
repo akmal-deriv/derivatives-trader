@@ -42,7 +42,8 @@ Each module section lists every documented flow with its current **status** and 
 | `notifications` | 9           | 9          | 0         |
 | `auth`          | 3           | 3          | 3         |
 | `automation`    | 9           | 9          | 6         |
-| **Total**       | **74**      | **74**     | **30**    |
+| `feed`          | 1           | 1          | 1         |
+| **Total**       | **75**      | **75**     | **31**    |
 
 > Status advances: `documented` → `automated`
 
@@ -179,6 +180,18 @@ Each module section lists every documented flow with its current **status** and 
 
 ---
 
+---
+
+## Module: `feed` — Live Price Feed
+
+**Flow docs:** `playwright/flows/feed/` · **Test folder:** `playwright/tests/feed/`
+
+| Flow   | Priority | Description                                                                                                                    | User State      | Status      |
+| ------ | -------- | ------------------------------------------------------------------------------------------------------------------------------ | --------------- | ----------- |
+| Flow 1 | P0       | All markets: feed active or closed state correct for every market (~65 symbols, desktop + mobile; open/session_gated branches) | unauthenticated | `automated` |
+
+---
+
 ## Implementation Priority Order
 
 | Priority | Module          | Key Flows to Implement First                                                             |
@@ -213,3 +226,4 @@ AI will read all `coverage.md` files and `playwright/tests/` spec files, compute
 | notifications | [flow](notifications/flow.md) | [catalog](notifications/catalog.md) | [coverage](notifications/coverage.md) |
 | auth          | [flow](auth/flow.md)          | [catalog](auth/catalog.md)          | [coverage](auth/coverage.md)          |
 | automation    | [flow](automation/flow.md)    | [catalog](automation/catalog.md)    | [coverage](automation/coverage.md)    |
+| feed          | [flow](feed/flow.md)          | [catalog](feed/catalog.md)          | [coverage](feed/coverage.md)          |

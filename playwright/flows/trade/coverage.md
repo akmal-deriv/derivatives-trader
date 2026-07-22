@@ -1,6 +1,6 @@
 # Trade Journey Coverage
 
-**Analysis date:** 2026-07-14
+**Analysis date:** 2026-07-20
 
 ---
 

@@ -59,6 +59,7 @@ When creating a **new test folder** under `playwright/tests/`, the folder name *
 | ----------------------------- | --------------------------------- |
 | Login / authentication        | `playwright/tests/auth/`          |
 | Trade form + contract details | `playwright/tests/trade/`         |
+| Live price feed               | `playwright/tests/feed/`          |
 | Open positions                | `playwright/tests/positions/`     |
 | Reports (P&L, statement)      | `playwright/tests/reports/`       |
 | Notifications                 | `playwright/tests/notifications/` |
@@ -214,7 +215,7 @@ test.describe("Trade Form", { tag: ["@trade", "@smoke", "@desktop"] }, () => { .
 test.describe("Trade Form @trade @smoke", () => { ... });
 ```
 
-**Feature-area tags**: `@auth`, `@trade`, `@positions`, `@reports`, `@notifications`
+**Feature-area tags**: `@auth`, `@trade`, `@feed`, `@positions`, `@reports`, `@notifications`
 
 **Execution tags**: `@smoke` (critical path), `@regression` (full suite), `@production` (safe on prod)
 

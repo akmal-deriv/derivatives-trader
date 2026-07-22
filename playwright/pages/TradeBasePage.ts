@@ -158,6 +158,11 @@ export class TradeBasePage {
         return this.page.locator('.quill-chip[data-state="selected"]').first();
     }
 
+    /** Rise/Fall chip in selected state — asserts it is the active trade type */
+    get selectedRiseFallChip(): Locator {
+        return this.page.locator('.quill-chip[data-state="selected"]', { hasText: 'Rise/Fall' });
+    }
+
     /**
      * The currently-active account's type label shown on the account-info trigger (switcher closed).
      * Reads "Real account" or "Demo account". AppV2 renders a different container per viewport:

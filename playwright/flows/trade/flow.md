@@ -25,7 +25,19 @@
 | 5   | Verify selected chip       | Observe trade type chips              | Rise/Fall chip selected by default    | Both     |
 | 6   | Verify purchase button     | Observe buy area                      | Purchase button visible               | Both     |
 
-### Flow 1b — Logged-in state
+### Flow 1b — Default symbol and trade type (fresh session)
+
+**Prerequisites:** No authentication. No localStorage (fresh browser context / incognito).
+
+| #   | Step                      | Action                                | Expected Result                                | Platform |
+| --- | ------------------------- | ------------------------------------- | ---------------------------------------------- | -------- |
+| 1   | Navigate to trade page    | `tradeParametersPage.gotoTradePage()` | Trade page loads at `/`                        | Both     |
+| 2   | Verify default symbol     | Observe market selector               | Symbol label shows "Volatility 100 (1s) Index" | Both     |
+| 3   | Verify default trade type | Observe trade type chips              | Rise/Fall chip is selected                     | Both     |
+
+---
+
+### Flow 1c — Logged-in state
 
 **Prerequisites:** Authenticated (real or demo account). Market open.
 
