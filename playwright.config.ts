@@ -71,17 +71,27 @@ export default defineConfig({
         ['list'],
         ['html', { outputFolder: './playwright/playwright-report' }],
         ['json', { outputFile: './playwright/playwright-report/results.json' }],
+        /* Live-streams results to TestDino as the run progresses — only enabled when a token is set. */
+        ...(process.env.TESTDINO_TOKEN
+            ? [
+                  [
+                      '@testdino/playwright',
+                      { token: process.env.TESTDINO_TOKEN, serverUrl: 'https://reporter.testdino.com' },
+                  ] as [string, object],
+              ]
+            : []),
     ],
 
     use: {
         /* Base URL — override with BASE_URL env var for different environments */
         baseURL: process.env.BASE_URL || 'https://staging-dtrader.deriv.com',
 
-        /* Deny geolocation permission so the browser location-sharing popup is
-         * never shown to the test runner. Needed for KYC flows that request
-         * geolocation access.
+        /* Grant geolocation permission up front so the browser location-sharing
+         * popup is never shown to the test runner, and pin deterministic mock
+         * coordinates so geolocation-aware tests (e.g. KYC flows) behave
+         * identically across all browser projects.
          */
-        permissions: [],
+        permissions: ['geolocation'],
         geolocation: { latitude: 0, longitude: 0 },
 
         /* Headless in CI, headed locally */

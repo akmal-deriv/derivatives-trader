@@ -40,6 +40,7 @@
         "@faker-js/faker": "^10.4.0",
         "@jest/globals": "^29.7.0",
         "@playwright/test": "^1.52.0",
+        "@testdino/playwright": "^2.0.0",
         "@testing-library/jest-dom": "^6.5.0",
         "@testing-library/react": "^14.3.1",
         "@testing-library/react-hooks": "^7.0.2",
@@ -67,7 +68,6 @@
         "stylelint-no-unsupported-browser-features": "^4.0.0",
         "stylelint-selector-bem-pattern": "^4.0.1",
         "stylelint-webpack-plugin": "^5.0.1",
-        "tdpw": "1.0.38",
         "ts-jest": "^29.2.5",
         "webpack-bundle-analyzer": "^4.10.2"
     },

@@ -2,189 +2,223 @@
 /**
  * Publish a TestDino test-run summary to $GITHUB_STEP_SUMMARY.
  *
- * Required env vars (set per-repo via GitHub Actions variables):
+ * Required env vars:
  *   TESTDINO_ACCESS_TOKEN  Read-only Project PAT (`tdp_…`, scope: public-api). Secret.
  *   TESTDINO_PROJECT_ID    e.g. project_xxxxxxxxxxxx. Repo variable.
  *   TESTDINO_ORG_ID        e.g. org_xxxxxxxxxxxx. Repo variable.
- *   TESTDINO_RUN_ID        e.g. test_run_xxxxxxxxxxxx
- *                          (set by the upstream `tdpw upload` step)
+ *   GITHUB_RUN_ID          Actions run ID (set automatically by GitHub Actions).
  *
  * Optional env vars:
- *   TESTDINO_RUN_URL       Full UI URL of the run (used as link target).
- *                          Falls back to the project test-runs index.
+ *   PLATFORM               Matrix platform (e.g. "chromium"). Disambiguates when
+ *                          desktop/mobile jobs share one GITHUB_RUN_ID.
  *   GITHUB_STEP_SUMMARY    Path to the summary file. If unset, output goes to stdout.
  *
  * Behaviour:
+ *   - Fetches the 50 most recent TestDino runs and matches on pipeline.id === GITHUB_RUN_ID,
+ *     preferring the run tagged for PLATFORM when more than one match is found.
+ *   - Fetches failed/flaky test details via GET /context?runId={id}.
  *   - Always writes the "View TestDino Report" link.
- *   - Fetches run stats via the public API and renders a stats table.
- *   - If failed > 0, renders a Failed Tests table with deep links per case.
- *   - On any API/auth/network failure the script exits 0 with a fallback note —
+ *   - Renders a stats table and a Failed Tests table when failures exist.
+ *   - On any API/auth/network failure exits 0 with a fallback note —
  *     it must never fail the calling workflow job.
  *
  * Requires: Node 18+ (built-in `fetch`).
  */
 
-const fs = require('node:fs');
+const fs = require("node:fs");
 
 const {
     TESTDINO_ACCESS_TOKEN,
     TESTDINO_PROJECT_ID,
-    TESTDINO_RUN_ID,
-    TESTDINO_RUN_URL,
     TESTDINO_ORG_ID,
+    GITHUB_RUN_ID,
+    PLATFORM,
     GITHUB_STEP_SUMMARY,
 } = process.env;
 
 const PROJECT_RE = /^project_[a-zA-Z0-9_-]+$/;
-const RUN_RE = /^test_run_[a-zA-Z0-9_-]+$/;
 const ORG_RE = /^org_[a-zA-Z0-9_-]+$/;
 
-// Validate that the URL parses and uses http(s) so a malformed env var can't break out of Markdown link syntax.
-const isSafeUrl = u => {
-    try {
-        return ['https:', 'http:'].includes(new URL(u).protocol);
-    } catch {
-        return false;
-    }
-};
-
 const fallbackUrl =
-    ORG_RE.test(TESTDINO_ORG_ID ?? '') && PROJECT_RE.test(TESTDINO_PROJECT_ID ?? '')
+    ORG_RE.test(TESTDINO_ORG_ID ?? "") && PROJECT_RE.test(TESTDINO_PROJECT_ID ?? "")
         ? `https://app.testdino.com/${TESTDINO_ORG_ID}/projects/${TESTDINO_PROJECT_ID}/test-runs`
-        : 'https://app.testdino.com';
-const linkUrl = isSafeUrl(TESTDINO_RUN_URL) ? TESTDINO_RUN_URL : fallbackUrl;
+        : "https://app.testdino.com";
 
 const lines = [];
-const write = line => lines.push(line);
+const write = (line) => lines.push(line);
 const flush = () => {
-    const out = lines.join('\n') + '\n';
+    const out = lines.join("\n") + "\n";
     if (GITHUB_STEP_SUMMARY) fs.appendFileSync(GITHUB_STEP_SUMMARY, out);
     else process.stdout.write(out);
 };
 
-const formatDuration = ms => {
+const formatDuration = (ms) => {
     const total = Number(ms) / 1000;
-    if (!Number.isFinite(total) || total <= 0) return '0s';
+    if (!Number.isFinite(total) || total <= 0) return "0s";
     const m = Math.floor(total / 60);
     const s = total - m * 60;
     return m > 0 ? `${m}m ${Math.round(s)}s` : `${s.toFixed(1)}s`;
 };
 
-// Escape Markdown-sensitive characters from API-supplied text to prevent link/HTML injection in table cells.
-const sanitizeMd = text =>
-    String(text ?? '')
-        .replace(/\r?\n/g, ' ')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/[|\[\]()`]/g, '\\$&');
+const sanitizeMd = (text) =>
+    String(text ?? "")
+        .replace(/\r?\n/g, " ")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/[|\[\]()`]/g, "\\$&");
 
-const main = async () => {
-    write(`### 🚀 [View TestDino Report](${linkUrl})`);
-    write('');
-
-    if (!TESTDINO_ACCESS_TOKEN || !TESTDINO_PROJECT_ID) {
-        write('_TestDino summary unavailable (missing token or project ID)._');
-        return;
-    }
-
-    if (!TESTDINO_RUN_ID) {
-        write(
-            '_TestDino summary unavailable — no run ID was produced. This usually means the `tdpw upload` step was skipped or failed (e.g. browser install failure, no test report generated)._'
-        );
-        return;
-    }
-
-    if (!PROJECT_RE.test(TESTDINO_PROJECT_ID) || !RUN_RE.test(TESTDINO_RUN_ID)) {
-        write('_TestDino summary unavailable (invalid project/run ID format)._');
-        return;
-    }
-
-    const api = `https://api.testdino.com/api/public/v1/${TESTDINO_PROJECT_ID}/test-runs/${TESTDINO_RUN_ID}?include=errors,specs`;
-
+async function apiFetch(path, timeoutMs = 10_000) {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 10_000);
-
-    let res;
-    let body;
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
-        res = await fetch(api, {
+        const res = await fetch(`https://api.testdino.com/api/v1/public/${TESTDINO_PROJECT_ID}${path}`, {
             headers: { Authorization: `Bearer ${TESTDINO_ACCESS_TOKEN}` },
             signal: controller.signal,
         });
-        body = await res.json().catch(() => null);
+        const body = await res.json().catch(() => null);
+        return { ok: res.ok, status: res.status, body };
     } catch (err) {
-        const msg = err.name === 'AbortError' ? 'request timed out' : sanitizeMd(err.message);
-        write(`_Could not fetch TestDino run details from API (network error: ${msg})._`);
-        return;
+        return { ok: false, status: 0, body: null, err };
     } finally {
         clearTimeout(timer);
     }
+}
 
-    if (!res.ok || !body?.success) {
-        const code = res?.status ?? '000';
-        const msg = sanitizeMd(body?.error?.message ?? body?.error?.code ?? 'unknown error');
+const main = async () => {
+    if (!TESTDINO_ACCESS_TOKEN || !TESTDINO_PROJECT_ID) {
+        write(`### 🚀 [View TestDino Report](${fallbackUrl})`);
+        write("");
+        write("_TestDino summary unavailable (missing token or project ID)._");
+        return;
+    }
+
+    if (!PROJECT_RE.test(TESTDINO_PROJECT_ID)) {
+        write(`### 🚀 [View TestDino Report](${fallbackUrl})`);
+        write("");
+        write("_TestDino summary unavailable (invalid project ID format)._");
+        return;
+    }
+
+    if (!GITHUB_RUN_ID) {
+        write(`### 🚀 [View TestDino Report](${fallbackUrl})`);
+        write("");
+        write("_TestDino summary unavailable (GITHUB_RUN_ID not set)._");
+        return;
+    }
+
+    // Fetch the 50 most recent runs and match on metadata.pipeline.id === GITHUB_RUN_ID.
+    // The API has no pipeline_id filter, so we fetch and match client-side.
+    const listResult = await apiFetch(`/test-runs?limit=50`);
+
+    if (!listResult.ok) {
+        const code = listResult.status ?? "000";
+        const msg = listResult.err
+            ? (listResult.err.name === "AbortError" ? "request timed out" : sanitizeMd(listResult.err.message))
+            : sanitizeMd(listResult.body?.message ?? listResult.body?.error ?? "unknown error");
+        write(`### 🚀 [View TestDino Report](${fallbackUrl})`);
+        write("");
         write(`_Could not fetch TestDino run details from API (HTTP ${code}: ${msg})._`);
         return;
     }
 
-    const data = body.data ?? {};
-    const stats = data.testStats ?? {};
-    const total = stats.total ?? 0;
-    const passed = stats.passed ?? 0;
-    const failed = stats.failed ?? 0;
-    const flaky = stats.flaky ?? 0;
-    const skipped = stats.skipped ?? 0;
-    const timedOut = stats.timedOut ?? 0;
-    const duration = formatDuration(data.duration ?? 0);
+    // Response shape: { items: [...], pagination: { ... } }
+    const runs = listResult.body?.items ?? [];
+    // Desktop and mobile can share one github.run_id — prefer the run tagged for THIS platform
+    // (when tagged), else fall back to the newest pipeline match.
+    const platform = (PLATFORM ?? "").toLowerCase();
+    const pipelineMatches = Array.isArray(runs) ? runs.filter((r) => r.ci?.pipeline?.id === GITHUB_RUN_ID || r.metadata?.pipeline?.id === GITHUB_RUN_ID) : [];
+    if (pipelineMatches.length === 0) {
+        write(`### 🚀 [View TestDino Report](${fallbackUrl})`);
+        write("");
+        write("_TestDino summary unavailable — no run matched this Actions run ID._");
+        return;
+    }
 
-    write('#### Test Results Summary');
-    write('');
-    write('| Total 🧪 | Passed ✅ | Failed ❌ | Flaky 🌀 | Skipped ⏭️ | Timed out ⏱️ | Duration ⏳ |');
-    write('|---|---|---|---|---|---|---|');
+    // The list API returns stripped objects — platforms is null. Fetch full detail for each
+    // pipeline-matching run in parallel so we can match on the platforms[] field.
+    let detailedRuns = pipelineMatches;
+    if (platform && pipelineMatches.length > 1) {
+        const details = await Promise.all(pipelineMatches.map(async (r) => {
+            const res = await apiFetch(`/test-runs/${encodeURIComponent(r.id)}`);
+            return res.ok && res.body ? res.body : r;
+        }));
+        detailedRuns = details;
+    }
+
+    const run = (platform && detailedRuns.find((r) => (r.platforms ?? []).some((p) => String(p).toLowerCase() === platform))) || detailedRuns[0] || null;
+
+    if (!run?.id) {
+        write(`### 🚀 [View TestDino Report](${fallbackUrl})`);
+        write("");
+        write("_TestDino summary unavailable — no run matched this Actions run ID._");
+        return;
+    }
+
+    const runUrl = ORG_RE.test(TESTDINO_ORG_ID ?? "")
+        ? `https://app.testdino.com/${TESTDINO_ORG_ID}/projects/${TESTDINO_PROJECT_ID}/test-runs/${run.id}`
+        : fallbackUrl;
+
+    write(`### 🚀 [View TestDino Report](${runUrl})`);
+    write("");
+
+    // Stats are nested under run.result; duration is run.duration_ms
+    const r = run.result ?? {};
+    const total = r.total ?? 0;
+    const passed = r.passed ?? 0;
+    const failed = r.failed ?? 0;
+    const flaky = r.flaky ?? 0;
+    const skipped = r.skipped ?? 0;
+    const timedOut = r.interrupted ?? 0;
+    const duration = formatDuration(run.duration_ms ?? 0);
+
+    write("#### Test Results Summary");
+    write("");
+    write("| Total 🧪 | Passed ✅ | Failed ❌ | Flaky 🌀 | Skipped ⏭️ | Timed out ⏱️ | Duration ⏳ |");
+    write("|---|---|---|---|---|---|---|");
     write(`| ${total} | ${passed} | ${failed} | ${flaky} | ${skipped} | ${timedOut} | ${duration} |`);
 
     if (failed > 0) {
-        const runUrl = isSafeUrl(TESTDINO_RUN_URL) ? TESTDINO_RUN_URL.replace(/\/+$/, '') : '';
-        const failedCases = [];
-        const seen = new Set();
-        for (const spec of data.specs ?? []) {
-            const specPath = spec.filePath || spec.fileName || spec.name || '';
-            for (const tc of spec.testCases ?? []) {
-                if (tc.status !== 'failed') continue;
-                const key = tc.id || tc.fullTitle;
-                if (seen.has(key)) continue;
-                seen.add(key);
-                failedCases.push({ id: tc.id, title: tc.title, spec: specPath });
-            }
-        }
+        // GET /context?runId={id} returns data.list for all test cases.
+        // Filter to failed/flaky only. title[] last element = test name, index 2 = spec file.
+        const ctxResult = await apiFetch(`/context?runId=${encodeURIComponent(run.id)}&limit=500`);
+        const allCases = ctxResult.ok && ctxResult.body?.success ? (ctxResult.body.data?.list ?? []) : [];
+        const failedTests = allCases.filter((tc) => tc.status === "failed" || tc.status === "flaky");
+        const apiTruncated = allCases.length === 500;
 
-        if (failedCases.length > 0) {
+        if (failedTests.length > 0) {
             const MAX_ROWS = 100;
-            const displayed = failedCases.slice(0, MAX_ROWS);
-            write('');
-            write('#### Failed Tests ❌');
-            write('');
-            write('| # | Test | Spec |');
-            write('|---|---|---|');
+            const displayed = failedTests.slice(0, MAX_ROWS);
+            write("");
+            write("#### Failed Tests ❌");
+            write("");
+            write("| # | Test | Spec |");
+            write("|---|---|---|");
             displayed.forEach((tc, i) => {
-                const title = sanitizeMd(tc.title);
-                const spec = sanitizeMd(tc.spec);
-                const cell = runUrl && tc.id ? `[${title}](${runUrl}/${encodeURIComponent(tc.id)})` : title;
+                const titleArr = Array.isArray(tc.title) ? tc.title : [];
+                const testName = sanitizeMd(titleArr[titleArr.length - 1] ?? tc.title ?? "Unknown test");
+                const spec = sanitizeMd(titleArr[2] ?? "");
+                const cell = tc.caseId
+                    ? `[${testName}](${runUrl}/${encodeURIComponent(tc.caseId)})`
+                    : testName;
                 write(`| ${i + 1} | ${cell} | ${spec} |`);
             });
-            if (failedCases.length > MAX_ROWS) {
-                write(`| … | _${failedCases.length - MAX_ROWS} more — [see full report](${linkUrl})_ | |`);
+            if (failedTests.length > MAX_ROWS) {
+                write(`| … | _${failedTests.length - MAX_ROWS} more — [see full report](${runUrl})_ | |`);
+            }
+            if (apiTruncated) {
+                write("");
+                write(`> ⚠️ API returned 500 results (max). Some failures may not be listed — [see full report](${runUrl}).`);
             }
         } else {
-            write('');
-            write(`_Failed test titles unavailable in API response — see [TestDino report](${linkUrl}) for details._`);
+            write("");
+            write(`_Failed test titles unavailable — see [TestDino report](${runUrl}) for details._`);
         }
     }
 };
 
 main()
-    .catch(err => {
+    .catch((err) => {
         write(`_TestDino summary failed: ${sanitizeMd(err?.message ?? String(err))}_`);
     })
     .finally(flush);

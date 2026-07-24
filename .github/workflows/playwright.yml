@@ -204,6 +204,7 @@ jobs:
           TEST_SUITE: ${{ needs.validate-inputs.outputs.cron_suite || inputs.test_suite || github.event.inputs.test_suite || 'smoke' }}
           RESOLVED_SPEC: ${{ needs.validate-inputs.outputs.resolved_spec }}
           GREP_TAG: ${{ matrix.grep_tag }}
+          TESTDINO_TOKEN: ${{ secrets.TESTDINO_TOKEN }}
         run: |
           RESOLVED_SPEC="${RESOLVED_SPEC//[[:space:]]/}"
           if [ -n "$RESOLVED_SPEC" ]; then
@@ -220,28 +221,6 @@ jobs:
             npx playwright test --project=${{ matrix.platform }} --grep "$GREP_PATTERN"
           fi
 
-      - name: Upload TestDino Report
-        if: always()
-        continue-on-error: true
-        env:
-          TESTDINO_TOKEN: ${{ secrets.TESTDINO_TOKEN }}
-          TEST_ENV: ${{ needs.validate-inputs.outputs.cron_env || inputs.test_env || github.event.inputs.test_env || 'staging' }}
-        run: |
-          if [ -z "$TESTDINO_TOKEN" ]; then
-            echo "::warning::TESTDINO_TOKEN is not set; skipping upload."
-            exit 0
-          fi
-          RESULT=$(npx tdpw@1.0.36 upload ./playwright/playwright-report \
-            --token="$TESTDINO_TOKEN" \
-            --environment="$TEST_ENV" \
-            --tag="${{ matrix.platform }}" \
-            --upload-full-json \
-            --json)
-          URL=$(echo "$RESULT" | jq -r '.data.url // empty')
-          RUN_ID=$(echo "$RESULT" | jq -r '.data.testRunId // empty')
-          echo "TESTDINO_RUN_URL=${URL}" >> $GITHUB_ENV
-          echo "TESTDINO_RUN_ID=${RUN_ID}" >> $GITHUB_ENV
-
       - name: Publish TestDino Summary
         if: always()
         continue-on-error: true
@@ -249,6 +228,7 @@ jobs:
           TESTDINO_ACCESS_TOKEN: ${{ secrets.TESTDINO_ACCESS_TOKEN }}
           TESTDINO_PROJECT_ID: ${{ vars.TESTDINO_PROJECT_ID }}
           TESTDINO_ORG_ID: ${{ vars.TESTDINO_ORG_ID }}
+          PLATFORM: ${{ matrix.platform }}
         run: node playwright/e2e-tests-core/scripts/github-summary-testdino.js
 
       - name: Upload Playwright Report
@@ -276,8 +256,7 @@ jobs:
           RESULT_OUTPUT_PATH: playwright/agent/.healing/slack-results/_result-${{ matrix.platform }}.json
           TESTDINO_ACCESS_TOKEN: ${{ secrets.TESTDINO_ACCESS_TOKEN }}
           TESTDINO_PROJECT_ID: ${{ vars.TESTDINO_PROJECT_ID }}
-          TESTDINO_RUN_ID: ${{ env.TESTDINO_RUN_ID }}
-          TESTDINO_RUN_URL: ${{ env.TESTDINO_RUN_URL }}
+          TESTDINO_ORG_ID: ${{ vars.TESTDINO_ORG_ID }}
           TEST_ENV: ${{ needs.validate-inputs.outputs.cron_env || inputs.test_env || github.event.inputs.test_env || 'staging' }}
           TEST_SUITE: ${{ needs.validate-inputs.outputs.cron_suite || inputs.test_suite || github.event.inputs.test_suite || 'smoke' }}
           PLATFORM: ${{ matrix.platform }}
