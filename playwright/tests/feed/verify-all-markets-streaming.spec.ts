@@ -6,6 +6,7 @@
  */
 import { test, expect } from '../../fixtures/fixtures';
 import { FeedPage } from '../../pages/FeedPage';
+import { TradeBasePage } from '../../pages/TradeBasePage';
 
 test.describe('Feed', { tag: ['@desktop', '@mobile', '@feed', '@smoke', '@production'] }, () => {
     test.beforeAll(async () => {
@@ -13,9 +14,11 @@ test.describe('Feed', { tag: ['@desktop', '@mobile', '@feed', '@smoke', '@produc
     });
 
     test('VERIFY all markets show live price feed or closed-market state', async ({
+        page,
         tradeParametersPage,
         feedPage,
     }) => {
+        await TradeBasePage.seedLocalStorageOnOrigin(page);
         await tradeParametersPage.gotoTradePage();
         await tradeParametersPage.selectTradeType('Multipliers');
 
