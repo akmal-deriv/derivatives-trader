@@ -900,8 +900,11 @@ export class TradeParametersPage extends TradeBasePage {
 
         const listbox = wheel.locator('[role="listbox"]');
         const options = await wheel.locator('[role="option"]').all();
-        const labels = await Promise.all(options.map(o => o.innerText()));
-        const targetIndex = labels.findIndex(t => t.trim() === value);
+        // `textContent()`, not `innerText()` — WebKit under Playwright automation doesn't reliably
+        // compute `innerText` (layout/paint-dependent) for this scroll-snap wheel, returning "" for
+        // every option even though they're rendered; `textContent` reads the DOM directly.
+        const labels = await Promise.all(options.map(o => o.textContent()));
+        const targetIndex = labels.findIndex(t => t?.trim() === value);
         if (targetIndex < 0) throw new Error(`Wheel picker option '${value}' not found in ${wheelSelector}`);
 
         // Snap formula: index*48+24 (item height 48px, half-item snap offset 24px).
