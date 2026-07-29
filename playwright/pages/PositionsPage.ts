@@ -252,7 +252,10 @@ export class PositionsPage extends TradeBasePage {
             await expect(this.contractCardCloseButton, 'Close button should be enabled before closing').toBeEnabled({
                 timeout: 60_000,
             });
-            await this.contractCardCloseButton.click();
+            // Swallow the click error: the card re-renders on every tick, so the button can detach
+            // mid-click ("element not stable / detached"). pollUntilContractClosed retries the click
+            // on each interval, so a failed first click here just falls through to that retry loop.
+            await this.contractCardCloseButton.click().catch(() => {});
             await this.pollUntilContractClosed(this.contractCardCloseButton);
             await expect(
                 this.footerPositionCount,
@@ -277,8 +280,15 @@ export class PositionsPage extends TradeBasePage {
             this.firstContractCard,
             'At least one open contract card should be visible in Positions'
         ).toBeVisible();
-        await this.firstContractCard.click();
-        await this.page.waitForURL(/\/contract\//);
+        // The contract card re-renders on every tick, so it can detach mid-click ("element not
+        // stable / detached"). Retry the click until the URL actually reaches /contract/.
+        await expect(async () => {
+            await this.firstContractCard.click({ timeout: 3_000 }).catch(() => {});
+            await expect(this.page, 'Should navigate to /contract/ after opening the first position').toHaveURL(
+                /\/contract\//,
+                { timeout: 3_000 }
+            );
+        }).toPass({ timeout: 30_000 });
         await NavigationUtils.waitForDerivApiSettled(this.page);
     }
 
