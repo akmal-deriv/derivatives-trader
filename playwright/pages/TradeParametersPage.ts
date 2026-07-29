@@ -877,8 +877,13 @@ export class TradeParametersPage extends TradeBasePage {
      * The wheel is a CSS scroll-snap list (`scroll-snap-type: y mandatory`) whose snap positions are
      * `index * 48 + 24` (48px item height, 24px half-item offset). Touch-drag and `mouse.wheel` are
      * unreliable under Playwright's `hasTouch` emulation, so we set `scrollTop` directly — the picker's
-     * scroll handler then updates the selected value (debounced ~200ms, absorbed by the caller's
-     * subsequent field assertion which auto-retries).
+     * `scroll` listener (attached to the listbox) then recomputes the selected index and commits it to a
+     * ref. That listener only runs once the browser dispatches the resulting `scroll` event, which is
+     * strictly after our `evaluate()` call returns — so we explicitly wait for the target option to be
+     * flagged as the committed selection before returning. Without this wait, a caller that clicks a
+     * "Save" button immediately after (e.g. mobile Growth rate / Multiplier action sheets) can commit
+     * *before* the scroll listener has run, saving the previous value instead of `value` — the field then
+     * never corrects itself since Save closes the sheet in one shot (no further retry can fix it).
      *
      * The options render **asynchronously**: the picker shows a `<Skeleton>` until the range list loads,
      * so we first wait for the target option to attach before measuring indices — this is what makes the
@@ -914,6 +919,19 @@ export class TradeParametersPage extends TradeBasePage {
             },
             targetIndex * 48 + 24
         );
+
+        // Confirm the picker's own scroll handler has actually processed the new position before
+        // returning. The library disables every option except the one currently committed as selected
+        // (see the vendored WheelPicker: `disabled: optionValue !== selectedValue`), so polling the
+        // `disabled` attribute directly (rather than Playwright's `toBeEnabled()`, which only recognizes
+        // native form controls) is an implementation-accurate signal that the scroll event has landed.
+        await expect(async () => {
+            const isDisabled = await options[targetIndex].getAttribute('disabled');
+            expect(
+                isDisabled,
+                `Wheel picker option '${value}' should become the committed selection after scrolling`
+            ).toBeNull();
+        }).toPass({ timeout: 5_000 });
     }
 
     /**
