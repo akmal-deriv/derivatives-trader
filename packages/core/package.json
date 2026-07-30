@@ -100,7 +100,7 @@
         "@deriv/api": "^1.0.0",
         "@deriv/components": "^1.0.0",
         "@deriv/deriv-api": "^1.0.15",
-        "@deriv/quill-icons": "2.2.1",
+        "@deriv/quill-icons": "2.4.16",
         "@deriv/reports": "^1.0.0",
         "@deriv/shared": "^1.0.0",
         "@deriv/stores": "^1.0.0",
