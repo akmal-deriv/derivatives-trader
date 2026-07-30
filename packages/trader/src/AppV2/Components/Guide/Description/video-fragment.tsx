@@ -4,8 +4,9 @@ import classNames from 'classnames';
 import { Skeleton } from '@deriv/components';
 import { getUrlBase } from '@deriv/shared';
 import { useDevice } from '@deriv-com/ui';
-import { DotLottieReact } from '@lottiefiles/dotlottie-react';
+import type { DotLottieReact } from '@lottiefiles/dotlottie-react';
 
+import LottieAnimation from 'AppV2/Components/LottieAnimation';
 import { CONTRACT_LIST } from 'AppV2/Utils/trade-types-utils';
 
 type TVideoFragment = {
@@ -44,7 +45,7 @@ const VideoFragment = ({ contract_type }: TVideoFragment) => {
             })}
         >
             {is_loading && <Skeleton width={248} height={161} className='skeleton-video-loader' />}
-            <DotLottieReact
+            <LottieAnimation
                 autoplay
                 dotLottieRefCallback={
                     ((dotLottie: EventTarget | null) => setDotLottie(dotLottie)) as React.ComponentProps<

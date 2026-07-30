@@ -24,6 +24,15 @@ jest.mock('@deriv-com/ui', () => ({
     useDevice: jest.fn(() => ({ isMobile: true })),
 }));
 
+// LottieAnimation defers mounting the animation until a ResizeObserver reports a
+// non-zero size; fire the callback on observe so it mounts in jsdom (which would
+// otherwise report 0x0).
+globalThis.ResizeObserver = jest.fn().mockImplementation(callback => ({
+    observe: jest.fn(() => callback([{ contentRect: { width: 100, height: 100 } }])),
+    unobserve: jest.fn(),
+    disconnect: jest.fn(),
+})) as unknown as typeof ResizeObserver;
+
 describe('VideoFragment', () => {
     it('should render component with loader and video', () => {
         (useDevice as jest.Mock).mockReturnValue({ isMobile: false });

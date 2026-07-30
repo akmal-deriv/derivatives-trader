@@ -1,7 +1,8 @@
 import React from 'react';
 
 import { getUrlBase } from '@deriv/shared';
-import { DotLottieReact } from '@lottiefiles/dotlottie-react';
+
+import LottieAnimation from 'AppV2/Components/LottieAnimation';
 
 import './fire-icon.scss';
 
@@ -10,7 +11,7 @@ const FireIcon = () => {
 
     return (
         <span className='fire-icon'>
-            <DotLottieReact autoplay src={lottie_src} loop className='fire-icon__animation' />
+            <LottieAnimation autoplay src={lottie_src} loop className='fire-icon__animation' />
         </span>
     );
 };
