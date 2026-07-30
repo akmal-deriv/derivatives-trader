@@ -165,6 +165,36 @@
             }
         }
     }
+    &__toast {
+        position: fixed;
+        left: 0;
+        bottom: 4rem;
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        z-index: 100;
+        pointer-events: none;
+
+        @include mobile-screen {
+            // clears the bottom navigation when the loader shows within the mounted AppV2 shell
+            bottom: 6.4rem;
+        }
+
+        // plain fade instead of dc-toast's default vertical-scale pop;
+        // base state is hidden because the enter class lands one frame after mount —
+        // with the default visible base the toast flashes, dips and fades back (micro-glitch)
+        .dc-toast {
+            opacity: 0;
+            transform: none;
+        }
+        .dc-toast--enter,
+        .dc-toast--exit {
+            opacity: 0;
+        }
+        .dc-toast--enter-done {
+            opacity: 1;
+        }
+    }
     &__positions {
         width: 100%;
         background-color: var(--semantic-color-slate-solid-surface-frame-mid);
