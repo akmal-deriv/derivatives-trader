@@ -526,6 +526,31 @@ export class ContractDetailsPage extends TradeBasePage {
     }
 
     // ============================================
+    // ACCUMULATORS-SPECIFIC LOCATORS
+    // ============================================
+
+    /**
+     * Accumulators contract type label — first child div of `.dc-contract-type__type-label`.
+     * Renders "Accumulators".
+     */
+    get accuContractTypeLabel(): Locator {
+        return this.contractCard
+            .locator('.dc-contract-card__type--accumulators .dc-contract-type__type-label > div')
+            .first();
+    }
+
+    /**
+     * Accumulators growth rate chip — rendered inside the contract type label.
+     * Renders e.g. "3%".
+     * Source: `.dc-contract-type__type-label-trade-param` scoped to the accumulators type block.
+     */
+    get accuContractGrowthRate(): Locator {
+        return this.contractCard.locator(
+            '.dc-contract-card__type--accumulators .dc-contract-type__type-label-trade-param'
+        );
+    }
+
+    // ============================================
     // ACTIONS
     // ============================================
 
@@ -2178,5 +2203,262 @@ export class ContractDetailsPage extends TradeBasePage {
         ).not.toBeVisible();
 
         return sellId;
+    }
+
+    // ============================================
+    // ACCUMULATORS CONTRACT DETAILS VERIFICATIONS
+    // ============================================
+
+    /**
+     * Verify the contract details page for a settled Accumulators contract.
+     * Delegates to the mobile or desktop implementation based on the current viewport.
+     *
+     * Unlike Multipliers/Digits, Accumulators contract details are only ever opened once — after
+     * settlement, from the Closed tab — so there is no earlier open-state reference ID to cross-check
+     * against. Both IDs are therefore read from this page and returned, rather than taking `buyId` in.
+     *
+     * @param market           - Market symbol, e.g. "Volatility 100 Index"
+     * @param growthRate       - Growth rate chip label, e.g. "5%"
+     * @param currency         - Currency badge (desktop only), e.g. "USD"
+     * @param stake            - Stake as displayed, e.g. "10.00"
+     * @param buyDate          - UTC date captured before buy, e.g. "2026-08-03"
+     * @param profitLossAmount - P&L from the closed positions card, e.g. "+1.26 USD" or "-2.05 USD"
+     * @param takeProfit       - Take-profit amount if one was set, e.g. "4.00". Omit for the no-TP flow.
+     * @returns The buy and sell reference IDs
+     */
+    async verifyClosedAccumulatorContractDetailsPage(
+        market: string,
+        growthRate: string,
+        currency: string,
+        stake: string,
+        buyDate: string,
+        profitLossAmount: string,
+        takeProfit?: string | null
+    ): Promise<{ buyId: string; sellId: string }> {
+        return this.isMobile
+            ? this.verifyClosedAccumulatorContractDetailsMobile(
+                  market,
+                  growthRate,
+                  stake,
+                  buyDate,
+                  profitLossAmount,
+                  takeProfit
+              )
+            : this.verifyClosedAccumulatorContractDetailsDesktop(
+                  market,
+                  growthRate,
+                  currency,
+                  stake,
+                  buyDate,
+                  profitLossAmount,
+                  takeProfit
+              );
+    }
+
+    private async verifyClosedAccumulatorContractDetailsDesktop(
+        market: string,
+        growthRate: string,
+        currency: string,
+        stake: string,
+        buyDate: string,
+        profitLossAmount: string,
+        takeProfit?: string | null
+    ): Promise<{ buyId: string; sellId: string }> {
+        // Header
+        await expect(
+            this.contractDetailsHeaderTitle,
+            'Contract details header title should be "Contract details"'
+        ).toHaveText('Contract details');
+
+        // Contract card — market, type label, growth rate, currency
+        await expect(this.contractDetailsMarket, `Contract card symbol should be "${market}"`).toHaveText(market);
+        await expect(this.accuContractTypeLabel, 'Contract type should be "Accumulators"').toHaveText('Accumulators');
+        await expect(this.accuContractGrowthRate, `Growth rate chip should be "${growthRate}"`).toHaveText(growthRate);
+        await expect(this.contractDetailsCurrency, `Currency badge should be "${currency}"`).toHaveText(currency);
+
+        // Settled card values
+        const profitLossNumeric = profitLossAmount
+            .replace(/^[+-]/, '')
+            .replace(/\s+[A-Z]+$/, '')
+            .trim();
+        await expect(this.contractCardItem('Stake:'), `Stake should be "${stake}"`).toHaveText(stake);
+        await expect(
+            this.contractCardItem('Total profit/loss:'),
+            `Total profit/loss should contain "${profitLossNumeric}"`
+        ).toContainText(profitLossNumeric);
+        const expectedContractValue = this.calculateClosedContractValue(stake, profitLossAmount);
+        await expect(
+            this.contractCardItem('Contract value:'),
+            `Contract value should be "${expectedContractValue}"`
+        ).toHaveText(expectedContractValue);
+        if (takeProfit) {
+            await expect(this.contractCardItem('Take profit:'), `Take profit should show "${takeProfit}"`).toHaveText(
+                takeProfit
+            );
+        } else {
+            await expect(this.contractCardItem('Take profit:'), 'Take profit should be "-" (not set)').toHaveText('-');
+        }
+
+        // Audit grid — Reference ID (buy + sell)
+        await expect(this.contractDetailsReferenceIDLabel, 'Reference ID label should be "Reference ID"').toHaveText(
+            'Reference ID'
+        );
+        await expect(this.contractDetailsReferenceID, 'Buy reference ID should have a value').not.toBeEmpty();
+        const buyIdText = (await this.contractDetailsReferenceID.innerText()).trim();
+        const buyId = buyIdText.replace(' (Buy)', '');
+        await expect(this.contractDetailsReferenceIDSell, 'Sell reference ID should have a value').not.toBeEmpty();
+        const sellIdText = (await this.contractDetailsReferenceIDSell.innerText()).trim();
+        const sellId = sellIdText.replace(' (Sell)', '');
+
+        // Audit grid — Duration. Tick count is not predictable ahead of time (depends on how long the
+        // contract ran before settling), so assert presence rather than an exact expected value.
+        await expect(this.contractDetailsDurationLabel, 'Duration label should be "Duration"').toHaveText('Duration');
+        await expect(this.contractDetailsDuration, 'Duration should have a value').not.toBeEmpty();
+
+        // Audit grid — Start time
+        await expect(this.contractDetailsStartTimeLabel, 'Start time label should be "Start time"').toHaveText(
+            'Start time'
+        );
+        await expect(this.contractDetailsStartTime, `Start time should contain "${buyDate}"`).toContainText(buyDate);
+
+        // Audit grid — Entry spot
+        await expect(this.contractDetailsEntrySpotLabel, 'Entry spot label should be "Entry spot"').toHaveText(
+            'Entry spot'
+        );
+        await expect(this.contractDetailsEntrySpot, 'Entry spot price should have a value').not.toBeEmpty();
+        await expect(this.contractDetailsEntrySpotTime, `Entry spot time should contain "${buyDate}"`).toContainText(
+            buyDate
+        );
+
+        // Audit grid — Exit spot
+        await expect(this.contractDetailsExitSpotLabel, 'Exit spot label should be "Exit spot"').toHaveText(
+            'Exit spot'
+        );
+        await expect(this.contractDetailsExitSpot, 'Exit spot price should have a value').not.toBeEmpty();
+        await expect(this.contractDetailsExitSpotTime, `Exit spot time should contain "${buyDate}"`).toContainText(
+            buyDate
+        );
+
+        // Audit grid — Exit time
+        await expect(this.contractDetailsExitTimeLabel, 'Exit time label should be "Exit time"').toHaveText(
+            'Exit time'
+        );
+        await expect(this.contractDetailsExitTime, `Exit time should contain "${buyDate}"`).toContainText(buyDate);
+
+        return { buyId, sellId };
+    }
+
+    private async verifyClosedAccumulatorContractDetailsMobile(
+        market: string,
+        growthRate: string,
+        stake: string,
+        buyDate: string,
+        profitLossAmount: string,
+        takeProfit?: string | null
+    ): Promise<{ buyId: string; sellId: string }> {
+        // Header
+        await expect(
+            this.contractDetailsHeaderTitle,
+            'Contract details header should show "Contract details"'
+        ).toHaveText('Contract details');
+
+        // Contract card — market, trade type, profit/loss
+        await expect(
+            this.mobileContractMarket,
+            `Mobile closed contract card should show market "${market}"`
+        ).toHaveText(market);
+        await expect(
+            this.mobileContractTradeType,
+            'Mobile closed contract card should show trade type "Accumulators"'
+        ).toContainText('Accumulators');
+        const profitLossNumeric = profitLossAmount
+            .replace(/^[+-]/, '')
+            .replace(/\s+[A-Z]+$/, '')
+            .trim();
+        await expect(this.mobileContractProfit, `Profit/loss should contain "${profitLossNumeric}"`).toContainText(
+            profitLossNumeric
+        );
+
+        // Order Details — Reference ID: buy + sell paragraphs
+        const refIdValueCell = this.page
+            .locator('.order-details__table-row', {
+                has: this.page.locator('.order-details__table-row-cell', { hasText: 'Reference ID' }),
+            })
+            .locator('.order-details__table-row-cell')
+            .last();
+        const buyRefIdParagraph = refIdValueCell.locator('p').filter({ hasText: '(Buy)' });
+        const sellRefIdParagraph = refIdValueCell.locator('p').filter({ hasText: '(Sell)' });
+
+        await expect(buyRefIdParagraph, 'Buy Reference ID should contain "(Buy)"').toContainText('(Buy)');
+        const buyRefIdRaw = (await buyRefIdParagraph.innerText()).trim();
+        const buyId = buyRefIdRaw.replace(' (Buy)', '');
+        await expect(sellRefIdParagraph, 'Sell Reference ID should contain "(Sell)"').toContainText('(Sell)');
+        const sellRefIdRaw = (await sellRefIdParagraph.innerText()).trim();
+        const sellId = sellRefIdRaw.replace(' (Sell)', '');
+
+        // Order Details — Duration (tick count varies per run — assert presence, not an exact value)
+        await expect(this.mobileOrderDetailsValue('Duration'), 'Duration should have a value').not.toBeEmpty();
+
+        // Order Details — Growth rate and Stake
+        await expect(
+            this.mobileOrderDetailsValue('Growth rate'),
+            `Growth rate should contain "${growthRate}"`
+        ).toContainText(growthRate);
+        await expect(this.mobileOrderDetailsValue('Stake'), `Stake should contain "${stake}"`).toContainText(stake);
+
+        // Order Details — Take profit. Unlike Multipliers, this row is omitted entirely (not "Not set")
+        // when no take profit is configured.
+        if (takeProfit) {
+            await expect(
+                this.mobileOrderDetailsValue('Take profit'),
+                `Take profit should contain "${takeProfit}"`
+            ).toContainText(takeProfit);
+        } else {
+            await expect(
+                this.mobileOrderDetailsValue('Take profit'),
+                'Take profit row should not be shown when not set'
+            ).not.toBeVisible();
+        }
+
+        // Entry & exit details section
+        await expect(this.mobileEntryExitDetails, 'Entry & exit details section should be visible').toBeVisible();
+
+        const entryExitRow = (label: string) =>
+            this.page.locator('.entry-exit-details__table-row', {
+                has: this.page.locator('.entry-exit-details__table-cell', { hasText: label }),
+            });
+        const entryExitValue = (label: string) => entryExitRow(label).locator('.entry-exit-details__table-cell').last();
+
+        const buyDateFormatted = TradeBasePage.formatISODate(buyDate);
+
+        // Start time
+        await expect(entryExitRow('Start time'), 'Start time row should be visible').toBeVisible();
+        await expect(
+            entryExitValue('Start time').locator('p').first(),
+            `Start time date should contain "${buyDateFormatted}"`
+        ).toContainText(buyDateFormatted);
+
+        // Entry spot
+        await expect(entryExitRow('Entry spot'), 'Entry spot row should be visible').toBeVisible();
+        await expect(
+            entryExitValue('Entry spot').locator('p').first(),
+            'Entry spot price should have a value'
+        ).not.toBeEmpty();
+
+        // Exit time
+        await expect(entryExitRow('Exit time'), 'Exit time row should be visible').toBeVisible();
+        await expect(
+            entryExitValue('Exit time').locator('p').first(),
+            `Exit time date should contain "${buyDateFormatted}"`
+        ).toContainText(buyDateFormatted);
+
+        // Exit spot
+        await expect(entryExitRow('Exit spot'), 'Exit spot row should be visible').toBeVisible();
+        await expect(
+            entryExitValue('Exit spot').locator('p').first(),
+            'Exit spot price should have a value'
+        ).not.toBeEmpty();
+
+        return { buyId, sellId };
     }
 }

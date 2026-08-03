@@ -39,8 +39,20 @@ test.describe('Trade — Over/Under', { tag: ['@desktop', '@mobile', '@trade'] }
      * details, wait for the tick contract to auto-expire in place, then verify the settled contract
      * details, balance, and Reports (Trade table + Statement).
      */
-    test('VERIFY Buy "Over" Contract', async ({ tradeOverUnderPage }) => {
+    test('VERIFY Buy "Over" Contract (Demo Account)', async ({ tradeOverUnderPage }) => {
         await tradeOverUnderPage.buyOverAndVerify({
+            accountType: 'demo',
+            market: 'Volatility 10 Index',
+            durationValue: '10 ticks',
+            stake: '10.00',
+            currency: 'USD',
+            digit: '5',
+        });
+    });
+
+    test('VERIFY Buy "Over" Contract (Real Account)', async ({ tradeOverUnderPage }) => {
+        await tradeOverUnderPage.buyOverAndVerify({
+            accountType: 'real',
             market: 'Volatility 10 Index',
             durationValue: '10 ticks',
             stake: '10.00',
@@ -54,8 +66,20 @@ test.describe('Trade — Over/Under', { tag: ['@desktop', '@mobile', '@trade'] }
      * details, wait for the tick contract to auto-expire in place, then verify the settled contract
      * details, balance, and Reports (Trade table + Statement).
      */
-    test('VERIFY Buy "Under" Contract', async ({ tradeOverUnderPage }) => {
+    test('VERIFY Buy "Under" Contract (Demo Account)', async ({ tradeOverUnderPage }) => {
         await tradeOverUnderPage.buyUnderAndVerify({
+            accountType: 'demo',
+            market: 'Volatility 10 Index',
+            durationValue: '10 ticks',
+            stake: '10.00',
+            currency: 'USD',
+            digit: '5',
+        });
+    });
+
+    test('VERIFY Buy "Under" Contract (Real Account)', async ({ tradeOverUnderPage }) => {
+        await tradeOverUnderPage.buyUnderAndVerify({
+            accountType: 'real',
             market: 'Volatility 10 Index',
             durationValue: '10 ticks',
             stake: '10.00',

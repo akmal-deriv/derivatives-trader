@@ -91,6 +91,7 @@ export class TradeTouchNoTouchPage extends TradeParametersPage {
     /**
      * Full Touch contract flow: configure → buy → verify positions, reports, contract details, balance, and closed contract.
      *
+     * @param accountType   - Account to trade on: 'real' or 'demo'
      * @param market        - Market symbol to select (e.g. 'Volatility 75 Index')
      * @param durationUnit  - Duration unit label (e.g. 'Minutes')
      * @param durationValue - Duration chip label (e.g. '15 min')
@@ -100,6 +101,7 @@ export class TradeTouchNoTouchPage extends TradeParametersPage {
      * @param barrierType   - Barrier type to select (e.g. 'Above spot')
      */
     async buyTouchAndVerify({
+        accountType,
         market,
         durationUnit,
         durationValue,
@@ -108,6 +110,7 @@ export class TradeTouchNoTouchPage extends TradeParametersPage {
         barrier,
         barrierType,
     }: {
+        accountType: 'real' | 'demo';
         market: string;
         durationUnit: string;
         durationValue: string;
@@ -116,6 +119,9 @@ export class TradeTouchNoTouchPage extends TradeParametersPage {
         stake: string;
         currency: string;
     }): Promise<void> {
+        // 0. Trade on the account type requested by the test — the account created in beforeAll is real by default.
+        await this.switchToAccountType(accountType);
+
         // 1. Configure and buy
         await this.selectMarket(market);
         await this.selectTradeType('Touch/No Touch');
@@ -211,6 +217,7 @@ export class TradeTouchNoTouchPage extends TradeParametersPage {
     /**
      * Full No Touch contract flow: configure → buy → verify positions, reports, contract details, balance, and closed contract.
      *
+     * @param accountType   - Account to trade on: 'real' or 'demo'
      * @param market        - Market symbol to select (e.g. 'Volatility 75 Index')
      * @param durationUnit  - Duration unit label (e.g. 'Minutes')
      * @param durationValue - Duration chip label (e.g. '18 min')
@@ -220,6 +227,7 @@ export class TradeTouchNoTouchPage extends TradeParametersPage {
      * @param barrierType   - Barrier type to select (e.g. 'Below spot')
      */
     async buyNoTouchAndVerify({
+        accountType,
         market,
         durationUnit,
         durationValue,
@@ -228,6 +236,7 @@ export class TradeTouchNoTouchPage extends TradeParametersPage {
         barrier,
         barrierType,
     }: {
+        accountType: 'real' | 'demo';
         market: string;
         durationUnit: string;
         durationValue: string;
@@ -236,6 +245,9 @@ export class TradeTouchNoTouchPage extends TradeParametersPage {
         stake: string;
         currency: string;
     }): Promise<void> {
+        // 0. Trade on the account type requested by the test — the account created in beforeAll is real by default.
+        await this.switchToAccountType(accountType);
+
         // 1. Configure and buy
         await this.selectMarket(market);
         await this.selectTradeType('Touch/No Touch');

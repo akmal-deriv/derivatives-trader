@@ -43,13 +43,31 @@ test.describe('Trade — Rise/Fall', { tag: ['@desktop', '@mobile', '@trade', '@
 
     /**
      * Flow 2.1 — Rise/Fall: buy Rise → navigate to positions → open contract → close
+     * Kept on the real account (with a minimal stake in production) — this is the one test in the
+     * suite deliberately exercising real-account trading in production.
      */
-    test('VERIFY Buy "Rise" Contract and Close', { tag: ['@production'] }, async ({ tradeRiseFallPage }) => {
+    test(
+        'VERIFY Buy "Rise" Contract and Close (Real Account)',
+        { tag: ['@production'] },
+        async ({ tradeRiseFallPage }) => {
+            await tradeRiseFallPage.buyRiseAndVerify({
+                accountType: 'real',
+                market: 'Volatility 100 Index',
+                durationUnit: 'Minutes',
+                durationValue: '15 min',
+                stake: process.env.TEST_ENV === 'production' ? '0.35' : '10.50',
+                currency: 'USD',
+            });
+        }
+    );
+
+    test('VERIFY Buy "Rise" Contract and Close (Demo Account)', async ({ tradeRiseFallPage }) => {
         await tradeRiseFallPage.buyRiseAndVerify({
+            accountType: 'demo',
             market: 'Volatility 100 Index',
             durationUnit: 'Minutes',
             durationValue: '15 min',
-            stake: process.env.TEST_ENV === 'production' ? '0.35' : '10.50',
+            stake: '10.50',
             currency: 'USD',
         });
     });
@@ -57,8 +75,20 @@ test.describe('Trade — Rise/Fall', { tag: ['@desktop', '@mobile', '@trade', '@
     /**
      * Flow 2.2 — Rise/Fall: buy Fall → navigate to positions → open contract → close
      */
-    test('VERIFY Buy "Fall" Contract and Close', async ({ tradeRiseFallPage }) => {
+    test('VERIFY Buy "Fall" Contract and Close (Demo Account)', async ({ tradeRiseFallPage }) => {
         await tradeRiseFallPage.buyFallAndVerify({
+            accountType: 'demo',
+            market: 'Volatility 100 Index',
+            durationUnit: 'Minutes',
+            durationValue: '18 min',
+            stake: '20.50',
+            currency: 'USD',
+        });
+    });
+
+    test('VERIFY Buy "Fall" Contract and Close (Real Account)', async ({ tradeRiseFallPage }) => {
+        await tradeRiseFallPage.buyFallAndVerify({
+            accountType: 'real',
             market: 'Volatility 100 Index',
             durationUnit: 'Minutes',
             durationValue: '18 min',
@@ -71,8 +101,21 @@ test.describe('Trade — Rise/Fall', { tag: ['@desktop', '@mobile', '@trade', '@
      * Flow 2.3 — Rise/Fall with Allow Equals: buy Rise with Allow Equals enabled → verify positions → close
      * Allow Equals submits the contract as Rise/Fall Equals (RISEEQUAL), paying out also when exit spot = entry spot.
      */
-    test('VERIFY Buy "Rise" Contract with Allow Equals Enabled', async ({ tradeRiseFallPage }) => {
+    test('VERIFY Buy "Rise" Contract with Allow Equals Enabled (Demo Account)', async ({ tradeRiseFallPage }) => {
         await tradeRiseFallPage.buyRiseAndVerify({
+            accountType: 'demo',
+            market: 'Volatility 100 Index',
+            durationUnit: 'Minutes',
+            durationValue: '15 min',
+            stake: '10.50',
+            currency: 'USD',
+            allowEquals: true,
+        });
+    });
+
+    test('VERIFY Buy "Rise" Contract with Allow Equals Enabled (Real Account)', async ({ tradeRiseFallPage }) => {
+        await tradeRiseFallPage.buyRiseAndVerify({
+            accountType: 'real',
             market: 'Volatility 100 Index',
             durationUnit: 'Minutes',
             durationValue: '15 min',
@@ -86,8 +129,21 @@ test.describe('Trade — Rise/Fall', { tag: ['@desktop', '@mobile', '@trade', '@
      * Flow 2.4 — Rise/Fall with Allow Equals: buy Fall with Allow Equals enabled → verify positions → close
      * Allow Equals submits the contract as Rise/Fall Equals (FALLEQUAL), paying out also when exit spot = entry spot.
      */
-    test('VERIFY Buy "Fall" Contract with Allow Equals Enabled', async ({ tradeRiseFallPage }) => {
+    test('VERIFY Buy "Fall" Contract with Allow Equals Enabled (Demo Account)', async ({ tradeRiseFallPage }) => {
         await tradeRiseFallPage.buyFallAndVerify({
+            accountType: 'demo',
+            market: 'Volatility 100 Index',
+            durationUnit: 'Minutes',
+            durationValue: '18 min',
+            stake: '20.50',
+            currency: 'USD',
+            allowEquals: true,
+        });
+    });
+
+    test('VERIFY Buy "Fall" Contract with Allow Equals Enabled (Real Account)', async ({ tradeRiseFallPage }) => {
+        await tradeRiseFallPage.buyFallAndVerify({
+            accountType: 'real',
             market: 'Volatility 100 Index',
             durationUnit: 'Minutes',
             durationValue: '18 min',

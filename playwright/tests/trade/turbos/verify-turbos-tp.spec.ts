@@ -36,8 +36,20 @@ test.describe('Trade — Turbos with Take Profit', { tag: ['@desktop', '@mobile'
      * Flow 10.3 — Turbos with Take Profit: set TP `20.00` → buy Up → verify TP in contract details →
      * close early → verify settled contract (Positions Closed tab, balance, Reports).
      */
-    test('VERIFY Buy "Up" Turbos Contract With Take Profit', async ({ tradeTurbosPage }) => {
+    test('VERIFY Buy "Up" Turbos Contract With Take Profit (Demo Account)', async ({ tradeTurbosPage }) => {
         await tradeTurbosPage.buyTurbosAndVerify({
+            accountType: 'demo',
+            market: 'Volatility 100 (1s) Index',
+            direction: 'Up',
+            stake: '10.50',
+            currency: 'USD',
+            takeProfit: '20.00',
+        });
+    });
+
+    test('VERIFY Buy "Up" Turbos Contract With Take Profit (Real Account)', async ({ tradeTurbosPage }) => {
+        await tradeTurbosPage.buyTurbosAndVerify({
+            accountType: 'real',
             market: 'Volatility 100 (1s) Index',
             direction: 'Up',
             stake: '10.50',
@@ -50,8 +62,20 @@ test.describe('Trade — Turbos with Take Profit', { tag: ['@desktop', '@mobile'
      * Flow 10.4 — Turbos with Take Profit: set TP `20.00` → buy Down → verify TP in contract details →
      * close early → verify settled contract.
      */
-    test('VERIFY Buy "Down" Turbos Contract With Take Profit', async ({ tradeTurbosPage }) => {
+    test('VERIFY Buy "Down" Turbos Contract With Take Profit (Demo Account)', async ({ tradeTurbosPage }) => {
         await tradeTurbosPage.buyTurbosAndVerify({
+            accountType: 'demo',
+            market: 'Volatility 100 (1s) Index',
+            direction: 'Down',
+            stake: '10.50',
+            currency: 'USD',
+            takeProfit: '20.00',
+        });
+    });
+
+    test('VERIFY Buy "Down" Turbos Contract With Take Profit (Real Account)', async ({ tradeTurbosPage }) => {
+        await tradeTurbosPage.buyTurbosAndVerify({
+            accountType: 'real',
             market: 'Volatility 100 (1s) Index',
             direction: 'Down',
             stake: '10.50',

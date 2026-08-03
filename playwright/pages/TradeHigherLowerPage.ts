@@ -73,6 +73,7 @@ export class TradeHigherLowerPage extends TradeParametersPage {
     /**
      * Full Higher contract flow: configure → buy → verify positions, reports, contract details, balance, and closed contract.
      *
+     * @param accountType   - Account to trade on: 'real' or 'demo'
      * @param market        - Market symbol to select (e.g. 'Volatility 75 Index')
      * @param durationUnit  - Duration unit label (e.g. 'Minutes')
      * @param durationValue - Duration chip label (e.g. '15 min')
@@ -82,6 +83,7 @@ export class TradeHigherLowerPage extends TradeParametersPage {
      * @param barrierType   - Barrier type to select (e.g. 'Above spot').
      */
     async buyHigherAndVerify({
+        accountType,
         market,
         durationUnit,
         durationValue,
@@ -90,6 +92,7 @@ export class TradeHigherLowerPage extends TradeParametersPage {
         barrier,
         barrierType,
     }: {
+        accountType: 'real' | 'demo';
         market: string;
         durationUnit: string;
         durationValue: string;
@@ -98,6 +101,9 @@ export class TradeHigherLowerPage extends TradeParametersPage {
         stake: string;
         currency: string;
     }): Promise<void> {
+        // 0. Trade on the account type requested by the test — the account created in beforeAll is real by default.
+        await this.switchToAccountType(accountType);
+
         // 1. Configure and buy
         await this.selectMarket(market);
         await this.selectTradeType('Higher/Lower');
@@ -193,6 +199,7 @@ export class TradeHigherLowerPage extends TradeParametersPage {
     /**
      * Full Lower contract flow: configure → buy → verify positions, reports, contract details, balance, and closed contract.
      *
+     * @param accountType   - Account to trade on: 'real' or 'demo'
      * @param market        - Market symbol to select (e.g. 'Volatility 75 Index')
      * @param durationUnit  - Duration unit label (e.g. 'Minutes')
      * @param durationValue - Duration chip label (e.g. '18 min')
@@ -202,6 +209,7 @@ export class TradeHigherLowerPage extends TradeParametersPage {
      * @param barrierType   - Barrier type to select (e.g. 'Below spot').
      */
     async buyLowerAndVerify({
+        accountType,
         market,
         durationUnit,
         durationValue,
@@ -210,6 +218,7 @@ export class TradeHigherLowerPage extends TradeParametersPage {
         barrier,
         barrierType,
     }: {
+        accountType: 'real' | 'demo';
         market: string;
         durationUnit: string;
         durationValue: string;
@@ -218,6 +227,9 @@ export class TradeHigherLowerPage extends TradeParametersPage {
         stake: string;
         currency: string;
     }): Promise<void> {
+        // 0. Trade on the account type requested by the test — the account created in beforeAll is real by default.
+        await this.switchToAccountType(accountType);
+
         // 1. Configure and buy
         await this.selectMarket(market);
         await this.selectTradeType('Higher/Lower');

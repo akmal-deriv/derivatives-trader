@@ -24,6 +24,7 @@ export class TradeMatchesDiffersPage extends TradeDigitsPage {
      * Full Matches contract flow: buy Matches → settle in place → verify the closed contract in the
      * Positions Closed tab, contract details, balance, and Reports (Trade table + Statement).
      *
+     * @param accountType   - Account to trade on: 'real' or 'demo'
      * @param market        - Digits market symbol (e.g. 'Volatility 10 Index')
      * @param durationValue - Ticks chip label (e.g. '10 ticks')
      * @param stake         - Stake amount as a string (e.g. '10.00')
@@ -31,6 +32,7 @@ export class TradeMatchesDiffersPage extends TradeDigitsPage {
      * @param digit         - Last-digit prediction "0"–"9"
      */
     async buyMatchesAndVerify(params: {
+        accountType: 'real' | 'demo';
         market: string;
         durationValue: string;
         stake: string;
@@ -49,6 +51,7 @@ export class TradeMatchesDiffersPage extends TradeDigitsPage {
      * Full Differs contract flow: buy Differs → settle in place → verify the closed contract in the
      * Positions Closed tab, contract details, balance, and Reports (Trade table + Statement).
      *
+     * @param accountType   - Account to trade on: 'real' or 'demo'
      * @param market        - Digits market symbol (e.g. 'Volatility 10 Index')
      * @param durationValue - Ticks chip label (e.g. '10 ticks')
      * @param stake         - Stake amount as a string (e.g. '10.00')
@@ -56,6 +59,7 @@ export class TradeMatchesDiffersPage extends TradeDigitsPage {
      * @param digit         - Last-digit prediction "0"–"9"
      */
     async buyDiffersAndVerify(params: {
+        accountType: 'real' | 'demo';
         market: string;
         durationValue: string;
         stake: string;

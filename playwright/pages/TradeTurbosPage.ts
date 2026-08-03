@@ -89,6 +89,7 @@ export class TradeTurbosPage extends TradeParametersPage {
      * Duration is a short Minutes value so the card shows a remaining-time countdown (works with the
      * standard `verifyContractCardDetails`); the contract is closed early, so we never wait it out.
      *
+     * @param accountType - Account to trade on: 'real' or 'demo'
      * @param market     - Turbos market symbol (e.g. 'Volatility 100 (1s) Index')
      * @param direction  - 'Up' or 'Down'
      * @param stake      - Stake amount as a string (e.g. '10.50')
@@ -96,12 +97,14 @@ export class TradeTurbosPage extends TradeParametersPage {
      * @param takeProfit - Optional take-profit amount (e.g. '20.00'). Omit for the no-TP flow.
      */
     async buyTurbosAndVerify({
+        accountType,
         market,
         direction,
         stake,
         currency,
         takeProfit,
     }: {
+        accountType: 'real' | 'demo';
         market: string;
         direction: 'Up' | 'Down';
         stake: string;
@@ -109,6 +112,9 @@ export class TradeTurbosPage extends TradeParametersPage {
         takeProfit?: string;
     }): Promise<void> {
         const contractType = `Turbos ${direction}`;
+
+        // 0. Trade on the account type requested by the test — the account created in beforeAll is real by default.
+        await this.switchToAccountType(accountType);
 
         // 1. Configure and buy
         await this.selectMarket(market);

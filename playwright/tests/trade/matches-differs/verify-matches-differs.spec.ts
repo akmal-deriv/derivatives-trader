@@ -38,8 +38,20 @@ test.describe('Trade — Matches/Differs', { tag: ['@desktop', '@mobile', '@trad
      * contract details, wait for the tick contract to auto-expire in place, then verify the settled
      * contract details, balance, and Reports (Trade table + Statement).
      */
-    test('VERIFY Buy "Matches" Contract', async ({ tradeMatchesDiffersPage }) => {
+    test('VERIFY Buy "Matches" Contract (Demo Account)', async ({ tradeMatchesDiffersPage }) => {
         await tradeMatchesDiffersPage.buyMatchesAndVerify({
+            accountType: 'demo',
+            market: 'Volatility 10 Index',
+            durationValue: '10 ticks',
+            stake: '10.00',
+            currency: 'USD',
+            digit: '5',
+        });
+    });
+
+    test('VERIFY Buy "Matches" Contract (Real Account)', async ({ tradeMatchesDiffersPage }) => {
+        await tradeMatchesDiffersPage.buyMatchesAndVerify({
+            accountType: 'real',
             market: 'Volatility 10 Index',
             durationValue: '10 ticks',
             stake: '10.00',
@@ -53,8 +65,20 @@ test.describe('Trade — Matches/Differs', { tag: ['@desktop', '@mobile', '@trad
      * contract details, wait for the tick contract to auto-expire in place, then verify the settled
      * contract details, balance, and Reports (Trade table + Statement).
      */
-    test('VERIFY Buy "Differs" Contract', async ({ tradeMatchesDiffersPage }) => {
+    test('VERIFY Buy "Differs" Contract (Demo Account)', async ({ tradeMatchesDiffersPage }) => {
         await tradeMatchesDiffersPage.buyDiffersAndVerify({
+            accountType: 'demo',
+            market: 'Volatility 10 Index',
+            durationValue: '10 ticks',
+            stake: '10.00',
+            currency: 'USD',
+            digit: '5',
+        });
+    });
+
+    test('VERIFY Buy "Differs" Contract (Real Account)', async ({ tradeMatchesDiffersPage }) => {
+        await tradeMatchesDiffersPage.buyDiffersAndVerify({
+            accountType: 'real',
             market: 'Volatility 10 Index',
             durationValue: '10 ticks',
             stake: '10.00',

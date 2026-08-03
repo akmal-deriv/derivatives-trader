@@ -1,6 +1,10 @@
 # Trade Journey Coverage
 
-**Analysis date:** 2026-07-20
+**Analysis date:** 2026-08-03
+
+> **Account type:** Flows 2–10 below (excluding Multipliers Deal Cancellation 9.7/9.8 and Vanillas 11.1/11.2,
+> both not yet implemented) each run as a `(Demo Account)` / `(Real Account)` test pair via `accountType` on
+> the corresponding `buy*AndVerify()` page-object method.
 
 ---
 
@@ -60,7 +64,8 @@
 
 | Priority | Spec file                                                        | Flow                           | Reason                                             |
 | -------- | ---------------------------------------------------------------- | ------------------------------ | -------------------------------------------------- |
-| P0       | `trade/accumulators/verify-accumulators.spec.ts`                 | Flow 8.1 + 8.2                 | Top-traffic trade type; without and with TP        |
+| P0       | `trade/accumulators/verify-accumulators-no-tp.spec.ts`           | Flow 8.1                       | Top-traffic trade type; without TP                 |
+| P0       | `trade/accumulators/verify-accumulators-with-tp.spec.ts`         | Flow 8.2                       | Top-traffic trade type; with TP                    |
 | P0       | `trade/matches-differs/verify-matches-differs.spec.ts`           | Flow 5.1 + 5.2                 | Most popular Digit type                            |
 | P1       | `trade/higher-lower/verify-higher-lower.spec.ts`                 | Flow 3.1 + 3.2                 | Core directional type with barrier                 |
 | P1       | `trade/multipliers/verify-multipliers-with-sl.spec.ts`           | Flow 9.5 + 9.6                 | SL is a critical risk control path                 |

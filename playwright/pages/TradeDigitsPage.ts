@@ -164,6 +164,7 @@ export abstract class TradeDigitsPage extends TradeParametersPage {
      * place → verify the settled contract in the Positions Closed tab, contract details, balance, and
      * Reports (Trade table + Statement).
      *
+     * @param accountType    - Account to trade on: 'real' or 'demo'
      * @param tradeTypeLabel - Trade type chip label (e.g. 'Matches/Differs', 'Over/Under', 'Even/Odd')
      * @param prediction     - Outcome tab label + contract type name (e.g. 'Matches', 'Over', 'Even')
      * @param position       - 'top' (green) or 'bottom' (red) purchase button for this outcome
@@ -175,6 +176,7 @@ export abstract class TradeDigitsPage extends TradeParametersPage {
      *                         selector; the audit Target row then reads the outcome (e.g. "Even").
      */
     protected async buyDigitContractAndVerify({
+        accountType,
         tradeTypeLabel,
         prediction,
         position,
@@ -184,6 +186,7 @@ export abstract class TradeDigitsPage extends TradeParametersPage {
         currency,
         digit,
     }: {
+        accountType: 'real' | 'demo';
         tradeTypeLabel: string;
         prediction: string;
         position: 'top' | 'bottom';
@@ -193,6 +196,9 @@ export abstract class TradeDigitsPage extends TradeParametersPage {
         currency: string;
         digit?: string;
     }): Promise<void> {
+        // 0. Trade on the account type requested by the test — the account created in beforeAll is real by default.
+        await this.switchToAccountType(accountType);
+
         // 1. Configure and buy. Even/Odd has no last-digit selector, so `digit` is omitted there.
         await this.selectMarket(market);
         await this.selectTradeType(tradeTypeLabel);

@@ -35,8 +35,24 @@ test.describe('Trade — Multipliers', { tag: ['@desktop', '@mobile', '@trade'] 
      * Flow 9.3 — Multipliers with TP: configure Take Profit → buy Up → verify positions,
      * reports, contract details (TP amount visible), balance, and closed contract.
      */
-    test('VERIFY Buy "Up" Multipliers Contract With Take Profit and Close', async ({ tradeMultipliersPage }) => {
+    test('VERIFY Buy "Up" Multipliers Contract With Take Profit and Close (Demo Account)', async ({
+        tradeMultipliersPage,
+    }) => {
         await tradeMultipliersPage.buyUpAndVerify({
+            accountType: 'demo',
+            market: 'Volatility 25 (1s) Index',
+            multiplier: 'x160',
+            stake: '10.00',
+            currency: 'USD',
+            riskManagement: { takeProfit: '30.01' },
+        });
+    });
+
+    test('VERIFY Buy "Up" Multipliers Contract With Take Profit and Close (Real Account)', async ({
+        tradeMultipliersPage,
+    }) => {
+        await tradeMultipliersPage.buyUpAndVerify({
+            accountType: 'real',
             market: 'Volatility 25 (1s) Index',
             multiplier: 'x160',
             stake: '10.00',
@@ -49,8 +65,24 @@ test.describe('Trade — Multipliers', { tag: ['@desktop', '@mobile', '@trade'] 
      * Flow 9.4 — Multipliers with TP: configure Take Profit → buy Down → verify positions,
      * reports, contract details (TP amount visible), balance, and closed contract.
      */
-    test('VERIFY Buy "Down" Multipliers Contract With Take Profit and Close', async ({ tradeMultipliersPage }) => {
+    test('VERIFY Buy "Down" Multipliers Contract With Take Profit and Close (Demo Account)', async ({
+        tradeMultipliersPage,
+    }) => {
         await tradeMultipliersPage.buyDownAndVerify({
+            accountType: 'demo',
+            market: 'Volatility 25 (1s) Index',
+            multiplier: 'x400',
+            stake: '11.11',
+            currency: 'USD',
+            riskManagement: { takeProfit: '21.32' },
+        });
+    });
+
+    test('VERIFY Buy "Down" Multipliers Contract With Take Profit and Close (Real Account)', async ({
+        tradeMultipliersPage,
+    }) => {
+        await tradeMultipliersPage.buyDownAndVerify({
+            accountType: 'real',
             market: 'Volatility 25 (1s) Index',
             multiplier: 'x400',
             stake: '11.11',

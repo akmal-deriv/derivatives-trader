@@ -43,7 +43,7 @@ test.describe('Feed', { tag: ['@desktop', '@mobile', '@feed', '@smoke', '@produc
                     } else {
                         await feedPage.verifyMarketClosedState(market.label);
                     }
-                }, `[${market.label}] market check failed`)
+                }, `[${market.label}] market check`)
                 .toPass({ timeout: 30_000 });
         }
     });

@@ -1,7 +1,13 @@
 # 🗺️ Trade Journey Catalog — Technical Reference
 
 > Source of truth: `packages/trader/src/AppV2/Containers/Trade/` · `packages/trader/src/AppV2/Components/TradeParameters/` · `packages/trader/src/AppV2/Components/PurchaseButton/`
-> Last updated: 2026-07-09
+> Last updated: 2026-08-03
+>
+> **Account type:** Every implemented buy flow (Flows 2–10, excluding Multipliers Deal Cancellation and
+> Vanillas — both gap/not-yet-implemented) takes `accountType: 'real' | 'demo'` on its `buy*AndVerify()`
+> method and is exercised as a `(Demo Account)` / `(Real Account)` test pair. The code snippets below show
+> only the `(Demo Account)` variant for brevity — the `(Real Account)` counterpart is identical except for
+> `accountType: 'real'` and (for Rise/Fall Flow 2.1) a reduced stake on production.
 
 ---
 
@@ -24,8 +30,8 @@
 | Flow 6.2   | `trade/over-under/verify-over-under.spec.ts`                     | `@trade @desktop @mobile`                    |
 | Flow 7.1   | `trade/even-odd/verify-even-odd.spec.ts`                         | `@trade @desktop @mobile`                    |
 | Flow 7.2   | `trade/even-odd/verify-even-odd.spec.ts`                         | `@trade @desktop @mobile`                    |
-| Flow 8.1   | `trade/accumulators/verify-accumulators.spec.ts`                 | `@trade @smoke @desktop @mobile`             |
-| Flow 8.2   | `trade/accumulators/verify-accumulators.spec.ts`                 | `@trade @smoke @desktop @mobile`             |
+| Flow 8.1   | `trade/accumulators/verify-accumulators-no-tp.spec.ts`           | `@trade @smoke @desktop @mobile`             |
+| Flow 8.2   | `trade/accumulators/verify-accumulators-with-tp.spec.ts`         | `@trade @smoke @desktop @mobile`             |
 | Flow 9.1   | `trade/multipliers/verify-multipliers-no-tpsl.spec.ts`           | `@trade @smoke @desktop @mobile`             |
 | Flow 9.2   | `trade/multipliers/verify-multipliers-no-tpsl.spec.ts`           | `@trade @smoke @desktop @mobile`             |
 | Flow 9.3   | `trade/multipliers/verify-multipliers-with-tp.spec.ts`           | `@trade @smoke @desktop @mobile`             |
@@ -91,8 +97,9 @@ test.describe('Trade — Rise/Fall', { tag: ['@trade', '@smoke', '@desktop', '@m
         await loginPage.login(process.env.TEST_EMAIL_RISE_FALL);
     });
 
-    test('VERIFY Buy "Rise" Contract and Close', async ({ tradeRiseFallPage }) => {
+    test('VERIFY Buy "Rise" Contract and Close (Demo Account)', async ({ tradeRiseFallPage }) => {
         await tradeRiseFallPage.buyRiseAndVerify({
+            accountType: 'demo',
             market: 'Volatility 100 Index',
             durationUnit: 'Minutes',
             durationValue: '15 min',
@@ -101,8 +108,9 @@ test.describe('Trade — Rise/Fall', { tag: ['@trade', '@smoke', '@desktop', '@m
         });
     });
 
-    test('VERIFY Buy "Fall" Contract and Close', async ({ tradeRiseFallPage }) => {
+    test('VERIFY Buy "Fall" Contract and Close (Demo Account)', async ({ tradeRiseFallPage }) => {
         await tradeRiseFallPage.buyFallAndVerify({
+            accountType: 'demo',
             market: 'Volatility 100 Index',
             durationUnit: 'Minutes',
             durationValue: '15 min',
@@ -158,8 +166,9 @@ test.describe('Trade — Rise/Fall', { tag: ['@trade', '@smoke', '@desktop', '@m
         await loginPage.login(accountEmail, accountPassword);
     });
 
-    test('VERIFY Buy "Rise" Contract with Allow Equals Enabled', async ({ tradeRiseFallPage }) => {
+    test('VERIFY Buy "Rise" Contract with Allow Equals Enabled (Demo Account)', async ({ tradeRiseFallPage }) => {
         await tradeRiseFallPage.buyRiseAndVerify({
+            accountType: 'demo',
             market: 'Volatility 100 Index',
             durationUnit: 'Minutes',
             durationValue: '15 min',
@@ -169,8 +178,9 @@ test.describe('Trade — Rise/Fall', { tag: ['@trade', '@smoke', '@desktop', '@m
         });
     });
 
-    test('VERIFY Buy "Fall" Contract with Allow Equals Enabled', async ({ tradeRiseFallPage }) => {
+    test('VERIFY Buy "Fall" Contract with Allow Equals Enabled (Demo Account)', async ({ tradeRiseFallPage }) => {
         await tradeRiseFallPage.buyFallAndVerify({
+            accountType: 'demo',
             market: 'Volatility 100 Index',
             durationUnit: 'Minutes',
             durationValue: '18 min',
@@ -218,8 +228,9 @@ test.describe('Trade — Higher/Lower', { tag: ['@desktop', '@mobile', '@trade']
         await loginPage.login(accountEmail, accountPassword);
     });
 
-    test('VERIFY Buy "Higher" Contract and Close', async ({ tradeHigherLowerPage }) => {
+    test('VERIFY Buy "Higher" Contract and Close (Demo Account)', async ({ tradeHigherLowerPage }) => {
         await tradeHigherLowerPage.buyHigherAndVerify({
+            accountType: 'demo',
             market: 'Volatility 100 (1s) Index',
             durationUnit: 'Hours',
             durationValue: '1 hr',
@@ -230,8 +241,9 @@ test.describe('Trade — Higher/Lower', { tag: ['@desktop', '@mobile', '@trade']
         });
     });
 
-    test('VERIFY Buy "Lower" Contract and Close', async ({ tradeHigherLowerPage }) => {
+    test('VERIFY Buy "Lower" Contract and Close (Demo Account)', async ({ tradeHigherLowerPage }) => {
         await tradeHigherLowerPage.buyLowerAndVerify({
+            accountType: 'demo',
             market: 'Volatility 100 (1s) Index',
             durationUnit: 'Hours',
             durationValue: '1h 30m',
@@ -271,8 +283,9 @@ test.describe('Trade — Touch/No Touch', { tag: ['@desktop', '@mobile', '@trade
         await loginPage.login(accountEmail, accountPassword);
     });
 
-    test('VERIFY Buy "Touch" Contract and Close', async ({ tradeTouchNoTouchPage }) => {
+    test('VERIFY Buy "Touch" Contract and Close (Demo Account)', async ({ tradeTouchNoTouchPage }) => {
         await tradeTouchNoTouchPage.buyTouchAndVerify({
+            accountType: 'demo',
             market: 'Volatility 75 Index',
             durationUnit: 'Minutes',
             durationValue: '15 min',
@@ -283,8 +296,9 @@ test.describe('Trade — Touch/No Touch', { tag: ['@desktop', '@mobile', '@trade
         });
     });
 
-    test('VERIFY Buy "No Touch" Contract and Close', async ({ tradeTouchNoTouchPage }) => {
+    test('VERIFY Buy "No Touch" Contract and Close (Demo Account)', async ({ tradeTouchNoTouchPage }) => {
         await tradeTouchNoTouchPage.buyNoTouchAndVerify({
+            accountType: 'demo',
             market: 'Volatility 75 Index',
             durationUnit: 'Minutes',
             durationValue: '18 min',
@@ -321,8 +335,9 @@ test.describe('Trade — Matches/Differs', { tag: ['@desktop', '@mobile', '@trad
         await loginPage.login(accountEmail, accountPassword);
     });
 
-    test('VERIFY Buy "Matches" Contract', async ({ tradeMatchesDiffersPage }) => {
+    test('VERIFY Buy "Matches" Contract (Demo Account)', async ({ tradeMatchesDiffersPage }) => {
         await tradeMatchesDiffersPage.buyMatchesAndVerify({
+            accountType: 'demo',
             market: 'Volatility 10 Index',
             durationValue: '10 ticks',
             stake: '10.00',
@@ -331,8 +346,9 @@ test.describe('Trade — Matches/Differs', { tag: ['@desktop', '@mobile', '@trad
         });
     });
 
-    test('VERIFY Buy "Differs" Contract', async ({ tradeMatchesDiffersPage }) => {
+    test('VERIFY Buy "Differs" Contract (Demo Account)', async ({ tradeMatchesDiffersPage }) => {
         await tradeMatchesDiffersPage.buyDiffersAndVerify({
+            accountType: 'demo',
             market: 'Volatility 10 Index',
             durationValue: '10 ticks',
             stake: '10.00',
@@ -370,8 +386,9 @@ test.describe('Trade — Over/Under', { tag: ['@desktop', '@mobile', '@trade'] }
         await loginPage.login(accountEmail, accountPassword);
     });
 
-    test('VERIFY Buy "Over" Contract', async ({ tradeOverUnderPage }) => {
+    test('VERIFY Buy "Over" Contract (Demo Account)', async ({ tradeOverUnderPage }) => {
         await tradeOverUnderPage.buyOverAndVerify({
+            accountType: 'demo',
             market: 'Volatility 10 Index',
             durationValue: '10 ticks',
             stake: '10.00',
@@ -380,8 +397,9 @@ test.describe('Trade — Over/Under', { tag: ['@desktop', '@mobile', '@trade'] }
         });
     });
 
-    test('VERIFY Buy "Under" Contract', async ({ tradeOverUnderPage }) => {
+    test('VERIFY Buy "Under" Contract (Demo Account)', async ({ tradeOverUnderPage }) => {
         await tradeOverUnderPage.buyUnderAndVerify({
+            accountType: 'demo',
             market: 'Volatility 10 Index',
             durationValue: '10 ticks',
             stake: '10.00',
@@ -416,8 +434,9 @@ test.describe('Trade — Even/Odd', { tag: ['@desktop', '@mobile', '@trade'] }, 
         await loginPage.login(accountEmail, accountPassword);
     });
 
-    test('VERIFY Buy "Even" Contract', async ({ tradeEvenOddPage }) => {
+    test('VERIFY Buy "Even" Contract (Demo Account)', async ({ tradeEvenOddPage }) => {
         await tradeEvenOddPage.buyEvenAndVerify({
+            accountType: 'demo',
             market: 'Volatility 10 Index',
             durationValue: '10 ticks',
             stake: '10.00',
@@ -425,8 +444,9 @@ test.describe('Trade — Even/Odd', { tag: ['@desktop', '@mobile', '@trade'] }, 
         });
     });
 
-    test('VERIFY Buy "Odd" Contract', async ({ tradeEvenOddPage }) => {
+    test('VERIFY Buy "Odd" Contract (Demo Account)', async ({ tradeEvenOddPage }) => {
         await tradeEvenOddPage.buyOddAndVerify({
+            accountType: 'demo',
             market: 'Volatility 10 Index',
             durationValue: '10 ticks',
             stake: '10.00',
@@ -449,46 +469,51 @@ Accumulators have **no duration**, a **Growth rate** param (set 5%), and an opti
 also auto-settle when spot hits the **barrier** or the **take profit**. `TradeAccumulatorsPage` uses a
 close-reason-agnostic settle helper (manual close for 8.1; wait-for-auto-settle with manual fallback
 for 8.2) and verifies the closed contract in Positions, contract details, balance, and Reports. TP is
-asserted on the **form** before buying (deterministic); open-position Reports grid is not verified.
+asserted on the **form** before buying (deterministic).
+
+> **Split into two spec files:** `verify-accumulators-no-tp.spec.ts` (Flow 8.1) and
+> `verify-accumulators-with-tp.spec.ts` (Flow 8.2) — each with its own `describe` block and `beforeAll`.
 
 ```typescript
+// verify-accumulators-no-tp.spec.ts (Flow 8.1)
 import { test } from '../../../fixtures/fixtures';
 import { TradeBasePage } from '../../../pages/TradeBasePage';
 
-test.describe('Trade — Accumulators', { tag: ['@desktop', '@mobile', '@trade', '@smoke'] }, () => {
-    test.describe.configure({ mode: 'serial' });
+test.describe(
+    'Trade — Accumulators (without Take Profit)',
+    { tag: ['@desktop', '@mobile', '@trade', '@smoke'] },
+    () => {
+        test.describe.configure({ mode: 'serial' });
 
-    test.beforeEach(async ({ page, loginPage }) => {
-        await TradeBasePage.seedLocalStorageOnOrigin(page);
-        await loginPage.login(accountEmail, accountPassword);
-    });
-
-    test('VERIFY Buy Accumulators Contract Without Take Profit and Close', async ({ tradeAccumulatorsPage }) => {
-        await tradeAccumulatorsPage.buyAccumulatorAndVerify({
-            market: 'Volatility 100 Index',
-            growthRate: '5%',
-            stake: '10.00',
-            currency: 'USD',
+        test.beforeEach(async ({ page, loginPage }) => {
+            await TradeBasePage.seedLocalStorageOnOrigin(page);
+            await loginPage.login(accountEmail, accountPassword);
         });
-    });
 
-    test('VERIFY Buy Accumulators Contract With Take Profit and Close', async ({ tradeAccumulatorsPage }) => {
-        await tradeAccumulatorsPage.buyAccumulatorAndVerify({
-            market: 'Volatility 100 Index',
-            growthRate: '5%',
-            stake: '10.00',
-            currency: 'USD',
-            takeProfit: '4.00',
+        test('VERIFY Buy Accumulators Contract Without Take Profit and Close (Demo Account)', async ({
+            tradeAccumulatorsPage,
+        }) => {
+            await tradeAccumulatorsPage.buyAccumulatorAndVerify({
+                accountType: 'demo',
+                market: 'Volatility 100 Index',
+                growthRate: '5%',
+                stake: '10.00',
+                currency: 'USD',
+            });
         });
-    });
-});
+    }
+);
+
+// verify-accumulators-with-tp.spec.ts (Flow 8.2) — separate describe block, same shape, plus `takeProfit: '4.00'`.
 ```
 
 > **`buyAccumulatorAndVerify` covers (in order):** select market → select Accumulators (asserts no Duration)
 > → `setGrowthRate('5%')` → (8.2) `setTakeProfit('4.00')` asserted on the form → `setStake` →
-> `clickAccumulatorsBuy` → `settleAccumulatorContract` (manual / auto-settle) → Closed tab
-> `verifyClosedPositionsTab` (signed P/L) → closed contract details `getBuyReferenceId` + `getSellReferenceId`
-> → `verifyBalanceAfterContractClose` → Reports `verifyClosedContractInReports`.
+> `clickAccumulatorsBuy` → `verifyOpenPositionsVisible()` + `verifyBalanceAfterContractPurchase()` →
+> `settleAccumulatorContract` (manual / auto-settle) → Closed tab `verifyClosedPositionsTab` (signed P/L) →
+> `verifyClosedAccumulatorContractDetailsPage()` (asserts market, growth rate, stake, contract value, P&L,
+> take profit, reference IDs, entry/exit spot+time — returns `{ buyId, sellId }`) →
+> `verifyBalanceAfterContractClose` → Reports `verifyClosedContractInReports`.
 > **Close button:** the trade-page purchase button becomes "Close [amount] [currency]" while an
 > accumulator is open (`.purchase-button--single`); it reverts to "Buy" on any auto-close.
 > **Flow 8.1** = `VERIFY Buy Accumulators Contract Without Take Profit and Close` · **Flow 8.2** = `VERIFY Buy Accumulators Contract With Take Profit and Close`
@@ -520,8 +545,11 @@ test.describe('Trade — Multipliers', { tag: ['@desktop', '@mobile', '@trade'] 
         await loginPage.login(accountEmail, accountPassword);
     });
 
-    test('VERIFY Buy "Up" Multipliers Contract and Close (without TP/SL)', async ({ tradeMultipliersPage }) => {
+    test('VERIFY Buy "Up" Multipliers Contract and Close (without TP/SL) (Demo Account)', async ({
+        tradeMultipliersPage,
+    }) => {
         await tradeMultipliersPage.buyUpAndVerify({
+            accountType: 'demo',
             market: 'Volatility 100 (1s) Index',
             multiplier: 'x200',
             stake: '5.40',
@@ -529,8 +557,11 @@ test.describe('Trade — Multipliers', { tag: ['@desktop', '@mobile', '@trade'] 
         });
     });
 
-    test('VERIFY Buy "Down" Multipliers Contract and Close (without TP/SL)', async ({ tradeMultipliersPage }) => {
+    test('VERIFY Buy "Down" Multipliers Contract and Close (without TP/SL) (Demo Account)', async ({
+        tradeMultipliersPage,
+    }) => {
         await tradeMultipliersPage.buyDownAndVerify({
+            accountType: 'demo',
             market: 'Volatility 100 (1s) Index',
             multiplier: 'x300',
             stake: '5.88',
@@ -576,8 +607,11 @@ test.describe('Trade — Multipliers', { tag: ['@desktop', '@mobile', '@trade'] 
         await loginPage.login(accountEmail, accountPassword);
     });
 
-    test('VERIFY Buy "Up" Multipliers Contract With Take Profit and Close', async ({ tradeMultipliersPage }) => {
+    test('VERIFY Buy "Up" Multipliers Contract With Take Profit and Close (Demo Account)', async ({
+        tradeMultipliersPage,
+    }) => {
         await tradeMultipliersPage.buyUpAndVerify({
+            accountType: 'demo',
             market: 'Volatility 25 (1s) Index',
             multiplier: 'x160',
             stake: '10.00',
@@ -586,8 +620,11 @@ test.describe('Trade — Multipliers', { tag: ['@desktop', '@mobile', '@trade'] 
         });
     });
 
-    test('VERIFY Buy "Down" Multipliers Contract With Take Profit and Close', async ({ tradeMultipliersPage }) => {
+    test('VERIFY Buy "Down" Multipliers Contract With Take Profit and Close (Demo Account)', async ({
+        tradeMultipliersPage,
+    }) => {
         await tradeMultipliersPage.buyDownAndVerify({
+            accountType: 'demo',
             market: 'Volatility 25 (1s) Index',
             multiplier: 'x400',
             stake: '11.11',
@@ -639,8 +676,11 @@ test.describe('Trade — Multipliers', { tag: ['@desktop', '@mobile', '@trade'] 
         await loginPage.login(accountEmail, accountPassword);
     });
 
-    test('VERIFY Buy "Up" Multipliers Contract With Stop Loss and Close', async ({ tradeMultipliersPage }) => {
+    test('VERIFY Buy "Up" Multipliers Contract With Stop Loss and Close (Demo Account)', async ({
+        tradeMultipliersPage,
+    }) => {
         await tradeMultipliersPage.buyUpAndVerify({
+            accountType: 'demo',
             market: 'Volatility 50 (1s) Index',
             multiplier: 'x200',
             stake: '25.05',
@@ -649,8 +689,11 @@ test.describe('Trade — Multipliers', { tag: ['@desktop', '@mobile', '@trade'] 
         });
     });
 
-    test('VERIFY Buy "Down" Multipliers Contract With Stop Loss and Close', async ({ tradeMultipliersPage }) => {
+    test('VERIFY Buy "Down" Multipliers Contract With Stop Loss and Close (Demo Account)', async ({
+        tradeMultipliersPage,
+    }) => {
         await tradeMultipliersPage.buyDownAndVerify({
+            accountType: 'demo',
             market: 'Volatility 50 (1s) Index',
             multiplier: 'x600',
             stake: '25.00',
@@ -753,8 +796,9 @@ test.describe('Trade — Turbos', { tag: ['@desktop', '@mobile', '@trade'] }, ()
         await loginPage.login(accountEmail, accountPassword);
     });
 
-    test('VERIFY Buy "Up" Turbos Contract', async ({ tradeTurbosPage }) => {
+    test('VERIFY Buy "Up" Turbos Contract (Demo Account)', async ({ tradeTurbosPage }) => {
         await tradeTurbosPage.buyTurbosAndVerify({
+            accountType: 'demo',
             market: 'Volatility 100 (1s) Index',
             direction: 'Up',
             stake: '10.50',
@@ -762,8 +806,9 @@ test.describe('Trade — Turbos', { tag: ['@desktop', '@mobile', '@trade'] }, ()
         });
     });
 
-    test('VERIFY Buy "Down" Turbos Contract', async ({ tradeTurbosPage }) => {
+    test('VERIFY Buy "Down" Turbos Contract (Demo Account)', async ({ tradeTurbosPage }) => {
         await tradeTurbosPage.buyTurbosAndVerify({
+            accountType: 'demo',
             market: 'Volatility 100 (1s) Index',
             direction: 'Down',
             stake: '10.50',

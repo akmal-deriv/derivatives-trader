@@ -36,8 +36,19 @@ test.describe('Trade — Turbos', { tag: ['@desktop', '@mobile', '@trade'] }, ()
      * Flow 10.1 — Turbos: buy Up → verify open position → close early → verify settled contract
      * (Positions Closed tab, balance, Reports).
      */
-    test('VERIFY Buy "Up" Turbos Contract', async ({ tradeTurbosPage }) => {
+    test('VERIFY Buy "Up" Turbos Contract (Demo Account)', async ({ tradeTurbosPage }) => {
         await tradeTurbosPage.buyTurbosAndVerify({
+            accountType: 'demo',
+            market: 'Volatility 100 (1s) Index',
+            direction: 'Up',
+            stake: '10.50',
+            currency: 'USD',
+        });
+    });
+
+    test('VERIFY Buy "Up" Turbos Contract (Real Account)', async ({ tradeTurbosPage }) => {
+        await tradeTurbosPage.buyTurbosAndVerify({
+            accountType: 'real',
             market: 'Volatility 100 (1s) Index',
             direction: 'Up',
             stake: '10.50',
@@ -48,8 +59,19 @@ test.describe('Trade — Turbos', { tag: ['@desktop', '@mobile', '@trade'] }, ()
     /**
      * Flow 10.2 — Turbos: buy Down → verify open position → close early → verify settled contract.
      */
-    test('VERIFY Buy "Down" Turbos Contract', async ({ tradeTurbosPage }) => {
+    test('VERIFY Buy "Down" Turbos Contract (Demo Account)', async ({ tradeTurbosPage }) => {
         await tradeTurbosPage.buyTurbosAndVerify({
+            accountType: 'demo',
+            market: 'Volatility 100 (1s) Index',
+            direction: 'Down',
+            stake: '10.50',
+            currency: 'USD',
+        });
+    });
+
+    test('VERIFY Buy "Down" Turbos Contract (Real Account)', async ({ tradeTurbosPage }) => {
+        await tradeTurbosPage.buyTurbosAndVerify({
+            accountType: 'real',
             market: 'Volatility 100 (1s) Index',
             direction: 'Down',
             stake: '10.50',

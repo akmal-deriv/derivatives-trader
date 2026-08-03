@@ -112,6 +112,7 @@ export class TradeRiseFallPage extends TradeParametersPage {
     /**
      * Full Rise trade flow: select market → select trade type → set duration → set stake → buy → verify positions.
      *
+     * @param accountType - Account to trade on: 'real' or 'demo'
      * @param market - Market symbol to select (e.g. 'Volatility 100 Index')
      * @param durationUnit - Duration unit (e.g. 'Ticks', 'Minutes')
      * @param durationValue - Duration chip label used for selection (e.g. '5 min', '6 ticks')
@@ -119,6 +120,7 @@ export class TradeRiseFallPage extends TradeParametersPage {
      * @param currency - Currency code (e.g. 'USD')
      */
     async buyRiseAndVerify({
+        accountType,
         market,
         durationUnit,
         durationValue,
@@ -126,6 +128,7 @@ export class TradeRiseFallPage extends TradeParametersPage {
         currency,
         allowEquals = false,
     }: {
+        accountType: 'real' | 'demo';
         market: string;
         durationUnit: string;
         durationValue: string;
@@ -133,6 +136,9 @@ export class TradeRiseFallPage extends TradeParametersPage {
         currency: string;
         allowEquals?: boolean;
     }): Promise<void> {
+        // 0. Trade on the account type requested by the test — the account created in beforeAll is real by default.
+        await this.switchToAccountType(accountType);
+
         // 1. Configure and buy
         await this.selectMarket(market);
         await this.selectTradeType('Rise/Fall');
@@ -226,6 +232,7 @@ export class TradeRiseFallPage extends TradeParametersPage {
     /**
      * Full Fall trade flow: select market → select trade type → set duration → set stake → buy → verify positions.
      *
+     * @param accountType - Account to trade on: 'real' or 'demo'
      * @param market - Market symbol to select (e.g. 'Volatility 100 Index')
      * @param durationUnit - Duration unit (e.g. 'Ticks', 'Minutes')
      * @param durationValue - Duration chip label used for selection (e.g. '5 min', '6 ticks')
@@ -233,6 +240,7 @@ export class TradeRiseFallPage extends TradeParametersPage {
      * @param currency - Currency code (e.g. 'USD')
      */
     async buyFallAndVerify({
+        accountType,
         market,
         durationUnit,
         durationValue,
@@ -240,6 +248,7 @@ export class TradeRiseFallPage extends TradeParametersPage {
         currency,
         allowEquals = false,
     }: {
+        accountType: 'real' | 'demo';
         market: string;
         durationUnit: string;
         durationValue: string;
@@ -247,6 +256,9 @@ export class TradeRiseFallPage extends TradeParametersPage {
         currency: string;
         allowEquals?: boolean;
     }): Promise<void> {
+        // 0. Trade on the account type requested by the test — the account created in beforeAll is real by default.
+        await this.switchToAccountType(accountType);
+
         // 1. Configure and buy
         await this.selectMarket(market);
         await this.selectTradeType('Rise/Fall');

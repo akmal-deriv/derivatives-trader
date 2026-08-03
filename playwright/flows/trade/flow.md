@@ -7,6 +7,11 @@
 > **Authentication:** All flows start from a logged-in state (`loginPage.login()` in `beforeEach`)
 > **Desktop source:** `trade-desktop.tsx` — inline trade params in a grid
 > **Mobile source:** `trade-mobile.tsx` → `TradeParametersContainer` (swipeable bottom sheet)
+> **Account type:** Every implemented buy flow below (Flows 2–10, excluding Multipliers Deal Cancellation and
+> Vanillas, which are gap/not-yet-implemented) runs as a `(Demo Account)` / `(Real Account)` test pair via
+> `accountType: 'real' | 'demo'` on the page object's `buy*AndVerify()` method — the account created in
+> `beforeAll` is real by default, and the demo variant switches in-app via `switchToAccountType('demo')`
+> before configuring the trade.
 
 ---
 
@@ -67,7 +72,7 @@
 ### Flow 2.1 — Rise/Fall: buy Rise → close contract
 
 **Prerequisites:** Authenticated with funded account. Symbol supporting Rise/Fall (e.g. Volatility 100 Index).
-**Spec:** `playwright/tests/trade/rise-fall/verify-rise-fall.spec.ts` — `VERIFY Buy "Rise" Contract and Close`
+**Spec:** `playwright/tests/trade/rise-fall/verify-rise-fall.spec.ts` — `VERIFY Buy "Rise" Contract and Close (Demo Account)` / `(Real Account)`
 **Unique params:** Duration (`15 min`), Stake (`10.50`), Allow equals toggle
 
 | #   | Step                              | Action                                                         | Expected Result                                                 | Platform |
@@ -92,7 +97,7 @@
 ### Flow 2.2 — Rise/Fall: buy Fall → close contract
 
 **Prerequisites:** Same as Flow 2.1.
-**Spec:** `playwright/tests/trade/rise-fall/verify-rise-fall.spec.ts` — `VERIFY Buy "Fall" Contract and Close`
+**Spec:** `playwright/tests/trade/rise-fall/verify-rise-fall.spec.ts` — `VERIFY Buy "Fall" Contract and Close (Demo Account)` / `(Real Account)`
 
 | #   | Step                              | Action                                                         | Expected Result                                                 | Platform |
 | --- | --------------------------------- | -------------------------------------------------------------- | --------------------------------------------------------------- | -------- |
@@ -120,7 +125,7 @@
 ### Flow 2.3 — Rise/Fall Allow Equals: buy Rise → close contract
 
 **Prerequisites:** Same as Flow 2.1.
-**Spec:** `playwright/tests/trade/rise-fall/verify-rise-fall.spec.ts` — `VERIFY Buy "Rise" Contract with Allow Equals Enabled`
+**Spec:** `playwright/tests/trade/rise-fall/verify-rise-fall.spec.ts` — `VERIFY Buy "Rise" Contract with Allow Equals Enabled (Demo Account)` / `(Real Account)`
 **Unique params:** Allow equals toggle enabled (changes contract to RISEEQUAL), Duration (`15 min`), Stake (`10.50`)
 **Prerequisites:** Same as Flow 2.1.
 
@@ -146,7 +151,7 @@
 ### Flow 2.4 — Rise/Fall Allow Equals: buy Fall → close contract
 
 **Prerequisites:** Same as Flow 2.3.
-**Spec:** `playwright/tests/trade/rise-fall/verify-rise-fall.spec.ts` — `VERIFY Buy "Fall" Contract with Allow Equals Enabled`
+**Spec:** `playwright/tests/trade/rise-fall/verify-rise-fall.spec.ts` — `VERIFY Buy "Fall" Contract with Allow Equals Enabled (Demo Account)` / `(Real Account)`
 **Unique params:** Allow equals toggle enabled (changes contract to FALLEQUAL), Duration (`18 min`), Stake (`20.50`)
 
 | #   | Step                              | Action                                                         | Expected Result                                                 | Platform |
@@ -175,7 +180,7 @@
 ### Flow 3.1 — Higher/Lower: buy Higher → close contract
 
 **Prerequisites:** Authenticated with funded account. Symbol supporting Higher/Lower with barrier (e.g. Volatility 75 Index).
-**Spec:** `playwright/tests/trade/higher-lower/verify-higher-lower.spec.ts` — `VERIFY Buy "Higher" Contract and Close`
+**Spec:** `playwright/tests/trade/higher-lower/verify-higher-lower.spec.ts` — `VERIFY Buy "Higher" Contract and Close (Demo Account)` / `(Real Account)`
 **Unique params:** Barrier (above/below spot), Duration (`15 min`), Stake (`10.00`)
 
 | #   | Step                              | Action                                                         | Expected Result                                                 | Platform |
@@ -200,7 +205,7 @@
 ### Flow 3.2 — Higher/Lower: buy Lower → close contract
 
 **Prerequisites:** Same as Flow 3.1.
-**Spec:** `playwright/tests/trade/higher-lower/verify-higher-lower.spec.ts` — `VERIFY Buy "Lower" Contract and Close`
+**Spec:** `playwright/tests/trade/higher-lower/verify-higher-lower.spec.ts` — `VERIFY Buy "Lower" Contract and Close (Demo Account)` / `(Real Account)`
 **Unique params:** Duration (`18 min`), Stake (`10.00`)
 
 | #   | Step                              | Action                                                         | Expected Result                                                 | Platform |
@@ -229,7 +234,7 @@
 ### Flow 4.1 — Touch/No Touch: buy Touch → close contract
 
 **Prerequisites:** Authenticated with funded account. Symbol supporting Touch/No Touch (e.g. Volatility 75 Index).
-**Spec:** `playwright/tests/trade/touch-no-touch/verify-touch-no-touch.spec.ts` — `VERIFY Buy "Touch" Contract and Close`
+**Spec:** `playwright/tests/trade/touch-no-touch/verify-touch-no-touch.spec.ts` — `VERIFY Buy "Touch" Contract and Close (Demo Account)` / `(Real Account)`
 **Unique params:** Barrier, Duration (`15 min`), Stake (`10.00`)
 
 | #   | Step                              | Action                                                         | Expected Result                                                 | Platform |
@@ -254,7 +259,7 @@
 ### Flow 4.2 — Touch/No Touch: buy No Touch → close contract
 
 **Prerequisites:** Same as Flow 4.1.
-**Spec:** `playwright/tests/trade/touch-no-touch/verify-touch-no-touch.spec.ts` — `VERIFY Buy "No Touch" Contract and Close`
+**Spec:** `playwright/tests/trade/touch-no-touch/verify-touch-no-touch.spec.ts` — `VERIFY Buy "No Touch" Contract and Close (Demo Account)` / `(Real Account)`
 **Unique params:** Duration (`18 min`), Stake (`10.00`)
 
 | #   | Step                              | Action                                                         | Expected Result                                                 | Platform |
@@ -285,7 +290,7 @@
 ### Flow 5.1 — Matches/Differs: buy Matches → settle → verify closed
 
 **Prerequisites:** Authenticated with funded account. Digits symbol (e.g. Volatility 10 Index).
-**Spec:** `playwright/tests/trade/matches-differs/verify-matches-differs.spec.ts` — `VERIFY Buy "Matches" Contract`
+**Spec:** `playwright/tests/trade/matches-differs/verify-matches-differs.spec.ts` — `VERIFY Buy "Matches" Contract (Demo Account)` / `(Real Account)`
 **Unique params:** Last digit prediction, Duration (ticks), Stake (`10.00`)
 
 | #   | Step                                 | Action                                                                             | Expected Result                                      | Platform |
@@ -307,7 +312,7 @@
 ### Flow 5.2 — Matches/Differs: buy Differs → settle → verify closed
 
 **Prerequisites:** Same as Flow 5.1.
-**Spec:** `playwright/tests/trade/matches-differs/verify-matches-differs.spec.ts` — `VERIFY Buy "Differs" Contract`
+**Spec:** `playwright/tests/trade/matches-differs/verify-matches-differs.spec.ts` — `VERIFY Buy "Differs" Contract (Demo Account)` / `(Real Account)`
 **Unique params:** Duration (ticks), Stake (`10.00`)
 
 Identical chain to Flow 5.1 with `clickMatchesDiffersOption('Differs')` (purchase button turns red) — buy Differs → open details → settle in place → verify the closed contract in Positions, contract details, balance, and Reports.
@@ -321,7 +326,7 @@ Identical chain to Flow 5.1 with `clickMatchesDiffersOption('Differs')` (purchas
 ### Flow 6.1 — Over/Under: buy Over → settle → verify closed
 
 **Prerequisites:** Authenticated with funded account. Digits symbol (e.g. Volatility 10 Index).
-**Spec:** `playwright/tests/trade/over-under/verify-over-under.spec.ts` — `VERIFY Buy "Over" Contract`
+**Spec:** `playwright/tests/trade/over-under/verify-over-under.spec.ts` — `VERIFY Buy "Over" Contract (Demo Account)` / `(Real Account)`
 **Unique params:** Last digit prediction, Duration (ticks), Stake (`10.00`)
 
 | #   | Step                                 | Action                                                                             | Expected Result                                  | Platform |
@@ -343,7 +348,7 @@ Identical chain to Flow 5.1 with `clickMatchesDiffersOption('Differs')` (purchas
 ### Flow 6.2 — Over/Under: buy Under → settle → verify closed
 
 **Prerequisites:** Same as Flow 6.1.
-**Spec:** `playwright/tests/trade/over-under/verify-over-under.spec.ts` — `VERIFY Buy "Under" Contract`
+**Spec:** `playwright/tests/trade/over-under/verify-over-under.spec.ts` — `VERIFY Buy "Under" Contract (Demo Account)` / `(Real Account)`
 
 Identical chain to Flow 6.1 with `selectPredictionOption('Under', 'bottom')` (purchase button turns red) — buy Under → open details → settle in place → verify the closed contract in Positions, contract details, balance, and Reports.
 
@@ -356,7 +361,7 @@ Identical chain to Flow 6.1 with `selectPredictionOption('Under', 'bottom')` (pu
 ### Flow 7.1 — Even/Odd: buy Even → settle → verify closed
 
 **Prerequisites:** Authenticated with funded account. Digits symbol (e.g. Volatility 10 Index).
-**Spec:** `playwright/tests/trade/even-odd/verify-even-odd.spec.ts` — `VERIFY Buy "Even" Contract`
+**Spec:** `playwright/tests/trade/even-odd/verify-even-odd.spec.ts` — `VERIFY Buy "Even" Contract (Demo Account)` / `(Real Account)`
 **Unique params:** Duration (ticks), Stake (`10.00`) — no digit selector
 
 | #   | Step                                 | Action                                                                            | Expected Result                                  | Platform |
@@ -377,7 +382,7 @@ Identical chain to Flow 6.1 with `selectPredictionOption('Under', 'bottom')` (pu
 ### Flow 7.2 — Even/Odd: buy Odd → settle → verify closed
 
 **Prerequisites:** Same as Flow 7.1.
-**Spec:** `playwright/tests/trade/even-odd/verify-even-odd.spec.ts` — `VERIFY Buy "Odd" Contract`
+**Spec:** `playwright/tests/trade/even-odd/verify-even-odd.spec.ts` — `VERIFY Buy "Odd" Contract (Demo Account)` / `(Real Account)`
 
 Identical chain to Flow 7.1 with `selectPredictionOption('Odd', 'bottom')` (purchase button turns red) — buy Odd → open details → settle in place → verify the closed contract in Positions, contract details, balance, and Reports.
 
@@ -390,7 +395,7 @@ Identical chain to Flow 7.1 with `selectPredictionOption('Odd', 'bottom')` (purc
 ### Flow 8.1 — Accumulators without Take Profit: buy → close
 
 **Prerequisites:** Authenticated with funded account. Symbol supporting Accumulators (e.g. Volatility 100 Index). Only one active accumulator per symbol at a time.
-**Spec:** `playwright/tests/trade/accumulators/verify-accumulators.spec.ts` — `VERIFY Buy Accumulators Contract Without Take Profit and Close`
+**Spec:** `playwright/tests/trade/accumulators/verify-accumulators-no-tp.spec.ts` — `VERIFY Buy Accumulators Contract Without Take Profit and Close (Demo Account)` / `(Real Account)`
 **Unique params:** Growth rate (`5%`), Stake (`10.00`) — NO Duration, Take profit left off
 
 | #   | Step                              | Action                                                            | Expected Result                                                 | Platform |
@@ -415,7 +420,7 @@ Identical chain to Flow 7.1 with `selectPredictionOption('Odd', 'bottom')` (purc
 ### Flow 8.2 — Accumulators with Take Profit: buy → TP closes contract
 
 **Prerequisites:** Same as Flow 8.1.
-**Spec:** `playwright/tests/trade/accumulators/verify-accumulators.spec.ts` — `VERIFY Buy Accumulators Contract With Take Profit and Close`
+**Spec:** `playwright/tests/trade/accumulators/verify-accumulators-with-tp.spec.ts` — `VERIFY Buy Accumulators Contract With Take Profit and Close (Demo Account)` / `(Real Account)`
 **Unique params:** Growth rate (`5%`), Take profit toggle + input (`4.00`) enabled
 
 | #   | Step                              | Action                                                            | Expected Result                                                    | Platform |
@@ -442,7 +447,7 @@ Identical chain to Flow 7.1 with `selectPredictionOption('Odd', 'bottom')` (purc
 ### Flow 9.1 — Multipliers no TP/SL: buy Up → close contract
 
 **Prerequisites:** Authenticated with funded account. Symbol supporting Multipliers (e.g. Volatility 100 (1s) Index).
-**Spec:** `playwright/tests/trade/multipliers/verify-multipliers-no-tpsl.spec.ts` — `VERIFY Buy "Up" Multipliers Contract and Close (without TP/SL)`
+**Spec:** `playwright/tests/trade/multipliers/verify-multipliers-no-tpsl.spec.ts` — `VERIFY Buy "Up" Multipliers Contract and Close (without TP/SL) (Demo Account)` / `(Real Account)`
 **Unique params:** Multiplier (`x200`), Stake (`5.40`) — NO Duration, NO TP/SL
 
 > **Structural note:** Multipliers has no Duration param and no Barrier. The contract details page shows Multiplier value, Commission, Stop out level, and Entry/Exit spot details. Commission and Stop out are captured pre-buy from the info panel and asserted exactly in the closed contract details.
@@ -472,7 +477,7 @@ Identical chain to Flow 7.1 with `selectPredictionOption('Odd', 'bottom')` (purc
 ### Flow 9.2 — Multipliers no TP/SL: buy Down → close contract
 
 **Prerequisites:** Same as Flow 9.1.
-**Spec:** `playwright/tests/trade/multipliers/verify-multipliers-no-tpsl.spec.ts` — `VERIFY Buy "Down" Multipliers Contract and Close (without TP/SL)`
+**Spec:** `playwright/tests/trade/multipliers/verify-multipliers-no-tpsl.spec.ts` — `VERIFY Buy "Down" Multipliers Contract and Close (without TP/SL) (Demo Account)` / `(Real Account)`
 **Unique params:** Multiplier (`x300`), Stake (`5.88`)
 
 | #   | Step                              | Action                                                                                                  | Expected Result                                                                                                                                                         | Platform |
@@ -500,7 +505,7 @@ Identical chain to Flow 7.1 with `selectPredictionOption('Odd', 'bottom')` (purc
 ### Flow 9.3 — Multipliers with Take Profit: buy Up → close contract
 
 **Prerequisites:** Same as Flow 9.1.
-**Spec:** `playwright/tests/trade/multipliers/verify-multipliers-with-tp.spec.ts` — `VERIFY Buy "Up" Multipliers Contract With Take Profit and Close`
+**Spec:** `playwright/tests/trade/multipliers/verify-multipliers-with-tp.spec.ts` — `VERIFY Buy "Up" Multipliers Contract With Take Profit and Close (Demo Account)` / `(Real Account)`
 **Unique params:** TP (`30.01`), Multiplier (`x160`), Stake (`10.00`), Market (`Volatility 25 (1s) Index`)
 
 > **Implementation notes:**
@@ -533,7 +538,7 @@ Identical chain to Flow 7.1 with `selectPredictionOption('Odd', 'bottom')` (purc
 ### Flow 9.4 — Multipliers with Take Profit: buy Down → close contract
 
 **Prerequisites:** Same as Flow 9.3.
-**Spec:** `playwright/tests/trade/multipliers/verify-multipliers-with-tp.spec.ts` — `VERIFY Buy "Down" Multipliers Contract With Take Profit and Close`
+**Spec:** `playwright/tests/trade/multipliers/verify-multipliers-with-tp.spec.ts` — `VERIFY Buy "Down" Multipliers Contract With Take Profit and Close (Demo Account)` / `(Real Account)`
 **Unique params:** TP (`21.32`), Stake (`11.11`), Multiplier (`x400`)
 
 | #   | Step                              | Action                                                                                                  | Expected Result                                                                                                                                                                    | Platform |
@@ -562,7 +567,7 @@ Identical chain to Flow 7.1 with `selectPredictionOption('Odd', 'bottom')` (purc
 ### Flow 9.5 — Multipliers with Stop Loss: buy Up → close contract
 
 **Prerequisites:** Same as Flow 9.1.
-**Spec:** `playwright/tests/trade/multipliers/verify-multipliers-with-sl.spec.ts` — `VERIFY Buy "Up" Multipliers Contract With Stop Loss and Close`
+**Spec:** `playwright/tests/trade/multipliers/verify-multipliers-with-sl.spec.ts` — `VERIFY Buy "Up" Multipliers Contract With Stop Loss and Close (Demo Account)` / `(Real Account)`
 **Unique params:** SL (`21.10`), Multiplier (`x200`), Stake (`25.05`), Market (`Volatility 50 (1s) Index`)
 
 > **Implementation notes:**
@@ -598,7 +603,7 @@ Identical chain to Flow 7.1 with `selectPredictionOption('Odd', 'bottom')` (purc
 ### Flow 9.6 — Multipliers with Stop Loss: buy Down → close contract
 
 **Prerequisites:** Same as Flow 9.5.
-**Spec:** `playwright/tests/trade/multipliers/verify-multipliers-with-sl.spec.ts` — `VERIFY Buy "Down" Multipliers Contract With Stop Loss and Close`
+**Spec:** `playwright/tests/trade/multipliers/verify-multipliers-with-sl.spec.ts` — `VERIFY Buy "Down" Multipliers Contract With Stop Loss and Close (Demo Account)` / `(Real Account)`
 **Unique params:** SL (`23.01`), Multiplier (`x600`), Stake (`25.00`)
 
 | #   | Step                              | Action                                                                                                  | Expected Result                                                                                                                                                                     | Platform |
@@ -671,7 +676,7 @@ Identical chain to Flow 7.1 with `selectPredictionOption('Odd', 'bottom')` (purc
 ### Flow 10.1 — Turbos without TP: buy Up → verify in positions
 
 **Prerequisites:** Authenticated with funded account. Symbol supporting Turbos (e.g. Volatility 100 (1s) Index).
-**Spec:** `playwright/tests/trade/turbos/verify-turbos.spec.ts` — `VERIFY Buy "Up" Turbos Contract`
+**Spec:** `playwright/tests/trade/turbos/verify-turbos.spec.ts` — `VERIFY Buy "Up" Turbos Contract (Demo Account)` / `(Real Account)`
 **Unique params:** Duration, Payout per point (`dt_payout-per-point_wrapper`), Stake (`10.00`) — Take profit off by default
 
 | #   | Step                              | Action                                                         | Expected Result                                   | Platform |
@@ -692,7 +697,7 @@ Identical chain to Flow 7.1 with `selectPredictionOption('Odd', 'bottom')` (purc
 ### Flow 10.2 — Turbos without TP: buy Down → verify in positions
 
 **Prerequisites:** Same as Flow 10.1.
-**Spec:** `playwright/tests/trade/turbos/verify-turbos.spec.ts` — `VERIFY Buy "Down" Turbos Contract`
+**Spec:** `playwright/tests/trade/turbos/verify-turbos.spec.ts` — `VERIFY Buy "Down" Turbos Contract (Demo Account)` / `(Real Account)`
 **Unique params:** Stake (`10.00`)
 
 | #   | Step                              | Action                                                         | Expected Result                                   | Platform |
@@ -708,7 +713,7 @@ Identical chain to Flow 7.1 with `selectPredictionOption('Odd', 'bottom')` (purc
 ### Flow 10.3 — Turbos with Take Profit: buy Up → verify TP set in positions
 
 **Prerequisites:** Same as Flow 10.1.
-**Spec:** `playwright/tests/trade/turbos/verify-turbos-tp.spec.ts` — `VERIFY Buy "Up" Turbos Contract With Take Profit`
+**Spec:** `playwright/tests/trade/turbos/verify-turbos-tp.spec.ts` — `VERIFY Buy "Up" Turbos Contract With Take Profit (Demo Account)` / `(Real Account)`
 **Unique params:** TP (`20.00`), Stake (`10.00`)
 
 | #   | Step                              | Action                                                         | Expected Result                                           | Platform |
@@ -728,7 +733,7 @@ Identical chain to Flow 7.1 with `selectPredictionOption('Odd', 'bottom')` (purc
 ### Flow 10.4 — Turbos with Take Profit: buy Down → verify TP set in positions
 
 **Prerequisites:** Same as Flow 10.3.
-**Spec:** `playwright/tests/trade/turbos/verify-turbos-tp.spec.ts` — `VERIFY Buy "Down" Turbos Contract With Take Profit`
+**Spec:** `playwright/tests/trade/turbos/verify-turbos-tp.spec.ts` — `VERIFY Buy "Down" Turbos Contract With Take Profit (Demo Account)` / `(Real Account)`
 **Unique params:** TP (`20.00`), Stake (`10.00`)
 
 | #   | Step                              | Action                                                         | Expected Result                                           | Platform |

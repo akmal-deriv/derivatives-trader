@@ -595,18 +595,21 @@ export class TradeMultipliersPage extends TradeParametersPage {
      * Implements Flow 9.1 (18 steps): Multipliers has no Duration param and no Barrier.
      * The contract details page shows a Multiplier value (not Duration/Barrier).
      *
+     * @param accountType - Account to trade on: 'real' or 'demo'
      * @param market     - Market symbol to select (e.g. 'Jump 10 Index')
      * @param multiplier - Multiplier value to select (e.g. 'x200')
      * @param stake      - Stake amount as a string (e.g. '20.00')
      * @param currency   - Currency code (e.g. 'USD')
      */
     async buyUpAndVerify({
+        accountType,
         market,
         multiplier,
         stake,
         currency,
         riskManagement,
     }: {
+        accountType: 'real' | 'demo';
         market: string;
         multiplier: string;
         stake: string;
@@ -617,6 +620,9 @@ export class TradeMultipliersPage extends TradeParametersPage {
             dealCancellation?: '5 min' | '10 min' | '15 min' | '30 min' | '60 min';
         };
     }): Promise<void> {
+        // 0. Trade on the account type requested by the test — the account created in beforeAll is real by default.
+        await this.switchToAccountType(accountType);
+
         // 1. Configure and buy
         await this.selectMarket(market);
         await this.selectTradeType('Multipliers');
@@ -729,18 +735,21 @@ export class TradeMultipliersPage extends TradeParametersPage {
      *
      * Implements Flow 9.2 (15 steps): same structure as buyUpAndVerify but with Down direction.
      *
+     * @param accountType - Account to trade on: 'real' or 'demo'
      * @param market     - Market symbol to select (e.g. 'Jump 10 Index')
      * @param multiplier - Multiplier value to select (e.g. 'x300')
      * @param stake      - Stake amount as a string (e.g. '21.00')
      * @param currency   - Currency code (e.g. 'USD')
      */
     async buyDownAndVerify({
+        accountType,
         market,
         multiplier,
         stake,
         currency,
         riskManagement,
     }: {
+        accountType: 'real' | 'demo';
         market: string;
         multiplier: string;
         stake: string;
@@ -751,6 +760,9 @@ export class TradeMultipliersPage extends TradeParametersPage {
             dealCancellation?: '5 min' | '10 min' | '15 min' | '30 min' | '60 min';
         };
     }): Promise<void> {
+        // 0. Trade on the account type requested by the test — the account created in beforeAll is real by default.
+        await this.switchToAccountType(accountType);
+
         // 1. Configure and buy
         await this.selectMarket(market);
         await this.selectTradeType('Multipliers');

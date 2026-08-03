@@ -35,8 +35,22 @@ test.describe('Trade — Higher/Lower', { tag: ['@desktop', '@mobile', '@trade']
      * Flow 3.1 — Higher/Lower: verify Barrier + Duration params, buy Higher → verify positions, reports,
      * contract details, balance, and closed contract.
      */
-    test('VERIFY Buy "Higher" Contract and Close', async ({ tradeHigherLowerPage }) => {
+    test('VERIFY Buy "Higher" Contract and Close (Demo Account)', async ({ tradeHigherLowerPage }) => {
         await tradeHigherLowerPage.buyHigherAndVerify({
+            accountType: 'demo',
+            market: 'Volatility 100 (1s) Index',
+            durationUnit: 'Hours',
+            durationValue: '1 hr',
+            barrierType: 'Above spot',
+            barrier: '5.11',
+            stake: '10.00',
+            currency: 'USD',
+        });
+    });
+
+    test('VERIFY Buy "Higher" Contract and Close (Real Account)', async ({ tradeHigherLowerPage }) => {
+        await tradeHigherLowerPage.buyHigherAndVerify({
+            accountType: 'real',
             market: 'Volatility 100 (1s) Index',
             durationUnit: 'Hours',
             durationValue: '1 hr',
@@ -51,8 +65,22 @@ test.describe('Trade — Higher/Lower', { tag: ['@desktop', '@mobile', '@trade']
      * Flow 3.2 — Higher/Lower: buy Lower → verify positions, reports, contract details, balance,
      * and closed contract.
      */
-    test('VERIFY Buy "Lower" Contract and Close', async ({ tradeHigherLowerPage }) => {
+    test('VERIFY Buy "Lower" Contract and Close (Demo Account)', async ({ tradeHigherLowerPage }) => {
         await tradeHigherLowerPage.buyLowerAndVerify({
+            accountType: 'demo',
+            market: 'Volatility 100 (1s) Index',
+            durationUnit: 'Hours',
+            durationValue: '1h 30m',
+            barrierType: 'Below spot',
+            barrier: '5.00',
+            stake: '10.00',
+            currency: 'USD',
+        });
+    });
+
+    test('VERIFY Buy "Lower" Contract and Close (Real Account)', async ({ tradeHigherLowerPage }) => {
+        await tradeHigherLowerPage.buyLowerAndVerify({
+            accountType: 'real',
             market: 'Volatility 100 (1s) Index',
             durationUnit: 'Hours',
             durationValue: '1h 30m',

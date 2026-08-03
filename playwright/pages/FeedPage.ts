@@ -61,12 +61,12 @@ export class FeedPage extends TradeBasePage {
         // ── Daily reset indices — 24/7 ─────────────────────────────────────────
         { label: 'Bear Market Index', status: 'open' },
         { label: 'Bull Market Index', status: 'open' },
-        // ── Basket indices — 24/7 ──────────────────────────────────────────────
-        { label: 'Gold Basket', status: 'open' },
-        { label: 'AUD Basket', status: 'open' },
-        { label: 'EUR Basket', status: 'open' },
-        { label: 'GBP Basket', status: 'open' },
-        { label: 'USD Basket', status: 'open' },
+        // ── Basket indices — weekday-only (closed on weekends) ─────────────────
+        { label: 'Gold Basket', status: 'session_gated' },
+        { label: 'AUD Basket', status: 'session_gated' },
+        { label: 'EUR Basket', status: 'session_gated' },
+        { label: 'GBP Basket', status: 'session_gated' },
+        { label: 'USD Basket', status: 'session_gated' },
         // ── Stock indices — session-gated (exchange hours only) ────────────────
         { label: 'Wall Street 30', status: 'session_gated' },
         { label: 'US Tech 100', status: 'session_gated' },

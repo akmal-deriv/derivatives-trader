@@ -99,9 +99,6 @@ export class TradeAccumulatorsPage extends TradeParametersPage {
     async setGrowthRate(value: string): Promise<void> {
         await this.growthRateField.click();
         if (this.isMobile) {
-            // Scroll-snap the wheel to the target rate. A bare `.click()` on the wheel item does not
-            // reliably re-center the scroll-snap carousel — it can leave the wheel on the default rate
-            // (committing '3%' for '5%'). The shared helper sets scrollTop to the snap-aligned position.
             await this.selectWheelPickerOption('.growth-rate__wheel-picker', value);
             if (await this.growthRateSaveButton.isVisible().catch(() => false)) {
                 await this.growthRateSaveButton.click();
@@ -188,6 +185,7 @@ export class TradeAccumulatorsPage extends TradeParametersPage {
      * take profit is set) → verify the settled contract in the Positions Closed tab, contract details,
      * balance, and Reports (Trade table + Statement).
      *
+     * @param accountType - Account to trade on: 'real' or 'demo'
      * @param market     - Market symbol supporting Accumulators (e.g. 'Volatility 100 Index')
      * @param growthRate - Growth rate label (e.g. '5%')
      * @param stake      - Stake amount as a string (e.g. '10.00')
@@ -195,12 +193,14 @@ export class TradeAccumulatorsPage extends TradeParametersPage {
      * @param takeProfit - Optional take-profit amount (e.g. '1.00'). Omit for the no-TP flow.
      */
     async buyAccumulatorAndVerify({
+        accountType,
         market,
         growthRate,
         stake,
         currency,
         takeProfit,
     }: {
+        accountType: 'real' | 'demo';
         market: string;
         growthRate: string;
         stake: string;
@@ -209,35 +209,32 @@ export class TradeAccumulatorsPage extends TradeParametersPage {
     }): Promise<void> {
         const withTakeProfit = takeProfit !== undefined;
 
+        // 0. Trade on the account type requested by the test — the account created in beforeAll is real by default.
+        await this.switchToAccountType(accountType);
+
         // 1. Configure
         await this.selectMarket(market);
         await this.selectTradeType('Accumulators');
         await expect(this.durationLabel, 'Duration param should NOT be shown for Accumulators').not.toBeVisible();
         await this.setGrowthRate(growthRate);
+        await this.setStake(stake);
         if (withTakeProfit) {
-            // Assert TP is configured on the FORM before buying — deterministic, unlike post-buy
-            // contract details which can be racy when a low TP auto-closes within a few ticks.
+            // Set TP before buying — post-buy contract details can be racy if a low TP auto-closes within a few ticks.
             await this.setTakeProfit(takeProfit!);
         }
-        await this.setStake(stake);
         const balanceBefore = await this.getBalance();
         const buyDate = this.getCurrentDate();
         await this.clickAccumulatorsBuy();
 
-        // 2. Post-buy balance. The stake is deducted on buy and stays deducted whether the contract is
-        // open or has already auto-settled (a barrier loss returns nothing; a win is credited only at
-        // settlement), so `balanceBefore - stake` is the reliable post-buy balance for both flows.
-        // We do not assert the open-position card here — the contract may auto-settle within a tick or
-        // two (barrier/TP), which would make any open-state assertion racy.
-        const balanceAfterBuy = (parseFloat(balanceBefore) - parseFloat(stake)).toFixed(2);
+        // 2. Verify contract card appears in Positions and balance deducted, then capture the clean post-deduction balance.
+        await this.positionsPage.verifyOpenPositionsVisible();
+        await this.verifyBalanceAfterContractPurchase(balanceBefore, stake);
+        const balanceAfterBuy = await this.getBalance();
 
         // 3. Settle the contract (close-reason agnostic: manual, barrier, or take-profit).
         await this.settleAccumulatorContract({ waitForAutoSettle: withTakeProfit });
 
-        // 4. Verify the settled contract in the Positions Closed tab (newest closed = ours).
-        // Reopen the flyout fresh: on desktop it auto-opens on buy and its Closed list is fetched then,
-        // so it would not reflect a contract that settled afterwards. Close it (if open) before
-        // navigating so goToPositions reopens with an up-to-date Closed list.
+        // 4. Verify the settled contract in Positions Closed — close any auto-opened flyout first, since its list was fetched at buy time.
         if (!this.isMobile) {
             const closeFlyout = this.page.getByRole('button', { name: 'Close flyout' });
             if (await closeFlyout.isVisible().catch(() => false)) {
@@ -248,10 +245,17 @@ export class TradeAccumulatorsPage extends TradeParametersPage {
         await this.positionsPage.clickClosedTab();
         const profitLoss = await this.positionsPage.verifyClosedPositionsTab(market, 'Accumulators', currency, stake);
 
-        // 5. Closed contract details — read buy + sell reference IDs for the Reports cross-check.
+        // 5. Verify the settled contract details page; capture buy + sell reference IDs for the Reports cross-check.
         await this.positionsPage.openFirstContract();
-        const buyId = await this.contractDetailsPage.getBuyReferenceId();
-        const sellId = await this.contractDetailsPage.getSellReferenceId();
+        const { buyId, sellId } = await this.contractDetailsPage.verifyClosedAccumulatorContractDetailsPage(
+            market,
+            growthRate,
+            currency,
+            stake,
+            buyDate,
+            profitLoss,
+            takeProfit
+        );
         await this.contractDetailsPage.closeContractDetails();
 
         // 6. Verify final balance reflects the settlement.

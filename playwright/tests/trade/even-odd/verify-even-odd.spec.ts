@@ -38,8 +38,19 @@ test.describe('Trade — Even/Odd', { tag: ['@desktop', '@mobile', '@trade'] }, 
      * Flow 7.1 — Even/Odd: buy Even → open the position's contract details, wait for the tick contract
      * to auto-expire in place, then verify the settled contract details, balance, and Reports.
      */
-    test('VERIFY Buy "Even" Contract', async ({ tradeEvenOddPage }) => {
+    test('VERIFY Buy "Even" Contract (Demo Account)', async ({ tradeEvenOddPage }) => {
         await tradeEvenOddPage.buyEvenAndVerify({
+            accountType: 'demo',
+            market: 'Volatility 10 Index',
+            durationValue: '10 ticks',
+            stake: '10.00',
+            currency: 'USD',
+        });
+    });
+
+    test('VERIFY Buy "Even" Contract (Real Account)', async ({ tradeEvenOddPage }) => {
+        await tradeEvenOddPage.buyEvenAndVerify({
+            accountType: 'real',
             market: 'Volatility 10 Index',
             durationValue: '10 ticks',
             stake: '10.00',
@@ -51,8 +62,19 @@ test.describe('Trade — Even/Odd', { tag: ['@desktop', '@mobile', '@trade'] }, 
      * Flow 7.2 — Even/Odd: buy Odd → open the position's contract details, wait for the tick contract
      * to auto-expire in place, then verify the settled contract details, balance, and Reports.
      */
-    test('VERIFY Buy "Odd" Contract', async ({ tradeEvenOddPage }) => {
+    test('VERIFY Buy "Odd" Contract (Demo Account)', async ({ tradeEvenOddPage }) => {
         await tradeEvenOddPage.buyOddAndVerify({
+            accountType: 'demo',
+            market: 'Volatility 10 Index',
+            durationValue: '10 ticks',
+            stake: '10.00',
+            currency: 'USD',
+        });
+    });
+
+    test('VERIFY Buy "Odd" Contract (Real Account)', async ({ tradeEvenOddPage }) => {
+        await tradeEvenOddPage.buyOddAndVerify({
+            accountType: 'real',
             market: 'Volatility 10 Index',
             durationValue: '10 ticks',
             stake: '10.00',

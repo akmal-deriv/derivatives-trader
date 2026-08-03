@@ -64,7 +64,7 @@ export default defineConfig({
     retries: process.env.CI ? 1 : 0,
 
     /* Configure workers */
-    workers: process.env.CI ? 5 : undefined,
+    workers: process.env.CI ? 6 : undefined,
 
     /* Reporter — all output inside playwright/test-results/ */
     reporter: [

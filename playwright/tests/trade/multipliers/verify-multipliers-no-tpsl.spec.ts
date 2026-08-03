@@ -35,8 +35,23 @@ test.describe('Trade — Multipliers', { tag: ['@desktop', '@mobile', '@trade'] 
      * Flow 9.1 — Multipliers no TP/SL: verify Multiplier + Risk Management params (no Duration),
      * buy Up → verify positions, reports, contract details, balance, and closed contract.
      */
-    test('VERIFY Buy "Up" Multipliers Contract and Close (without TP/SL)', async ({ tradeMultipliersPage }) => {
+    test('VERIFY Buy "Up" Multipliers Contract and Close (without TP/SL) (Demo Account)', async ({
+        tradeMultipliersPage,
+    }) => {
         await tradeMultipliersPage.buyUpAndVerify({
+            accountType: 'demo',
+            market: 'Volatility 100 (1s) Index',
+            multiplier: 'x200',
+            stake: '5.40',
+            currency: 'USD',
+        });
+    });
+
+    test('VERIFY Buy "Up" Multipliers Contract and Close (without TP/SL) (Real Account)', async ({
+        tradeMultipliersPage,
+    }) => {
+        await tradeMultipliersPage.buyUpAndVerify({
+            accountType: 'real',
             market: 'Volatility 100 (1s) Index',
             multiplier: 'x200',
             stake: '5.40',
@@ -48,8 +63,23 @@ test.describe('Trade — Multipliers', { tag: ['@desktop', '@mobile', '@trade'] 
      * Flow 9.2 — Multipliers no TP/SL: buy Down → verify positions, reports, contract details,
      * balance, and closed contract.
      */
-    test('VERIFY Buy "Down" Multipliers Contract and Close (without TP/SL)', async ({ tradeMultipliersPage }) => {
+    test('VERIFY Buy "Down" Multipliers Contract and Close (without TP/SL) (Demo Account)', async ({
+        tradeMultipliersPage,
+    }) => {
         await tradeMultipliersPage.buyDownAndVerify({
+            accountType: 'demo',
+            market: 'Volatility 100 (1s) Index',
+            multiplier: 'x300',
+            stake: '5.88',
+            currency: 'USD',
+        });
+    });
+
+    test('VERIFY Buy "Down" Multipliers Contract and Close (without TP/SL) (Real Account)', async ({
+        tradeMultipliersPage,
+    }) => {
+        await tradeMultipliersPage.buyDownAndVerify({
+            accountType: 'real',
             market: 'Volatility 100 (1s) Index',
             multiplier: 'x300',
             stake: '5.88',
