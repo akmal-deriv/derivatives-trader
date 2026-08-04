@@ -199,6 +199,7 @@ const TakeProfitAndStopLossContainer = observer(({ closeActionSheet }: TTakeProf
                 type='stop_loss'
             />
             <Button
+                variant='primary'
                 color='black-white'
                 size='lg'
                 label={<Localize i18n_default_text='Save' />}

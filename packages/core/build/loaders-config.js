@@ -38,36 +38,26 @@ const svg_file_loaders = [
     },
 ];
 
-let svg_id_counter = 0;
-
 const svg_loaders = [
     {
-        loader: 'babel-loader',
+        loader: '@svgr/webpack',
         options: {
-            cacheDirectory: true,
-            rootMode: 'upward',
-        },
-    },
-    {
-        loader: 'react-svg-loader',
-        options: {
-            jsx: true,
-            svgo: {
+            svgoConfig: {
+                floatPrecision: 2,
                 plugins: [
-                    { removeTitle: false },
-                    { removeUselessStrokeAndFill: false },
-                    { removeUknownsAndDefaults: false },
                     {
-                        cleanupIDs: {
-                            prefix: {
-                                toString() {
-                                    return `id-${svg_id_counter++}`;
-                                },
+                        name: 'preset-default',
+                        params: {
+                            overrides: {
+                                removeTitle: false,
+                                removeUselessStrokeAndFill: false,
+                                removeUnknownsAndDefaults: false,
+                                cleanupIds: false,
                             },
                         },
                     },
+                    'prefixIds',
                 ],
-                floatPrecision: 2,
             },
         },
     },

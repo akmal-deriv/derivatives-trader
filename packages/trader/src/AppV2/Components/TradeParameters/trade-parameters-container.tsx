@@ -2,7 +2,7 @@ import React from 'react';
 import clsx from 'clsx';
 import { observer } from 'mobx-react-lite';
 
-import { LegacyHandleLessIcon } from '@deriv/quill-icons';
+import { useStore } from '@deriv/stores';
 
 import ClosedMarketMessage from 'AppV2/Components/ClosedMarketMessage';
 import PurchaseButton from 'AppV2/Components/PurchaseButton';
@@ -21,6 +21,9 @@ const SWIPE_THRESHOLD_PX = 50; // Minimum distance (px) to recognize as swipe vs
 
 const TradeParametersContainer = ({ is_market_closed }: TTradeParametersContainer) => {
     const { contract_type, has_cancellation, symbol } = useTraderStore();
+    const {
+        ui: { is_chart_maximized },
+    } = useStore();
     const [is_sheet_expanded, setIsSheetExpanded] = React.useState(false);
     const handle_touch_start_y = React.useRef<number>(0);
     const prev_contract_type_ref = React.useRef(contract_type);
@@ -56,6 +59,7 @@ const TradeParametersContainer = ({ is_market_closed }: TTradeParametersContaine
             className={clsx('trade-params__container', {
                 'trade-params__container--expanded': is_sheet_expanded,
                 'trade-params__container--collapsed': !is_sheet_expanded,
+                'trade-params__container--chart-maximized': is_chart_maximized,
             })}
             data-testid='trade-params-container'
             onTouchStart={e => {
@@ -85,9 +89,7 @@ const TradeParametersContainer = ({ is_market_closed }: TTradeParametersContaine
                 }}
                 data-testid='trade-params-handle'
             >
-                <div className='trade-params__container-handle-bar'>
-                    <LegacyHandleLessIcon fill='var(--component-textIcon-normal-disabled)' iconSize='md' />
-                </div>
+                <div className='trade-params__container-handle-bar' />
             </div>
             {isTradeParamVisible({ component_key: 'trade_type_tabs', contract_type, has_cancellation, symbol }) && (
                 <div className='trade-params__container-tabs'>

@@ -21,12 +21,21 @@ jest.mock('Stores/Modules/Trading/Helpers/allow-equals', () => ({
     hasDurationForCallPutEqual: jest.fn(() => true),
 }));
 
+const mockAddSnackbar = jest.fn();
+jest.mock('@deriv-com/quill-ui', () => ({
+    ...jest.requireActual('@deriv-com/quill-ui'),
+    useSnackbar: () => ({ addSnackbar: mockAddSnackbar, removeSnackbar: jest.fn(), queue: [] }),
+}));
+
 const title = 'Allow equals';
 
 describe('AllowEquals', () => {
     let default_mock_store: ReturnType<typeof mockStore>;
 
-    beforeEach(() => (default_mock_store = mockStore({})));
+    beforeEach(() => {
+        default_mock_store = mockStore({});
+        mockAddSnackbar.mockClear();
+    });
 
     const mockAllowEquals = (is_minimized?: boolean) => {
         return (
@@ -109,34 +118,27 @@ describe('AllowEquals', () => {
             expect(screen.getByDisplayValue('Yes')).toBeInTheDocument();
         });
 
-        it('opens ActionSheet with ToggleSwitch on TextField click in minimized mode', async () => {
+        it('turns Allow equals on and shows a snackbar when the field is clicked while off', async () => {
             render(mockAllowEquals(true));
 
             await userEvent.click(screen.getByDisplayValue('-'));
-
-            expect(screen.getByText('Save')).toBeInTheDocument();
-            expect(getToggleSwitch()).toBeInTheDocument();
-        });
-
-        it('does not call onChange when toggle is clicked without saving', async () => {
-            render(mockAllowEquals(true));
-
-            await userEvent.click(screen.getByDisplayValue('-'));
-            await userEvent.click(getToggleSwitch());
-
-            expect(default_mock_store.modules.trade.onChange).not.toHaveBeenCalled();
-        });
-
-        it('calls onChange only when Save is clicked in minimized ActionSheet', async () => {
-            render(mockAllowEquals(true));
-
-            await userEvent.click(screen.getByDisplayValue('-'));
-            await userEvent.click(getToggleSwitch());
-            await userEvent.click(screen.getByText('Save'));
 
             expect(default_mock_store.modules.trade.onChange).toHaveBeenCalledWith({
                 target: { name: 'is_equal', value: 1 },
             });
+            expect(mockAddSnackbar).toHaveBeenCalledTimes(1);
+        });
+
+        it('turns Allow equals off and shows a snackbar when the field is clicked while on', async () => {
+            default_mock_store.modules.trade.is_equal = 1;
+            render(mockAllowEquals(true));
+
+            await userEvent.click(screen.getByDisplayValue('Yes'));
+
+            expect(default_mock_store.modules.trade.onChange).toHaveBeenCalledWith({
+                target: { name: 'is_equal', value: 0 },
+            });
+            expect(mockAddSnackbar).toHaveBeenCalledTimes(1);
         });
 
         it('does not render when has_allow_equals is false in minimized mode', () => {
@@ -151,16 +153,6 @@ describe('AllowEquals', () => {
             render(mockAllowEquals(true));
 
             expect(screen.getByDisplayValue('-')).toBeDisabled();
-        });
-
-        it('shows description page when info icon is clicked in minimized ActionSheet', async () => {
-            render(mockAllowEquals(true));
-
-            await userEvent.click(screen.getByDisplayValue('-'));
-
-            await userEvent.click(screen.getByText('LabelPairedCircleInfoMdRegularIcon'));
-
-            expect(screen.getByText('Win a payout if the exit spot is equal to the entry spot.')).toBeInTheDocument();
         });
     });
 });

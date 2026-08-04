@@ -482,7 +482,7 @@ const StakeInput = observer(({ onClose, is_open }: TStakeInput) => {
                 <Button
                     fullWidth
                     size='lg'
-                    variant='secondary'
+                    variant='primary'
                     color='black-white'
                     onClick={onSave}
                     disabled={is_loading_proposal || !!fe_stake_error || !!(should_show_stake_error && stake_error)}

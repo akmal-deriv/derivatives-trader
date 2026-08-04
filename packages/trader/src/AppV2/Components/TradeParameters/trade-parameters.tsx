@@ -2,6 +2,9 @@ import React from 'react';
 import clsx from 'clsx';
 import { observer } from 'mobx-react-lite';
 
+import { TRADE_TYPES } from '@deriv/shared';
+import { useDevice } from '@deriv-com/ui';
+
 import { isTradeParamVisible } from 'AppV2/Utils/layout-utils';
 import { useTraderStore } from 'Stores/useTraderStores';
 
@@ -29,10 +32,15 @@ export type TTradeParametersProps = { is_minimized?: boolean; is_automation?: bo
 
 const TradeParameters = observer(({ is_minimized, is_automation }: TTradeParametersProps) => {
     const { contract_type, has_cancellation, symbol } = useTraderStore();
+    const { isMobile } = useDevice();
     const isVisible = (component_key: string) =>
         isTradeParamVisible({ component_key, contract_type, has_cancellation, symbol });
 
     const scroll_container_ref = React.useRef<HTMLDivElement>(null);
+
+    // Toggling "Allow equals" swaps contract_type between RISE_FALL and RISE_FALL_EQUAL; treat them
+    // as one trade type so the scroll resets only on an actual trade-type switch, not the toggle.
+    const scroll_reset_key = contract_type === TRADE_TYPES.RISE_FALL_EQUAL ? TRADE_TYPES.RISE_FALL : contract_type;
 
     // Reset scroll position when contract type changes with smooth animation
     React.useEffect(() => {
@@ -42,7 +50,7 @@ const TradeParameters = observer(({ is_minimized, is_automation }: TTradeParamet
                 behavior: 'smooth',
             });
         }
-    }, [contract_type, is_minimized]);
+    }, [scroll_reset_key, is_minimized]);
 
     return (
         <div
@@ -73,13 +81,22 @@ const TradeParameters = observer(({ is_minimized, is_automation }: TTradeParamet
                 {isVisible('risk_management') && <RiskManagement is_minimized={is_minimized} />}
                 {isVisible('allow_equals') && <AllowEquals is_minimized={is_minimized} />}
             </div>
-            {isVisible('accu_info_display') && <AccumulatorsInformation />}
-            {isVisible('barrier_info') && <BarrierInfo />}
-            {isVisible('payout') && <PayoutInfo />}
-            {isVisible('payout_per_point_info') && <PayoutPerPointInfo />}
-            {isVisible('expiration') && <MultipliersExpirationInfo />}
-            {isVisible('mult_info_display') && <MultipliersDealCancellationInfo />}
-            {isVisible('multipliers_info') && <MultipliersInformation />}
+            {/* On responsive these below-params info rows are dropped: payout-related values are shown
+                in the purchase button (Rise/Fall, Accumulators Max payout), and the rest already live
+                in an action sheet (Stake: Stop out/Commission; Payout per point: Turbos barrier;
+                Strike: Vanilla payout per point; Risk management: DC fee, Expires on). Desktop keeps
+                the rows. */}
+            {!isMobile && (
+                <>
+                    {isVisible('accu_info_display') && <AccumulatorsInformation />}
+                    {isVisible('barrier_info') && <BarrierInfo />}
+                    {isVisible('payout') && <PayoutInfo />}
+                    {isVisible('payout_per_point_info') && <PayoutPerPointInfo />}
+                    {isVisible('expiration') && <MultipliersExpirationInfo />}
+                    {isVisible('mult_info_display') && <MultipliersDealCancellationInfo />}
+                    {isVisible('multipliers_info') && <MultipliersInformation />}
+                </>
+            )}
         </div>
     );
 });

@@ -40,23 +40,24 @@ const svg_file_loaders = [
 
 const svg_loaders = [
     {
-        loader: 'babel-loader',
+        loader: '@svgr/webpack',
         options: {
-            cacheDirectory: true,
-            rootMode: 'upward',
-        },
-    },
-    {
-        loader: 'react-svg-loader',
-        options: {
-            jsx: true,
-            svgo: {
-                plugins: [
-                    { removeTitle: false },
-                    { removeUselessStrokeAndFill: false },
-                    { removeUknownsAndDefaults: false },
-                ],
+            svgoConfig: {
                 floatPrecision: 2,
+                plugins: [
+                    {
+                        name: 'preset-default',
+                        params: {
+                            overrides: {
+                                removeTitle: false,
+                                removeUselessStrokeAndFill: false,
+                                removeUnknownsAndDefaults: false,
+                                cleanupIds: false,
+                            },
+                        },
+                    },
+                    'prefixIds',
+                ],
             },
         },
     },

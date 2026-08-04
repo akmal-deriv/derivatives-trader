@@ -1,11 +1,10 @@
 import React from 'react';
 
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 
 import OnboardingVideo from '../onboarding-video';
 
 const dt_video = 'dt_onboarding_guide_video';
-const dt_loader = 'square-skeleton';
 
 jest.mock('AppV2/Components/StreamIframe', () => jest.fn(() => <div data-testid={dt_video}>StreamIframe</div>));
 
@@ -28,14 +27,14 @@ describe('OnboardingVideo', () => {
     });
 
     it('should render StreamIframe component', () => {
-        render(<OnboardingVideo type='trade_page' />);
+        render(<OnboardingVideo page_type='trade_page' />);
 
         expect(screen.getByTestId(dt_video)).toBeInTheDocument();
         expect(screen.getByText('StreamIframe')).toBeInTheDocument();
     });
 
     it('should render StreamIframe for positions page', () => {
-        render(<OnboardingVideo type='positions_page' />);
+        render(<OnboardingVideo page_type='positions_page' />);
 
         expect(screen.getByTestId(dt_video)).toBeInTheDocument();
     });

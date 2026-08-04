@@ -14,4 +14,22 @@
     .quill-action-sheet--title--icon {
         z-index: 2;
     }
+
+    // quill-ui 1.24.6 defaults the sheet title (H5) to 16px; the design system uses 20px.
+    // Applied here so every carousel-based trade & automation param sheet stays consistent.
+    .quill-action-sheet--title-text {
+        font-size: var(--core-fontSize-300);
+    }
+}
+
+// Pill-shaped footer (Save) button, matching the Stake/Duration sheets. Scoped to the
+// carousel so every carousel-based trade & automation param sheet stays consistent.
+.carousel .quill-action-sheet--footer button {
+    border-radius: 10rem !important;
+}
+
+// Selected (centered, non-disabled) wheel-picker row is emphasised at 18px bold; the rest stay 16px.
+.carousel .quill-wheel-picker__data-item[class*='__disabled--false'] .quill-dropdown-item-label {
+    font-size: var(--core-fontSize-200);
+    font-weight: var(--semantic-typography-body-md-bold-default-fontWeight);
 }

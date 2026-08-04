@@ -132,7 +132,7 @@ const DurationTicksInputDesktop: React.FC<TDurationTicksInputDesktopProps> = obs
                 <Button
                     fullWidth
                     size='lg'
-                    variant='secondary'
+                    variant='primary'
                     color='black-white'
                     onClick={handleSave}
                     disabled={!!error || !inputValue}

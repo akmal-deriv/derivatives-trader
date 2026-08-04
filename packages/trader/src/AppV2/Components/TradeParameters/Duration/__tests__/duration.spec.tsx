@@ -269,6 +269,13 @@ describe('Duration - Mobile', () => {
                         intraday: { min: 60, max: 3600 },
                         daily: { min: 86400, max: 172800 },
                     },
+                    duration_units_list: [
+                        { value: 't', text: 'ticks' },
+                        { value: 's', text: 'seconds' },
+                        { value: 'm', text: 'minutes' },
+                        { value: 'h', text: 'hours' },
+                        { value: 'd', text: 'days' },
+                    ],
                     start_time: null,
                     symbol: 'EURUSD',
                     saved_expiry_date_v2: '',
@@ -296,11 +303,11 @@ describe('Duration - Mobile', () => {
         );
     };
 
-    it('should render the correct value for duration in hours and minutes (mobile)', () => {
+    it('should render durations with an hour component in clock format (mobile)', () => {
         default_trade_store.modules.trade.duration = 125;
         mockDurationMobile();
         expect(screen.getByLabelText('Duration')).toBeInTheDocument();
-        expect(screen.getByDisplayValue('2 hours 5 minutes')).toBeInTheDocument();
+        expect(screen.getByDisplayValue('02:05:00')).toBeInTheDocument();
     });
 
     it('should open the ActionSheet when the text field is clicked (mobile)', async () => {
@@ -322,7 +329,130 @@ describe('Duration - Mobile', () => {
         const textField = screen.getByLabelText('Duration');
         await userEvent.click(textField);
 
-        expect(screen.getByDisplayValue('2 hours 5 minutes')).toBeInTheDocument();
+        expect(screen.getByDisplayValue('02:05:00')).toBeInTheDocument();
+    });
+
+    it('should render second-based durations with an hour component in clock format (mobile)', () => {
+        default_trade_store.modules.trade.duration_unit = 's';
+        default_trade_store.modules.trade.duration = 5445;
+        mockDurationMobile();
+
+        expect(screen.getByDisplayValue('01:30:45')).toBeInTheDocument();
+    });
+
+    it('should render legacy hour-unit durations in clock format (mobile)', () => {
+        default_trade_store.modules.trade.duration_unit = 'h';
+        default_trade_store.modules.trade.duration = 2;
+        mockDurationMobile();
+
+        expect(screen.getByDisplayValue('02:00:00')).toBeInTheDocument();
+    });
+
+    it('should not commit when closing on a selection equivalent to the stored duration (mobile)', async () => {
+        // 120 seconds and the wheel's [0, 2, 0] are the same duration in different units
+        default_trade_store.modules.trade.duration_unit = 's';
+        default_trade_store.modules.trade.duration = 120;
+        mockDurationMobile();
+
+        await userEvent.click(screen.getByLabelText('Duration'));
+        await userEvent.click(screen.getByTestId('dt-actionsheet-overlay'));
+
+        expect(mockOnChangeMultiple).not.toHaveBeenCalled();
+    });
+
+    it('should render sub-hour combined durations verbosely (mobile)', () => {
+        default_trade_store.modules.trade.duration_unit = 's';
+        default_trade_store.modules.trade.duration = 75;
+        mockDurationMobile();
+
+        expect(screen.getByDisplayValue('1 minute 15 seconds')).toBeInTheDocument();
+    });
+
+    it('should not commit a duration when the sheet is closed without changes (mobile)', async () => {
+        mockDurationMobile();
+
+        await userEvent.click(screen.getByLabelText('Duration'));
+        await userEvent.click(screen.getByTestId('dt-actionsheet-overlay'));
+
+        expect(mockOnChangeMultiple).not.toHaveBeenCalled();
+    });
+
+    it('should commit the clamped time wheel selection when the sheet is closed (mobile)', async () => {
+        // 2 hours exceeds the 3600s intraday max, so the wheel clamps to 1 hour and commits it as minutes
+        default_trade_store.modules.trade.duration_unit = 'h';
+        default_trade_store.modules.trade.duration = 2;
+        mockDurationMobile();
+
+        await userEvent.click(screen.getByLabelText('Duration'));
+        await userEvent.click(screen.getByTestId('dt-actionsheet-overlay'));
+
+        expect(mockOnChangeMultiple).toHaveBeenCalledWith({
+            duration_unit: 'm',
+            duration: 60,
+            expiry_type: 'duration',
+        });
+    });
+
+    it('should step the duration by one second and roll seconds into minutes (mobile)', async () => {
+        default_trade_store.modules.trade.duration_min_max.intraday = { min: 15, max: 86400 };
+        default_trade_store.modules.trade.duration_unit = 's';
+        default_trade_store.modules.trade.duration = 59;
+        mockDurationMobile();
+
+        // 59s + 1s = 60s → commits as 1 minute
+        await userEvent.click(screen.getByTestId('dt_stepper_increment'));
+        expect(mockOnChangeMultiple).toHaveBeenCalledWith({
+            duration_unit: 'm',
+            duration: 1,
+            expiry_type: 'duration',
+        });
+    });
+
+    it('should step one second past a whole minute into a seconds duration (mobile)', async () => {
+        default_trade_store.modules.trade.duration_min_max.intraday = { min: 15, max: 86400 };
+        // 1 minute (stored as minutes) + 1s = 61s → 1 min 1 sec, committed as seconds
+        default_trade_store.modules.trade.duration_unit = 'm';
+        default_trade_store.modules.trade.duration = 1;
+        mockDurationMobile();
+
+        await userEvent.click(screen.getByTestId('dt_stepper_increment'));
+        expect(mockOnChangeMultiple).toHaveBeenCalledWith({
+            duration_unit: 's',
+            duration: 61,
+            expiry_type: 'duration',
+        });
+    });
+
+    it('should step ticks by 1 tick (mobile)', async () => {
+        default_trade_store.modules.trade.duration_unit = 't';
+        default_trade_store.modules.trade.duration = 5;
+        mockDurationMobile();
+
+        await userEvent.click(screen.getByTestId('dt_stepper_increment'));
+        expect(mockOnChangeMultiple).toHaveBeenCalledWith({
+            duration_unit: 't',
+            duration: 6,
+            expiry_type: 'duration',
+        });
+    });
+
+    it('should disable the decrement stepper at the intraday minimum (mobile)', () => {
+        default_trade_store.modules.trade.duration_min_max.intraday = { min: 15, max: 86400 };
+        default_trade_store.modules.trade.duration_unit = 's';
+        default_trade_store.modules.trade.duration = 15;
+        mockDurationMobile();
+
+        expect(screen.getByTestId('dt_stepper_decrement')).toBeDisabled();
+        expect(screen.getByTestId('dt_stepper_increment')).toBeEnabled();
+    });
+
+    it('should not render the steppers in End time mode (mobile)', () => {
+        default_trade_store.modules.trade.expiry_type = 'endtime';
+        default_trade_store.modules.trade.expiry_time = '12:30';
+        mockDurationMobile();
+
+        expect(screen.queryByTestId('dt_stepper_increment')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('dt_stepper_decrement')).not.toBeInTheDocument();
     });
 });
 

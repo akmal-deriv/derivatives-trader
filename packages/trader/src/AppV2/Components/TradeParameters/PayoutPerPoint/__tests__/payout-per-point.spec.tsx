@@ -34,7 +34,7 @@ jest.mock('@deriv-com/quill-ui', () => ({
 
 jest.mock('../payout-per-point-wheel', () => ({
     __esModule: true,
-    default: jest.fn(({ barrier, onPayoutPerPointSelect, onClose, payout_per_point_list }) => (
+    default: jest.fn(({ barrier, onDetailClick, onPayoutPerPointSelect, onClose, payout_per_point_list }) => (
         <div>
             <p>WheelPicker</p>
             <ul>
@@ -44,10 +44,8 @@ jest.mock('../payout-per-point-wheel', () => ({
                     </li>
                 ))}
             </ul>
-            <div>
-                <p>Barrier</p>
-                {barrier && <p>{barrier}</p>}
-            </div>
+            <button onClick={() => onDetailClick?.(2)}>Barrier</button>
+            {barrier && <p>{barrier}</p>}
             <button onClick={onClose}>Save</button>
         </div>
     )),
@@ -126,6 +124,18 @@ describe('PayoutPerPoint', () => {
                 'The amount you choose to receive at expiry for every point of change between the final price and the barrier.'
             )
         ).toBeInTheDocument();
+    });
+
+    it('sets the sheet title to Barrier when the barrier detail page is opened', async () => {
+        mockPayoutPerPoint();
+
+        await userEvent.click(screen.getByText(payout_per_point_label));
+        // Only the wheel's Barrier control before navigating to its page.
+        expect(screen.getAllByText('Barrier')).toHaveLength(1);
+
+        await userEvent.click(screen.getByText('Barrier'));
+        // The carousel title now reads Barrier too (control + title).
+        expect(screen.getAllByText('Barrier')).toHaveLength(2);
     });
 
     it('does not render barrier information if barrier is not defined', async () => {

@@ -7,9 +7,8 @@ import { Button, Flyout, Text } from '@deriv/components';
 import {
     DerivProductBrandLightDerivTraderLogoIcon,
     LabelPairedLifeRingSmRegularIcon,
-    LegacyHomeNewIcon,
-    StandaloneCircleUserFillIcon,
-    StandaloneCircleUserRegularIcon,
+    StandaloneHouseBlankRegularIcon,
+    StandaloneRightFromBracketRegularIcon,
     StandaloneClockThreeFillIcon,
     StandaloneClockThreeRegularIcon,
     StandaloneFileRegularIcon,
@@ -24,7 +23,6 @@ import { Localize, localize, useTranslations } from '@deriv-com/translations';
 
 import PositionsDrawerTabs from '../PositionsDrawer/positions-drawer-tabs';
 
-import AccountSelector from './account-selector';
 import LanguageSelector from './language-selector';
 
 type TSidebarItem = {
@@ -41,13 +39,13 @@ const Sidebar = observer(() => {
     const { ui, client, portfolio, common } = useStore();
     const { currentLang } = useTranslations();
     const { is_dark_mode_on, active_sidebar_flyout, setSidebarFlyout, closeSidebarFlyout } = ui;
-    const { is_logged_in } = client;
+    const { is_logged_in, logout } = client;
     const { current_language } = common;
     const { active_positions_count, onMount, onUnmount } = portfolio;
     const location = useLocation();
     const history = useHistory();
     const sidebar_ref = React.useRef<HTMLElement>(null);
-    const { sendBridgeEvent } = useMobileBridge();
+    const { sendBridgeEvent, isBridgeAvailable } = useMobileBridge();
     const is_on_index = location.pathname === routes.index;
 
     React.useEffect(() => {
@@ -76,8 +74,11 @@ const Sidebar = observer(() => {
         setSidebarFlyout(active_sidebar_flyout === 'language' ? null : 'language');
     };
 
-    const handleAccountToggle = () => {
-        setSidebarFlyout(active_sidebar_flyout === 'account' ? null : 'account');
+    const handleLogout = () => {
+        closeSidebarFlyout();
+        sendBridgeEvent('trading:back', () => {
+            logout();
+        });
     };
 
     const handlePositionsToggle = () => {
@@ -115,7 +116,7 @@ const Sidebar = observer(() => {
     const navigationItems: TSidebarItem[] = [
         {
             id: 'home',
-            icon: <LegacyHomeNewIcon iconSize='xs' fill='var(--color-text-primary)' />,
+            icon: <StandaloneHouseBlankRegularIcon iconSize='sm' fill='var(--color-text-primary)' />,
             label: localize('Home'),
             onClick: handleHomeClick,
             isActive: false,
@@ -146,7 +147,6 @@ const Sidebar = observer(() => {
 
     // Utility items (bottom section)
     const isLanguageActive = active_sidebar_flyout === 'language';
-    const isAccountActive = active_sidebar_flyout === 'account';
 
     const utilityItems = [
         {
@@ -172,9 +172,9 @@ const Sidebar = observer(() => {
         {
             id: 'theme',
             icon: is_dark_mode_on ? (
-                <StandaloneMoonRegularIcon fill='var(--color-text-primary)' iconSize='sm' />
-            ) : (
                 <StandaloneSunBrightRegularIcon fill='var(--color-text-primary)' iconSize='sm' />
+            ) : (
+                <StandaloneMoonRegularIcon fill='var(--color-text-primary)' iconSize='sm' />
             ),
             label: localize('Theme'),
             onClick: handleThemeToggle,
@@ -182,16 +182,12 @@ const Sidebar = observer(() => {
             dataTestId: 'dt_sidebar_theme',
         },
         {
-            id: 'account',
-            icon: isAccountActive ? (
-                <StandaloneCircleUserFillIcon fill='var(--color-nav-item-active)' iconSize='sm' />
-            ) : (
-                <StandaloneCircleUserRegularIcon fill='var(--color-text-primary)' iconSize='sm' />
-            ),
-            label: localize('Account'),
-            onClick: handleAccountToggle,
-            isActive: isAccountActive,
-            dataTestId: 'dt_sidebar_account',
+            id: 'logout',
+            icon: <StandaloneRightFromBracketRegularIcon iconSize='sm' fill='var(--color-text-primary)' />,
+            label: isBridgeAvailable ? localize('Back to app') : localize('Log out'),
+            onClick: handleLogout,
+            isActive: false,
+            dataTestId: 'dt_sidebar_logout',
         },
     ];
 
@@ -201,12 +197,6 @@ const Sidebar = observer(() => {
                 return {
                     title: <Localize i18n_default_text='Language' />,
                     content: <LanguageSelector onLanguageChange={closeFlyout} />,
-                    footer: null,
-                };
-            case 'account':
-                return {
-                    title: <Localize i18n_default_text='Account' />,
-                    content: <AccountSelector />,
                     footer: null,
                 };
             case 'positions':
@@ -268,7 +258,7 @@ const Sidebar = observer(() => {
                     <div className='sidebar__nav-utility'>
                         <div className='sidebar__separator' />
                         {utilityItems.map(item => {
-                            const shouldShow = item.id === 'account' ? is_logged_in : true;
+                            const shouldShow = item.id === 'logout' ? is_logged_in : true;
 
                             if (!shouldShow) return null;
 

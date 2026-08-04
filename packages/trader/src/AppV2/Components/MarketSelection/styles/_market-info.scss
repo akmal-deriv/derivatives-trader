@@ -1,0 +1,350 @@
+// ---- Market info screen (Phase 4) ----
+
+.market-info {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+
+    &__header {
+        display: flex;
+        height: 5.6rem;
+        align-items: center;
+        justify-content: space-between;
+        padding: var(--core-spacing-400, 8px) var(--core-spacing-800, 16px);
+        flex-shrink: 0;
+    }
+
+    &__back {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 3.2rem;
+        width: 3.2rem;
+        background: var(--semantic-color-monochrome-surface-normal-lowest);
+        border: none;
+        cursor: pointer;
+        border-radius: 50%;
+    }
+
+    // Favourite: a circular icon button on mobile (grey fill + star); the desktop panel upgrades it
+    // to a labelled outline pill.
+    &__favourite {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--core-spacing-200, 4px);
+        height: 4rem;
+        width: 4rem;
+        background: var(--semantic-color-monochrome-surface-normal-lowest);
+        border: none;
+        border-radius: 50%;
+        cursor: pointer;
+    }
+
+    // The "Favourite" label only shows in the desktop pill (see the desktop overrides below).
+    &__favourite-label {
+        display: none;
+        font-weight: 600;
+        color: var(--component-textIcon-normal-prominent, #181c25);
+    }
+
+    &__body {
+        display: flex;
+        flex-direction: column;
+        gap: var(--core-spacing-1200, 24px);
+        overflow-y: auto;
+        flex: 1;
+        padding: 0 var(--core-spacing-800, 16px) var(--core-spacing-800, 16px);
+        @include themed-scrollbar;
+    }
+
+    &__summary {
+        display: flex;
+        align-items: center;
+        gap: var(--core-spacing-400, 8px);
+    }
+
+    &__summary-text {
+        flex: 1;
+        min-width: 0;
+    }
+
+    // Summary + description share one block so the body's column gap doesn't sit between them —
+    // the description reads as flush under the summary.
+    &__intro {
+        display: flex;
+        flex-direction: column;
+        gap: var(--core-spacing-600, 12px);
+    }
+
+    &__name {
+        color: var(--component-textIcon-normal-prominent, #181c25);
+    }
+
+    &__price {
+        color: var(--component-textIcon-normal-prominent, #181c25);
+    }
+
+    &__name-row,
+    &__price-row {
+        display: flex;
+        align-items: center;
+        gap: var(--core-spacing-400, 8px);
+    }
+
+    // Favourite is its own column at the far right of the summary (name + price is the other column).
+    &__summary &__favourite {
+        margin-inline-start: auto;
+        flex-shrink: 0;
+    }
+
+    &__change {
+        padding: 0 var(--core-spacing-200, 4px);
+        border-radius: var(--core-borderRadius-200, 4px);
+
+        &--positive {
+            background: var(--component-tag-bg-success);
+            .quill-typography {
+                color: var(--component-tag-label-color-success);
+            }
+        }
+
+        &--negative {
+            background: var(--component-tag-bg-danger);
+            .quill-typography {
+                color: var(--component-tag-label-color-danger);
+            }
+        }
+    }
+
+    // Four stats in a single row, separated by vertical dividers, with a rule below the group.
+    // Mobile: 2×2 grid grouped by column (open/close | highest/lowest). Desktop overrides to one row.
+    &__stats {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: repeat(2, auto);
+        grid-auto-flow: column;
+        padding-block-end: var(--core-spacing-800, 16px);
+        border-block-end: 1px solid var(--color-surface-border);
+    }
+
+    &__stat {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        padding: var(--core-spacing-100, 2px) var(--core-spacing-400, 8px);
+
+        &-value {
+            color: var(--component-textIcon-normal-prominent, #181c25);
+        }
+
+        &-label {
+            color: var(--component-textIcon-normal-subtle);
+        }
+    }
+
+    // Vertical divider between the two columns (the right-column items in the column-major 2×2).
+    &__stats > &__stat:nth-child(n + 3) {
+        border-inline-start: 1px solid var(--color-surface-border);
+    }
+
+    &__section {
+        display: flex;
+        flex-direction: column;
+        gap: var(--core-spacing-800, 16px);
+
+        &-title {
+            margin: 0;
+            color: var(--component-textIcon-normal-prominent, #181c25);
+        }
+    }
+
+    // Worm chart with a duration dropdown above it.
+    &__chart {
+        display: flex;
+        flex-direction: column;
+        gap: var(--core-spacing-400, 8px);
+        // Divider separating the summary (and description) from the chart.
+        padding-block-start: var(--core-spacing-800, 16px);
+        border-block-start: 1px solid var(--color-surface-border);
+    }
+
+    &__chart-header {
+        display: flex;
+        justify-content: flex-end;
+
+        // On the info screen the window dropdown reads as an outlined pill (in the category list it
+        // stays plain text). Scoped here so only the info-screen trigger gets the border + padding.
+        .market-changes-dropdown__trigger {
+            gap: var(--core-spacing-400, 8px);
+            padding: var(--core-spacing-100, 2px) var(--core-spacing-400, 8px) var(--core-spacing-100, 2px)
+                var(--core-spacing-600, 12px);
+            border: var(--component-chip-border-width, 1px) solid
+                var(--component-chip-border-color, rgba(0, 0, 0, 0.08));
+            border-radius: var(--component-chip-border-radius, 96px);
+        }
+    }
+
+    // Fixed-height chart area holding the worm and, for a closed market, the overlay on top.
+    &__chart-body {
+        position: relative;
+        height: 20rem;
+    }
+
+    &__chart-svg {
+        width: 100%;
+        height: 100%;
+    }
+
+    // Closed market: grey the worm and centre a "Market closed" pill over it.
+    &__chart-body--closed .market-sparkline {
+        color: var(--component-textIcon-normal-subtle);
+    }
+
+    &__chart-closed {
+        position: absolute;
+        inset: 0;
+        bottom: 1.6rem;
+        display: flex;
+        align-items: end;
+        justify-content: center;
+        pointer-events: none;
+    }
+
+    &__chart-closed-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--core-spacing-200, 4px);
+        padding: var(--component-tag-spacing-padding-xs, 4px) var(--component-tag-spacing-padding-sm, 8px);
+        border-radius: var(--component-tag-border-radius-xs, 4px);
+        background: var(--component-tag-bg-default, rgba(0, 0, 0, 0.04));
+    }
+
+    // Horizontally scrollable row of trade-type CTA cards ("Trade on").
+    &__trade-types {
+        display: flex;
+        gap: var(--core-spacing-400, 8px);
+        overflow-x: auto;
+        scrollbar-width: none;
+
+        &::-webkit-scrollbar {
+            display: none;
+        }
+
+        > * {
+            flex-shrink: 0;
+        }
+    }
+
+    // A single "Trade on" card: trade-type icon + chevron on top, trade-type label below. The whole
+    // card is a CTA — tapping it commits the market under that trade type and opens the trade page.
+    &__trade-type-card {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        width: 17.2rem;
+        height: 8rem;
+        padding: var(--core-spacing-800, 16px);
+        border: none;
+        border-radius: var(--core-borderRadius-800, 16px);
+        background: var(--semantic-color-monochrome-surface-normal-lowest);
+        cursor: pointer;
+        text-align: start;
+        transition: opacity 0.2s ease-in-out;
+
+        &:disabled {
+            cursor: default;
+        }
+
+        // The tapped card that's committing dims to signal its in-flight state; the rest stay put.
+        &[aria-busy='true'] {
+            opacity: 0.6;
+        }
+
+        &-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        &-icon {
+            display: inline-flex;
+            align-items: center;
+
+            .categories-container {
+                gap: var(--core-spacing-200, 4px);
+            }
+
+            // IconTradeCategory renders one or two 16px icons; nudge them up for the card.
+            .category-type {
+                width: 2rem;
+                height: 2rem;
+            }
+        }
+
+        &-label {
+            color: var(--component-textIcon-normal-prominent);
+        }
+    }
+
+    // Market availability: a title row (with an info tooltip holding the schedule summary) above a
+    // status line (clock + Open now/Closed + close/reopen or next-open).
+    &__availability-header {
+        display: flex;
+        align-items: center;
+        gap: var(--core-spacing-400, 8px);
+    }
+
+    &__availability-info {
+        display: inline-flex;
+        align-items: center;
+        background: transparent;
+        border: none;
+        padding: 0;
+        cursor: pointer;
+    }
+
+    &__availability-status {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--core-spacing-400, 8px);
+    }
+
+    // "Open now" reads green, "Closed" red (the rest of the line stays default/subtle).
+    &__availability-state--open {
+        color: var(--semantic-color-green-solid-textIcon-normal-mid);
+    }
+
+    &__availability-state--closed {
+        color: var(--semantic-color-red-solid-textIcon-normal-mid);
+    }
+
+    &__availability-separator {
+        color: var(--component-textIcon-normal-subtle);
+    }
+
+    // Mobile-only sizing — the desktop info card keeps its larger defaults (set via the Text props).
+    // Nested under `.market-info` so these win over quill's own typography size classes.
+    @include mobile-screen {
+        // Larger 48×48 symbol icon in the summary.
+        .market-info__summary > svg {
+            width: 4.8rem;
+            height: 4.8rem;
+        }
+
+        .market-info__name {
+            font-size: 1.6rem;
+        }
+
+        .market-info__price,
+        .market-info__stat-value {
+            font-size: 1.4rem;
+        }
+
+        .market-info__chart-body {
+            height: 15.2rem;
+        }
+    }
+}

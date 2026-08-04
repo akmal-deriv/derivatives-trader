@@ -13,6 +13,7 @@ import TradeParamDefinition from 'AppV2/Components/TradeParamDefinition';
 import { isSmallScreen } from 'AppV2/Utils/trade-params-utils';
 import { useTraderStore } from 'Stores/useTraderStores';
 
+import { AutomationLockOverlay } from '../Shared';
 import { TTradeParametersProps } from '../trade-parameters';
 
 import GrowthRateDesktop from './growth-rate-desktop';
@@ -25,6 +26,7 @@ const GrowthRate = observer(({ is_minimized }: TTradeParametersProps) => {
         is_purchase_enabled,
         is_trade_enabled,
         is_market_closed,
+        is_automation_params_locked,
         has_open_accu_contract,
         maximum_ticks,
         onChange,
@@ -99,6 +101,13 @@ const GrowthRate = observer(({ is_minimized }: TTradeParametersProps) => {
         },
     ];
 
+    // The barrier (page 2) and max-duration (page 3) explanations retitle the sheet accordingly.
+    const getSheetTitle = () => {
+        if (carousel_index === 2) return <Localize i18n_default_text='Barrier' />;
+        if (carousel_index === 3) return <Localize i18n_default_text='Max duration' />;
+        return <Localize i18n_default_text='Growth rate' />;
+    };
+
     React.useEffect(() => {
         const initial_growth_rate = v2_params_initial_values?.growth_rate;
         if (initial_growth_rate && growth_rate !== initial_growth_rate) handleGrowthRateChange(initial_growth_rate);
@@ -119,17 +128,23 @@ const GrowthRate = observer(({ is_minimized }: TTradeParametersProps) => {
     // Render mobile version with ActionSheet (unchanged)
     return (
         <>
-            <TextField
-                className={classname}
-                disabled={has_open_accu_contract || is_market_closed}
-                label={
-                    <Localize i18n_default_text='Growth rate' key={`growth-rate${is_minimized ? '-minimized' : ''}`} />
-                }
-                onClick={() => setIsOpen(true)}
-                readOnly
-                value={`${getGrowthRatePercentage(growth_rate)}%`}
-                variant='fill'
-            />
+            <div className='trade-params__field-locked'>
+                <TextField
+                    className={classname}
+                    disabled={has_open_accu_contract || is_market_closed || is_automation_params_locked}
+                    label={
+                        <Localize
+                            i18n_default_text='Growth rate'
+                            key={`growth-rate${is_minimized ? '-minimized' : ''}`}
+                        />
+                    }
+                    onClick={() => setIsOpen(true)}
+                    readOnly
+                    value={`${getGrowthRatePercentage(growth_rate)}%`}
+                    variant='fill'
+                />
+                {is_automation_params_locked && <AutomationLockOverlay />}
+            </div>
             <ActionSheet.Root
                 isOpen={is_open}
                 onClose={onActionSheetClose}
@@ -145,7 +160,7 @@ const GrowthRate = observer(({ is_minimized }: TTradeParametersProps) => {
                         setCurrentIndex={setCarouselIndex}
                         onPreviousButtonClick={() => setCarouselIndex(0)}
                         pages={action_sheet_content}
-                        title={<Localize i18n_default_text='Growth rate' />}
+                        title={getSheetTitle()}
                     />
                 </ActionSheet.Portal>
             </ActionSheet.Root>

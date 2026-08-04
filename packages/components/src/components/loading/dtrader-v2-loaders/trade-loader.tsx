@@ -30,13 +30,8 @@ const TradeLoader = () => {
     if (isMobile) {
         return (
             <div className='loading-dtrader-v2__trade' data-testid='dt_trade_loader' onClick={showTapFeedback}>
-                <div className='skeleton-box__trade-types'>
-                    {[...new Array(4)].map((_, idx) => (
-                        <Skeleton key={idx} width={88} height={32} borderRadius={16} />
-                    ))}
-                </div>
                 <div className='skeleton-box__market'>
-                    <Skeleton height={42} />
+                    <Skeleton height={56} />
                 </div>
                 <div className='skeleton-box__chart'>
                     <Skeleton />
@@ -52,11 +47,8 @@ const TradeLoader = () => {
         <div className='loading-dtrader-v2__trade' data-testid='dt_trade_loader' onClick={showTapFeedback}>
             <div className='skeleton-box skeleton-box__header'>
                 <div className='skeleton-box__header-trade-types'>
-                    {[...new Array(6)].map((_, idx) => (
-                        <Skeleton key={idx} width={88} height={32} borderRadius={16} />
-                    ))}
+                    <Skeleton width={192} height={48} borderRadius={16} />
                 </div>
-                <Skeleton width={72} height={32} borderRadius={16} />
             </div>
             <div className='skeleton-box'>
                 <div className='skeleton-box__chart'>

@@ -312,6 +312,8 @@ type TUiStore = {
     is_chart_asset_info_visible?: boolean;
     is_chart_layout_default: boolean;
     is_chart_countdown_visible: boolean;
+    is_chart_maximized: boolean;
+    is_chart_maximize_animating: boolean;
     is_closing_create_real_account_modal: boolean;
     is_from_signup_account: boolean;
     is_dark_mode_on: boolean;
@@ -343,6 +345,9 @@ type TUiStore = {
         show_trade_notifications?: boolean;
     }) => JSX.Element;
     setChartCountdown: (value: boolean) => void;
+    setIsChartMaximized: (value: boolean) => void;
+    setChartMaximizeAnimating: (value: boolean) => void;
+    toggleChartMaximized: () => void;
     resetPurchaseStates: () => void;
     setAppContentsScrollRef: (ref: React.MutableRefObject<null | HTMLDivElement>) => void;
     setCurrentFocus: (value: string | null) => void;

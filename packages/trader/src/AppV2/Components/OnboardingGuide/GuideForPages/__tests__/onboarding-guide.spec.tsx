@@ -5,15 +5,17 @@ import userEvent from '@testing-library/user-event';
 
 import OnboardingGuide from '../onboarding-guide';
 
-const trading_modal_text = 'Welcome to Deriv Trader';
+const trading_modal_text = 'Designed for better trading';
 const positions_modal_text = 'View your positions';
 const guide_container = 'GuideContainer';
+const discovery_warmup = 'DiscoveryWarmup';
 const localStorage_key = 'guide_dtrader_v2';
 
 jest.mock('../guide-container', () =>
     jest.fn(({ should_run }: { should_run?: boolean }) => <div>{should_run && guide_container}</div>)
 );
 jest.mock('../onboarding-video', () => jest.fn(() => <div>OnboardingVideo</div>));
+jest.mock('../discovery-warmup', () => jest.fn(() => <div>{discovery_warmup}</div>));
 jest.mock('@deriv-com/ui', () => ({
     ...jest.requireActual('@deriv-com/ui'),
     useDevice: jest.fn(() => ({ isMobile: true, isDesktop: false, isTablet: false })),
@@ -34,7 +36,7 @@ describe('OnboardingGuide', () => {
 
         await waitFor(() => {
             expect(screen.getByText(trading_modal_text)).toBeInTheDocument();
-            expect(screen.getByText("Let's begin")).toBeInTheDocument();
+            expect(screen.getByText('Show me around')).toBeInTheDocument();
         });
 
         jest.useRealTimers();
@@ -71,13 +73,16 @@ describe('OnboardingGuide', () => {
         });
 
         expect(screen.queryByText(guide_container)).not.toBeInTheDocument();
+        // Warm-up must not run while the intro modal is open — only once the tour starts.
+        expect(screen.queryByText(discovery_warmup)).not.toBeInTheDocument();
 
         jest.useRealTimers();
-        await user.click(screen.getByRole('button'));
+        await user.click(screen.getByText('Show me around'));
 
         await waitFor(() => {
             expect(screen.queryByText(trading_modal_text)).not.toBeInTheDocument();
             expect(screen.getByText(guide_container)).toBeInTheDocument();
+            expect(screen.getByText(discovery_warmup)).toBeInTheDocument();
         });
     });
 
@@ -105,6 +110,8 @@ describe('OnboardingGuide', () => {
             expect(screen.queryByText(positions_modal_text)).not.toBeInTheDocument();
             expect(screen.queryByText(guide_container)).not.toBeInTheDocument();
         });
+        // The positions guide has no tour, so the discovery warm-up never mounts.
+        expect(screen.queryByText(discovery_warmup)).not.toBeInTheDocument();
 
         expect(JSON.parse(localStorage.getItem(localStorage_key) as string)[field]).toBe(true);
     });

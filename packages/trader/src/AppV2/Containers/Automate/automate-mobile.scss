@@ -54,18 +54,6 @@
         color: var(--component-field-label-color-default);
     }
 
-    // Clickable wrapper around the Market field — see the JSX comment.
-    &__market-field {
-        cursor: pointer;
-    }
-
-    // CLOSED tag + chevron in the Market field's right slot.
-    &__market-indicators {
-        display: flex;
-        align-items: center;
-        gap: var(--core-spacing-400);
-    }
-
     &__automation-fields {
         display: flex;
         flex-direction: column;
@@ -90,10 +78,6 @@
     .theme--dark & {
         background-color: var(--semantic-color-slate-solid-surface-frame-low);
 
-        // Trade type & Market selectors sit directly on the page background
-        .automate-mobile__selector-field {
-            background-color: var(--semantic-color-slate-solid-surface-frame-mid) !important;
-        }
         .automate-mobile__trade-config,
         .automate-mobile__automation-config {
             background-color: var(--semantic-color-slate-solid-surface-frame-mid);

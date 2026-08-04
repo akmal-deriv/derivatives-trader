@@ -4,25 +4,33 @@ import { observer } from 'mobx-react-lite';
 
 import { TooltipPortal } from '@deriv/components';
 import { clickAndKeyEventHandler } from '@deriv/shared';
-import { ActionSheet, Heading, Text, TextField, ToggleSwitch } from '@deriv-com/quill-ui';
+import { ActionSheet, Heading, Text, TextField, ToggleSwitch, useSnackbar } from '@deriv-com/quill-ui';
 import { Localize } from '@deriv-com/translations';
 import { useDevice } from '@deriv-com/ui';
 
-import Carousel from 'AppV2/Components/Carousel';
-import CarouselHeader from 'AppV2/Components/Carousel/carousel-header';
-import TradeParamDefinition from 'AppV2/Components/TradeParamDefinition';
 import { hasCallPutEqual, hasDurationForCallPutEqual } from 'Stores/Modules/Trading/Helpers/allow-equals';
 import { useTraderStore } from 'Stores/useTraderStores';
 
+import { AutomationLockOverlay } from '../Shared';
 import { TTradeParametersProps } from '../trade-parameters';
 
 const AllowEquals = observer(({ is_minimized }: TTradeParametersProps) => {
-    const { contract_types_list, duration_unit, expiry_type, is_equal, is_market_closed, onChange } = useTraderStore();
+    const {
+        contract_types_list,
+        duration_unit,
+        expiry_type,
+        is_equal,
+        is_market_closed,
+        is_automation_params_locked,
+        onChange,
+    } = useTraderStore();
     const { isDesktop } = useDevice();
+    const { addSnackbar } = useSnackbar();
+
+    // Locked while the market is closed or an automation run is active.
+    const is_disabled = is_market_closed || is_automation_params_locked;
 
     const [is_open, setIsOpen] = React.useState(false);
-    const [local_is_equal, setLocalIsEqual] = React.useState(!!is_equal);
-    const [carousel_index, setCarouselIndex] = React.useState(0);
 
     const has_callputequal_duration = hasDurationForCallPutEqual(contract_types_list, duration_unit);
     const has_callputequal = hasCallPutEqual(contract_types_list);
@@ -30,126 +38,81 @@ const AllowEquals = observer(({ is_minimized }: TTradeParametersProps) => {
 
     const onToggleSwitch = (is_enabled: boolean) => {
         onChange({ target: { name: 'is_equal', value: Number(is_enabled) } });
-        if (!is_minimized) setIsOpen(false);
+        setIsOpen(false);
     };
 
     const openDescription = (e?: React.MouseEvent<HTMLElement> | React.KeyboardEvent<HTMLElement>) => {
-        if (is_market_closed) return;
+        if (is_disabled) return;
         if (isDesktop) return;
         clickAndKeyEventHandler(() => setIsOpen(true), e);
     };
 
-    const closeSheet = () => {
-        if (is_minimized) {
-            setLocalIsEqual(!!is_equal);
-            setCarouselIndex(0);
-        }
-        setIsOpen(false);
-    };
+    const closeSheet = () => setIsOpen(false);
 
-    const onSave = () => {
-        onChange({ target: { name: 'is_equal', value: Number(local_is_equal) } });
-        setIsOpen(false);
+    // Minimized field toggles is_equal inline and notifies via snackbar (no action sheet).
+    const toggleAllowEquals = () => {
+        if (is_disabled) return;
+        const next = !is_equal;
+        onChange({ target: { name: 'is_equal', value: Number(next) } });
+        addSnackbar({
+            message: next ? (
+                <Localize i18n_default_text='You will win a payout if the exit spot is equal to the entry spot.' />
+            ) : (
+                <Localize i18n_default_text='Allow equals turned off.' />
+            ),
+            hasCloseButton: true,
+        });
     };
 
     if (!has_allow_equals) return null;
 
     if (is_minimized) {
         return (
-            <React.Fragment>
+            <div className='trade-params__field-locked'>
                 <TextField
                     variant='fill'
                     readOnly
-                    disabled={is_market_closed}
+                    disabled={is_disabled}
                     label={<Localize i18n_default_text='Allow equals' key='allow-equals-minimized' />}
                     noStatusIcon
-                    onClick={() => {
-                        setLocalIsEqual(!!is_equal);
-                        setCarouselIndex(0);
-                        setIsOpen(true);
-                    }}
+                    onClick={toggleAllowEquals}
                     value={is_equal ? 'Yes' : '-'}
-                    className={clsx('trade-params__option', 'trade-params__option--minimized')}
+                    className={clsx(
+                        'trade-params__option',
+                        'trade-params__option--minimized',
+                        'allow-equals__minimized',
+                        is_equal && !is_disabled && 'allow-equals__field--active'
+                    )}
                 />
-                <ActionSheet.Root isOpen={is_open} onClose={closeSheet} position='left' expandable={false}>
-                    <ActionSheet.Portal shouldCloseOnDrag>
-                        <Carousel
-                            classname='allow-equals__carousel'
-                            header={CarouselHeader}
-                            current_index={carousel_index}
-                            setCurrentIndex={setCarouselIndex}
-                            pages={[
-                                {
-                                    id: 1,
-                                    component: (
-                                        <React.Fragment>
-                                            <ActionSheet.Content className='allow-equals__sheet-content'>
-                                                <div className='allow-equals__toggle-row'>
-                                                    <Text>
-                                                        <Localize i18n_default_text='Allow equals' />
-                                                    </Text>
-                                                    <ToggleSwitch
-                                                        checked={local_is_equal}
-                                                        onChange={setLocalIsEqual}
-                                                        disabled={is_market_closed}
-                                                    />
-                                                </div>
-                                            </ActionSheet.Content>
-                                            <ActionSheet.Footer
-                                                alignment='vertical'
-                                                primaryAction={{
-                                                    content: <Localize i18n_default_text='Save' />,
-                                                    onAction: onSave,
-                                                }}
-                                                className='allow-equals__button'
-                                            />
-                                        </React.Fragment>
-                                    ),
-                                },
-                                {
-                                    id: 2,
-                                    component: (
-                                        <TradeParamDefinition
-                                            description={
-                                                <Localize i18n_default_text='Win a payout if the exit spot is equal to the entry spot.' />
-                                            }
-                                        />
-                                    ),
-                                },
-                            ]}
-                            title={<Localize i18n_default_text='Allow equals' />}
-                        />
-                    </ActionSheet.Portal>
-                </ActionSheet.Root>
-            </React.Fragment>
+                {is_automation_params_locked && <AutomationLockOverlay />}
+            </div>
         );
     }
 
-    const tooltipMessage = <Localize i18n_default_text='Win a payout if the exit spot is equal to the entry spot.' />;
+    const description = <Localize i18n_default_text='Win a payout if the exit spot is equal to the entry spot.' />;
+    const title_handlers = isDesktop ? {} : { onClick: openDescription, onKeyDown: openDescription };
+    const title = (
+        <Text
+            size='sm'
+            className={clsx('allow-equals__title', is_disabled && 'allow-equals__title--disabled')}
+            {...title_handlers}
+        >
+            <Localize i18n_default_text='Allow equals' />
+        </Text>
+    );
 
     return (
         <React.Fragment>
-            <div className='allow-equals__wrapper'>
+            <div className={clsx('allow-equals__wrapper', is_automation_params_locked && 'trade-params__field-locked')}>
                 {isDesktop ? (
-                    <TooltipPortal message={tooltipMessage} position='left' className='allow-equals__tooltip'>
-                        <Text
-                            size='sm'
-                            className={clsx('allow-equals__title', is_market_closed && 'allow-equals__title--disabled')}
-                        >
-                            <Localize i18n_default_text='Allow equals' />
-                        </Text>
+                    <TooltipPortal message={description} position='left' className='allow-equals__tooltip'>
+                        {title}
                     </TooltipPortal>
                 ) : (
-                    <Text
-                        size='sm'
-                        className={clsx('allow-equals__title', is_market_closed && 'allow-equals__title--disabled')}
-                        onClick={openDescription}
-                        onKeyDown={openDescription}
-                    >
-                        <Localize i18n_default_text='Allow equals' />
-                    </Text>
+                    title
                 )}
-                <ToggleSwitch checked={!!is_equal} onChange={onToggleSwitch} disabled={is_market_closed} />
+                <ToggleSwitch checked={!!is_equal} onChange={onToggleSwitch} disabled={is_disabled} />
+                {is_automation_params_locked && <AutomationLockOverlay />}
             </div>
             {!isDesktop && (
                 <ActionSheet.Root isOpen={is_open} onClose={closeSheet} position='left' expandable={false}>
@@ -158,9 +121,7 @@ const AllowEquals = observer(({ is_minimized }: TTradeParametersProps) => {
                             <Heading.H4 className='allow-equals__definition__title'>
                                 <Localize i18n_default_text='Allow equals' />
                             </Heading.H4>
-                            <Text as='div'>
-                                <Localize i18n_default_text='Win a payout if the exit spot is equal to the entry spot.' />
-                            </Text>
+                            <Text as='div'>{description}</Text>
                         </ActionSheet.Content>
                         <ActionSheet.Footer
                             alignment='vertical'

@@ -105,7 +105,12 @@ const PayoutPerPointWheel = observer(
                         >
                             <Localize i18n_default_text='Barrier' />
                         </Text>
-                        <Text size='sm' as='div' className='payout-per-point__barrier__content'>
+                        <Text
+                            color='quill-typography__color--subtle'
+                            size='sm'
+                            as='div'
+                            className='payout-per-point__barrier__content'
+                        >
                             {!displayed_barrier_value || error || isFetching ? (
                                 <Skeleton width={90} height={14} />
                             ) : (

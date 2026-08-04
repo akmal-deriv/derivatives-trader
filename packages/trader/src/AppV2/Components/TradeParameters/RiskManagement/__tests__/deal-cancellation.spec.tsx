@@ -29,6 +29,12 @@ jest.mock('@deriv-com/quill-ui', () => ({
     )),
 }));
 
+// The DC fee is fetched live for the selected duration; stub the proposal hook.
+const mockUseProposal = jest.fn();
+jest.mock('AppV2/Hooks/useProposal', () => ({
+    useProposal: (...args: unknown[]) => mockUseProposal(...args),
+}));
+
 describe('DealCancellation', () => {
     let default_mock_store: ReturnType<typeof mockStore>;
 
@@ -49,6 +55,8 @@ describe('DealCancellation', () => {
             }))
     );
 
+    beforeEach(() => mockUseProposal.mockReturnValue({ data: undefined }));
+
     afterEach(() => jest.clearAllMocks());
 
     const mockDealCancellation = () =>
@@ -67,6 +75,33 @@ describe('DealCancellation', () => {
         expect(screen.getByText(wheel_picker)).toBeInTheDocument();
         expect(screen.getByText(save_button)).toBeInTheDocument();
         expect(screen.queryByTestId('square-skeleton')).not.toBeInTheDocument();
+    });
+
+    it('shows the deal cancellation fee returned for the selected duration', () => {
+        default_mock_store.modules.trade.currency = 'USD';
+        default_mock_store.modules.trade.has_cancellation = true;
+        mockUseProposal.mockReturnValue({ data: { proposal: { cancellation: { ask_price: 0.82 } } } });
+        mockDealCancellation();
+
+        expect(screen.getByText('Deal cancellation fee')).toBeInTheDocument();
+        expect(screen.getByText(/0.82 USD/)).toBeInTheDocument();
+    });
+
+    it('shows a skeleton while the fee is loading (cancellation on, no fee yet)', () => {
+        default_mock_store.modules.trade.has_cancellation = true;
+        mockUseProposal.mockReturnValue({ data: undefined });
+        mockDealCancellation();
+
+        expect(screen.getByText('Deal cancellation fee')).toBeInTheDocument();
+        expect(screen.getByTestId('square-skeleton')).toBeInTheDocument();
+    });
+
+    it('omits the deal cancellation fee row when cancellation is off', () => {
+        default_mock_store.modules.trade.has_cancellation = false;
+        mockUseProposal.mockReturnValue({ data: undefined });
+        mockDealCancellation();
+
+        expect(screen.queryByText('Deal cancellation fee')).not.toBeInTheDocument();
     });
 
     it('should render Skeleton loader instead of Wheel Picker if cancellation_range_list is empty', () => {

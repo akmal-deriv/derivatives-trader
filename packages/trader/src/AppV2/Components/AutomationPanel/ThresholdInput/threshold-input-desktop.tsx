@@ -12,6 +12,7 @@ type TThresholdInputDesktopProps = {
     description?: string;
     currency: string;
     initialValue: number;
+    disabled?: boolean;
     onSave: (value: number) => void;
 };
 
@@ -72,7 +73,7 @@ const ThresholdInputContent = ({
             <Button
                 fullWidth
                 size='lg'
-                variant='secondary'
+                variant='primary'
                 color='black-white'
                 onClick={handleSave}
                 disabled={!!error || !value}
@@ -88,6 +89,7 @@ const ThresholdInputDesktop = ({
     description,
     currency,
     initialValue,
+    disabled,
     onSave,
 }: TThresholdInputDesktopProps) => {
     const { localize } = useTranslations();
@@ -99,6 +101,7 @@ const ThresholdInputDesktop = ({
             label={label}
             value={`${initialValue} ${display_currency}`}
             popover_classname='automation-popover'
+            is_locked={disabled}
             description={description ? <Text size='sm'>{description}</Text> : undefined}
         >
             <ThresholdInputContent

@@ -1,4 +1,47 @@
+import { CONTRACT_TYPES, TRADE_TYPES } from '@deriv/shared';
+
 import * as PositionsHelper from '../positions-helper';
+
+describe('filterByContractType', () => {
+    it('matches HIGHER/LOWER positions for the Higher/Lower tab', () => {
+        expect(
+            PositionsHelper.filterByContractType(
+                { contract_type: CONTRACT_TYPES.HIGHER, shortcode: '' },
+                TRADE_TYPES.HIGH_LOW
+            )
+        ).toBe(true);
+        expect(
+            PositionsHelper.filterByContractType(
+                { contract_type: CONTRACT_TYPES.LOWER, shortcode: '' },
+                TRADE_TYPES.HIGH_LOW
+            )
+        ).toBe(true);
+    });
+
+    it('does not match Rise/Fall (CALL/PUT at spot) for the Higher/Lower tab', () => {
+        expect(
+            PositionsHelper.filterByContractType(
+                { contract_type: CONTRACT_TYPES.CALL, shortcode: '' },
+                TRADE_TYPES.HIGH_LOW
+            )
+        ).toBe(false);
+    });
+
+    it('matches CALL for the Rise/Fall tab, and does not leak HIGHER into it', () => {
+        expect(
+            PositionsHelper.filterByContractType(
+                { contract_type: CONTRACT_TYPES.CALL, shortcode: '' },
+                TRADE_TYPES.RISE_FALL
+            )
+        ).toBe(true);
+        expect(
+            PositionsHelper.filterByContractType(
+                { contract_type: CONTRACT_TYPES.HIGHER, shortcode: '' },
+                TRADE_TYPES.RISE_FALL
+            )
+        ).toBe(false);
+    });
+});
 
 describe('addCommaToNumber', () => {
     it('should work as expected with number steps of thousands leading to a comma separated string', () => {

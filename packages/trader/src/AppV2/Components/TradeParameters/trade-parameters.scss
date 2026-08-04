@@ -1,15 +1,25 @@
 .trade-params {
     background-color: var(--semantic-color-slate-solid-surface-frame-low);
-    border-radius: var(--core-borderRadius-400);
+    border-radius: var(--core-borderRadius-400) 0 var(--core-borderRadius-400) var(--core-borderRadius-400);
     display: flex;
     flex-direction: column;
-    gap: var(--core-spacing-800);
-    padding: var(--core-spacing-800);
     height: 100%;
+    width: 100%;
     min-height: 0;
     box-sizing: border-box;
     position: relative;
     padding-bottom: 0;
+
+    // Content-height wrapper for the scrollable params + action button (Buy / Run) so the onboarding
+    // tour can spotlight just that, not the full-height card. Hugs its content; the footer sits below.
+    &__content {
+        display: flex;
+        flex-direction: column;
+        gap: var(--core-spacing-800);
+        flex: 0 1 auto;
+        min-height: 0;
+        padding: var(--core-spacing-800);
+    }
 
     // Upper area: scrollable. Holds Guide, TradeParameters, ClosedMarketMessage
     // and (in automation tab) the AutomationPanel fields. `flex: 0 1 auto`
@@ -34,8 +44,8 @@
     // area, so when content fits it hugs the last field instead of being
     // pushed to the bottom. `flex-shrink: 0` keeps it from being squashed
     // when the scrollable area gets squeezed.
-    > .purchase-button__wrapper,
-    > .automation-actions {
+    &__content > .purchase-button__wrapper,
+    &__content > .automation-actions {
         flex-shrink: 0;
     }
 
@@ -51,6 +61,12 @@
         bottom: 5.6rem; // HEIGHT.BOTTOM_NAV
         left: 0;
         right: 0;
+
+        // Chart maximized: the bottom-nav collapses, so drop the sheet to the screen edge to
+        // reclaim its space (animates via the existing `transition: all` on this container).
+        &--chart-maximized {
+            bottom: 0;
+        }
         background: var(--semantic-color-slate-solid-surface-frame-mid);
         transition: all 0.3s ease-in-out;
         padding: 0 var(--core-spacing-400);
@@ -64,26 +80,26 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            height: 3.2rem; // HEIGHT.TRADE_PARAM_HANDLER
+            height: 2rem; // HEIGHT.TRADE_PARAM_HANDLER
             cursor: pointer;
             user-select: none;
             position: relative;
             z-index: 2;
             touch-action: manipulation; // Extra specificity for handle
 
+            // Static drag bar matching the quill ActionSheet handle
             &-bar {
-                transition: transform 0.3s ease-in-out;
-                pointer-events: none; // Make icon click-through
-
-                svg {
-                    pointer-events: none; // Ensure SVG doesn't capture events
-                }
+                height: var(--component-handle-height);
+                width: var(--component-handle-width);
+                border-radius: var(--component-handle-border-radius);
+                background-color: var(--component-handle-bg);
+                pointer-events: none; // Make handle click-through
             }
         }
 
         &-tabs {
             padding: 0;
-            margin-bottom: 0.6rem;
+            margin-bottom: 1.2rem;
 
             .trade-params__option.segmented-control-single--sm {
                 background-color: var(--semantic-color-monochrome-surface-normal-lowest);
@@ -95,24 +111,18 @@
             position: relative;
             z-index: 1;
         }
-
-        &--collapsed {
-            .trade-params__container-handle-bar {
-                transform: rotate(0deg);
-            }
-        }
-
-        &--expanded {
-            .trade-params__container-handle-bar {
-                transform: rotate(180deg);
-            }
-        }
     }
 
     &__title {
         display: flex;
         align-items: center;
         justify-content: space-between;
+    }
+    // − / + steppers rendered inside the field's rightIcon slot
+    &__steppers {
+        display: flex;
+        align-items: center;
+        gap: var(--core-spacing-400);
     }
     &__options {
         &-wrapper {
@@ -169,11 +179,7 @@
             flex-shrink: 0;
         }
         @include mobile-screen {
-            padding: var(--core-spacing-800);
             background-color: var(--semantic-color-slate-solid-surface-frame-low);
-            &:not(.trade-params__option--minimized) {
-                height: var(--core-size-2800);
-            }
         }
         .input {
             padding-inline-start: 0;
@@ -188,15 +194,10 @@
 
         // Custom styling for trade type segmented control (Rise/Fall, Higher/Lower, etc.)
         &.segmented-control-single {
-            border-radius: 2rem !important; // Pill-shaped wrapper
-            height: 3.2rem;
-            padding: 0.3rem;
+            @include pill-segmented-control;
+            height: 4.8rem;
 
             button {
-                border-radius: 2rem !important; // Pill-shaped rounded corners
-                transition: all 0.2s ease; // Smooth transitions
-                height: 3.2rem;
-
                 // Selected state - target the actual button with .selected class
                 &.selected {
                     // Target the span (quill-typography) inside the button
@@ -221,19 +222,7 @@
 
             // Ensure border-radius applies to both mobile and desktop sizes
             &--md {
-                border-radius: 2rem !important;
                 background-color: var(--semantic-color-monochrome-surface-normal-lowest);
-
-                button {
-                    border-radius: 1.2rem !important;
-                }
-            }
-            &--sm {
-                border-radius: 2rem !important;
-
-                button {
-                    border-radius: 1.6rem !important;
-                }
             }
         }
 
@@ -272,6 +261,21 @@
             right: unset;
             left: var(--core-spacing-800);
         }
+    }
+
+    // Transparent click-catcher over a field locked by an active automation run —
+    // the disabled field swallows clicks, so this sits on top to surface the
+    // "locked" snackbar. Kept below `__info-icon-wrapper` (later in the DOM) so the
+    // param description tooltip stays reachable.
+    &__field-locked {
+        position: relative;
+    }
+
+    &__lock-overlay {
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        cursor: not-allowed;
     }
 
     &__info-icon {

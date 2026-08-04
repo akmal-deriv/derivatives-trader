@@ -4,6 +4,7 @@ import { TActiveSymbolsResponse } from '@deriv/api';
 import { dayjs, findSymbolForTradeType, TRADE_TYPES, WS } from '@deriv/shared';
 import { mockStore } from '@deriv/stores';
 
+import { TRADE_PANEL_TABS } from 'AppV2/Components/AutomationPanel/automation-config';
 import { TRootStore } from 'Types';
 
 import { ContractType } from '../Helpers/contract-type';
@@ -1219,6 +1220,153 @@ describe('TradeStore', () => {
             tradeStore.requestProposal();
             expect(subscribe_mock).not.toHaveBeenCalled();
             values_spy.mockRestore();
+        });
+    });
+
+    describe('is_automation_params_locked', () => {
+        const setRunActive = (is_active: boolean) => {
+            const root = tradeStore.root_store as unknown as { modules: { automation?: { is_active: boolean } } };
+            root.modules = { ...root.modules, automation: { is_active } };
+        };
+        const setMobile = (is_mobile: boolean) => {
+            (tradeStore.root_store.ui as unknown as { is_mobile: boolean }).is_mobile = is_mobile;
+        };
+
+        it('is false in manual trading even while a run is active (desktop)', () => {
+            setRunActive(true);
+            setMobile(false);
+            tradeStore.setActiveTradePanelTab(TRADE_PANEL_TABS.TRADE);
+            tradeStore.setIsAutomationPage(false);
+            expect(tradeStore.is_automation_params_locked).toBe(false);
+        });
+
+        it('is true on the desktop automation tab while a run is active', () => {
+            setRunActive(true);
+            setMobile(false);
+            tradeStore.setActiveTradePanelTab(TRADE_PANEL_TABS.AUTOMATION);
+            expect(tradeStore.is_automation_params_locked).toBe(true);
+        });
+
+        it('is true in the mobile automation view while a run is active', () => {
+            setRunActive(true);
+            setMobile(true);
+            tradeStore.setIsAutomationPage(true);
+            expect(tradeStore.is_automation_params_locked).toBe(true);
+        });
+
+        it('is false on the mobile manual page even when the panel tab persisted as automation', () => {
+            // Regression: the desktop-only panel tab must not leak onto mobile (no switcher resets it).
+            setRunActive(true);
+            setMobile(true);
+            tradeStore.setActiveTradePanelTab(TRADE_PANEL_TABS.AUTOMATION);
+            tradeStore.setIsAutomationPage(false);
+            expect(tradeStore.is_automation_params_locked).toBe(false);
+        });
+
+        it('ignores the mobile view flag on desktop', () => {
+            setRunActive(true);
+            setMobile(false);
+            tradeStore.setActiveTradePanelTab(TRADE_PANEL_TABS.TRADE);
+            tradeStore.setIsAutomationPage(true);
+            expect(tradeStore.is_automation_params_locked).toBe(false);
+        });
+
+        it('is false in the automation view when no run is active', () => {
+            setRunActive(false);
+            setMobile(true);
+            tradeStore.setIsAutomationPage(true);
+            expect(tradeStore.is_automation_params_locked).toBe(false);
+        });
+
+        describe('non-automatable symbol', () => {
+            const AUTOMATABLE = 'R_100';
+            const NON_AUTOMATABLE = 'cryBTCUSD';
+            beforeEach(() => {
+                tradeStore.active_symbols = [
+                    {
+                        underlying_symbol: AUTOMATABLE,
+                        display_order: 1,
+                        exchange_is_open: 1,
+                        market: 'synthetic_index',
+                        submarket: 'random_index',
+                        is_trading_suspended: 0,
+                        subgroup: 'volatility',
+                    },
+                    {
+                        underlying_symbol: NON_AUTOMATABLE,
+                        display_order: 2,
+                        exchange_is_open: 1,
+                        market: 'cryptocurrency',
+                        submarket: 'non_stable_coin',
+                        is_trading_suspended: 0,
+                        subgroup: 'none',
+                    },
+                ] as NonNullable<TActiveSymbolsResponse['active_symbols']>;
+                setRunActive(false);
+                setMobile(false);
+                tradeStore.setActiveTradePanelTab(TRADE_PANEL_TABS.AUTOMATION);
+            });
+
+            it('flags is_symbol_automatable false for a Crypto/Crash-Boom symbol', () => {
+                tradeStore.symbol = NON_AUTOMATABLE;
+                expect(tradeStore.is_symbol_automatable).toBe(false);
+                tradeStore.symbol = AUTOMATABLE;
+                expect(tradeStore.is_symbol_automatable).toBe(true);
+            });
+
+            it('locks the params (is_automation_params_locked) for a non-automatable symbol with no run', () => {
+                tradeStore.symbol = NON_AUTOMATABLE;
+                expect(tradeStore.is_automation_params_locked).toBe(true);
+                // ...but the RUN-only lock stays false, so market/tab switching isn't blocked.
+                expect(tradeStore.is_automation_market_locked).toBe(false);
+            });
+
+            it('does not lock params for a non-automatable symbol in manual mode', () => {
+                tradeStore.setActiveTradePanelTab(TRADE_PANEL_TABS.TRADE);
+                tradeStore.symbol = NON_AUTOMATABLE;
+                expect(tradeStore.is_automation_params_locked).toBe(false);
+            });
+
+            it('is_automation_market_locked reflects only a live run', () => {
+                tradeStore.symbol = NON_AUTOMATABLE;
+                expect(tradeStore.is_automation_market_locked).toBe(false);
+                setRunActive(true);
+                expect(tradeStore.is_automation_market_locked).toBe(true);
+            });
+        });
+    });
+
+    describe('automation_run_market', () => {
+        const setRun = (is_active: boolean, contract_template: unknown, analytics: unknown = null) => {
+            const root = tradeStore.root_store as unknown as { modules: { automation?: unknown } };
+            root.modules = {
+                ...root.modules,
+                automation: {
+                    is_active,
+                    active_run: contract_template ? { contract_template } : null,
+                    active_run_analytics: analytics,
+                },
+            };
+        };
+
+        it('returns the run market (symbol + app-format trade type) while a run is active', () => {
+            setRun(true, { underlying_symbol: 'R_100', contract_type: 'CALL' }, { trade_type: 'rise_fall' });
+            expect(tradeStore.automation_run_market).toEqual({ symbol: 'R_100', contract_type: 'rise_fall' });
+        });
+
+        it('has a null trade type for a recovered run (no analytics payload)', () => {
+            setRun(true, { underlying_symbol: 'R_100', contract_type: 'CALL' }, null);
+            expect(tradeStore.automation_run_market).toEqual({ symbol: 'R_100', contract_type: null });
+        });
+
+        it('is null when no run is active', () => {
+            setRun(false, { underlying_symbol: 'R_100', contract_type: 'CALL' }, { trade_type: 'rise_fall' });
+            expect(tradeStore.automation_run_market).toBeNull();
+        });
+
+        it('is null when the active run has no contract template', () => {
+            setRun(true, null, { trade_type: 'rise_fall' });
+            expect(tradeStore.automation_run_market).toBeNull();
         });
     });
 });

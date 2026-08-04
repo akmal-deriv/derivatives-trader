@@ -12,6 +12,17 @@ $BOTTOM_NAV_HEIGHT: var(--core-spacing-2800);
         left: 0;
         right: 0;
         background-color: var(--component-navigationBar-background-color);
+        transition:
+            transform 0.3s ease-in-out,
+            opacity 0.3s ease-in-out;
+
+        // Mobile chart-maximize: slide the nav off the bottom so the chart + trade
+        // params grow into the reclaimed space.
+        &--chart-maximized {
+            transform: translateY(100%);
+            opacity: 0;
+            pointer-events: none;
+        }
     }
     &-item {
         font-size: var(--core-fontSize-50);

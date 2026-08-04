@@ -137,7 +137,7 @@ const DurationInputDesktop: React.FC<TDurationInputDesktopProps> = observer(({ u
                 <Button
                     fullWidth
                     size='lg'
-                    variant='secondary'
+                    variant='primary'
                     color='black-white'
                     onClick={handleSave}
                     disabled={!!error || !inputValue}

@@ -64,6 +64,16 @@ import { localize } from '@deriv-com/translations';
 
 import { TRADE_PANEL_TABS, type TTradePanelTab } from 'AppV2/Components/AutomationPanel/automation-config';
 import { isDigitContractType, isDigitTradeType } from 'AppV2/Utils/digits';
+import {
+    addToOpenMarkets,
+    isSameMarket,
+    readOpenMarkets,
+    removeFromOpenMarkets,
+    replaceInOpenMarkets,
+    type TOpenMarket,
+    writeOpenMarkets,
+} from 'AppV2/Utils/open-markets-utils';
+import { isMultiplierOnlySymbol } from 'AppV2/Utils/symbol-categories-utils';
 import { mapContractTypeToDurationPresetKey } from 'AppV2/Utils/trade-params-preset-utils';
 import { getDefaultDuration, isValidPersistedDuration } from 'AppV2/Utils/trade-params-utils';
 import { getMultiplierValidationRules, getValidationRules } from 'Stores/Modules/Trading/Constants/validation-rules';
@@ -258,6 +268,27 @@ export default class TradeStore extends BaseStore {
     active_symbols: ActiveSymbols = [];
     has_symbols_for_v2 = false;
 
+    // Open market "tabs" for the AppV2 Trade strip, identified by the (symbol, contract_type) pair.
+    // Recorded here (not derived from symbol/contract_type) so the strip reflects explicit user
+    // commits, immune to the transient symbol-first/contract_type-swap churn during a selection.
+    // Manual and automated trading keep INDEPENDENT collections (each capped separately) — switching
+    // modes swaps which one the `open_markets` getter exposes without disturbing the other. Read the
+    // active one via `open_markets`; mutate it via add/remove/replaceOpenMarket.
+    open_markets_manual: TOpenMarket[] = readOpenMarkets('manual');
+    open_markets_automation: TOpenMarket[] = readOpenMarkets('automation');
+    // Per-mode memory of the last active (symbol, contract_type). The store keeps a single active
+    // symbol/contract_type. On switch we snapshot the mode we leave and
+    // restore the mode we enter to its own market. Session-only (not persisted).
+    active_market_manual: TOpenMarket | null = null;
+    active_market_automation: TOpenMarket | null = null;
+    // The tab a long-press is about to replace: while set, the next `selectMarketAndTradeType` swaps
+    // this tab in place instead of appending a new one. Transient (not observable/persisted).
+    replacing_market: TOpenMarket | null = null;
+    // True while `selectMarketAndTradeType` is committing (records the pair up-front, then runs the
+    // symbol-first/contract_type cascade). The tab strip's seed effect skips while this is set so the
+    // transient {new symbol, old trade type} mid-cascade state never spawns a stale tab.
+    is_selecting_market = false;
+
     form_components: string[] = [];
 
     // Contract Type
@@ -269,6 +300,12 @@ export default class TradeStore extends BaseStore {
     trade_type_tab = '';
     trade_types: { [key: string]: string } = {};
     active_trade_panel_tab: TTradePanelTab = getInitialTradePanelTab();
+    // Drives the MarketTabs market/trade-types selector open state. Lifted to the store so the
+    // onboarding tour can open/close it programmatically for the "Trade types and markets" step.
+    is_market_selector_open = false;
+    // Mobile /automate route toggles this so shared trade params can tell they're
+    // rendered in the automation view (desktop uses `is_automation_tab` instead).
+    is_automation_page = false;
     contract_types_list_v2: TContractTypesList = {};
 
     // Amount
@@ -394,8 +431,8 @@ export default class TradeStore extends BaseStore {
     // an earlier proposal carries the previous symbol's params and errors. Armed on load
     // and on every symbol change; released by processContractsForV2 or on fetch failure.
     is_awaiting_contracts_for = true;
-    // Trade type applied from the URL's trade_type param. Consumed one-shot by
-    // useAutomationTradeTypeFallback to prioritise tab switching over overriding the type.
+    // Trade type applied from the URL's trade_type param, recorded only when the market offers it.
+    // Set atomically with contract_type so consumers can tell a URL landing from manual navigation.
     url_trade_type: string | null = null;
     // True while reconcileUrlTradeTypeWithSymbol is switching the market to honour a URL trade type
     // the persisted market didn't offer. Keeps the trade page's full-screen loader up so the user
@@ -488,6 +525,10 @@ export default class TradeStore extends BaseStore {
             has_cancellation: observable,
             has_equals_only: observable,
             has_open_accu_contract: computed,
+            is_automation_params_locked: computed,
+            is_automation_market_locked: computed,
+            is_symbol_automatable: computed,
+            automation_run_market: computed,
             has_stop_loss: observable,
             has_symbols_for_v2: observable,
             has_take_profit: observable,
@@ -538,6 +579,11 @@ export default class TradeStore extends BaseStore {
             stop_loss: observable,
             stop_out: observable,
             symbol: observable,
+            open_markets_manual: observable,
+            open_markets_automation: observable,
+            open_markets: computed,
+            is_automation_mode: computed,
+            is_selecting_market: observable,
             take_profit: observable,
             tick_data: observable.ref, // Object - use ref
             tick_size_barrier_percentage: observable,
@@ -545,8 +591,13 @@ export default class TradeStore extends BaseStore {
             trade_type_tab: observable,
             trade_types: observable.ref, // Object - use ref
             active_trade_panel_tab: observable,
+            is_market_selector_open: observable,
+            is_automation_page: observable,
             is_automation_tab: computed,
             setActiveTradePanelTab: action.bound,
+            setMarketSelectorOpen: action.bound,
+            setIsAutomationPage: action.bound,
+            reconcileTradeModeMarket: action.bound,
             setIsAwaitingContractsFor: action.bound,
             url_trade_type: observable,
             clearUrlTradeType: action.bound,
@@ -585,6 +636,13 @@ export default class TradeStore extends BaseStore {
             onAllowEqualsChange: action.bound,
             onChange: action.bound,
             onChangeMultiple: action.bound,
+            selectMarketAndTradeType: action.bound,
+            setActiveOpenMarkets: action.bound,
+            addOpenMarket: action.bound,
+            removeOpenMarket: action.bound,
+            replaceOpenMarket: action.bound,
+            setReplacingMarket: action.bound,
+            setIsSelectingMarket: action.bound,
             onChartBarrierChange: action.bound,
             onHoverPurchase: action.bound,
             onMount: action.bound,
@@ -811,6 +869,43 @@ export default class TradeStore extends BaseStore {
                     isAccumulatorContract(type) && contract_info.underlying_symbol === this.symbol
             )
         );
+    }
+
+    // True only when a run is active AND we're in the automation view. Used by the market strip to pin
+    // to the run's market and block tab switching mid-run. The view signal is device-separated
+    // (desktop panel tab / mobile /automate flag) via `is_automation_mode`. Deliberately false in
+    // manual trading. This is the RUN-only lock — for the params lock see `is_automation_params_locked`.
+    get is_automation_market_locked() {
+        return this.root_store.modules.automation.is_active && this.is_automation_mode;
+    }
+
+    // Whether the active symbol can be traded by automation. A few markets (Cryptocurrencies,
+    // Crash/Boom) are flagged non-automatable even when they offer an automatable trade type; on those
+    // the user may stay on the tab, but Run and the params are disabled (see `is_automation_params_locked`).
+    get is_symbol_automatable() {
+        const symbol_info = this.active_symbols.find(s => s.underlying_symbol === this.symbol);
+        return !symbol_info || !isMultiplierOnlySymbol(symbol_info);
+    }
+
+    // The params lock consumed by the shared trade params + automation fields: locked during a live
+    // run OR when the active symbol isn't automatable. Kept distinct from `is_automation_market_locked`
+    // (which the market strip uses) so the non-automatable case still lets the user switch to a
+    // runnable market to clear the lock. False in manual trading so params aren't locked there.
+    get is_automation_params_locked() {
+        return this.is_automation_market_locked || (this.is_automation_mode && !this.is_symbol_automatable);
+    }
+
+    // The market a live automation run is bound to (app-format symbol + trade type), or null when
+    // no run is active. Lets the shared market strip snap back to the exact running tab when the
+    // user returns to the automation view after drifting the active market in manual — a symbol can
+    // have several open tabs, so the trade type is needed to disambiguate. `contract_type` is the
+    // app-format type captured at run start; it's null for runs recovered via auto_get (no analytics
+    // payload), where the strip falls back to matching by symbol alone.
+    get automation_run_market() {
+        const { active_run, active_run_analytics, is_active } = this.root_store.modules.automation;
+        const symbol = active_run?.contract_template?.underlying_symbol;
+        if (!is_active || !symbol) return null;
+        return { symbol, contract_type: active_run_analytics?.trade_type ?? null };
     }
 
     resetAccumulatorData() {
@@ -1069,6 +1164,90 @@ export default class TradeStore extends BaseStore {
 
         await this.processNewValuesAsync({ ...values }, true); // wait for store to be updated
         this.validateAllProperties(); // then run validation before sending proposal
+    }
+
+    /**
+     * Commits a market + trade type together for the redesigned market-selection info screen.
+     *
+     * Order matters: `symbol` is written first so its `contracts_for` refetch (in `useContractsFor`)
+     * runs against the new market, then `contract_type`. If the chosen contract_type isn't offered by
+     * the new symbol, `useContractsFor` will legitimately swap it to the first available one — the
+     * desired behaviour. Uses per-field `onChange` (not `onChangeMultiple`) to keep each field's
+     * pre-processing (chart-loading flag, Vanilla/accumulator resets) intact.
+     */
+    async selectMarketAndTradeType(underlying_symbol: string, contract_type: string) {
+        // Record the tab up-front, from the explicit intent — BEFORE the symbol-first/contract_type
+        // cascade below (which transiently pairs the new symbol with the stale type, and may re-swap
+        // the type via useContractsFor). The strip is thus never built from those transient values.
+        const next_market = { symbol: underlying_symbol, contract_type };
+        // Captured before mutating so the optimistic tab change can be rolled back on failure below.
+        const replaced_market = this.replacing_market;
+        if (replaced_market) {
+            // Long-press "replace this tab" flow: swap the long-pressed tab in place instead of
+            // appending a new one.
+            this.replaceOpenMarket(replaced_market, next_market);
+            this.setReplacingMarket(null);
+        } else {
+            this.addOpenMarket(next_market);
+        }
+        // Guard the cascade so the tab strip's seed effect ignores the transient {new symbol, old
+        // trade type} state and doesn't spawn a stale tab (the exact pair is already recorded above).
+        this.setIsSelectingMarket(true);
+        try {
+            if (underlying_symbol && underlying_symbol !== this.symbol) {
+                await this.onChange({ target: { name: 'symbol', value: underlying_symbol } });
+            }
+            if (contract_type && contract_type !== this.contract_type) {
+                await this.onChange({ target: { name: 'contract_type', value: contract_type } });
+            }
+        } catch (error) {
+            // The commit failed (e.g. the WS dropped mid-cascade) — undo the optimistic tab change so
+            // the strip doesn't keep a "phantom" tab whose chart never loaded. Re-throw so the caller
+            // (commitAndClose) keeps the selector open for retry.
+            if (replaced_market) this.replaceOpenMarket(next_market, replaced_market);
+            else this.removeOpenMarket(next_market);
+            throw error;
+        } finally {
+            this.setIsSelectingMarket(false);
+        }
+    }
+
+    setReplacingMarket(market: TOpenMarket | null) {
+        this.replacing_market = market;
+    }
+
+    setIsSelectingMarket(value: boolean) {
+        this.is_selecting_market = value;
+    }
+
+    // Persist `next` as the ACTIVE mode's collection (manual vs automation). All three mutators below
+    // read `this.open_markets` (the active collection) and route the result back through here, so a
+    // mutation only ever touches the mode the strip is currently showing.
+    setActiveOpenMarkets(next: TOpenMarket[]) {
+        if (this.is_automation_mode) {
+            this.open_markets_automation = next;
+            writeOpenMarkets('automation', next);
+        } else {
+            this.open_markets_manual = next;
+            writeOpenMarkets('manual', next);
+        }
+    }
+
+    addOpenMarket(market: TOpenMarket) {
+        const next = addToOpenMarkets(this.open_markets, market);
+        if (next === this.open_markets) return; // no-op (pair already open / invalid)
+        this.setActiveOpenMarkets(next);
+    }
+
+    removeOpenMarket(market: TOpenMarket) {
+        const next = removeFromOpenMarkets(this.open_markets, market);
+        if (next.length === this.open_markets.length) return;
+        this.setActiveOpenMarkets(next);
+    }
+
+    replaceOpenMarket(old_market: TOpenMarket, next_market: TOpenMarket) {
+        if (isSameMarket(old_market, next_market)) return this.addOpenMarket(next_market);
+        this.setActiveOpenMarkets(replaceInOpenMarkets(this.open_markets, old_market, next_market));
     }
 
     // Trade-type group of the current contract type (paired with duration_default_applied_for).
@@ -2510,6 +2689,19 @@ export default class TradeStore extends BaseStore {
         return this.active_trade_panel_tab === TRADE_PANEL_TABS.AUTOMATION;
     }
 
+    // Whether the Trade page is currently in automated-trading mode (mobile uses the /automate route
+    // flag, desktop the panel tab — mirrors `is_automation_params_locked`). Selects which open-markets
+    // collection `open_markets` exposes so manual and automation keep independent tabs.
+    get is_automation_mode() {
+        return this.root_store.ui.is_mobile ? this.is_automation_page : this.is_automation_tab;
+    }
+
+    // The active mode's open-market tabs. Consumers read this; mutations go through
+    // add/remove/replaceOpenMarket, which write back to whichever collection this reflects.
+    get open_markets() {
+        return this.is_automation_mode ? this.open_markets_automation : this.open_markets_manual;
+    }
+
     get is_turbos() {
         return isTurbosContract(this.contract_type);
     }
@@ -2633,8 +2825,39 @@ export default class TradeStore extends BaseStore {
     }
 
     setActiveTradePanelTab(tab: TTradePanelTab) {
+        const prev_is_automation = this.is_automation_mode;
         this.active_trade_panel_tab = tab;
         localStorage.setItem('active_trade_panel_tab', tab);
+        this.reconcileTradeModeMarket(prev_is_automation);
+    }
+
+    setMarketSelectorOpen(is_open: boolean) {
+        this.is_market_selector_open = is_open;
+    }
+
+    setIsAutomationPage(is_page: boolean) {
+        const prev_is_automation = this.is_automation_mode;
+        this.is_automation_page = is_page;
+        this.reconcileTradeModeMarket(prev_is_automation);
+    }
+
+    // Called after a manual/automation mode flip. Snapshots the market of the mode we left, then
+    // restores the mode we entered to its own market (remembered slot, else its most-recent tab) so
+    // each mode's tabs stay independent. Skips when the flip didn't actually cross modes, or when the
+    // entered mode has no market to restore yet (first automation entry — the tab strip's automation
+    // effect seeds a supported default instead).
+    reconcileTradeModeMarket(prev_is_automation: boolean) {
+        const next_is_automation = this.is_automation_mode;
+        if (prev_is_automation === next_is_automation) return;
+        const leaving = { symbol: this.symbol, contract_type: this.contract_type };
+        if (prev_is_automation) this.active_market_automation = leaving;
+        else this.active_market_manual = leaving;
+        const collection = next_is_automation ? this.open_markets_automation : this.open_markets_manual;
+        const remembered = next_is_automation ? this.active_market_automation : this.active_market_manual;
+        const target = remembered ?? collection[collection.length - 1];
+        if (target && (target.symbol !== this.symbol || target.contract_type !== this.contract_type)) {
+            this.selectMarketAndTradeType(target.symbol, target.contract_type);
+        }
     }
 
     setIsAwaitingContractsFor(is_awaiting: boolean) {

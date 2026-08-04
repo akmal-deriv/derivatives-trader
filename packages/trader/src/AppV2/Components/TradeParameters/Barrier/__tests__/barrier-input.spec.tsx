@@ -82,7 +82,7 @@ describe('BarrierInput', () => {
     it('initializes with correct tab based on barrier_1 value', () => {
         mockBarrierInput(mockStore(default_trade_store));
         // Should select "Above spot" tab for "+10" barrier
-        expect(screen.getAllByRole('button')[0]).toHaveAttribute('data-state', 'selected');
+        expect(screen.getAllByRole('tab')[0]).toHaveAttribute('aria-selected', 'true');
     });
 
     it('handles chip selection correctly', async () => {
@@ -126,21 +126,21 @@ describe('BarrierInput', () => {
 
     it('sets initial barrier value and option correctly for a positive barrier', () => {
         mockBarrierInput(mockStore(default_trade_store));
-        expect(screen.getAllByRole('button')[0]).toHaveAttribute('data-state', 'selected');
+        expect(screen.getAllByRole('tab')[0]).toHaveAttribute('aria-selected', 'true');
         expect(screen.getByDisplayValue('10')).toBeInTheDocument();
     });
 
     it('sets initial barrier value and option correctly for a negative barrier', () => {
         default_trade_store.modules.trade.barrier_1 = '-10';
         mockBarrierInput(mockStore(default_trade_store));
-        expect(screen.getAllByRole('button')[1]).toHaveAttribute('data-state', 'selected');
+        expect(screen.getAllByRole('tab')[1]).toHaveAttribute('aria-selected', 'true');
         expect(screen.getByDisplayValue('10')).toBeInTheDocument();
     });
 
     it('sets initial barrier value and option correctly for a fixed price barrier', () => {
         default_trade_store.modules.trade.barrier_1 = '30';
         mockBarrierInput(mockStore(default_trade_store));
-        expect(screen.getAllByRole('button')[2]).toHaveAttribute('data-state', 'selected');
+        expect(screen.getAllByRole('tab')[2]).toHaveAttribute('aria-selected', 'true');
         expect(screen.getByDisplayValue('30')).toBeInTheDocument();
     });
 

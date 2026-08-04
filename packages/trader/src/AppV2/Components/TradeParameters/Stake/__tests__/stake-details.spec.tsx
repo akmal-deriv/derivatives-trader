@@ -32,38 +32,44 @@ const base_props = {
     },
 };
 
-describe('StakeDetails commission tooltip', () => {
-    const renderStakeDetails = (trade_overrides = {}) => {
+describe('StakeDetails multiplier info', () => {
+    const renderStakeDetails = (props = {}, trade_overrides = {}) => {
         const store = mockStore({
             modules: { trade: { amount: 10, multiplier: 100, ...trade_overrides } },
         });
         return render(
             <TraderProviders store={store}>
                 <ModulesProvider store={store}>
-                    <StakeDetails {...base_props} />
+                    <StakeDetails {...base_props} {...props} />
                 </ModulesProvider>
             </TraderProviders>
         );
     };
 
-    it('reveals the commission formula when the Commission label is tapped', async () => {
-        renderStakeDetails();
+    it('opens the Stop out explanation (in-sheet page) when the Stop out label is tapped', async () => {
+        const onOpenStopOut = jest.fn();
+        renderStakeDetails({ onOpenStopOut, onOpenCommission: jest.fn() });
 
-        expect(screen.getByText('Commission')).toBeInTheDocument();
-        expect(screen.queryByTestId('dt_commission_formula')).not.toBeInTheDocument();
+        await userEvent.click(screen.getByText('Stop out'));
 
-        await userEvent.click(screen.getByText('Commission'));
-
-        // commission_percentage = (0.5 * 100) / (100 * 10) = 0.0500
-        expect(screen.getByTestId('dt_commission_formula')).toBeInTheDocument();
-        expect(screen.getByText('0.0500%')).toBeInTheDocument();
+        expect(onOpenStopOut).toHaveBeenCalledTimes(1);
     });
 
-    it('does not reveal a formula when stake/multiplier are unavailable', async () => {
-        renderStakeDetails({ amount: 0, multiplier: 0 });
+    it('opens the Commission explanation (in-sheet page) when the Commission label is tapped', async () => {
+        const onOpenCommission = jest.fn();
+        renderStakeDetails({ onOpenStopOut: jest.fn(), onOpenCommission });
 
         await userEvent.click(screen.getByText('Commission'));
 
-        expect(screen.queryByTestId('dt_commission_formula')).not.toBeInTheDocument();
+        expect(onOpenCommission).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not make Commission navigable when its formula cannot be derived', async () => {
+        const onOpenCommission = jest.fn();
+        renderStakeDetails({ onOpenStopOut: jest.fn(), onOpenCommission }, { amount: 0, multiplier: 0 });
+
+        await userEvent.click(screen.getByText('Commission'));
+
+        expect(onOpenCommission).not.toHaveBeenCalled();
     });
 });

@@ -19,7 +19,6 @@ const Positions = observer(() => {
     const [hasButtonsDemo, setHasButtonsDemo] = React.useState(false);
     const [activeTab, setActiveTab] = React.useState(getPositionsV2TabIndexFromURL());
     const [guide_dtrader_v2] = useLocalStorageData<Record<string, boolean>>('guide_dtrader_v2', {
-        trade_types_selection: false,
         trade_page: false,
         positions_page: false,
     });
@@ -27,7 +26,6 @@ const Positions = observer(() => {
 
     const {
         client: { is_logged_in },
-        ui: { is_dark_mode_on },
     } = useStore();
     const { isBridgeAvailable } = useMobileBridge();
     const {
@@ -102,11 +100,7 @@ const Positions = observer(() => {
             {/* TODO: Remove isBridgeAvailable check when onboarding video with Accumulators is available*/}
             {/* OnboardingGuide now only shows for mobile users */}
             {!guide_dtrader_v2?.positions_page && is_logged_in && !isBridgeAvailable && (
-                <OnboardingGuide
-                    type='positions_page'
-                    is_dark_mode_on={is_dark_mode_on}
-                    callback={() => setHasButtonsDemo(true)}
-                />
+                <OnboardingGuide type='positions_page' callback={() => setHasButtonsDemo(true)} />
             )}
         </>
     );

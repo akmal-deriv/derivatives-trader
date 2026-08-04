@@ -418,7 +418,7 @@ const DurationEndTimeDesktop: React.FC<DurationEndTimeDesktopProps> = observer((
                             <Button
                                 size='lg'
                                 color='black-white'
-                                variant='secondary'
+                                variant='primary'
                                 fullWidth
                                 onClick={handleTimePickerDone}
                             >
@@ -434,7 +434,7 @@ const DurationEndTimeDesktop: React.FC<DurationEndTimeDesktopProps> = observer((
                 <Button
                     size='lg'
                     color='black-white'
-                    variant='secondary'
+                    variant='primary'
                     fullWidth
                     onClick={handleSave}
                     className='duration-end-time-desktop__save-button'

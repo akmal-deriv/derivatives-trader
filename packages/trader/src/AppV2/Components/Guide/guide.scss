@@ -58,6 +58,10 @@
         }
     }
 
+    &__wrapper__content &__contract-description {
+        min-height: max(40rem, calc(90dvh - 23rem));
+    }
+
     &__button {
         padding: var(--component-actionSheet-spacing-padding-lg);
     }

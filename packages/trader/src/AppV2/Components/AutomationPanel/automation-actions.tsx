@@ -11,6 +11,8 @@ import { getTradeTypeTabsList } from 'AppV2/Utils/trade-params-utils';
 import { useAutomationStore } from 'Stores/useAutomationStore';
 import { useTraderStore } from 'Stores/useTraderStores';
 
+import AutomationStatusInfo from './automation-status-info';
+
 import './automation-actions.scss';
 
 /**
@@ -58,12 +60,15 @@ const AutomationActions = observer(() => {
         <div className='automation-actions'>
             {(is_running || is_paused) && (
                 <div className='automation-actions__status'>
-                    <Text size='sm' bold>
-                        <Localize
-                            i18n_default_text='Status: {{status}}'
-                            values={{ status: is_paused ? localize('Paused') : localize('Running') }}
-                        />
-                    </Text>
+                    <div className='automation-actions__status-line'>
+                        <Text size='sm' bold>
+                            <Localize
+                                i18n_default_text='Status: {{status}}'
+                                values={{ status: is_paused ? localize('Paused') : localize('Running') }}
+                            />
+                        </Text>
+                        <AutomationStatusInfo />
+                    </div>
                     <Text size='sm'>
                         <Localize
                             i18n_default_text='Contracts: {{count}} | P/L: {{profit}} {{currency}}'

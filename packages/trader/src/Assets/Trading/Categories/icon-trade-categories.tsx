@@ -246,7 +246,12 @@ const IconTradeCategory = ({ category, className }: TIconTradeCategory) => {
         }
     }
     return (
-        <div className={classNames('categories-container', className)} data-testid='dt-categories-container'>
+        <div
+            className={classNames('categories-container', className)}
+            // Lay the paired up/down icons out side by side rather than stacked.
+            style={{ display: 'flex' }}
+            data-testid='dt-categories-container'
+        >
             {IconCategory}
         </div>
     );

@@ -1,13 +1,20 @@
 import React from 'react';
 import clsx from 'clsx';
 
-import { formatMoney, getCurrencyDisplayCode, getTradeTypeName, TRADE_TYPES } from '@deriv/shared';
+import {
+    clickAndKeyEventHandler,
+    formatMoney,
+    getCurrencyDisplayCode,
+    getTradeTypeName,
+    TRADE_TYPES,
+} from '@deriv/shared';
 import { Text } from '@deriv-com/quill-ui';
 import { Localize } from '@deriv-com/translations';
 
 import { useTraderStore } from 'Stores/useTraderStores';
 import { TTradeStore } from 'Types';
 
+import { getCommissionPercentage } from '../Multiplier/commission-formula';
 import CommissionTooltip from '../Multiplier/commission-tooltip';
 
 type TStakeDetailsProps = Pick<TTradeStore, 'contract_type' | 'currency' | 'has_stop_loss' | 'is_multiplier'> & {
@@ -28,6 +35,10 @@ type TStakeDetailsProps = Pick<TTradeStore, 'contract_type' | 'currency' | 'has_
     is_loading_proposal: boolean;
     is_empty?: boolean;
     should_show_payout_details: boolean;
+    /** Mobile only: open the Stop out / Commission explanation as a page within the stake sheet. When
+     * omitted (desktop), Commission falls back to a hover tooltip and Stop out to a plain label. */
+    onOpenStopOut?: () => void;
+    onOpenCommission?: () => void;
 };
 
 const StakeDetails = ({
@@ -40,9 +51,15 @@ const StakeDetails = ({
     is_multiplier,
     is_empty,
     should_show_payout_details,
+    onOpenStopOut,
+    onOpenCommission,
 }: TStakeDetailsProps) => {
     const { amount, multiplier, root_store } = useTraderStore();
     const is_mobile = root_store?.ui?.is_mobile;
+
+    // Commission is interactive only when its formula can be derived (matches the trade-params row).
+    const commission_percentage = getCommissionPercentage(details.commission, multiplier, amount);
+
     const [displayed_values, setDisplayedValues] = React.useState({
         is_first_payout_exceeded: false,
         is_second_payout_exceeded: false,
@@ -100,6 +117,7 @@ const StakeDetails = ({
     const content = [
         {
             is_displayed: !has_stop_loss && is_multiplier && !should_show_payout_details,
+            is_stop_out: true,
             label: <Localize i18n_default_text='Stop out' />,
             value: displayed_values.stop_out,
         },
@@ -134,35 +152,66 @@ const StakeDetails = ({
         },
     ];
 
+    // A tappable label that opens its explanation as a page within the stake sheet (mobile).
+    const renderClickableLabel = (label: React.ReactNode, onOpen: () => void) => (
+        <Text
+            size='sm'
+            className='stake-content__info-label'
+            role='button'
+            tabIndex={0}
+            onClick={(e: React.MouseEvent<HTMLElement>) => clickAndKeyEventHandler(onOpen, e)}
+            onKeyDown={(e: React.KeyboardEvent<HTMLElement>) => clickAndKeyEventHandler(onOpen, e)}
+        >
+            {label}
+        </Text>
+    );
+
+    // Stop out / Commission open an explanation page within the stake sheet on mobile; on desktop
+    // Commission keeps its hover tooltip and Stop out is a plain label. Kept as if/else (no nested
+    // ternaries).
+    const renderLabel = ({
+        contract_type: row_contract_type,
+        is_commission,
+        is_stop_out,
+        label,
+    }: (typeof content)[number]) => {
+        if (is_stop_out && onOpenStopOut) return renderClickableLabel(label, onOpenStopOut);
+        if (is_commission && onOpenCommission && commission_percentage !== null)
+            return renderClickableLabel(label, onOpenCommission);
+        if (is_commission)
+            return (
+                <Text size='sm'>
+                    <CommissionTooltip
+                        commission={details.commission}
+                        multiplier={multiplier}
+                        amount={amount}
+                        currency={currency}
+                        align='start'
+                    >
+                        {label}
+                    </CommissionTooltip>
+                </Text>
+            );
+        return (
+            <Text size='sm'>
+                {label}
+                {is_mobile && row_contract_type && ` (${row_contract_type})`}
+            </Text>
+        );
+    };
+
     return (
         <div className='stake-content__details'>
             {content.map(
-                ({ contract_type, is_commission, is_displayed, label, has_error, value }, idx) =>
-                    is_displayed && (
+                (row, idx) =>
+                    row.is_displayed && (
                         <div
-                            key={`${idx}_${value}`}
-                            className={clsx('stake-content__details-row', has_error && 'error')}
+                            key={`${idx}_${row.value}`}
+                            className={clsx('stake-content__details-row', row.has_error && 'error')}
                         >
+                            {renderLabel(row)}
                             <Text size='sm'>
-                                {is_commission ? (
-                                    <CommissionTooltip
-                                        commission={details.commission}
-                                        multiplier={multiplier}
-                                        amount={amount}
-                                        currency={currency}
-                                        align='start'
-                                    >
-                                        {label}
-                                    </CommissionTooltip>
-                                ) : (
-                                    <React.Fragment>
-                                        {label}
-                                        {is_mobile && contract_type && ` (${contract_type})`}
-                                    </React.Fragment>
-                                )}
-                            </Text>
-                            <Text size='sm'>
-                                {value} {getCurrencyDisplayCode(currency)}
+                                {row.value} {getCurrencyDisplayCode(currency)}
                             </Text>
                         </div>
                     )

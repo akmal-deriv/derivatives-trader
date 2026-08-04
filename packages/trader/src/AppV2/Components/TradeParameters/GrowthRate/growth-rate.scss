@@ -25,9 +25,6 @@ $FOOTER_BUTTON_HEIGHT: var(--core-size-4000);
         height: calc(480px - $HANDLEBAR_HEIGHT - $HEADER_TITLE_HEIGHT - $FOOTER_BUTTON_HEIGHT);
         gap: var(--core-spacing-400);
         padding: 0 var(--component-actionSheet-spacing-padding-md);
-    }
-    &__picker,
-    &__details-item {
         display: flex;
         flex-direction: column;
     }
@@ -36,26 +33,24 @@ $FOOTER_BUTTON_HEIGHT: var(--core-size-4000);
         min-height: 0;
         overflow: hidden;
     }
+    // Each detail is a label-left / value-right row (matches the Stop out, DC fee and commission info
+    // rows), stacked vertically instead of centered blocks side by side. Each label opens its page.
     &__details {
         display: flex;
-        justify-content: space-around;
-        min-height: var(--core-size-2200);
+        flex-direction: column;
+        gap: var(--core-spacing-400);
 
         &-item {
+            display: flex;
             align-items: center;
+            justify-content: space-between;
+            min-height: var(--core-size-1000);
             cursor: pointer;
 
             &-label {
                 text-decoration: underline;
                 text-decoration-style: dotted;
                 text-underline-offset: 0.4rem;
-            }
-
-            &-value {
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                flex-grow: 1;
             }
         }
     }

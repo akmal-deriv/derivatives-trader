@@ -1,5 +1,6 @@
 import useInfiniteQuery from './useInfiniteQuery';
 import useMutation from './useMutation';
+import useQueries from './useQueries';
 import useQuery from './useQuery';
 
 export { default as APIProvider } from './APIProvider';
@@ -11,7 +12,7 @@ export { default as useTrackJS } from './hooks/useTrackJS';
 export { useRestAPI } from './useRestAPI';
 export * from './hooks';
 
-export { useInfiniteQuery, useMutation, useQuery };
+export { useInfiniteQuery, useMutation, useQueries, useQuery };
 
 // Export types from types.ts
 export type {

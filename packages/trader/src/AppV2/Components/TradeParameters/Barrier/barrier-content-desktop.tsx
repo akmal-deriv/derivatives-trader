@@ -188,7 +188,7 @@ const BarrierContentDesktop: React.FC<BarrierContentDesktopProps> = observer(({ 
                 <Button
                     fullWidth
                     size='lg'
-                    variant='secondary'
+                    variant='primary'
                     color='black-white'
                     onClick={handleSave}
                     disabled={show_validation_error || isLoadingProposal}

@@ -271,6 +271,7 @@ const DurationDesktop: React.FC<DurationDesktopProps> = observer(({ is_minimized
         duration_units_list,
         onChangeMultiple,
         is_market_closed,
+        is_automation_params_locked,
         expiry_type,
         expiry_time,
         expiry_date,
@@ -333,8 +334,7 @@ const DurationDesktop: React.FC<DurationDesktopProps> = observer(({ is_minimized
     }, [duration_units_list, expiry_type, duration_unit]);
 
     const popoverWidth = React.useMemo(() => {
-        // Use narrower width for single-unit contracts (like digit contracts)
-        return availableUnits.length === 1 ? 280 : 360;
+        return availableUnits.length === 1 ? 280 : 496;
     }, [availableUnits]);
 
     // Initialize selectedUnit based on current duration_unit or first available unit
@@ -599,6 +599,7 @@ const DurationDesktop: React.FC<DurationDesktopProps> = observer(({ is_minimized
             label={<Localize i18n_default_text='Duration' key={`duration${is_minimized ? '-minimized' : ''}`} />}
             is_minimized={is_minimized}
             disabled={is_market_closed}
+            is_locked={is_automation_params_locked}
             popover_classname='duration-popover'
             value={getDisplayValue()}
             onOpen={handleOpenPopover}

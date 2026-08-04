@@ -12,6 +12,7 @@ type TNewValues = {
     has_take_profit?: boolean;
     has_stop_loss?: boolean;
     has_cancellation?: boolean;
+    cancellation_duration?: string;
     take_profit?: string | number;
     stop_loss?: string | number;
 };

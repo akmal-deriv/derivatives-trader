@@ -121,6 +121,26 @@ describe('GrowthRate', () => {
         expect(screen.getByText('Save')).toBeInTheDocument();
         expect(screen.getAllByText(mocked_definition).length).toBeGreaterThan(0);
     });
+    it('sets the sheet title to Barrier when the barrier explanation is opened', async () => {
+        const user = userEvent.setup();
+        mockGrowthRate();
+
+        await user.click(screen.getByText(growth_rate_param_label));
+        expect(screen.getAllByText('Barrier')).toHaveLength(1);
+
+        await user.click(screen.getByText('Barrier'));
+        expect(screen.getAllByText('Barrier')).toHaveLength(2);
+    });
+    it('sets the sheet title to Max duration when the max duration explanation is opened', async () => {
+        const user = userEvent.setup();
+        mockGrowthRate();
+
+        await user.click(screen.getByText(growth_rate_param_label));
+        expect(screen.getAllByText('Max duration')).toHaveLength(1);
+
+        await user.click(screen.getByText('Max duration'));
+        expect(screen.getAllByText('Max duration')).toHaveLength(2);
+    });
     it('renders skeleton instead of WheelPicker if accumulator_range_list is empty', async () => {
         const user = userEvent.setup();
         default_mock_store.modules.trade.accumulator_range_list = [];

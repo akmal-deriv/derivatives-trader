@@ -12,7 +12,6 @@ jest.mock('Modules/SmartChart', () => ({
     DrawTools: () => <div>MockedDrawTools</div>,
     Share: () => <div>MockedShare</div>,
     StudyLegend: () => <div>MockedStudyLegend</div>,
-    Views: () => <div>MockedViews</div>,
     ToolbarWidget: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }));
 
@@ -41,7 +40,6 @@ describe('<ToolBarWidgets />', () => {
         expect(screen.getByText(/mockeddrawtools/i)).toBeInTheDocument();
         expect(screen.queryByText(/mockedshare/i)).not.toBeInTheDocument();
         expect(screen.queryByText(/mockedstudylegend/i)).not.toBeInTheDocument();
-        expect(screen.queryByText(/mockedviews/i)).not.toBeInTheDocument();
     });
     it('Should render all mocked widgets when isDesktop is true', () => {
         (isDesktopOs as jest.Mock).mockReturnValue(true);
@@ -51,6 +49,5 @@ describe('<ToolBarWidgets />', () => {
         expect(screen.getByText(/mockeddrawtools/i)).toBeInTheDocument();
         expect(screen.getByText(/mockedshare/i)).toBeInTheDocument();
         expect(screen.getByText(/mockedstudylegend/i)).toBeInTheDocument();
-        expect(screen.getByText(/mockedviews/i)).toBeInTheDocument();
     });
 });

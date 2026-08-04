@@ -2,41 +2,38 @@ import React from 'react';
 import clsx from 'clsx';
 import { observer } from 'mobx-react-lite';
 
-import { useLocalStorageData } from '@deriv/api';
 import { Loading } from '@deriv/components';
-import { getIsMigratedUser, getSymbolDisplayName, getViewMarketsFromURL, trackAnalyticsEvent } from '@deriv/shared';
+import { getSymbolDisplayName, getViewMarketsFromURL } from '@deriv/shared';
 import { useStore } from '@deriv/stores';
 
 import AccumulatorStats from 'AppV2/Components/AccumulatorStats';
+import ChartMaximizeButton from 'AppV2/Components/ChartMaximizeButton';
+import ChartProfitLoss from 'AppV2/Components/ChartProfitLoss';
+import CompactHeader from 'AppV2/Components/CompactHeader';
 import CurrentSpot from 'AppV2/Components/CurrentSpot';
-import Guide from 'AppV2/Components/Guide';
-import MarketSelector from 'AppV2/Components/MarketSelector';
-import { AutomationOnboarding } from 'AppV2/Components/OnboardingGuide/AutomationOnboarding';
+import MarketTabs from 'AppV2/Components/MarketTabs';
 import OnboardingGuide from 'AppV2/Components/OnboardingGuide/GuideForPages';
-import { MigrationOnboarding } from 'AppV2/Components/OnboardingGuide/MigrationOnboarding';
 import TradeErrorSnackbar from 'AppV2/Components/TradeErrorSnackbar';
 import { TradeParametersContainer } from 'AppV2/Components/TradeParameters';
 import useContractsFor from 'AppV2/Hooks/useContractsFor';
 import useDefaultSymbol from 'AppV2/Hooks/useDefaultSymbol';
-import useIsAutomationEnabled from 'AppV2/Hooks/useIsAutomationEnabled';
 import { isDigitTradeType } from 'AppV2/Utils/digits';
-import { getChartHeight } from 'AppV2/Utils/layout-utils';
+import { CHART_MAXIMIZE_ANIMATION_MS, getChartHeight } from 'AppV2/Utils/layout-utils';
 import { getDisplayedContractTypes } from 'AppV2/Utils/trade-types-utils';
 import { useTraderStore } from 'Stores/useTraderStores';
 
 import { TradeChart } from '../Chart';
-
-import TradeTypes from './trade-types';
 
 const Trade = observer(() => {
     const chart_ref = React.useRef<HTMLDivElement>(null);
     const {
         client,
         common: { current_language, network_status },
-        ui: { is_dark_mode_on },
         contract_trade,
+        ui,
     } = useStore();
     const { is_logged_in } = client;
+    const { is_chart_maximized, is_chart_maximize_animating, setIsChartMaximized, setChartMaximizeAnimating } = ui;
     const {
         active_symbols,
         contract_type,
@@ -44,7 +41,6 @@ const Trade = observer(() => {
         is_accumulator,
         is_multiplier,
         is_market_closed,
-        onChange,
         onMount,
         onUnmount,
         symbol,
@@ -54,19 +50,11 @@ const Trade = observer(() => {
         is_reconciling_url_trade_type,
     } = useTraderStore();
     const { trade_types } = useContractsFor();
-    const { is_enabled: is_automation_enabled } = useIsAutomationEnabled();
     useDefaultSymbol(); // This will initialize and set the default symbol
-    const [guide_dtrader_v2] = useLocalStorageData<Record<string, boolean>>('guide_dtrader_v2', {
-        trade_types_selection: false,
-        trade_page: false,
-        positions_page: false,
-    });
 
-    const is_migrated_user = getIsMigratedUser();
-
-    // On a `view_markets=true` landing the selector opens on load; defer onboarding until it's closed so they
-    // don't overlap. One-shot: seed from the param on first render (before MarketSelector clears it), then
-    // MarketSelector's first close unblocks it for good. Not persisted — a normal visit shows onboarding as usual.
+    // On a `view_markets=true` landing the market selector opens on load (MarketTabs); defer onboarding
+    // until it's closed so they don't overlap. One-shot: seed from the param on first render, then the
+    // selector's first close unblocks it for good. Not persisted — a normal visit shows onboarding as usual.
     const [should_defer_onboarding, setShouldDeferOnboarding] = React.useState(() => getViewMarketsFromURL());
     const handleMarketSelectorOpenChange = React.useCallback((is_open: boolean) => {
         if (!is_open) setShouldDeferOnboarding(false);
@@ -94,25 +82,6 @@ const Trade = observer(() => {
         [active_symbols]
     );
 
-    const onTradeTypeSelect = React.useCallback(
-        (e: React.MouseEvent<HTMLElement> | React.KeyboardEvent<HTMLElement>) => {
-            const selected_trade_type = trade_types.find(
-                ({ text }) => text === (e.target as HTMLButtonElement).textContent
-            );
-            onChange({
-                target: {
-                    name: 'contract_type',
-                    value: selected_trade_type?.value,
-                },
-            });
-            trackAnalyticsEvent('ce_trade_types_form_v2', {
-                action: 'select_trade_type',
-                trade_type_name: selected_trade_type?.text || '',
-            });
-        },
-        [trade_types, onChange]
-    );
-
     React.useEffect(() => {
         onMount();
         return onUnmount;
@@ -128,52 +97,69 @@ const Trade = observer(() => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    // Chart-maximize is a chrome toggle of the trade page only — reset it on leaving so the
+    // header / market strip / bottom-nav are never left hidden on other pages.
+    React.useEffect(() => {
+        return () => {
+            setIsChartMaximized(false);
+            setChartMaximizeAnimating(false);
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // Each maximize/minimize toggle flips `is_chart_maximized` and arms the height transition
+    // (set in the store action). Disarm it once the transition settles so the chart height only
+    // animates on toggle — not on trade-type switches or viewport/keyboard resizes.
+    React.useEffect(() => {
+        const timeout_id = setTimeout(() => setChartMaximizeAnimating(false), CHART_MAXIMIZE_ANIMATION_MS);
+        return () => clearTimeout(timeout_id);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [is_chart_maximized]);
+
     return (
         <>
             {symbols.length && trade_types.length && !is_reconciling_url_trade_type ? (
                 <React.Fragment>
                     <div className='trade'>
-                        <TradeTypes
-                            contract_type={contract_type}
-                            onTradeTypeSelect={onTradeTypeSelect}
-                            trade_types={trade_types}
-                            is_dark_mode_on={is_dark_mode_on}
-                        />
-                        <div className='trade__market-selector-guide'>
-                            <MarketSelector onOpenChange={handleMarketSelectorOpenChange} />
-                            <Guide show_guide_for_selected_contract />
+                        {/* Overlays the shell header's fixed 56px slot; self-hides (fade) when not
+                            maximized, so entering/leaving maximized cross-fades in place. */}
+                        <CompactHeader />
+                        <div
+                            className={clsx('trade__market-tabs', {
+                                'trade__market-tabs--collapsed': is_chart_maximized,
+                            })}
+                        >
+                            <MarketTabs onSelectorOpenChange={handleMarketSelectorOpenChange} />
                         </div>
                         {isDigitTradeType(contract_type) && <CurrentSpot />}
                         <div className='trade__chart-tooltip'>
                             <section
-                                className={clsx('trade__chart', { 'trade__chart--with-borderRadius': !is_accumulator })}
+                                className={clsx('trade__chart', {
+                                    'trade__chart--with-borderRadius': !is_accumulator,
+                                    'trade__chart--maximize-animating': is_chart_maximize_animating,
+                                })}
                                 style={{
                                     height: getChartHeight({
                                         is_accumulator,
                                         symbol,
                                         has_cancellation,
                                         contract_type,
+                                        is_maximized: is_chart_maximized,
                                     }),
                                 }}
                                 ref={chart_ref}
                             >
                                 <TradeChart />
+                                <ChartProfitLoss />
+                                <ChartMaximizeButton />
                             </section>
                         </div>
                         {is_accumulator && <AccumulatorStats />}
                     </div>
                     <TradeParametersContainer is_market_closed={is_market_closed} />
-                    {/* Deferred while the selector is open on load; shows once closed. */}
-                    {/* Existing onboarding for non-migrated users */}
-                    {!is_migrated_user && is_logged_in && !should_defer_onboarding && (
-                        <OnboardingGuide type='trade_page' is_dark_mode_on={is_dark_mode_on} />
-                    )}
-                    {/* New onboarding for migrated users */}
-                    {is_migrated_user && is_logged_in && !should_defer_onboarding && (
-                        <MigrationOnboarding is_dark_mode_on={is_dark_mode_on} />
-                    )}
-                    {/* Automation intro — self-gates on the intro onboarding being done */}
-                    {is_logged_in && is_automation_enabled && !should_defer_onboarding && <AutomationOnboarding />}
+                    {/* Deferred while the selector is open on load; shows once closed. Self-gates on
+                        the `guide_dtrader_v2.trade_page` flag, so it appears once total per device. */}
+                    {is_logged_in && !should_defer_onboarding && <OnboardingGuide type='trade_page' />}
                 </React.Fragment>
             ) : (
                 <Loading.DTraderV2 />

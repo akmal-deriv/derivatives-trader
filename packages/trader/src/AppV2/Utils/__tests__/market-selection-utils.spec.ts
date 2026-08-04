@@ -1,0 +1,128 @@
+import { TActiveSymbolsResponse } from '@deriv/api';
+import { getSymbolDisplayName } from '@deriv/shared';
+
+import {
+    filterSymbolsByCategory,
+    filterSymbolsBySearch,
+    getMarketCategories,
+    getTradeTypeForContractType,
+    groupSymbolsForList,
+    SPECIAL_CATEGORIES,
+} from '../market-selection-utils';
+import { AVAILABLE_CONTRACTS } from '../trade-types-utils';
+
+type ActiveSymbols = NonNullable<TActiveSymbolsResponse['active_symbols']>;
+
+const makeSymbol = (underlying_symbol: string, market: string): ActiveSymbols[number] =>
+    ({
+        underlying_symbol,
+        market,
+        submarket: 'x',
+        subgroup: 'x',
+        exchange_is_open: 1,
+        is_trading_suspended: 0,
+        display_order: 0,
+    }) as ActiveSymbols[number];
+
+describe('market-selection-utils', () => {
+    describe('getMarketCategories', () => {
+        it('leads with Featured, then markets in curated order (no Favourites chip)', () => {
+            const symbols = [
+                makeSymbol('frxEURUSD', 'forex'),
+                makeSymbol('R_100', 'synthetic_index'),
+                makeSymbol('OTC_SPC', 'indices'),
+            ];
+            const result = getMarketCategories(symbols);
+            expect(result.map(c => c.id)).toEqual([SPECIAL_CATEGORIES.FEATURED, 'synthetic_index', 'forex', 'indices']);
+        });
+
+        it('labels markets per the redesign (Derived / Forex / Stocks & indices)', () => {
+            const result = getMarketCategories([
+                makeSymbol('R_100', 'synthetic_index'),
+                makeSymbol('OTC_SPC', 'indices'),
+            ]);
+            const labels = Object.fromEntries(result.map(c => [c.id, c.label]));
+            expect(labels.synthetic_index).toBe('Derived');
+            expect(labels.indices).toBe('Stocks & indices');
+            expect(labels[SPECIAL_CATEGORIES.FEATURED]).toBe('Featured');
+        });
+    });
+
+    describe('filterSymbolsByCategory', () => {
+        const symbols = [makeSymbol('frxEURUSD', 'forex'), makeSymbol('R_100', 'synthetic_index')];
+
+        it('returns everything for Featured', () => {
+            expect(filterSymbolsByCategory(symbols, SPECIAL_CATEGORIES.FEATURED)).toHaveLength(2);
+        });
+
+        it('filters by market for a market id', () => {
+            const result = filterSymbolsByCategory(symbols, 'forex');
+            expect(result.map(s => s.underlying_symbol)).toEqual(['frxEURUSD']);
+        });
+    });
+
+    describe('filterSymbolsBySearch', () => {
+        const symbol = makeSymbol('frxEURUSD', 'forex');
+        const display_name = getSymbolDisplayName('frxEURUSD');
+
+        it('returns all symbols for an empty query', () => {
+            expect(filterSymbolsBySearch([symbol], '  ')).toHaveLength(1);
+        });
+
+        it('matches on display name, case-insensitively', () => {
+            expect(filterSymbolsBySearch([symbol], display_name.slice(0, 2).toUpperCase())).toHaveLength(1);
+        });
+
+        it('returns nothing when there is no match', () => {
+            expect(filterSymbolsBySearch([symbol], 'zzzzz')).toHaveLength(0);
+        });
+    });
+
+    describe('getTradeTypeForContractType', () => {
+        it('resolves the tab that owns a contract_type', () => {
+            const first = AVAILABLE_CONTRACTS[0];
+            expect(getTradeTypeForContractType(first.for[0])).toBe(first);
+        });
+
+        it('returns undefined for an unknown contract_type', () => {
+            expect(getTradeTypeForContractType('nonexistent_contract_type')).toBeUndefined();
+        });
+    });
+
+    describe('groupSymbolsForList', () => {
+        const derived = (underlying_symbol: string, subgroup: string, submarket: string): ActiveSymbols[number] =>
+            ({
+                underlying_symbol,
+                market: 'synthetic_index',
+                subgroup,
+                submarket,
+                exchange_is_open: 1,
+                is_trading_suspended: 0,
+                display_order: 0,
+            }) as ActiveSymbols[number];
+
+        it('returns a single unlabelled section of submarket groups for non-Derived markets', () => {
+            const sections = groupSymbolsForList([makeSymbol('frxEURUSD', 'forex'), makeSymbol('frxGBPUSD', 'forex')]);
+            expect(sections).toHaveLength(1);
+            expect(sections[0].label).toBe('');
+            expect(sections[0].groups).toHaveLength(1);
+            expect(sections[0].groups[0].items).toHaveLength(2);
+        });
+
+        it('splits Derived into Baskets then Synthetics subgroup sections, each grouped by submarket', () => {
+            const sections = groupSymbolsForList([
+                derived('R_100', 'synthetics', 'random_index'),
+                derived('WLDUSD', 'baskets', 'forex_basket'),
+                derived('R_50', 'synthetics', 'random_index'),
+                derived('BOOM500', 'synthetics', 'crash_boom'),
+            ]);
+            // Baskets is ordered before Synthetics regardless of the incoming order.
+            expect(sections.map(section => section.label)).toEqual(['Baskets', 'Synthetics']);
+            const [baskets, synthetics] = sections;
+            expect(baskets.groups.map(group => group.title)).toEqual(['Forex basket']);
+            // Two synthetic submarkets, preserving encounter order.
+            expect(synthetics.groups.map(group => group.title)).toEqual(['Volatility indices', 'Crash/Boom']);
+            expect(synthetics.groups[0].items.map(item => item.underlying_symbol)).toEqual(['R_100', 'R_50']);
+        });
+    });
+});

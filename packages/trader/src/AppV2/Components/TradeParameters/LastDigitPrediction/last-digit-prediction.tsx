@@ -8,6 +8,7 @@ import { Localize, localize } from '@deriv-com/translations';
 
 import { useTraderStore } from 'Stores/useTraderStores';
 
+import { AutomationLockOverlay } from '../Shared';
 import { TTradeParametersProps } from '../trade-parameters';
 
 import LastDigitSelector from './last-digit-selector';
@@ -26,7 +27,14 @@ const getInvalidDigitForContractType = (trade_type_tab: string): number | null =
 
 const LastDigitPrediction = observer(({ is_minimized, is_automation }: TTradeParametersProps) => {
     const store = useTraderStore();
-    const { digit_stats = [], is_market_closed, last_digit, onChange, trade_type_tab } = store;
+    const {
+        digit_stats = [],
+        is_automation_params_locked,
+        is_market_closed,
+        last_digit,
+        onChange,
+        trade_type_tab,
+    } = store;
     const [is_open, setIsOpen] = React.useState(false);
     const [selected_digit, setSelectedDigit] = React.useState(last_digit);
     const [previous_trade_type_tab, setPreviousTradeTypeTab] = React.useState(trade_type_tab);
@@ -91,20 +99,23 @@ const LastDigitPrediction = observer(({ is_minimized, is_automation }: TTradePar
     if (render_as_field)
         return (
             <>
-                <TextField
-                    className={clsx('trade-params__option', is_minimized && 'trade-params__option--minimized')}
-                    disabled={is_market_closed}
-                    variant='fill'
-                    readOnly
-                    label={
-                        <Localize
-                            i18n_default_text='Last digit prediction'
-                            key={`last-digit-prediction${is_minimized ? '-minimized' : ''}`}
-                        />
-                    }
-                    value={last_digit}
-                    onClick={() => setIsOpen(true)}
-                />
+                <div className='trade-params__field-locked'>
+                    <TextField
+                        className={clsx('trade-params__option', is_minimized && 'trade-params__option--minimized')}
+                        disabled={is_market_closed || is_automation_params_locked}
+                        variant='fill'
+                        readOnly
+                        label={
+                            <Localize
+                                i18n_default_text='Last digit prediction'
+                                key={`last-digit-prediction${is_minimized ? '-minimized' : ''}`}
+                            />
+                        }
+                        value={last_digit}
+                        onClick={() => setIsOpen(true)}
+                    />
+                    {is_automation_params_locked && <AutomationLockOverlay />}
+                </div>
                 <ActionSheet.Root
                     isOpen={is_open}
                     onClose={onActionSheetClose}
@@ -128,6 +139,7 @@ const LastDigitPrediction = observer(({ is_minimized, is_automation }: TTradePar
                         </ActionSheet.Content>
                         <ActionSheet.Footer
                             alignment='vertical'
+                            className='last-digit-prediction__footer'
                             primaryAction={{
                                 content: <Localize i18n_default_text='Save' />,
                                 onAction: onSaveButtonClick,
@@ -139,7 +151,13 @@ const LastDigitPrediction = observer(({ is_minimized, is_automation }: TTradePar
         );
 
     return (
-        <div className={clsx('last-digit-prediction', is_market_closed && 'last-digit-prediction--disabled')}>
+        <div
+            className={clsx(
+                'last-digit-prediction',
+                is_market_closed && 'last-digit-prediction--disabled',
+                is_automation_params_locked && 'trade-params__field-locked'
+            )}
+        >
             <CaptionText size='sm' className='last-digit-prediction__title'>
                 <Localize i18n_default_text='Last digit prediction' />
             </CaptionText>
@@ -148,9 +166,10 @@ const LastDigitPrediction = observer(({ is_minimized, is_automation }: TTradePar
                 digit_stats={digit_stats}
                 onDigitSelect={handleLastDigitChange}
                 selected_digit={last_digit}
-                is_disabled={is_market_closed}
+                is_disabled={is_market_closed || is_automation_params_locked}
                 invalid_digit={invalid_digit}
             />
+            {is_automation_params_locked && <AutomationLockOverlay />}
         </div>
     );
 });

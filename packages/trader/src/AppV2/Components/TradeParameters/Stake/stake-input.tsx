@@ -10,22 +10,30 @@ import {
     mapErrorMessage,
     trackAnalyticsEvent,
 } from '@deriv/shared';
-import { ActionSheet, TextFieldWithSteppers } from '@deriv-com/quill-ui';
+import { ActionSheet, TextField } from '@deriv-com/quill-ui';
 import { Localize, useTranslations } from '@deriv-com/translations';
 
+import { ValueChips } from 'AppV2/Components/InputPopover';
+import { getStakePresets } from 'AppV2/Config/trade-parameter-presets';
 import useIsVirtualKeyboardOpen from 'AppV2/Hooks/useIsVirtualKeyboardOpen';
 import { useProposal } from 'AppV2/Hooks/useProposal';
 import { createDecimalInputGuard, getDecimalInputMaxLength } from 'AppV2/Utils/decimal-input';
-import { getPayoutInfo } from 'AppV2/Utils/trade-params-utils';
+import { mapContractTypeToStakePresetKey } from 'AppV2/Utils/trade-params-preset-utils';
+import { getPayoutInfo, getStakePresetValues } from 'AppV2/Utils/trade-params-utils';
 import { getDisplayedContractTypes } from 'AppV2/Utils/trade-types-utils';
 import { ExpandedProposal, getProposalInfo } from 'Stores/Modules/Trading/Helpers/proposal';
 import { useTraderStore } from 'Stores/useTraderStores';
 
 import StakeDetails from './stake-details';
 
+const DEFAULT_PRESET_VALUES = [1, 5, 10, 20, 50, 100];
+
 type TStakeInput = {
     onClose: () => void;
     is_open?: boolean;
+    /** Mobile only: open the Stop out / Commission explanation as a page within the stake sheet. */
+    onOpenStopOut?: () => void;
+    onOpenCommission?: () => void;
 };
 type TNewValues = {
     amount?: string | number;
@@ -149,7 +157,7 @@ const createInitialState = (trade_store: ReturnType<typeof useTraderStore>, deci
     };
 };
 
-const StakeInput = observer(({ onClose, is_open }: TStakeInput) => {
+const StakeInput = observer(({ onClose, is_open, onOpenStopOut, onOpenCommission }: TStakeInput) => {
     const { localize } = useTranslations();
     const trade_store = useTraderStore();
     const {
@@ -341,7 +349,7 @@ const StakeInput = observer(({ onClose, is_open }: TStakeInput) => {
         !!details.min_stake &&
         !!details.max_stake && (
             <Localize
-                i18n_default_text='Acceptable range: {{min_stake}} to {{max_stake}} {{currency}}'
+                i18n_default_text='Range {{min_stake}} - {{max_stake}} {{currency}}'
                 values={{
                     currency: getCurrencyDisplayCode(currency),
                     min_stake: formatMoney(currency, +details.min_stake, true),
@@ -353,6 +361,18 @@ const StakeInput = observer(({ onClose, is_open }: TStakeInput) => {
     // Separate local display value from the debounced API-triggering value
     // so user keystrokes are visible immediately while API calls are debounced
     const [displayAmount, setDisplayAmount] = React.useState(String(proposal_request_values.amount ?? ''));
+
+    // Tracks the last tapped preset so the commit-time analytics can distinguish an unedited
+    // preset selection ('preset' + value) from a typed amount ('custom')
+    const preset_source = React.useRef<number | null>(null);
+
+    // Presets valid for the current contract; limits update from validation_params/proposal errors
+    const preset_key = mapContractTypeToStakePresetKey(contract_type);
+    const preset_values = getStakePresetValues(
+        (preset_key ? getStakePresets(preset_key) : undefined) ?? DEFAULT_PRESET_VALUES,
+        details.min_stake,
+        details.max_stake
+    );
 
     // Sync display amount when proposal_request_values changes externally (e.g. on init)
     React.useEffect(() => {
@@ -372,8 +392,19 @@ const StakeInput = observer(({ onClose, is_open }: TStakeInput) => {
         []
     );
 
+    // Preset tap fills the input and validates immediately (no typing debounce); Save commits
+    const onPresetSelect = (value: number) => {
+        preset_source.current = value;
+        debouncedUpdateProposal.cancel();
+        setDisplayAmount(String(value));
+        dispatch({ type: 'RESET_ERRORS' });
+        dispatch({ type: 'SET_MAX_LENGTH', payload: getDecimalInputMaxLength(String(value), decimals) });
+        dispatch({ type: 'SET_PROPOSAL_VALUES', payload: { amount: value } });
+    };
+
     const onInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const new_value = String(e.target.value);
+        preset_source.current = null; // typing overrides a previous preset tap
         setDisplayAmount(new_value); // Immediate display update
         dispatch({
             type: 'SET_MAX_LENGTH',
@@ -457,10 +488,13 @@ const StakeInput = observer(({ onClose, is_open }: TStakeInput) => {
         }
         // Setting new stake value to the store and send it in streaming proposal
         onChange({ target: { name: 'amount', value: displayAmount } });
+        const preset_value = preset_source.current;
+        const is_preset_commit = preset_value !== null && String(preset_value) === displayAmount;
         trackAnalyticsEvent('ce_trade_types_form_v2', {
             action: 'customizing_trades',
-            input_method: 'custom',
+            input_method: is_preset_commit ? 'preset' : 'custom',
             parameter_type: 'stake',
+            ...(is_preset_commit ? { preset_value } : {}),
         });
         onClose();
     };
@@ -478,30 +512,34 @@ const StakeInput = observer(({ onClose, is_open }: TStakeInput) => {
     return (
         <React.Fragment>
             <ActionSheet.Content className='stake-content'>
-                <TextFieldWithSteppers
+                <TextField
                     allowDecimals
                     allowSign={false}
                     className='text-field--custom'
                     customType='commaRemoval'
-                    data-testid='dt_input_with_steppers'
+                    data-testid='dt_stake_input'
                     decimals={decimals}
                     inputMode='decimal'
                     id={input_id}
+                    label={localize('Stake ({{currency}})', { currency: getCurrencyDisplayCode(currency) })}
                     maxLength={state.max_length}
                     message={fe_stake_error || (should_show_stake_error && stake_error) || getInputMessage()}
-                    minusDisabled={Number(displayAmount) - 1 <= 0}
                     name='amount'
                     noStatusIcon
                     onChange={onInputChange}
                     onBeforeInput={onBeforeInputChange}
                     onKeyDown={handleKeyDown}
-                    placeholder={localize('Amount')}
                     regex={/[^0-9.,]/g}
                     status={fe_stake_error || (should_show_stake_error && stake_error) ? 'error' : 'neutral'}
-                    textAlignment='center'
-                    unitLeft={getCurrencyDisplayCode(currency)}
+                    textAlignment='left'
                     value={displayAmount}
                     variant='fill'
+                />
+                <ValueChips
+                    values={preset_values}
+                    selectedValue={Number(displayAmount)}
+                    onSelect={onPresetSelect}
+                    formatValue={value => `${value} ${getCurrencyDisplayCode(currency)}`}
                 />
                 <StakeDetails
                     contract_type={contract_type}
@@ -513,6 +551,8 @@ const StakeInput = observer(({ onClose, is_open }: TStakeInput) => {
                     is_multiplier={is_multiplier}
                     is_empty={!displayAmount}
                     should_show_payout_details={should_show_payout_details}
+                    onOpenStopOut={onOpenStopOut}
+                    onOpenCommission={onOpenCommission}
                 />
             </ActionSheet.Content>
             <ActionSheet.Footer
@@ -523,7 +563,10 @@ const StakeInput = observer(({ onClose, is_open }: TStakeInput) => {
                     onAction: onSave,
                 }}
                 isPrimaryButtonDisabled={
-                    is_loading_proposal || !!fe_stake_error || !!(should_show_stake_error && stake_error)
+                    !displayAmount ||
+                    is_loading_proposal ||
+                    !!fe_stake_error ||
+                    !!(should_show_stake_error && stake_error)
                 }
             />
         </React.Fragment>

@@ -28,10 +28,11 @@ type BottomNavProps = {
 const BottomNav = observer(({ className }: BottomNavProps) => {
     const history = useHistory();
     const location = useLocation();
-    const { client, portfolio, common } = useStore();
+    const { client, portfolio, common, ui } = useStore();
     const { active_positions_count } = portfolio;
     const { currency, is_logged_in, loginid } = client;
     const { current_language } = common;
+    const { is_chart_maximized } = ui;
     const { sendBridgeEvent } = useMobileBridge();
     const { data: derivatives_account, isError: is_derivatives_account_error } = useDerivativesAccount(
         loginid,
@@ -188,7 +189,9 @@ const BottomNav = observer(({ className }: BottomNavProps) => {
 
     return (
         <Navigation.Bottom
-            className={classNames('bottom-nav-container', className)}
+            className={classNames('bottom-nav-container', className, {
+                'bottom-nav-container--chart-maximized': is_chart_maximized,
+            })}
             onChange={(_, index) => handleSelect(index)}
         >
             {bottomNavItems.map((item, index) => (
@@ -203,6 +206,8 @@ const BottomNav = observer(({ className }: BottomNavProps) => {
                     className={classNames(
                         'bottom-nav-item',
                         index === selectedIndex && 'bottom-nav-item--active',
+                        item.path === routes.index && 'bottom-nav-item--trade',
+                        item.path === routes.trader_automate && 'bottom-nav-item--automate',
                         item.path === routes.trader_positions && 'bottom-nav-item--positions'
                     )}
                 />

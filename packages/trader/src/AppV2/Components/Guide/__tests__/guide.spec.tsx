@@ -233,8 +233,8 @@ describe('Guide', () => {
             'The growth rate determines the rate at which your stake will grow with each successful tick.';
         expect(screen.queryByText(term_definition)).not.toBeInTheDocument();
 
-        // On mobile, the guide trigger is a button instead of text link
-        const guideButton = screen.getByRole('button', { name: '' });
+        // On mobile, the guide trigger is a labelled "Guide" button instead of a text link
+        const guideButton = screen.getByRole('button', { name: 'Guide' });
         await userEvent.click(guideButton);
 
         await userEvent.click(screen.getByText(CONTRACT_LIST.ACCUMULATORS));

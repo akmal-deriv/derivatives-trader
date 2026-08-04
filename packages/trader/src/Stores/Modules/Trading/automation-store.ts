@@ -61,10 +61,12 @@ export default class AutomationStore extends BaseStore {
             available_strategies: observable,
             last_stop_event: observable.ref,
             is_recovering: observable,
+            active_run_analytics: observable.ref,
 
             is_running: computed,
             is_paused: computed,
             can_start: computed,
+            is_active: computed,
             net_profit: computed,
             contracts_count: computed,
             setConfig: action.bound,
@@ -115,6 +117,12 @@ export default class AutomationStore extends BaseStore {
 
     get can_start() {
         return this.run_status === 'idle' || this.run_status === 'stopped';
+    }
+
+    // A run is active (starting/running/paused/stopping) — the complement of
+    // `can_start`. Consumers use this for lock/disable logic.
+    get is_active() {
+        return !this.can_start;
     }
 
     get net_profit() {

@@ -74,6 +74,7 @@ const PurchaseButton = observer(({ onPurchaseSuccess }: TPurchaseButtonProps = {
         is_turbos,
         is_vanilla_fx,
         is_vanilla,
+        maximum_payout,
         proposal_info,
         purchase_info,
         onHoverPurchase,
@@ -113,12 +114,14 @@ const PurchaseButton = observer(({ onPurchaseSuccess }: TPurchaseButtonProps = {
         currency,
         has_cancellation,
         has_open_accu_contract,
+        is_accumulator,
         is_multiplier,
         is_turbos,
         is_vanilla,
+        max_payout: maximum_payout,
     };
     const has_no_button_content =
-        is_vanilla || is_vanilla_fx || is_turbos || (is_accumulator && !has_open_accu_contract);
+        is_vanilla || is_vanilla_fx || is_turbos || (is_accumulator && !has_open_accu_contract && !isMobile);
     const contract_types = getDisplayedContractTypes(trade_types, contract_type, trade_type_tab);
     const is_valid_to_sell = active_accu_contract?.contract_info
         ? hasContractEntered(active_accu_contract.contract_info) &&

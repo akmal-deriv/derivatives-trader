@@ -1,0 +1,81 @@
+// ---- Search page ----
+
+// The search bar appears to grow out of the header Search icon: only the field is animated — its
+// right edge stays pinned where the icon sat while the left edge sweeps out to full width via a
+// clip-path inset. Plays once on mount of the swapped-in page; the rest of the page is static.
+@keyframes market-search-bar-expand {
+    from {
+        clip-path: inset(0 0 0 100%);
+    }
+
+    to {
+        clip-path: inset(0 0 0 0);
+    }
+}
+
+.market-search {
+    &__header {
+        display: flex;
+        align-items: center;
+        gap: var(--core-spacing-400, 8px);
+        padding: var(--core-spacing-600, 12px) var(--core-spacing-800, 16px);
+        flex-shrink: 0;
+
+        // The search field takes the remaining width beside the Cancel button and expands on open.
+        > *:first-child {
+            flex: 1;
+            animation: market-search-bar-expand 0.28s ease-out;
+        }
+    }
+
+    // Trailing text button that dismisses the search page (replaces the back icon).
+    &__cancel {
+        flex-shrink: 0;
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        padding: var(--core-spacing-200, 4px);
+        color: var(--color-text-primary);
+
+        .quill-typography {
+            text-decoration: underline;
+        }
+    }
+
+    // Respect users who opt out of motion: show the field immediately, no expand.
+    @media (prefers-reduced-motion: reduce) {
+        .market-search__header > *:first-child {
+            animation: none;
+        }
+    }
+
+    // Hint shown before the user types anything.
+    &__prompt {
+        display: flex;
+        flex: 1;
+        align-items: center;
+        justify-content: center;
+        padding: var(--core-spacing-800, 16px);
+        text-align: center;
+    }
+}
+
+// Search results use the Favourites-style two-level layout: a trade-type header with per-submarket
+// subgroups beneath it (the subgroups reuse the shared `.market-selection-list__group` styling).
+.market-search-results {
+    &__group {
+        display: flex;
+        flex-direction: column;
+
+        // Hairline separating each trade-type group from the previous one.
+        &:not(:first-child) {
+            margin-block-start: var(--core-spacing-400, 8px);
+            padding-block-start: var(--core-spacing-400, 8px);
+            border-block-start: 1px solid var(--color-surface-border);
+        }
+    }
+
+    &__trade-type {
+        padding: var(--core-spacing-800, 16px) var(--core-spacing-400, 8px) var(--core-spacing-800, 16px);
+    }
+}

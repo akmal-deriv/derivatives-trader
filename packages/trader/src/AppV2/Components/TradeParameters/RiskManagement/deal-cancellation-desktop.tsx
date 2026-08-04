@@ -117,7 +117,7 @@ const DealCancellationDesktop = observer(({ closePopover }: TDealCancellationDes
                 <Button
                     fullWidth
                     size='lg'
-                    variant='secondary'
+                    variant='primary'
                     color='black-white'
                     onClick={onSave}
                     className='deal-cancellation-desktop__save-button'

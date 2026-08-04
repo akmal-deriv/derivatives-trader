@@ -70,6 +70,7 @@ const Stake = observer(({ is_minimized, is_automation }: TTradeParametersProps) 
         currency,
         contract_type,
         has_open_accu_contract,
+        is_automation_params_locked,
         is_market_closed,
         is_multiplier,
         trade_types,
@@ -126,8 +127,10 @@ const Stake = observer(({ is_minimized, is_automation }: TTradeParametersProps) 
             value={`${amount} ${getCurrencyDisplayCode(currency)}`}
             is_minimized={is_minimized}
             disabled={has_open_accu_contract || is_market_closed}
+            is_locked={is_automation_params_locked}
             has_error={has_error && should_show_snackbar}
             popover_classname='stake-popover'
+            popoverWidth={376}
             header={<TabSelector activeTab={active_tab} onTabChange={handleTabChange} />}
             onOpen={() => setIsOpen(true)}
             onClose={onClose}

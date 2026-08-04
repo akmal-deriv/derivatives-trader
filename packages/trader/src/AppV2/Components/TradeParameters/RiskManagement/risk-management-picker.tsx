@@ -1,9 +1,10 @@
 import React from 'react';
 
-import { Localize } from '@deriv-com/translations';
 import { ActionSheet, SegmentedControlSingleChoice } from '@deriv-com/quill-ui';
+import { Localize } from '@deriv-com/translations';
 
 import DealCancellation from './deal-cancellation';
+import RiskManagementInfo from './risk-management-info';
 import TakeProfitAndStopLossContainer from './take-profit-and-stop-loss-container';
 
 type TRiskManagementPickerProps = {
@@ -21,6 +22,7 @@ const RiskManagementPicker = ({
 
     return (
         <ActionSheet.Content className='risk-management__picker'>
+            <RiskManagementInfo />
             {should_show_deal_cancellation && (
                 <SegmentedControlSingleChoice
                     hasContainerWidth

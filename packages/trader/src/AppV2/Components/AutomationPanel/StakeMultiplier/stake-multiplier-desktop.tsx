@@ -17,6 +17,7 @@ type TStakeMultiplierDesktopProps = {
     strategy: TAutomationConfig['strategy'];
     selectedValue: number;
     description?: string;
+    disabled?: boolean;
     onSelect: (value: number) => void;
 };
 
@@ -85,7 +86,7 @@ const StakeMultiplierContent = ({ strategy, selectedValue, onSelect }: TStakeMul
             <Button
                 fullWidth
                 size='lg'
-                variant='secondary'
+                variant='primary'
                 color='black-white'
                 onClick={handleInputSave}
                 disabled={!!error || !inputValue}
@@ -109,7 +110,13 @@ const StakeMultiplierContent = ({ strategy, selectedValue, onSelect }: TStakeMul
     );
 };
 
-const StakeMultiplierDesktop = ({ strategy, selectedValue, description, onSelect }: TStakeMultiplierDesktopProps) => {
+const StakeMultiplierDesktop = ({
+    strategy,
+    selectedValue,
+    description,
+    disabled,
+    onSelect,
+}: TStakeMultiplierDesktopProps) => {
     const { localize } = useTranslations();
     const is_martingale = strategy === 'martingale';
 
@@ -130,6 +137,8 @@ const StakeMultiplierDesktop = ({ strategy, selectedValue, description, onSelect
             }
             value={is_martingale ? `x${selectedValue}` : `${selectedValue} ${localize('unit')}`}
             popover_classname='automation-popover'
+            popoverWidth={376}
+            is_locked={disabled}
             description={<Text size='sm'>{description || fallback_description}</Text>}
         >
             <StakeMultiplierContent strategy={strategy} selectedValue={selectedValue} onSelect={onSelect} />

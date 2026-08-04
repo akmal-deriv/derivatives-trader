@@ -7,7 +7,7 @@ import Carousel from 'AppV2/Components/Carousel';
 import CarouselHeader from 'AppV2/Components/Carousel/carousel-header';
 import { TabSelector } from 'AppV2/Components/InputPopover';
 import TradeParamDefinition from 'AppV2/Components/TradeParamDefinition';
-import { ChipsWithInputToggle } from 'AppV2/Components/TradeParameters/Shared';
+import { AutomationLockOverlay, ChipsWithInputToggle } from 'AppV2/Components/TradeParameters/Shared';
 import { createDecimalInputGuard, getDecimalInputMaxLength } from 'AppV2/Utils/decimal-input';
 
 import { MULTIPLIER_DECIMALS, MULTIPLIER_MAX, MULTIPLIER_PRESETS, TAutomationConfig } from '../automation-config';
@@ -16,10 +16,17 @@ type TStakeMultiplierMobileProps = {
     strategy: TAutomationConfig['strategy'];
     selectedValue: number;
     description?: string;
+    disabled?: boolean;
     onSelect: (value: number) => void;
 };
 
-const StakeMultiplierMobile = ({ strategy, selectedValue, description, onSelect }: TStakeMultiplierMobileProps) => {
+const StakeMultiplierMobile = ({
+    strategy,
+    selectedValue,
+    description,
+    disabled,
+    onSelect,
+}: TStakeMultiplierMobileProps) => {
     const is_martingale = strategy === 'martingale';
     const { localize } = useTranslations();
     const [is_open, setIsOpen] = React.useState(false);
@@ -88,7 +95,7 @@ const StakeMultiplierMobile = ({ strategy, selectedValue, description, onSelect 
             <Button
                 fullWidth
                 size='lg'
-                variant='secondary'
+                variant='primary'
                 color='black-white'
                 onClick={handleInputSave}
                 disabled={!!error || !inputValue}
@@ -100,21 +107,25 @@ const StakeMultiplierMobile = ({ strategy, selectedValue, description, onSelect 
 
     return (
         <React.Fragment>
-            <TextField
-                variant='fill'
-                readOnly
-                label={
-                    is_martingale ? (
-                        <Localize i18n_default_text='Stake multiplier' />
-                    ) : (
-                        <Localize i18n_default_text='Stake increment' />
-                    )
-                }
-                value={is_martingale ? `x${selectedValue}` : `${selectedValue} ${localize('unit')}`}
-                noStatusIcon
-                className='trade-params__option'
-                onClick={() => setIsOpen(true)}
-            />
+            <div className='trade-params__field-locked'>
+                <TextField
+                    variant='fill'
+                    readOnly
+                    disabled={disabled}
+                    label={
+                        is_martingale ? (
+                            <Localize i18n_default_text='Stake multiplier' />
+                        ) : (
+                            <Localize i18n_default_text='Stake increment' />
+                        )
+                    }
+                    value={is_martingale ? `x${selectedValue}` : `${selectedValue} ${localize('unit')}`}
+                    noStatusIcon
+                    className='trade-params__option'
+                    onClick={() => setIsOpen(true)}
+                />
+                {disabled && <AutomationLockOverlay />}
+            </div>
             <ActionSheet.Root isOpen={is_open} onClose={onClose} position='left' expandable={false}>
                 <ActionSheet.Portal shouldCloseOnDrag>
                     <Carousel

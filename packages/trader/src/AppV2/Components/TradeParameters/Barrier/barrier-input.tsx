@@ -3,23 +3,18 @@ import { observer } from 'mobx-react-lite';
 
 import { useDebounce } from '@deriv/api-v2';
 import { mapErrorMessage } from '@deriv/shared';
-import { ActionSheet, Chip, Text, TextField, TextFieldAddon } from '@deriv-com/quill-ui';
+import { ActionSheet, Text, TextField, TextFieldAddon } from '@deriv-com/quill-ui';
 import { Localize, useTranslations } from '@deriv-com/translations';
 
+import { HorizontalTabSelector } from 'AppV2/Components/InputPopover';
 import { useProposal } from 'AppV2/Hooks/useProposal';
 import { getDisplayedContractTypes } from 'AppV2/Utils/trade-types-utils';
 import { useTraderStore } from 'Stores/useTraderStores';
 
-const chips_options = [
-    {
-        name: <Localize i18n_default_text='Above spot' />,
-    },
-    {
-        name: <Localize i18n_default_text='Below spot' />,
-    },
-    {
-        name: <Localize i18n_default_text='Fixed barrier' />,
-    },
+const barrier_tab_items = [
+    { value: 'above_spot', label: 'Above spot' },
+    { value: 'below_spot', label: 'Below spot' },
+    { value: 'fixed_barrier', label: 'Fixed barrier' },
 ];
 
 const BarrierInput = observer(
@@ -320,17 +315,14 @@ const BarrierInput = observer(
                 <ActionSheet.Content>
                     <div className='barrier-params'>
                         {!isDays && barrierSupport === 'relative' && (
-                            <div className='barrier-params__chips'>
-                                {chips_options.map((item, index) => (
-                                    <Chip.Selectable
-                                        key={index}
-                                        onClick={() => handleChipSelect(index)}
-                                        selected={index === selectedTab}
-                                    >
-                                        <Text size='sm'>{item.name}</Text>
-                                    </Chip.Selectable>
-                                ))}
-                            </div>
+                            <HorizontalTabSelector
+                                className='barrier-params__tabs'
+                                items={barrier_tab_items}
+                                selectedValue={barrier_tab_items[selectedTab]?.value ?? barrier_tab_items[0].value}
+                                onSelect={value =>
+                                    handleChipSelect(barrier_tab_items.findIndex(item => item.value === value))
+                                }
+                            />
                         )}
 
                         <div>

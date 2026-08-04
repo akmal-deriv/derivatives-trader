@@ -18,6 +18,7 @@ jest.mock('@deriv/shared', () => ({
 jest.mock('@deriv/api', () => ({
     ...jest.requireActual('@deriv/api'),
     useMobileBridge: jest.fn(() => ({
+        isBridgeAvailable: false,
         sendBridgeEvent: jest.fn((_event, dataOrFallback, callback) => {
             // Handle overloaded signature - detect if second param is function or data
             const actualFallback = typeof dataOrFallback === 'function' ? dataOrFallback : callback;
@@ -41,8 +42,7 @@ jest.mock('@deriv/quill-icons', () => ({
     LabelPairedLifeRingSmRegularIcon: () => 'LabelPairedLifeRingSmRegularIcon',
     LegacyHomeNewIcon: () => 'LegacyHomeNewIcon',
     LegacyMinimize2pxIcon: () => 'LegacyMinimize2pxIcon',
-    StandaloneCircleUserRegularIcon: () => 'StandaloneCircleUserRegularIcon',
-    StandaloneCircleUserFillIcon: () => 'StandaloneCircleUserFillIcon',
+    StandaloneRightFromBracketRegularIcon: () => 'StandaloneRightFromBracketRegularIcon',
     StandaloneClockThreeRegularIcon: () => 'StandaloneClockThreeRegularIcon',
     StandaloneClockThreeFillIcon: () => 'StandaloneClockThreeFillIcon',
     StandaloneFileRegularIcon: () => 'StandaloneFileRegularIcon',
@@ -53,7 +53,6 @@ jest.mock('@deriv/quill-icons', () => ({
 }));
 
 jest.mock('../language-selector', () => jest.fn(() => <div>LanguageSelector</div>));
-jest.mock('../account-selector', () => jest.fn(() => <div>AccountSelector</div>));
 jest.mock('../../PositionsDrawer', () => ({
     PositionsDrawerContent: jest.fn(() => <div>PositionsDrawerContent</div>),
     PositionsDrawerFooter: jest.fn(() => <div>PositionsDrawerFooter</div>),
@@ -71,6 +70,7 @@ describe('<Sidebar />', () => {
         },
         client: {
             is_logged_in: true,
+            logout: jest.fn(),
         },
         portfolio: {
             active_positions_count: 0,
@@ -189,14 +189,14 @@ describe('<Sidebar />', () => {
         expect(store.ui.closeSidebarFlyout).toHaveBeenCalled();
     });
 
-    it('should render utility items (language, theme, and account) when logged in', () => {
+    it('should render utility items (language, theme, and log out) when logged in', () => {
         renderSidebar();
         expect(screen.getByTestId('dt_sidebar_language')).toBeInTheDocument();
         expect(screen.getByTestId('dt_sidebar_theme')).toBeInTheDocument();
-        expect(screen.getByTestId('dt_sidebar_account')).toBeInTheDocument();
+        expect(screen.getByTestId('dt_sidebar_logout')).toBeInTheDocument();
     });
 
-    it('should not render Account button when user is not logged in', () => {
+    it('should not render Log out button when user is not logged in', () => {
         const store = mockStore({
             ...defaultStoreConfig,
             client: {
@@ -206,7 +206,7 @@ describe('<Sidebar />', () => {
         renderSidebar(store);
         expect(screen.getByTestId('dt_sidebar_language')).toBeInTheDocument();
         expect(screen.getByTestId('dt_sidebar_theme')).toBeInTheDocument();
-        expect(screen.queryByTestId('dt_sidebar_account')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('dt_sidebar_logout')).not.toBeInTheDocument();
     });
 
     it('should display badge count when there are active positions', () => {
@@ -304,51 +304,13 @@ describe('<Sidebar />', () => {
         expect(screen.getByText('LanguageSelector')).toBeInTheDocument();
     });
 
-    it('should call setSidebarFlyout when account button is clicked', () => {
+    it('should log out (not open a flyout) when the Log out button is clicked', () => {
         const store = mockStore(defaultStoreConfig);
         renderSidebar(store);
-        const accountButton = screen.getByTestId('dt_sidebar_account');
-        fireEvent.click(accountButton);
-        expect(store.ui.setSidebarFlyout).toHaveBeenCalledWith('account');
-    });
-
-    it('should toggle account flyout when clicking account button twice', () => {
-        const store = mockStore({
-            ...defaultStoreConfig,
-            ui: {
-                ...defaultStoreConfig.ui,
-                active_sidebar_flyout: 'account',
-            },
-        });
-        renderSidebar(store);
-        const accountButton = screen.getByTestId('dt_sidebar_account');
-        fireEvent.click(accountButton);
-        expect(store.ui.setSidebarFlyout).toHaveBeenCalledWith(null);
-    });
-
-    it('should render account selector in flyout when account is active', () => {
-        const store = mockStore({
-            ...defaultStoreConfig,
-            ui: {
-                ...defaultStoreConfig.ui,
-                active_sidebar_flyout: 'account',
-            },
-        });
-        renderSidebar(store);
-        expect(screen.getByText('AccountSelector')).toBeInTheDocument();
-    });
-
-    it('should mark account button as active when account flyout is open', () => {
-        const store = mockStore({
-            ...defaultStoreConfig,
-            ui: {
-                ...defaultStoreConfig.ui,
-                active_sidebar_flyout: 'account',
-            },
-        });
-        renderSidebar(store);
-        const accountButton = screen.getByTestId('dt_sidebar_account');
-        expect(accountButton).toHaveClass('sidebar__item--active');
+        const logoutButton = screen.getByTestId('dt_sidebar_logout');
+        fireEvent.click(logoutButton);
+        expect(store.client.logout).toHaveBeenCalled();
+        expect(store.ui.setSidebarFlyout).not.toHaveBeenCalled();
     });
 
     it('should render positions drawer in flyout when positions is active', () => {
@@ -363,12 +325,12 @@ describe('<Sidebar />', () => {
         expect(screen.getByText('PositionsDrawerTabs')).toBeInTheDocument();
     });
 
-    it('should display sun icon when dark mode is off', () => {
+    it('should display moon icon when dark mode is off', () => {
         renderSidebar();
-        expect(screen.getByText('StandaloneSunBrightRegularIcon')).toBeInTheDocument();
+        expect(screen.getByText('StandaloneMoonRegularIcon')).toBeInTheDocument();
     });
 
-    it('should display moon icon when dark mode is on', () => {
+    it('should display sun icon when dark mode is on', () => {
         const store = mockStore({
             ...defaultStoreConfig,
             ui: {
@@ -377,7 +339,7 @@ describe('<Sidebar />', () => {
             },
         });
         renderSidebar(store);
-        expect(screen.getByText('StandaloneMoonRegularIcon')).toBeInTheDocument();
+        expect(screen.getByText('StandaloneSunBrightRegularIcon')).toBeInTheDocument();
     });
 
     it('should mark positions button as active when positions flyout is open', () => {
@@ -457,23 +419,6 @@ describe('<Sidebar />', () => {
     it('should render regular icon for language when language flyout is not active', () => {
         renderSidebar();
         expect(screen.getByText('StandaloneGlobeRegularIcon')).toBeInTheDocument();
-    });
-
-    it('should render fill icon for account when account flyout is active', () => {
-        const store = mockStore({
-            ...defaultStoreConfig,
-            ui: {
-                ...defaultStoreConfig.ui,
-                active_sidebar_flyout: 'account',
-            },
-        });
-        renderSidebar(store);
-        expect(screen.getByText('StandaloneCircleUserFillIcon')).toBeInTheDocument();
-    });
-
-    it('should render regular icon for account when account flyout is not active', () => {
-        renderSidebar();
-        expect(screen.getByText('StandaloneCircleUserRegularIcon')).toBeInTheDocument();
     });
 
     it('should close sidebar flyout when navigating away from index route', () => {

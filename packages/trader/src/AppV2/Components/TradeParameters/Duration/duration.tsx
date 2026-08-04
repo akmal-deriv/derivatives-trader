@@ -2,15 +2,26 @@ import React, { useEffect, useRef, useState } from 'react';
 import clsx from 'clsx';
 import { observer } from 'mobx-react-lite';
 
-import { getUnitMap, isMobile, mapErrorMessage } from '@deriv/shared';
+import { getUnitMap, isMobile, mapErrorMessage, trackAnalyticsEvent } from '@deriv/shared';
 import { useStore } from '@deriv/stores';
 import { ActionSheet, TextField, useSnackbar } from '@deriv-com/quill-ui';
 import { Localize, useTranslations } from '@deriv-com/translations';
 
-import { isValidPersistedDuration } from 'AppV2/Utils/trade-params-utils';
+import {
+    clampTimeWheelSelection,
+    DURATION_TAB,
+    DURATION_UNIT,
+    getDurationFromTimeWheelSelection,
+    getDurationTab,
+    getTickWheelRange,
+    getTimeWheelSelectionFromDuration,
+    getTimeWheelVisibleUnits,
+    isValidPersistedDuration,
+} from 'AppV2/Utils/trade-params-utils';
 import { getDisplayedContractTypes } from 'AppV2/Utils/trade-types-utils';
 import { useTraderStore } from 'Stores/useTraderStores';
 
+import { AutomationLockOverlay, StepperButtons } from '../Shared';
 import { TTradeParametersProps } from '../trade-parameters';
 
 import DurationActionSheetContainer from './container';
@@ -28,6 +39,7 @@ const Duration = observer(({ is_minimized }: TTradeParametersProps) => {
         expiry_epoch,
         expiry_time,
         expiry_type,
+        is_automation_params_locked,
         is_market_closed,
         onChangeMultiple,
         proposal_info,
@@ -46,7 +58,11 @@ const Duration = observer(({ is_minimized }: TTradeParametersProps) => {
     const [is_open, setOpen] = useState(false);
     const [saved_expiry_time, setSavedExpiryTime] = useState<string>('');
     const [selected_expiry_time, setSelectedExpiryTime] = useState<string>('');
-    const [unit, setUnit] = useState(expiry_type === 'endtime' ? 'd' : duration_unit);
+    const [tab, setTab] = useState<string>(getDurationTab(duration_unit, expiry_type === 'endtime'));
+    const [selected_ticks, setSelectedTicks] = useState<number>(duration_unit === DURATION_UNIT.TICKS ? duration : 1);
+    const [selected_time, setSelectedTime] = useState<number[]>(
+        getTimeWheelSelectionFromDuration(duration, duration_unit)
+    );
     const contract_type_object = getDisplayedContractTypes(trade_types, contract_type, trade_type_tab);
     const has_error =
         (proposal_info[contract_type_object[0]]?.has_error &&
@@ -119,7 +135,61 @@ const Duration = observer(({ is_minimized }: TTradeParametersProps) => {
         }
     }, [symbol, contract_type, duration_min_max, duration_units_list, duration, duration_unit]);
 
-    const onClose = React.useCallback(() => setOpen(false), []);
+    // Wheel selections apply once, when the sheet closes (End time commits via its own Save button)
+    const onClose = React.useCallback(() => {
+        if (is_open && tab !== DURATION_TAB.END_TIME) {
+            // The sheet can close inside the wheel's snap-back window, so clamp here as well
+            const clamped_time = duration_min_max?.intraday
+                ? clampTimeWheelSelection(
+                      getTimeWheelVisibleUnits(duration_units_list),
+                      duration_min_max.intraday,
+                      selected_time
+                  )
+                : selected_time;
+            const next =
+                tab === DURATION_TAB.TICKS
+                    ? { duration: selected_ticks, duration_unit: DURATION_UNIT.TICKS }
+                    : getDurationFromTimeWheelSelection(clamped_time, duration_units_list);
+            // Compare normalized selections, not raw unit/value: the wheel commits hours as
+            // minutes, so e.g. a stored 2h must count as unchanged against a 120min selection
+            const is_unchanged =
+                expiry_type === 'duration' &&
+                (tab === DURATION_TAB.TICKS
+                    ? duration_unit === DURATION_UNIT.TICKS && duration === next.duration
+                    : getTimeWheelSelectionFromDuration(duration, duration_unit).every(
+                          (value, index) => value === clamped_time[index]
+                      ));
+
+            if (!is_unchanged && next.duration > 0) {
+                setSavedExpiryDate(selected_expiry_date);
+                setSavedExpiryTime(selected_expiry_time);
+                setSelectedExpiryTime('');
+
+                onChangeMultiple({ ...next, expiry_type: 'duration' });
+
+                trackAnalyticsEvent('ce_trade_types_form_v2', {
+                    action: 'customizing_trades',
+                    input_method: 'custom',
+                    parameter_type: 'duration',
+                });
+            }
+        }
+        setOpen(false);
+    }, [
+        is_open,
+        tab,
+        selected_ticks,
+        selected_time,
+        expiry_type,
+        duration,
+        duration_unit,
+        duration_min_max,
+        duration_units_list,
+        selected_expiry_date,
+        selected_expiry_time,
+        onChangeMultiple,
+        setSavedExpiryDate,
+    ]);
 
     const getInputValues = () => {
         const formatted_date = saved_expiry_date
@@ -139,11 +209,27 @@ const Duration = observer(({ is_minimized }: TTradeParametersProps) => {
         const is_today = formatted_date === formatted_current_date;
 
         if (expiry_type == 'duration') {
-            if (duration_unit === 'm' && duration > 59) {
-                const hours = Math.floor(duration / 60);
-                const minutes = duration % 60;
-                return `${hours} ${hours > 1 ? localize('hours') : localize('hour')} ${minutes ? `${minutes} ${minutes > 1 ? localize('minutes') : localize('minute')}` : ''} `;
-            } else if (duration_unit === 'd') {
+            const is_time_unit = [DURATION_UNIT.SECONDS, DURATION_UNIT.MINUTES, DURATION_UNIT.HOURS].includes(
+                duration_unit
+            );
+            if (is_time_unit) {
+                const [hours, minutes, seconds] = getTimeWheelSelectionFromDuration(duration, duration_unit);
+                // With an hour component the value reads as a clock (01:01:01); below an hour it
+                // stays verbose (1 minute 1 second); single-unit values fall through ('30 sec')
+                if (hours > 0) {
+                    const pad = (value: number) => String(value).padStart(2, '0');
+                    return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+                }
+                if (duration > 59) {
+                    return [
+                        minutes ? `${minutes} ${minutes > 1 ? localize('minutes') : localize('minute')}` : '',
+                        seconds ? `${seconds} ${seconds > 1 ? localize('seconds') : localize('second')}` : '',
+                    ]
+                        .filter(Boolean)
+                        .join(' ');
+                }
+            }
+            if (duration_unit === 'd') {
                 if (!formatted_date) {
                     return '';
                 }
@@ -189,13 +275,24 @@ const Duration = observer(({ is_minimized }: TTradeParametersProps) => {
             setSelectedExpiryDate(saved_expiry_date);
             setSelectedExpiryTime(saved_expiry_time);
 
-            if (expiry_time) {
-                setUnit('d');
-            } else if (duration_unit === 'm' && duration > 59) {
-                setUnit('h');
-            } else {
-                setUnit(duration_unit);
-            }
+            setTab(getDurationTab(duration_unit, !!expiry_time));
+
+            // Clamp into the current contract's range up-front: the wheels reset out-of-range
+            // values to their first option, which would lose the stored selection
+            const { min: tick_min, max: tick_max } = getTickWheelRange(duration_min_max);
+            setSelectedTicks(
+                duration_unit === DURATION_UNIT.TICKS ? Math.min(tick_max, Math.max(tick_min, duration)) : tick_min
+            );
+            const time_selection = getTimeWheelSelectionFromDuration(duration, duration_unit);
+            setSelectedTime(
+                duration_min_max?.intraday
+                    ? clampTimeWheelSelection(
+                          getTimeWheelVisibleUnits(duration_units_list),
+                          duration_min_max.intraday,
+                          time_selection
+                      )
+                    : time_selection
+            );
         }
     }, [is_open, saved_expiry_date, saved_expiry_time]);
 
@@ -204,21 +301,78 @@ const Duration = observer(({ is_minimized }: TTradeParametersProps) => {
         return <DurationDesktop is_minimized={is_minimized} />;
     }
 
+    // Inline steppers (expanded, non-endtime, non-days). Ticks step ±1 tick; time durations step by
+    // the finest available unit (usually 1s) and roll across units — 59s → 1min → 1min 1sec.
+    const is_tick_duration = duration_unit === DURATION_UNIT.TICKS;
+    const tick_range = getTickWheelRange(duration_min_max);
+    const intraday = duration_min_max?.intraday;
+    const time_step_seconds = (() => {
+        const visible = getTimeWheelVisibleUnits(duration_units_list);
+        if (visible.includes(DURATION_UNIT.SECONDS)) return 1;
+        if (visible.includes(DURATION_UNIT.MINUTES)) return 60;
+        return 3600;
+    })();
+    const [step_h, step_m, step_s] = getTimeWheelSelectionFromDuration(duration, duration_unit);
+    const total_seconds = step_h * 3600 + step_m * 60 + step_s;
+    const show_steppers = !is_minimized && expiry_type !== 'endtime' && duration_unit !== DURATION_UNIT.DAYS;
+
+    const stepDuration = (direction: 1 | -1) => {
+        if (is_tick_duration) {
+            const next = Math.min(tick_range.max, Math.max(tick_range.min, duration + direction));
+            if (next !== duration) onChangeMultiple({ duration_unit, duration: next, expiry_type: 'duration' });
+            return;
+        }
+        if (!intraday) return;
+        const next_total = Math.min(
+            intraday.max,
+            Math.max(intraday.min, total_seconds + direction * time_step_seconds)
+        );
+        if (next_total === total_seconds) return;
+        const next_hms = [Math.floor(next_total / 3600), Math.floor((next_total % 3600) / 60), next_total % 60];
+        onChangeMultiple({
+            ...getDurationFromTimeWheelSelection(next_hms, duration_units_list),
+            expiry_type: 'duration',
+        });
+    };
+
+    const decrement_disabled =
+        is_market_closed ||
+        is_automation_params_locked ||
+        (is_tick_duration ? duration <= tick_range.min : total_seconds <= (intraday?.min ?? 0));
+    const increment_disabled =
+        is_market_closed ||
+        is_automation_params_locked ||
+        (is_tick_duration ? duration >= tick_range.max : total_seconds >= (intraday?.max ?? Number.MAX_SAFE_INTEGER));
+
     // Render mobile version (ActionSheet) for mobile devices
     return (
         <>
-            <TextField
-                variant='fill'
-                key={`${duration}-$${duration_unit}`}
-                readOnly
-                label={<Localize i18n_default_text='Duration' key={`duration${is_minimized ? '-minimized' : ''}`} />}
-                value={getInputValues()}
-                noStatusIcon
-                disabled={is_market_closed}
-                className={clsx('trade-params__option', is_minimized && 'trade-params__option--minimized')}
-                onClick={() => setOpen(true)}
-                status={has_error ? 'error' : 'neutral'}
-            />
+            <div className='trade-params__field-locked'>
+                <TextField
+                    variant='fill'
+                    readOnly
+                    label={
+                        <Localize i18n_default_text='Duration' key={`duration${is_minimized ? '-minimized' : ''}`} />
+                    }
+                    value={getInputValues()}
+                    noStatusIcon
+                    disabled={is_market_closed || is_automation_params_locked}
+                    className={clsx('trade-params__option', is_minimized && 'trade-params__option--minimized')}
+                    onClick={() => setOpen(true)}
+                    status={has_error ? 'error' : 'neutral'}
+                    rightIcon={
+                        show_steppers ? (
+                            <StepperButtons
+                                onDecrement={() => stepDuration(-1)}
+                                onIncrement={() => stepDuration(1)}
+                                decrement_disabled={decrement_disabled}
+                                increment_disabled={increment_disabled}
+                            />
+                        ) : undefined
+                    }
+                />
+                {is_automation_params_locked && <AutomationLockOverlay />}
+            </div>
             <ActionSheet.Root
                 isOpen={is_open}
                 onClose={onClose}
@@ -228,9 +382,12 @@ const Duration = observer(({ is_minimized }: TTradeParametersProps) => {
             >
                 <ActionSheet.Portal shouldCloseOnDrag>
                     <DurationActionSheetContainer
-                        unit={unit}
-                        setUnit={setUnit}
-                        onClose={onClose}
+                        tab={tab}
+                        setTab={setTab}
+                        selected_ticks={selected_ticks}
+                        setSelectedTicks={setSelectedTicks}
+                        selected_time={selected_time}
+                        setSelectedTime={setSelectedTime}
                         selected_expiry_time={selected_expiry_time}
                         selected_expiry_date={selected_expiry_date}
                         setSelectedExpiryTime={setSelectedExpiryTime}

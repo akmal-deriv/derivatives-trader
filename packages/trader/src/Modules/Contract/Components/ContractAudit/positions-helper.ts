@@ -63,6 +63,9 @@ export const filterByContractType = (
         ? [CALL, CALLE, PUT, PUTE]
         : getContractTypesConfig()[trade_contract_type]?.trade_types;
     const match = trade_types?.includes(contract_type ?? '');
-    if (trade_contract_type === TRADE_TYPES.HIGH_LOW) return is_high_low;
+    // Higher/Lower can arrive either as HIGHER/LOWER contract types (match) or as CALL/PUT with a
+    // non-spot barrier (is_high_low) — accept both. Rise/Fall (CALL/PUT, spot barrier) matches
+    // neither, so it never leaks in.
+    if (trade_contract_type === TRADE_TYPES.HIGH_LOW) return is_high_low || !!match;
     return match && (is_vanilla || !is_high_low);
 };

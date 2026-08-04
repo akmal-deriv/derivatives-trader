@@ -1,8 +1,19 @@
-import { CONTRACT_TYPES, getSupportedContracts, getTotalProfit, isHighLow, isMultiplierContract } from '@deriv/shared';
+import {
+    CONTRACT_TYPES,
+    getSupportedContracts,
+    getTotalProfit,
+    isContractSupportedAndStarted,
+    isHighLow,
+    isMultiplierContract,
+    isTurbosContract,
+    isVanillaContract,
+    TRADE_TYPES,
+} from '@deriv/shared';
 import { TPortfolioPosition } from '@deriv/stores/types';
 
 import { TRADE_MODE } from 'AppV2/Components/Filter/trade-mode-filter';
 import { TClosedPosition } from 'AppV2/Containers/Positions/positions-content';
+import { filterByContractType } from 'Modules/Contract/Components/ContractAudit/positions-helper';
 
 import { CONTRACT_LIST } from './trade-types-utils';
 
@@ -82,6 +93,33 @@ export const getProfit = (
 export const getTotalPositionsProfit = (positions: (TPortfolioPosition | TClosedPosition)[]) => {
     return positions.reduce((sum, { contract_info }) => sum + Number(getProfit(contract_info)), 0);
 };
+
+/**
+ * Filters positions down to the ones belonging to the currently selected market (`symbol`) and
+ * trade type (`contract_type`). This mirrors the exact predicate the trade chart uses to decide
+ * which contracts to draw as markers, so the chart, the P/L pill and the open-positions sheet all
+ * agree on the same set. Turbos and Vanilla trade types map to two directional contract types, so
+ * both directions are matched for those.
+ */
+export const filterPositionsBySymbolAndTradeType = (
+    positions: TPortfolioPosition[],
+    symbol: string,
+    contract_type: string
+) =>
+    positions.filter(
+        p =>
+            isContractSupportedAndStarted(symbol, p.contract_info) &&
+            (isTurbosContract(contract_type) || isVanillaContract(contract_type)
+                ? filterByContractType(
+                      p.contract_info,
+                      isTurbosContract(contract_type) ? TRADE_TYPES.TURBOS.SHORT : TRADE_TYPES.VANILLA.CALL
+                  ) ||
+                  filterByContractType(
+                      p.contract_info,
+                      isTurbosContract(contract_type) ? TRADE_TYPES.TURBOS.LONG : TRADE_TYPES.VANILLA.PUT
+                  )
+                : filterByContractType(p.contract_info, contract_type))
+    );
 
 export const setPositionURLParams = (tab_name: string) => {
     const searchParams = new URLSearchParams(window.location.search);

@@ -7,6 +7,7 @@ import { Localize, useTranslations } from '@deriv-com/translations';
 import Carousel from 'AppV2/Components/Carousel';
 import CarouselHeader from 'AppV2/Components/Carousel/carousel-header';
 import TradeParamDefinition from 'AppV2/Components/TradeParamDefinition';
+import { AutomationLockOverlay } from 'AppV2/Components/TradeParameters/Shared';
 import { createDecimalInputGuard, getDecimalInputMaxLength } from 'AppV2/Utils/decimal-input';
 
 type TThresholdInputMobileProps = {
@@ -14,6 +15,7 @@ type TThresholdInputMobileProps = {
     description?: string;
     currency: string;
     initialValue: number;
+    disabled?: boolean;
     onSave: (value: number) => void;
 };
 
@@ -22,6 +24,7 @@ const ThresholdInputMobile = ({
     description,
     currency,
     initialValue,
+    disabled,
     onSave,
 }: TThresholdInputMobileProps) => {
     const { localize } = useTranslations();
@@ -59,15 +62,19 @@ const ThresholdInputMobile = ({
 
     return (
         <React.Fragment>
-            <TextField
-                variant='fill'
-                readOnly
-                label={label}
-                value={`${initialValue} ${display_currency}`}
-                noStatusIcon
-                className='trade-params__option'
-                onClick={() => setIsOpen(true)}
-            />
+            <div className='trade-params__field-locked'>
+                <TextField
+                    variant='fill'
+                    readOnly
+                    disabled={disabled}
+                    label={label}
+                    value={`${initialValue} ${display_currency}`}
+                    noStatusIcon
+                    className='trade-params__option'
+                    onClick={() => setIsOpen(true)}
+                />
+                {disabled && <AutomationLockOverlay />}
+            </div>
             <ActionSheet.Root isOpen={is_open} onClose={onClose} position='left' expandable={false}>
                 <ActionSheet.Portal shouldCloseOnDrag>
                     <Carousel
@@ -102,8 +109,8 @@ const ThresholdInputMobile = ({
                                         </ActionSheet.Content>
                                         <ActionSheet.Footer
                                             alignment='vertical'
-                                            shouldCloseOnSecondaryButtonClick={false}
-                                            secondaryAction={{
+                                            shouldCloseOnPrimaryButtonClick={false}
+                                            primaryAction={{
                                                 content: <Localize i18n_default_text='Save' />,
                                                 onAction: handleSave,
                                             }}

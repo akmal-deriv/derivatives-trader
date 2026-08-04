@@ -116,7 +116,9 @@ const GrowthRatePicker = ({
                             </Text>
                             <div className='growth-rate__details-item-value'>
                                 {should_show_details ? (
-                                    <Text size='sm'>{value}</Text>
+                                    <Text color='quill-typography__color--subtle' size='sm'>
+                                        {value}
+                                    </Text>
                                 ) : (
                                     <Skeleton height={14} width={75} />
                                 )}

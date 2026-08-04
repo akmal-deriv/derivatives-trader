@@ -33,17 +33,19 @@ $FOOTER_BUTTON_HEIGHT: var(--core-size-4000);
         min-height: 0;
         overflow: hidden;
     }
+    // Label-left / value-right row (matches the Stop out, DC fee and payout-per-point info rows)
+    // instead of a centered block. The label opens the commission explanation page when tappable.
     &__commission {
-        min-height: var(--core-size-2200);
+        min-height: var(--core-size-1000);
         display: flex;
-        flex-direction: column;
         align-items: center;
+        justify-content: space-between;
 
-        &-value {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            flex-grow: 1;
+        &-label {
+            text-decoration: underline;
+            text-decoration-style: dotted;
+            text-underline-offset: 0.4rem;
+            cursor: pointer;
         }
     }
 }

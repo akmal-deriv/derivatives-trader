@@ -177,45 +177,45 @@ export const TRADE_PARAMETER_PRESETS: TradeParameterPresets = {
             forex_baskets: {
                 t: null, // Not Applicable
                 s: null, // Not Applicable
-                m: [15, 20, 25, 30, 40, 45, 50, 55],
-                h: [1, 2, 3, 4, 6, 8, 9, 10],
+                m: [2, 5, 10, 20, 30, 40],
+                h: [1, 2, 4, 8, 12, 24],
                 d: null, // Not Applicable
             },
 
             // Daily Reset/Jump/Step Indices
             daily_reset_indices: {
-                t: [1, 2, 3, 4, 5, 6, 8, 10],
-                s: [15, 20, 25, 30, 40, 45, 50, 55],
-                m: [2, 3, 5, 10, 15, 20, 30, 45],
-                h: [1, 2, 3, 4, 6, 8, 12, 24],
-                d: [1, 2, 3, 5, 7, 14, 21, 30],
+                t: [1, 2, 4, 6, 8, 10],
+                s: [15, 20, 25, 30, 40, 45],
+                m: [2, 5, 10, 20, 30, 40],
+                h: [1, 2, 4, 8, 12, 24],
+                d: [1, 2, 3, 5, 7, 14],
             },
 
             // Volatility Indices
             volatility_indices: {
-                t: [1, 2, 3, 4, 5, 6, 8, 10],
-                s: [15, 20, 25, 30, 40, 45, 50, 55],
-                m: [2, 3, 5, 10, 15, 20, 30, 45],
-                h: [1, 2, 3, 4, 6, 8, 12, 24],
-                d: [1, 2, 3, 5, 7, 14, 21, 30],
+                t: [1, 2, 4, 6, 8, 10],
+                s: [15, 20, 25, 30, 40, 45],
+                m: [2, 5, 10, 20, 30, 40],
+                h: [1, 2, 4, 8, 12, 24],
+                d: [1, 2, 3, 5, 7, 14],
             },
 
             // Forex
             forex: {
                 t: null, // Not Applicable
                 s: null, // Not Applicable
-                m: [15, 20, 25, 30, 40, 45, 50, 55],
-                h: [1, 2, 3, 4, 6, 8, 12, 24],
-                d: [1, 2, 3, 5, 7, 14, 21, 30],
+                m: [2, 5, 10, 20, 30, 40],
+                h: [1, 2, 4, 8, 12, 24],
+                d: [1, 2, 3, 5, 7, 14],
             },
 
             // Stock Indices
             stock_indices: {
                 t: null, // Not Applicable
                 s: null, // Not Applicable
-                m: [15, 20, 25, 30, 40, 45, 50, 55],
-                h: [1],
-                d: [1, 2, 3, 5, 7, 14, 21, 30],
+                m: [2, 5, 10, 20, 30, 40],
+                h: [1, 2, 4, 8, 12, 24],
+                d: [1, 2, 3, 5, 7, 14],
             },
 
             // Palladium & Platinum
@@ -224,16 +224,16 @@ export const TRADE_PARAMETER_PRESETS: TradeParameterPresets = {
                 s: null, // Not Applicable
                 m: null, // Not Applicable
                 h: null, // Not Applicable
-                d: [1, 2, 3, 5, 7, 14, 21, 30],
+                d: [1, 2, 3, 5, 7, 14],
             },
 
             // Gold & Silver
             gold_silver: {
                 t: null, // Not Applicable
                 s: null, // Not Applicable
-                m: [5, 10, 15, 20, 25, 30, 45, 55],
-                h: [1, 2, 3, 4, 6, 8, 12, 24],
-                d: [1, 2, 3, 5, 7, 14, 21, 30],
+                m: [2, 5, 10, 20, 30, 40],
+                h: [1, 2, 4, 8, 12, 24],
+                d: [1, 2, 3, 5, 7, 14],
             },
         },
 
@@ -243,20 +243,20 @@ export const TRADE_PARAMETER_PRESETS: TradeParameterPresets = {
         higher_lower: {
             // Daily Reset Indices
             daily_reset_indices: {
-                t: [5, 6, 7, 8, 9, 10],
-                s: [15, 20, 25, 30, 40, 45, 50, 55],
-                m: [2, 3, 5, 10, 15, 20, 30, 45],
-                h: [1, 2, 3, 4, 6, 8, 12, 24],
+                t: [1, 2, 4, 6, 8, 10],
+                s: [15, 20, 25, 30, 40, 45],
+                m: [2, 5, 10, 20, 30, 40],
+                h: [1, 2, 4, 8, 12, 24],
                 d: null, // Not Applicable
             },
 
             // Volatility Indices
             volatility_indices: {
-                t: [5, 6, 7, 8, 9, 10],
-                s: [15, 20, 25, 30, 40, 45, 50, 55],
-                m: [2, 3, 5, 10, 15, 20, 30, 45],
-                h: [1, 2, 3, 4, 6, 8, 12, 24],
-                d: [1, 2, 3, 5, 7, 14, 21, 30],
+                t: [1, 2, 4, 6, 8, 10],
+                s: [15, 20, 25, 30, 40, 45],
+                m: [2, 5, 10, 20, 30, 40],
+                h: [1, 2, 4, 8, 12, 24],
+                d: [1, 2, 3, 5, 7, 14],
             },
 
             // Forex, Metals
@@ -265,7 +265,7 @@ export const TRADE_PARAMETER_PRESETS: TradeParameterPresets = {
                 s: null, // Not Applicable
                 m: null, // Not Applicable
                 h: null, // Not Applicable
-                d: [1, 2, 3, 5, 7, 14, 21, 30],
+                d: [1, 2, 3, 5, 7, 14],
             },
 
             // Stock Indices
@@ -274,7 +274,7 @@ export const TRADE_PARAMETER_PRESETS: TradeParameterPresets = {
                 s: null, // Not Applicable
                 m: null, // Not Applicable
                 h: null, // Not Applicable
-                d: [7, 10, 14, 21, 30, 45, 60, 90],
+                d: [7, 10, 14, 21, 30, 45],
             },
         },
 
@@ -286,18 +286,18 @@ export const TRADE_PARAMETER_PRESETS: TradeParameterPresets = {
             daily_reset_indices: {
                 t: null, // Not Applicable
                 s: null, // Not Applicable
-                m: [15, 20, 25, 30, 35, 45, 50, 55],
-                h: [1, 2, 3, 4, 6, 8, 12, 24],
+                m: [2, 5, 10, 20, 30, 40],
+                h: [1, 2, 4, 8, 12, 24],
                 d: null, // Not Applicable
             },
 
             // Volatility Indices
             volatility_indices: {
-                t: [5, 6, 7, 8, 9, 10],
+                t: [1, 2, 4, 6, 8, 10],
                 s: null, // Not Applicable
-                m: [15, 20, 25, 30, 35, 45, 50, 55],
-                h: [1, 2, 3, 4, 6, 8, 12, 24],
-                d: [1, 2, 3, 5, 7, 14, 21, 30],
+                m: [2, 5, 10, 20, 30, 40],
+                h: [1, 2, 4, 8, 12, 24],
+                d: [1, 2, 3, 5, 7, 14],
             },
 
             // Forex, Metals
@@ -306,7 +306,7 @@ export const TRADE_PARAMETER_PRESETS: TradeParameterPresets = {
                 s: null, // Not Applicable
                 m: null, // Not Applicable
                 h: null, // Not Applicable
-                d: [1, 2, 3, 5, 7, 14, 21, 30],
+                d: [1, 2, 3, 5, 7, 14],
             },
 
             // Stock Indices
@@ -315,7 +315,7 @@ export const TRADE_PARAMETER_PRESETS: TradeParameterPresets = {
                 s: null, // Not Applicable
                 m: null, // Not Applicable
                 h: null, // Not Applicable
-                d: [7, 10, 14, 21, 30, 45, 60, 90],
+                d: [7, 10, 14, 21, 30, 45],
             },
         },
 
@@ -327,9 +327,9 @@ export const TRADE_PARAMETER_PRESETS: TradeParameterPresets = {
             volatility_indices: {
                 t: null, // Not Applicable
                 s: null, // Not Applicable
-                m: [5, 10, 15, 20, 30, 45, 50, 55],
-                h: [2, 4, 6, 8, 12, 16, 20, 24],
-                d: [1, 2, 3, 5, 7, 10, 14, 30],
+                m: [2, 5, 10, 20, 30, 40],
+                h: [1, 2, 4, 8, 12, 24],
+                d: [1, 2, 3, 5, 7, 10],
             },
         },
 
@@ -339,11 +339,11 @@ export const TRADE_PARAMETER_PRESETS: TradeParameterPresets = {
         turbos: {
             // Volatility Indices
             volatility_indices: {
-                t: [5, 6, 7, 8, 9, 10],
-                s: [15, 20, 25, 30, 40, 45, 50, 55],
-                m: [5, 10, 15, 20, 30, 45, 50, 55],
-                h: [1, 2, 3, 4, 6, 8, 12, 24],
-                d: [1, 2, 3, 5, 7, 14, 21, 30],
+                t: [1, 2, 4, 6, 8, 10],
+                s: [15, 20, 25, 30, 40, 45],
+                m: [2, 5, 10, 20, 30, 40],
+                h: [1, 2, 4, 8, 12, 24],
+                d: [1, 2, 3, 5, 7, 14],
             },
         },
 
@@ -352,7 +352,7 @@ export const TRADE_PARAMETER_PRESETS: TradeParameterPresets = {
         // ========================================
         digits_matches_differs: {
             volatility_indices: {
-                t: [1, 2, 3, 5, 7, 10],
+                t: [1, 2, 4, 6, 8, 10],
                 s: null,
                 m: null,
                 h: null,
@@ -365,7 +365,7 @@ export const TRADE_PARAMETER_PRESETS: TradeParameterPresets = {
         // ========================================
         digits_even_odd: {
             volatility_indices: {
-                t: [1, 2, 3, 5, 7, 10],
+                t: [1, 2, 4, 6, 8, 10],
                 s: null,
                 m: null,
                 h: null,
@@ -378,7 +378,7 @@ export const TRADE_PARAMETER_PRESETS: TradeParameterPresets = {
         // ========================================
         digits_over_under: {
             volatility_indices: {
-                t: [1, 2, 3, 5, 7, 10],
+                t: [1, 2, 4, 6, 8, 10],
                 s: null,
                 m: null,
                 h: null,

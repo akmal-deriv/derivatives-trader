@@ -13,7 +13,6 @@ import { useDevice } from '@deriv-com/ui';
 import Carousel from 'AppV2/Components/Carousel';
 import CarouselHeader from 'AppV2/Components/Carousel/carousel-header';
 import FireIcon from 'AppV2/Components/FireIcon';
-import TradeTypesSelectionGuide from 'AppV2/Components/OnboardingGuide/TradeTypesSelectionGuide';
 import TradeTypesSelector from 'AppV2/Components/TradeTypesSelector';
 import useIsTradeTypeSelectionRestricted from 'AppV2/Hooks/useIsTradeTypeSelectionRestricted';
 import { checkContractTypePrefix } from 'AppV2/Utils/contract-type';
@@ -467,8 +466,6 @@ const TradeTypes = ({ contract_type, onTradeTypeSelect, trade_types, is_dark_mod
                     )}
                 </ActionSheet.Portal>
             </ActionSheet.Root>
-            {/* TradeTypesSelectionGuide now only shows for mobile users */}
-            {is_open && <TradeTypesSelectionGuide is_dark_mode_on={is_dark_mode_on} />}
             {is_guide_open && (
                 <Guide
                     key={guide_key}

@@ -1,26 +1,15 @@
 import React from 'react';
 
 import { TTicksStreamResponse } from '@deriv/api';
-import {
-    ChartBarrierStore,
-    getSymbolDisplayName,
-    getViewMarketsFromURL,
-    isAccumulatorContract,
-    isContractSupportedAndStarted,
-    isTurbosContract,
-    isVanillaContract,
-    removeViewMarketsFromURL,
-    TRADE_TYPES,
-} from '@deriv/shared';
+import { ChartBarrierStore, getSymbolDisplayName, isAccumulatorContract } from '@deriv/shared';
 import { observer, useStore } from '@deriv/stores';
 import { useDevice } from '@deriv-com/ui';
 
 import useActiveSymbols from 'AppV2/Hooks/useActiveSymbols';
-import { filterByContractType } from 'Modules/Contract/Components/ContractAudit/positions-helper';
+import { filterPositionsBySymbolAndTradeType } from 'AppV2/Utils/positions-utils';
 import { SmartChart } from 'Modules/SmartChart';
 import AccumulatorsChartElements from 'Modules/SmartChart/Components/Markers/accumulators-chart-elements';
 import ToolbarWidgets from 'Modules/SmartChart/Components/toolbar-widgets';
-import TopWidgets from 'Modules/SmartChart/Components/top-widgets';
 import { useSmartChartsAdapter } from 'Modules/SmartChart/Hooks/useSmartChartsAdapter';
 import { CHART_CONSTANTS, getMarketsOrder } from 'Modules/SmartChart/Utils/chart-utils';
 import { useTraderStore } from 'Stores/useTraderStores';
@@ -101,14 +90,6 @@ const TradeChart = observer(() => {
     const is_accumulator = isAccumulatorContract(contract_type);
     const timeoutsMapRef = React.useRef<Map<number, NodeJS.Timeout>>(new Map());
 
-    // Desktop uses the chart's native selector (ChartTitle), so open it on a `view_markets=true` landing.
-    // Mobile is handled by MarketSelector, so gate on !isMobile to not consume the param before it reads it.
-    // Read on first render so `open` is already true when ChartTitle mounts.
-    const [should_open_market_selector] = React.useState(() => !isMobile && getViewMarketsFromURL());
-    React.useEffect(() => {
-        if (should_open_market_selector) removeViewMarketsFromURL();
-    }, [should_open_market_selector]);
-
     // Memoize settings object to prevent chart re-initialization
     const settings = React.useMemo(
         () => ({
@@ -137,16 +118,6 @@ const TradeChart = observer(() => {
     );
 
     const { current_spot, current_spot_time } = accumulator_barriers_data || {};
-
-    const topWidgets = React.useCallback(
-        () => (
-            <TopWidgets
-                open={should_open_market_selector}
-                onSymbolChange={symbol => onChange({ target: { name: 'symbol', value: symbol } })}
-            />
-        ),
-        [onChange, should_open_market_selector]
-    );
 
     // Use centralized SmartCharts adapter hook
     const { chartData, error, getQuotes, subscribeQuotes, unsubscribeQuotes, retryFetchChartData } =
@@ -177,20 +148,7 @@ const TradeChart = observer(() => {
         granularity === 0 ? CHART_CONSTANTS.MAX_TICKS_MOBILE_TICK : CHART_CONSTANTS.MAX_TICKS_MOBILE_CANDLE;
 
     // Filter positions based on current symbol and contract type
-    const filtered_positions = all_positions.filter(
-        p =>
-            isContractSupportedAndStarted(symbol, p.contract_info) &&
-            (isTurbosContract(contract_type) || isVanillaContract(contract_type)
-                ? filterByContractType(
-                      p.contract_info,
-                      isTurbosContract(contract_type) ? TRADE_TYPES.TURBOS.SHORT : TRADE_TYPES.VANILLA.CALL
-                  ) ||
-                  filterByContractType(
-                      p.contract_info,
-                      isTurbosContract(contract_type) ? TRADE_TYPES.TURBOS.LONG : TRADE_TYPES.VANILLA.PUT
-                  )
-                : filterByContractType(p.contract_info, contract_type))
-    );
+    const filtered_positions = filterPositionsBySymbolAndTradeType(all_positions, symbol, contract_type);
 
     // Get IDs of closed positions to auto-remove
     const closed_positions_ids =
@@ -296,8 +254,9 @@ const TradeChart = observer(() => {
                 allowTickChartTypeOnly={show_digits_stats || is_accumulator}
                 stateChangeListener={chartStateChange}
                 symbol={symbol}
-                // Enable chart native TopWidgets for desktop, keep hidden for mobile
-                topWidgets={isMobile ? () => <div /> : topWidgets}
+                // The redesigned market selector (MarketTabs) replaces the chart's native selector on
+                // every device, so the chart top widgets stay empty.
+                topWidgets={() => <div />}
                 isConnectionOpened={is_socket_opened}
                 clearChart={false}
                 toolbarWidget={() => {

@@ -25,14 +25,14 @@
         align-items: center;
         justify-content: center;
         height: 6.4rem;
-        padding: 1.6rem;
+        padding: var(--core-spacing-800);
     }
 
     &__nav {
         display: flex;
         flex-direction: column;
         flex: 1;
-        padding: 0 0 1.6rem;
+        padding: 0 0 var(--core-spacing-800);
         justify-content: space-between;
     }
 
@@ -43,7 +43,7 @@
 
     &__separator {
         height: 1px;
-        margin: 0 0.8rem 0.8rem;
+        margin: 0 var(--core-spacing-800) var(--core-spacing-400);
         background-color: var(--color-surface-border);
     }
 
@@ -59,8 +59,8 @@
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        padding: 0.8rem 0;
-        margin: 0 0.8rem;
+        padding: var(--core-spacing-400) 0;
+        margin: 0 var(--core-spacing-400);
         border: none;
         border-radius: 0.8rem;
         background-color: transparent;
@@ -92,8 +92,8 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        height: 4rem;
-        width: 4rem;
+        height: 3.2rem;
+        width: 3.2rem;
     }
 
     &__item-badge {
@@ -102,7 +102,7 @@
         right: 0rem;
         width: 2rem;
         height: 2rem;
-        padding: 0 4px;
+        padding: 0 var(--core-spacing-200);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -123,7 +123,7 @@
 
     &__tooltip {
         .dc-popover__bubble {
-            margin-left: 0.8rem;
+            margin-left: var(--core-spacing-400);
         }
     }
 

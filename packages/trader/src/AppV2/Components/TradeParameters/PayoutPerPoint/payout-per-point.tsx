@@ -125,7 +125,14 @@ const PayoutPerPoint = observer(({ is_minimized }: TTradeParametersProps) => {
                         setCurrentIndex={setCarouselIndex}
                         onPreviousButtonClick={() => setCarouselIndex(0)}
                         pages={action_sheet_content}
-                        title={<Localize i18n_default_text='Payout per point' />}
+                        title={
+                            // The barrier explanation is the 3rd page (index 2); title it accordingly.
+                            carousel_index === 2 ? (
+                                <Localize i18n_default_text='Barrier' />
+                            ) : (
+                                <Localize i18n_default_text='Payout per point' />
+                            )
+                        }
                     />
                 </ActionSheet.Portal>
             </ActionSheet.Root>

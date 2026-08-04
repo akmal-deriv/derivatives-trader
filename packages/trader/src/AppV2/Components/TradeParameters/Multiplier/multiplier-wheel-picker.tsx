@@ -1,13 +1,17 @@
 import React, { useEffect } from 'react';
+import clsx from 'clsx';
 import debounce from 'lodash.debounce';
 
-import { formatMoney } from '@deriv/shared';
+import { clickAndKeyEventHandler, formatMoney } from '@deriv/shared';
 import { ActionSheet, Skeleton, Text, WheelPicker } from '@deriv-com/quill-ui';
 import { Localize } from '@deriv-com/translations';
 
 import { useTraderStore } from 'Stores/useTraderStores';
 
-import CommissionTooltip from './commission-tooltip';
+import { getCommissionPercentage } from './commission-formula';
+
+// Carousel page index of the commission explanation (see Multiplier's action_sheet_content).
+const COMMISSION_PAGE = 2;
 
 type TMultiplierWheelPickerProps = {
     amount: ReturnType<typeof useTraderStore>['amount'];
@@ -16,6 +20,8 @@ type TMultiplierWheelPickerProps = {
     currency: ReturnType<typeof useTraderStore>['currency'];
     commission: ReturnType<typeof useTraderStore>['commission'];
     setMultiplier: (multiplier: number) => void;
+    /** Opens the commission explanation as a page within the multiplier sheet. */
+    onDetailClick?: (page_index: number) => void;
 };
 
 const debouncedSetMultiplier = debounce((setMultiplier, multiplier) => {
@@ -29,7 +35,13 @@ const MultiplierWheelPicker = ({
     currency,
     commission,
     setMultiplier,
+    onDetailClick,
 }: TMultiplierWheelPickerProps) => {
+    // Commission is interactive only when its formula can be derived (matches the trade-params row).
+    const has_commission_info = getCommissionPercentage(commission, multiplier, amount) !== null;
+    const openCommissionInfo = (e?: React.MouseEvent<HTMLElement> | React.KeyboardEvent<HTMLElement>) => {
+        if (has_commission_info) clickAndKeyEventHandler(() => onDetailClick?.(COMMISSION_PAGE), e);
+    };
     const multiplier_array = multiplier_range_list.map(item => ({ value: item.text }));
     const initial_multiplier = React.useRef<number>(multiplier);
     const selected_multiplier = React.useRef<number>(multiplier);
@@ -68,18 +80,25 @@ const MultiplierWheelPicker = ({
                         <Skeleton.Square />
                     )}
                 </div>
-                <div className='multiplier__commission'>
-                    <CommissionTooltip
-                        commission={commission}
-                        multiplier={multiplier}
-                        amount={amount}
-                        currency={currency}
+                <div
+                    className='multiplier__commission'
+                    {...(has_commission_info
+                        ? { role: 'button', tabIndex: 0, onClick: openCommissionInfo, onKeyDown: openCommissionInfo }
+                        : {})}
+                >
+                    <Text
+                        color='quill-typography__color--subtle'
+                        size='sm'
+                        className={clsx(has_commission_info && 'multiplier__commission-label')}
                     >
-                        <Text color='quill-typography__color--subtle' size='sm'>
-                            <Localize i18n_default_text='Commission' />
-                        </Text>
-                    </CommissionTooltip>
-                    <Text size='sm' as='div' className='multiplier__commission-value'>
+                        <Localize i18n_default_text='Commission' />
+                    </Text>
+                    <Text
+                        color='quill-typography__color--subtle'
+                        size='sm'
+                        as='div'
+                        className='multiplier__commission-value'
+                    >
                         {commission ? (
                             <React.Fragment>
                                 {formatMoney(currency, commission, true)} {currency}

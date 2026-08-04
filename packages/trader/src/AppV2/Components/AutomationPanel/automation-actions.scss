@@ -7,6 +7,12 @@
         padding: 0 var(--core-spacing-300);
     }
 
+    &__status-line {
+        display: flex;
+        align-items: center;
+        gap: var(--core-spacing-500);
+    }
+
     &__error {
         padding: var(--core-spacing-400);
         border-radius: var(--core-borderRadius-400);

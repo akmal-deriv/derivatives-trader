@@ -36,6 +36,11 @@ jest.mock('Stores/useTraderStores', () => ({
     useTraderStore: () => mockUseTraderStore(),
 }));
 
+jest.mock('@deriv/stores', () => ({
+    ...jest.requireActual('@deriv/stores'),
+    useStore: () => ({ ui: { is_chart_maximized: false } }),
+}));
+
 jest.mock('AppV2/Utils/layout-utils', () => ({
     isTradeParamVisible: jest.fn(({ component_key }: { component_key: string }) => component_key === 'trade_type_tabs'),
 }));

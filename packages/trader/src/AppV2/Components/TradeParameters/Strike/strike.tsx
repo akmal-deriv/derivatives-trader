@@ -20,6 +20,7 @@ import StrikeWheel from './strike-wheel';
 
 const Strike = observer(({ is_minimized }: TTradeParametersProps) => {
     const [is_open, setIsOpen] = React.useState(false);
+    const [carousel_index, setCarouselIndex] = React.useState(0);
     const {
         barrier_1,
         barrier_choices: strike_price_choices,
@@ -40,7 +41,10 @@ const Strike = observer(({ is_minimized }: TTradeParametersProps) => {
 
     const handleStrikeChange = (new_value: number | string) =>
         onChange({ target: { name: 'barrier_1', value: new_value } });
-    const onClose = React.useCallback(() => setIsOpen(false), []);
+    const onClose = React.useCallback(() => {
+        setCarouselIndex(0);
+        setIsOpen(false);
+    }, []);
 
     const action_sheet_content = [
         {
@@ -53,6 +57,7 @@ const Strike = observer(({ is_minimized }: TTradeParametersProps) => {
                     payout_per_point={payout_per_point}
                     strike_price_list={strike_price_list}
                     setV2ParamsInitialValues={setV2ParamsInitialValues}
+                    onDetailClick={setCarouselIndex}
                 />
             ),
         },
@@ -66,6 +71,16 @@ const Strike = observer(({ is_minimized }: TTradeParametersProps) => {
                         ) : (
                             <Localize i18n_default_text='If you buy a "Put" option, you receive a payout at expiry if the final price is below the strike price. Otherwise, your "Put" option will expire worthless.' />
                         )
+                    }
+                />
+            ),
+        },
+        {
+            id: 3,
+            component: (
+                <TradeParamDefinition
+                    description={
+                        <Localize i18n_default_text="The money you earn or lose for every one-point change in an asset's price." />
                     }
                 />
             ),
@@ -114,8 +129,18 @@ const Strike = observer(({ is_minimized }: TTradeParametersProps) => {
                     <Carousel
                         classname={clsx('strike__carousel', is_small_screen && 'strike__carousel--small')}
                         header={CarouselHeader}
+                        current_index={carousel_index}
+                        setCurrentIndex={setCarouselIndex}
+                        onPreviousButtonClick={() => setCarouselIndex(0)}
                         pages={action_sheet_content}
-                        title={<Localize i18n_default_text='Strike price' />}
+                        title={
+                            // The payout-per-point explanation is the 3rd page (index 2).
+                            carousel_index === 2 ? (
+                                <Localize i18n_default_text='Payout per point' />
+                            ) : (
+                                <Localize i18n_default_text='Strike price' />
+                            )
+                        }
                     />
                 </ActionSheet.Portal>
             </ActionSheet.Root>

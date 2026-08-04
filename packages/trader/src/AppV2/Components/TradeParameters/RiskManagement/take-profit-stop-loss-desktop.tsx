@@ -453,7 +453,7 @@ const TakeProfitStopLossDesktop = observer(({ onClose, is_open }: TTakeProfitSto
             <Button
                 fullWidth
                 size='lg'
-                variant='secondary'
+                variant='primary'
                 color='black-white'
                 onClick={onSave}
                 disabled={

@@ -30,6 +30,8 @@ export type TAvailableContract = {
     for: string[];
     is_popular?: boolean;
     show_fire_icon?: boolean;
+    /** Small text badge shown next to the trade type (e.g. Multipliers' "x500"). */
+    badge?: string;
     category: 'growth_based' | 'directional' | 'digit_based';
     tooltip?: React.ReactNode;
 };
@@ -50,8 +52,11 @@ export const CONTRACT_LIST = {
     OVER_UNDER: 'Over/Under',
 };
 
+// PO-specified display order for the trade-type list. Order is flat (not category-grouped): the
+// mobile market-selector tabs render this order directly; the desktop sidebar re-groups by category
+// but honours this order within each group. Changing the array order also affects search-result
+// grouping, the Guide, and the Positions filter, which all read this list.
 export const AVAILABLE_CONTRACTS: TAvailableContract[] = [
-    // Directional
     {
         tradeType: 'Rise/Fall',
         id: CONTRACT_LIST.RISE_FALL,
@@ -61,7 +66,6 @@ export const AVAILABLE_CONTRACTS: TAvailableContract[] = [
         category: 'directional',
         tooltip: <Localize i18n_default_text='Earn when exit price is higher or lower than entry price.' />,
     },
-    // Growth Based
     {
         tradeType: 'Accumulators',
         id: CONTRACT_LIST.ACCUMULATORS,
@@ -71,45 +75,7 @@ export const AVAILABLE_CONTRACTS: TAvailableContract[] = [
         category: 'growth_based',
         tooltip: <Localize i18n_default_text='Grow your stake exponentially while price stays in range.' />,
     },
-    // Growth Based
-    {
-        tradeType: 'Multipliers',
-        id: CONTRACT_LIST.MULTIPLIERS,
-        for: [TRADE_TYPES.MULTIPLIER],
-        is_popular: true,
-        category: 'growth_based',
-        tooltip: <Localize i18n_default_text='Leveraged trading with risk controls.' />,
-    },
-    {
-        tradeType: 'Turbos',
-        id: CONTRACT_LIST.TURBOS,
-        for: [TRADE_TYPES.TURBOS.LONG, TRADE_TYPES.TURBOS.SHORT],
-        category: 'growth_based',
-        tooltip: <Localize i18n_default_text='Directional trade with barrier knockout.' />,
-    },
-    {
-        tradeType: 'Vanillas',
-        id: CONTRACT_LIST.VANILLAS,
-        for: [TRADE_TYPES.VANILLA.CALL, TRADE_TYPES.VANILLA.PUT],
-        category: 'growth_based',
-        tooltip: <Localize i18n_default_text='Earn if price ends above or below strike price.' />,
-    },
-    // Directional
-    {
-        tradeType: 'Higher/Lower',
-        id: CONTRACT_LIST.HIGHER_LOWER,
-        for: [TRADE_TYPES.HIGH_LOW],
-        category: 'directional',
-        tooltip: <Localize i18n_default_text='Earn when exit price is above or below barrier.' />,
-    },
-    {
-        tradeType: 'Touch/No Touch',
-        id: CONTRACT_LIST.TOUCH_NO_TOUCH,
-        for: [TRADE_TYPES.TOUCH],
-        category: 'directional',
-        tooltip: <Localize i18n_default_text='Earn if price touches or avoids your barrier before expiry.' />,
-    },
-    // Digit Based
+    // Digits
     {
         tradeType: 'Matches/Differs',
         id: CONTRACT_LIST.MATCHES_DIFFERS,
@@ -132,6 +98,43 @@ export const AVAILABLE_CONTRACTS: TAvailableContract[] = [
         for: [TRADE_TYPES.EVEN_ODD],
         category: 'digit_based',
         tooltip: <Localize i18n_default_text='Earn when final digit is even or odd.' />,
+    },
+    {
+        tradeType: 'Multipliers',
+        id: CONTRACT_LIST.MULTIPLIERS,
+        for: [TRADE_TYPES.MULTIPLIER],
+        is_popular: true,
+        badge: 'x500',
+        category: 'growth_based',
+        tooltip: <Localize i18n_default_text='Leveraged trading with risk controls.' />,
+    },
+    {
+        tradeType: 'Touch/No Touch',
+        id: CONTRACT_LIST.TOUCH_NO_TOUCH,
+        for: [TRADE_TYPES.TOUCH],
+        category: 'directional',
+        tooltip: <Localize i18n_default_text='Earn if price touches or avoids your barrier before expiry.' />,
+    },
+    {
+        tradeType: 'Higher/Lower',
+        id: CONTRACT_LIST.HIGHER_LOWER,
+        for: [TRADE_TYPES.HIGH_LOW],
+        category: 'directional',
+        tooltip: <Localize i18n_default_text='Earn when exit price is above or below barrier.' />,
+    },
+    {
+        tradeType: 'Turbos',
+        id: CONTRACT_LIST.TURBOS,
+        for: [TRADE_TYPES.TURBOS.LONG, TRADE_TYPES.TURBOS.SHORT],
+        category: 'growth_based',
+        tooltip: <Localize i18n_default_text='Directional trade with barrier knockout.' />,
+    },
+    {
+        tradeType: 'Vanillas',
+        id: CONTRACT_LIST.VANILLAS,
+        for: [TRADE_TYPES.VANILLA.CALL, TRADE_TYPES.VANILLA.PUT],
+        category: 'growth_based',
+        tooltip: <Localize i18n_default_text='Earn if price ends above or below strike price.' />,
     },
 ];
 
@@ -182,6 +185,17 @@ export const getCategoryLabel = (category: string): React.ReactNode => {
             return null;
     }
 };
+
+/**
+ * The available contracts in the PO display order (the AVAILABLE_CONTRACTS array order), optionally
+ * restricted to a supported set (e.g. Automate); an empty/absent set means "all". Used where a single
+ * ordered trade-type list is needed — e.g. the search results grouped by trade type. Kept as a flat
+ * pass-through (not re-grouped by category) so it honours the same order as everywhere else.
+ */
+export const getOrderedAvailableContracts = (supported_trade_types?: Set<string>): TAvailableContract[] =>
+    supported_trade_types?.size
+        ? AVAILABLE_CONTRACTS.filter(contract => contract.for.some(type => supported_trade_types.has(type)))
+        : AVAILABLE_CONTRACTS;
 
 /**
  * Returns the available contracts list, filtered by native app allowed trade types if provided.

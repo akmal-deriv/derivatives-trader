@@ -10,6 +10,7 @@ type TMaxTradeStakeProps = {
     initialValue: number | null;
     initialStake?: number;
     description?: string;
+    disabled?: boolean;
     onSave: (value: number | null) => void;
 };
 

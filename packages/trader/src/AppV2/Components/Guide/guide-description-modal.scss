@@ -97,3 +97,21 @@
         }
     }
 }
+
+// Match the market-selection category chips: the design system's bordered light-surface selected
+// state hasn't shipped in quill-ui yet, so override the default dark fill for the guide chips too
+// (both breakpoints — desktop modal and mobile action sheet). Include hover/active so a selected
+// chip doesn't flash the old dark fill on interaction.
+.guide__menu {
+    .quill-chip[data-state='selected'],
+    .quill-chip[data-state='selected']:hover,
+    .quill-chip[data-state='selected']:active {
+        background-color: var(--semantic-color-monochrome-surface-normal-lowest, rgba(0, 0, 0, 0.04));
+        border: 1px solid var(--semantic-color-slate-solid-border-inverse-lowest, #000);
+    }
+
+    // Keep the selected label readable on the light fill (overrides quill's mis-themed token).
+    .quill-chip[data-state='selected'] > p {
+        color: var(--component-textIcon-normal-prominent, #181c25);
+    }
+}

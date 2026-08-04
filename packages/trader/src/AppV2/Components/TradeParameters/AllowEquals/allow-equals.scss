@@ -1,6 +1,14 @@
-$HANDLEBAR_HEIGHT: var(--core-size-1000);
-$HEADER_TITLE_HEIGHT: var(--core-size-3200);
-$FOOTER_BUTTON_HEIGHT: var(--core-size-4000);
+// "Yes" value shows in green while Allow equals is on (minimized field).
+.allow-equals__field--active .input {
+    color: var(--semantic-color-green-solid-textIcon-normal-mid) !important;
+}
+
+// The floating <label htmlFor> is absolutely positioned over the field; tapping it focuses the
+// input programmatically, which scrolls it into view and jerks the horizontal params row. Make it
+// click-through so the tap lands on the input directly — a direct click focuses without scrolling.
+.allow-equals__minimized .label {
+    pointer-events: none;
+}
 
 .allow-equals {
     &__wrapper {
@@ -37,27 +45,6 @@ $FOOTER_BUTTON_HEIGHT: var(--core-size-4000);
             color: var(--component-textIcon-normal-disabled);
             border-bottom: var(--core-borderWidth-75) dotted var(--component-textIcon-normal-disabled);
         }
-    }
-
-    &__carousel {
-        & > .carousel__item {
-            height: 100%;
-        }
-
-        .trade-param-definition {
-            height: calc(480px - $HANDLEBAR_HEIGHT - $HEADER_TITLE_HEIGHT);
-        }
-    }
-
-    &__sheet-content {
-        height: calc(480px - $HANDLEBAR_HEIGHT - $HEADER_TITLE_HEIGHT - $FOOTER_BUTTON_HEIGHT);
-        padding: var(--component-actionSheet-spacing-padding-lg);
-    }
-
-    &__toggle-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
     }
 
     &__definition {

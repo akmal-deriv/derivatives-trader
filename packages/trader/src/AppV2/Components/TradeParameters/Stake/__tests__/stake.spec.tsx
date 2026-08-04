@@ -9,6 +9,7 @@ import TraderProviders from '../../../../../trader-providers';
 import Stake from '../stake';
 import StakeInput from '../stake-input';
 import StakeInputDesktop from '../stake-input-desktop';
+import StakeMobile from '../stake-mobile';
 
 const stake_param_label = 'Stake';
 
@@ -314,6 +315,65 @@ describe('StakeInput', () => {
         await user.type(stake_input, '4');
         expect(stake_input).toHaveValue('5.34');
     });
+
+    it('renders the stake range and all preset chips valid for the contract limits', () => {
+        renderStakeInput();
+
+        expect(screen.getByText('Range 0.35 - 50,000.00 USD')).toBeInTheDocument();
+        [1, 5, 10, 20, 50, 100].forEach(value =>
+            expect(screen.getByRole('button', { name: `Select value ${value} USD` })).toBeInTheDocument()
+        );
+    });
+
+    it('does not render preset chips below the market minimum', () => {
+        default_mock_store.modules.trade.validation_params = {
+            [CONTRACT_TYPES.CALL]: { stake: { max: '50000.00', min: '5.00' } },
+            [CONTRACT_TYPES.PUT]: { stake: { max: '50000.00', min: '5.00' } },
+        };
+        renderStakeInput();
+
+        expect(screen.queryByRole('button', { name: 'Select value 1 USD' })).not.toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Select value 5 USD' })).toBeInTheDocument();
+    });
+
+    it('fills the input without committing when a preset is tapped', async () => {
+        const user = userEvent.setup();
+        renderStakeInput();
+
+        await user.click(screen.getByRole('button', { name: 'Select value 20 USD' }));
+
+        expect(screen.getByDisplayValue('20')).toBeInTheDocument();
+        expect(default_mock_store.modules.trade.onChange).not.toHaveBeenCalled();
+    });
+
+    it('commits the tapped preset when Save is pressed', async () => {
+        const onClose = jest.fn();
+        const user = userEvent.setup();
+        render(
+            <TraderProviders store={default_mock_store}>
+                <ModulesProvider store={default_mock_store}>
+                    <StakeInput onClose={onClose} is_open />
+                </ModulesProvider>
+            </TraderProviders>
+        );
+
+        await user.click(screen.getByRole('button', { name: 'Select value 20 USD' }));
+        await user.click(screen.getByRole('button', { name: 'Save' }));
+
+        expect(default_mock_store.modules.trade.onChange).toHaveBeenCalledWith({
+            target: { name: 'amount', value: '20' },
+        });
+        expect(onClose).toHaveBeenCalled();
+    });
+
+    it('disables Save while the input is empty', async () => {
+        const user = userEvent.setup();
+        renderStakeInput();
+
+        await user.clear(screen.getByDisplayValue('10'));
+
+        expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+    });
 });
 
 describe('StakeInputDesktop', () => {
@@ -394,5 +454,76 @@ describe('StakeInputDesktop', () => {
         // Typing '4' appends a second decimal digit — this must NOT be blocked
         await user.type(stake_input, '4');
         expect(stake_input).toHaveValue('5.34');
+    });
+});
+
+describe('StakeMobile inline steppers', () => {
+    let mobile_store: ReturnType<typeof mockStore>;
+
+    beforeEach(() => {
+        mobile_store = mockStore({
+            modules: {
+                trade: {
+                    ...mockStore({}).modules.trade,
+                    amount: 10,
+                    currency: 'USD',
+                    contract_type: TRADE_TYPES.RISE_FALL,
+                    onChange: jest.fn(),
+                    trade_types: { [CONTRACT_TYPES.CALL]: 'Higher', [CONTRACT_TYPES.PUT]: 'Lower' },
+                    trade_type_tab: 'CALL',
+                    validation_params: {
+                        [CONTRACT_TYPES.CALL]: { stake: { max: '100', min: '1' } },
+                        [CONTRACT_TYPES.PUT]: { stake: { max: '100', min: '1' } },
+                    },
+                },
+            },
+        });
+    });
+
+    const renderStakeMobile = () =>
+        render(
+            <TraderProviders store={mobile_store}>
+                <ModulesProvider store={mobile_store}>
+                    <StakeMobile />
+                </ModulesProvider>
+            </TraderProviders>
+        );
+
+    it('increments and decrements the stake by 1 for fiat', async () => {
+        renderStakeMobile();
+
+        await userEvent.click(screen.getByTestId('dt_stepper_increment'));
+        expect(mobile_store.modules.trade.onChange).toHaveBeenCalledWith({ target: { name: 'amount', value: 11 } });
+
+        await userEvent.click(screen.getByTestId('dt_stepper_decrement'));
+        expect(mobile_store.modules.trade.onChange).toHaveBeenCalledWith({ target: { name: 'amount', value: 9 } });
+    });
+
+    it('disables the increment stepper at the max stake', () => {
+        mobile_store.modules.trade.amount = 100;
+        renderStakeMobile();
+
+        expect(screen.getByTestId('dt_stepper_increment')).toBeDisabled();
+        expect(screen.getByTestId('dt_stepper_decrement')).toBeEnabled();
+    });
+
+    it('keeps steppers usable when stake limits are unknown (e.g. Rise/Fall)', async () => {
+        mobile_store.modules.trade.validation_params = {};
+        renderStakeMobile();
+
+        expect(screen.getByTestId('dt_stepper_increment')).toBeEnabled();
+        expect(screen.getByTestId('dt_stepper_decrement')).toBeEnabled();
+
+        await userEvent.click(screen.getByTestId('dt_stepper_increment'));
+        expect(mobile_store.modules.trade.onChange).toHaveBeenCalledWith({ target: { name: 'amount', value: 11 } });
+    });
+
+    it('disables the decrement stepper when the next step would reach zero', () => {
+        mobile_store.modules.trade.validation_params = {};
+        mobile_store.modules.trade.amount = 1;
+        renderStakeMobile();
+
+        expect(screen.getByTestId('dt_stepper_decrement')).toBeDisabled();
+        expect(screen.getByTestId('dt_stepper_increment')).toBeEnabled();
     });
 });

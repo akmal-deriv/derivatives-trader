@@ -52,7 +52,7 @@ const useRunControls = ({ onRunStarted }: TUseRunControlsOptions = {}) => {
         ui: { is_switching_account },
     } = useStore();
     const automation_store = useAutomationStore();
-    const { config, can_start, is_recovering } = automation_store;
+    const { config, is_active, is_recovering } = automation_store;
     const { isMobile } = useDevice();
 
     const { startRun, isStarting, error: start_error } = useAutoStart();
@@ -85,6 +85,7 @@ const useRunControls = ({ onRunStarted }: TUseRunControlsOptions = {}) => {
     }, [start_error, automation_store, setServicesError]);
 
     const handleRunClick = async () => {
+        if (trade_store.is_automation_params_locked) return;
         if (!is_logged_in) {
             setServicesError({ code: 'AuthorizationRequired', message: '', type: 'buy' }, false);
             return;
@@ -103,7 +104,7 @@ const useRunControls = ({ onRunStarted }: TUseRunControlsOptions = {}) => {
             return;
         }
 
-        if (!can_start) return;
+        if (is_active) return;
 
         // Snapshot the run config at click time so the same payload backs both the
         // "Run pressed" event and the later "Session started" event (fired after the
@@ -256,6 +257,8 @@ const useRunControls = ({ onRunStarted }: TUseRunControlsOptions = {}) => {
                 isOpen(contract_info)
         );
 
+    const { is_automation_params_locked } = trade_store;
+
     return {
         handleRunClick,
         handleStopClick,
@@ -263,7 +266,9 @@ const useRunControls = ({ onRunStarted }: TUseRunControlsOptions = {}) => {
         handleResumeClick,
         isStarting,
         is_busy,
-        is_run_disabled: is_logged_in && (is_busy || has_blocking_proposal_error || has_open_accu_contract),
+        is_run_disabled:
+            is_automation_params_locked ||
+            (is_logged_in && (is_busy || has_blocking_proposal_error || has_open_accu_contract)),
     };
 };
 

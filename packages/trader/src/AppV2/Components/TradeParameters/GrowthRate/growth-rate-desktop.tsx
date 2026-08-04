@@ -12,8 +12,14 @@ import { TTradeParametersProps } from '../trade-parameters';
 import '../Shared/selection-list-popover.scss';
 
 const GrowthRateDesktop = observer(({ is_minimized }: TTradeParametersProps) => {
-    const { accumulator_range_list, growth_rate, has_open_accu_contract, is_market_closed, onChange } =
-        useTraderStore();
+    const {
+        accumulator_range_list,
+        growth_rate,
+        has_open_accu_contract,
+        is_automation_params_locked,
+        is_market_closed,
+        onChange,
+    } = useTraderStore();
 
     const growth_rate_options = useMemo(
         () =>
@@ -38,6 +44,7 @@ const GrowthRateDesktop = observer(({ is_minimized }: TTradeParametersProps) => 
             value={`${getGrowthRatePercentage(growth_rate)}%`}
             is_minimized={is_minimized}
             disabled={has_open_accu_contract || is_market_closed}
+            is_locked={is_automation_params_locked}
             popover_classname='selection-list-popover'
             description={
                 <Localize i18n_default_text='The growth rate determines the rate at which your stake will grow with each successful tick.' />

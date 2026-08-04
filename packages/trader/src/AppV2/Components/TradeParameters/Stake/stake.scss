@@ -1,32 +1,67 @@
+// Match the pill radius of the redesigned Duration footer button
+.stake-container .quill-action-sheet--footer button {
+    border-radius: 10rem !important;
+}
+
+// The stake sheet is a carousel: the stake input on page 0, and the Stop out / Commission
+// explanations as pages navigated to by tapping their labels (mirrors the Turbos Payout-per-point
+// sheet). Each page fills the sheet so switching between them doesn't resize it.
+.stake__carousel {
+    flex: 1;
+    min-height: 0;
+
+    & > .carousel__item {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+
+    .trade-param-definition {
+        padding: 0 var(--component-actionSheet-spacing-padding-md);
+    }
+}
+
+.stake-container .quill-action-sheet--title-text {
+    font-size: var(--core-fontSize-300);
+}
+
 .stake-container {
     min-height: 37rem;
     display: flex;
     flex-direction: column;
 
-    &__tab-selector {
-        padding: 0 var(--core-spacing-800);
-        margin-bottom: var(--core-spacing-600);
-    }
-
     .value-chips {
-        padding: 0 var(--core-spacing-800);
-
         &__grid {
             grid-template-columns: repeat(3, 1fr);
         }
 
         &__chip {
             height: 4.8rem;
+            background: transparent;
+            border: 1px solid var(--semantic-color-monochrome-border-normal-mid);
+            border-radius: 10rem;
+
+            &--selected {
+                background: var(--component-chip-bg-selected);
+                border-color: var(--component-chip-bg-selected);
+                color: var(--semantic-color-slate-solid-surface-frame-low);
+            }
         }
+    }
+
+    // Mobile sheet only: pin the payout details above the footer (desktop shares the class)
+    .stake-content__details {
+        margin-top: auto;
+        padding-top: var(--core-spacing-800);
     }
 }
 
 .stake-content {
-    height: 23.6rem;
+    flex: 1;
     padding: 0 var(--component-actionSheet-spacing-padding-md);
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
+    gap: var(--core-spacing-800);
 
     &__details {
         display: flex;
@@ -46,5 +81,16 @@
                 }
             }
         }
+    }
+
+    // Interactive breakdown label (Stop out, Commission): dotted underline hints it opens an
+    // explanation page within the stake sheet (tap) / a hover tooltip on desktop.
+    &__info-label {
+        color: var(--component-textIcon-normal-subtle);
+        text-decoration: underline;
+        text-decoration-style: dotted;
+        text-decoration-color: var(--component-textIcon-normal-prominent);
+        text-underline-offset: 0.4rem;
+        cursor: pointer;
     }
 }

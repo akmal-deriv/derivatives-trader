@@ -7,11 +7,14 @@ import { TextField } from '@deriv-com/quill-ui';
 
 import { InputPopover } from 'AppV2/Components/InputPopover';
 
+import AutomationLockOverlay from './AutomationLockOverlay';
+
 type TTradeParameterPopoverProps = {
     label: React.ReactNode;
     value: string;
     is_minimized?: boolean;
     disabled?: boolean;
+    is_locked?: boolean;
     has_error?: boolean;
     popover_classname: string;
     popoverWidth?: number;
@@ -41,6 +44,7 @@ const TradeParameterPopover = ({
     value,
     is_minimized,
     disabled,
+    is_locked,
     has_error,
     popover_classname,
     popoverWidth,
@@ -71,9 +75,15 @@ const TradeParameterPopover = ({
 
     return (
         <React.Fragment>
-            <div ref={field_ref} className={clsx(description && 'trade-params__field-with-info')}>
+            <div
+                ref={field_ref}
+                className={clsx(
+                    description && 'trade-params__field-with-info',
+                    is_locked && 'trade-params__field-locked'
+                )}
+            >
                 <TextField
-                    disabled={disabled}
+                    disabled={disabled || is_locked}
                     variant='fill'
                     readOnly
                     label={label}
@@ -83,6 +93,7 @@ const TradeParameterPopover = ({
                     className={clsx('trade-params__option', is_minimized && 'trade-params__option--minimized')}
                     status={has_error ? 'error' : 'neutral'}
                 />
+                {is_locked && <AutomationLockOverlay />}
                 {description && (
                     <div className='trade-params__info-icon-wrapper'>
                         <TooltipPortal

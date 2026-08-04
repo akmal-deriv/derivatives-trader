@@ -4,12 +4,12 @@ import { LabelPairedChevronRightSmRegularIcon } from '@deriv/quill-icons';
 import { trackAnalyticsEvent } from '@deriv/shared';
 import { observer, useStore } from '@deriv/stores';
 import { Button, Text } from '@deriv-com/quill-ui';
-import { Localize } from '@deriv-com/translations';
+import { Localize, localize } from '@deriv-com/translations';
 import { useDevice } from '@deriv-com/ui';
 
 import useAvailableContracts from 'AppV2/Hooks/useAvailableContracts';
 import useGuideContractTypes from 'AppV2/Hooks/useGuideContractTypes';
-import { CONTRACT_LIST } from 'AppV2/Utils/trade-types-utils';
+import { AVAILABLE_CONTRACTS, TAvailableContract } from 'AppV2/Utils/trade-types-utils';
 import ImageGuide from 'Assets/SvgComponents/trade_explanations/img-guide.svg';
 import { useTraderStore } from 'Stores/useTraderStores';
 
@@ -24,6 +24,13 @@ type TGuide = {
     show_trigger_button?: boolean;
     show_description_in_a_modal?: boolean;
     show_all_trade_types_in_guide?: boolean;
+    force_compact_trigger?: boolean;
+    /** Force which trade type the guide opens on (e.g. the market selector's selected type), instead
+     * of deriving it from the store's current contract_type. */
+    guide_contract_type?: string;
+    /** Override the trade types shown as chips (e.g. the market selector's own list), instead of the
+     * ones derived from the store's current symbol. */
+    guide_contract_types?: TAvailableContract[];
 };
 
 const Guide = observer(
@@ -33,6 +40,9 @@ const Guide = observer(
         show_trigger_button = true,
         show_description_in_a_modal = true,
         show_all_trade_types_in_guide,
+        force_compact_trigger,
+        guide_contract_type,
+        guide_contract_types,
     }: TGuide) => {
         const {
             ui: { is_dark_mode_on },
@@ -40,28 +50,26 @@ const Guide = observer(
         } = useStore();
         const { contract_type } = useTraderStore();
         const { isMobile } = useDevice();
+        const show_compact_trigger = isMobile || force_compact_trigger;
         const available_contracts = useAvailableContracts();
-        const contract_type_title = available_contracts.find(item => item.for.includes(contract_type))?.id ?? '';
+        const contract_type_title =
+            guide_contract_type ?? available_contracts.find(item => item.for.includes(contract_type))?.id ?? '';
         const { trade_types } = useGuideContractTypes();
-        const order = [
-            CONTRACT_LIST.RISE_FALL,
-            CONTRACT_LIST.ACCUMULATORS,
-            CONTRACT_LIST.MULTIPLIERS,
-            CONTRACT_LIST.VANILLAS,
-            CONTRACT_LIST.TURBOS,
-            CONTRACT_LIST.HIGHER_LOWER,
-            CONTRACT_LIST.TOUCH_NO_TOUCH,
-            CONTRACT_LIST.MATCHES_DIFFERS,
-            CONTRACT_LIST.EVEN_ODD,
-            CONTRACT_LIST.OVER_UNDER,
-        ];
 
-        const filtered_contract_list = available_contracts.filter(contract =>
-            trade_types.some((trade: { text?: string }) => trade.text === contract.id)
-        );
+        const filtered_contract_list =
+            guide_contract_types ??
+            (show_all_trade_types_in_guide
+                ? available_contracts
+                : available_contracts.filter(contract =>
+                      trade_types.some((trade: { text?: string }) => trade.text === contract.id)
+                  ));
 
+        // Follow the single trade-type display order (AVAILABLE_CONTRACTS) so the Guide stays in sync
+        // with the market-selector tabs, sidebar, and search rather than defining its own order.
         const ordered_contract_list = [...filtered_contract_list].sort(
-            (a, b) => order.findIndex(item => item === a.id) - order.findIndex(item => item === b.id)
+            (a, b) =>
+                AVAILABLE_CONTRACTS.findIndex(item => item.id === a.id) -
+                AVAILABLE_CONTRACTS.findIndex(item => item.id === b.id)
         );
 
         const [is_description_opened, setIsDescriptionOpened] = React.useState(is_open_by_default);
@@ -84,10 +92,11 @@ const Guide = observer(
         return (
             <React.Fragment>
                 {show_trigger_button &&
-                    (isMobile ? (
+                    (show_compact_trigger ? (
                         <Button
                             color={is_dark_mode_on ? 'white' : 'black'}
                             className='trade__guide'
+                            aria-label={localize('Guide')}
                             onClick={() => {
                                 trackAnalyticsEvent('ce_trade_types_form_v2', {
                                     action: 'info_open',

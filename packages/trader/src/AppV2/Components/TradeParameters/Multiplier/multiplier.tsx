@@ -14,6 +14,7 @@ import { useTraderStore } from 'Stores/useTraderStores';
 
 import { TTradeParametersProps } from '../trade-parameters';
 
+import CommissionDescription from './commission-description';
 import MultiplierDesktop from './multiplier-desktop';
 import MultiplierWheelPicker from './multiplier-wheel-picker';
 
@@ -22,6 +23,7 @@ const Multiplier = observer(({ is_minimized }: TTradeParametersProps) => {
         useTraderStore();
 
     const [isOpen, setIsOpen] = useState(false);
+    const [carousel_index, setCarouselIndex] = useState(0);
     const is_mobile = isMobile();
     const is_small_screen_device = isSmallScreen();
     const classname = clsx('trade-params__option', is_minimized && 'trade-params__option--minimized');
@@ -30,7 +32,10 @@ const Multiplier = observer(({ is_minimized }: TTradeParametersProps) => {
         onChange({ target: { name: 'multiplier', value: multiplier } });
     };
 
-    const onClose = React.useCallback(() => setIsOpen(false), []);
+    const onClose = React.useCallback(() => {
+        setCarouselIndex(0);
+        setIsOpen(false);
+    }, []);
 
     const action_sheet_content = [
         {
@@ -43,6 +48,7 @@ const Multiplier = observer(({ is_minimized }: TTradeParametersProps) => {
                     currency={currency}
                     commission={commission}
                     setMultiplier={handleMultiplierChange}
+                    onDetailClick={setCarouselIndex}
                 />
             ),
         },
@@ -52,6 +58,22 @@ const Multiplier = observer(({ is_minimized }: TTradeParametersProps) => {
                 <TradeParamDefinition
                     description={
                         <Localize i18n_default_text='Multipliers amplify your potential profit if the market moves in your favour, with losses limited to your initial capital.' />
+                    }
+                />
+            ),
+        },
+        {
+            id: 3,
+            component: (
+                <TradeParamDefinition
+                    is_custom_description
+                    description={
+                        <CommissionDescription
+                            commission={commission}
+                            multiplier={multiplier}
+                            amount={amount}
+                            currency={currency}
+                        />
                     }
                 />
             ),
@@ -98,8 +120,18 @@ const Multiplier = observer(({ is_minimized }: TTradeParametersProps) => {
                             is_small_screen_device && 'multiplier__carousel--small'
                         )}
                         header={CarouselHeader}
+                        current_index={carousel_index}
+                        setCurrentIndex={setCarouselIndex}
+                        onPreviousButtonClick={() => setCarouselIndex(0)}
                         pages={action_sheet_content}
-                        title={<Localize i18n_default_text='Multiplier' />}
+                        title={
+                            // The commission explanation is the 3rd page (index 2); title it accordingly.
+                            carousel_index === 2 ? (
+                                <Localize i18n_default_text='Commission' />
+                            ) : (
+                                <Localize i18n_default_text='Multiplier' />
+                            )
+                        }
                     />
                 </ActionSheet.Portal>
             </ActionSheet.Root>

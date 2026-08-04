@@ -5,7 +5,7 @@
     height: $HEADER_HEIGHT;
     width: 100%;
     top: 0;
-    transition: opacity 0.3s;
+    transition: opacity 0.3s ease-in-out;
     backface-visibility: hidden;
     background-color: var(--color-surface-primary);
     border-bottom: 1px solid var(--color-surface-border);
@@ -20,6 +20,13 @@
     }
     &--is-hidden {
         display: none;
+    }
+    // Mobile chart-maximize: cross-fade to the compact header, which overlays the
+    // same fixed 56px slot. Fading in place (no transform) keeps the header slot's
+    // height constant so the market strip below never shifts during the transition.
+    &--chart-maximized {
+        opacity: 0;
+        pointer-events: none;
     }
 
     &__menu-mobile-whatsapp {

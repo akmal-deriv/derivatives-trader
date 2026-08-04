@@ -47,12 +47,12 @@
         position: unset;
         bottom: unset;
         right: unset;
+        height: 5.6rem;
         z-index: unset;
         border: unset;
         border-radius: unset;
         background: var(--semantic-color-slate-solid-surface-frame-low);
         padding: var(--core-spacing-400);
-        margin-top: calc(var(--core-spacing-600) * -1);
         border-bottom-left-radius: var(--core-borderRadius-400);
         border-bottom-right-radius: var(--core-borderRadius-400);
     }

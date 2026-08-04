@@ -1,86 +1,114 @@
 import React from 'react';
-import { CallBackProps, Step } from 'react-joyride';
+import { CallBackProps } from 'react-joyride';
 
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import GuideContainer from '../guide-container';
+import { TOnboardingStep } from '../steps-config';
 
 const mockJoyride = jest.fn();
 
 jest.mock('react-joyride', () => ({
     __esModule: true,
-    default: (props: { callback: (data: CallBackProps) => void; steps: Step[]; run: boolean }) => {
+    default: (props: { callback: (data: CallBackProps) => void; steps: unknown[]; run: boolean }) => {
         mockJoyride(props);
         return (
             <div>
                 <p>Joyride</p>
-                <button onClick={() => props.callback({ status: 'finished' } as CallBackProps)} />
+                <button onClick={() => props.callback({ status: 'finished' } as CallBackProps)}>finish</button>
+                <button onClick={() => props.callback({ status: 'skipped' } as CallBackProps)}>skip</button>
             </div>
         );
     },
     STATUS: { SKIPPED: 'skipped', FINISHED: 'finished' },
 }));
 
-const mock_props = {
-    should_run: true,
-    onFinishGuide: jest.fn(),
-};
+jest.mock('@deriv-com/ui', () => ({ useDevice: () => ({ isMobile: false }) }));
+
+const mockSetMarketSelectorOpen = jest.fn();
+const mockSetActiveTradePanelTab = jest.fn();
+jest.mock('Stores/useTraderStores', () => ({
+    useTraderStore: () => ({
+        setMarketSelectorOpen: mockSetMarketSelectorOpen,
+        setActiveTradePanelTab: mockSetActiveTradePanelTab,
+    }),
+}));
+
+// Controlled steps so the filter behaviour is deterministic.
+const mock_steps: TOnboardingStep[] = [];
+jest.mock('../steps-config', () => ({
+    __esModule: true,
+    default: () => mock_steps,
+}));
+
+const mock_props = { should_run: true, onFinishGuide: jest.fn() };
 
 describe('GuideContainer', () => {
     beforeEach(() => {
         mockJoyride.mockClear();
         mock_props.onFinishGuide.mockClear();
+        mockSetMarketSelectorOpen.mockClear();
         document.body.innerHTML = '';
+        mock_steps.length = 0;
     });
 
-    it('should render component', () => {
-        render(<GuideContainer {...mock_props} />);
+    it('renders Joyride', () => {
+        mock_steps.push({ target: '.present', content: 'x' });
+        const el = document.createElement('div');
+        el.className = 'present';
+        document.body.appendChild(el);
 
+        render(<GuideContainer {...mock_props} />);
         expect(screen.getByText('Joyride')).toBeInTheDocument();
     });
 
-    it('should call onFinishGuide inside of callbackHandle if passed status is equal to "skipped" or "finished"', async () => {
-        render(<GuideContainer {...mock_props} />);
-        await userEvent.click(screen.getByRole('button'));
+    it('calls onFinishGuide (and closes the selector) on a finished status', async () => {
+        mock_steps.push({ target: '.present', content: 'x' });
+        document.body.appendChild(Object.assign(document.createElement('div'), { className: 'present' }));
 
-        expect(mock_props.onFinishGuide).toBeCalled();
+        render(<GuideContainer {...mock_props} />);
+        await userEvent.click(screen.getByText('finish'));
+
+        expect(mock_props.onFinishGuide).toHaveBeenCalled();
+        expect(mockSetMarketSelectorOpen).toHaveBeenLastCalledWith(false);
     });
 
-    it('should skip steps whose target is not present in the DOM and start from the first available step', () => {
-        const custom_steps: Step[] = [
-            { target: '.missing-first-target', content: 'first' },
-            { target: '.present-second-target', content: 'second' },
-            { target: '.present-third-target', content: 'third' },
-        ];
+    it('calls onFinishGuide (and closes the selector) when the tour is skipped/closed', async () => {
+        mock_steps.push({ target: '.present', content: 'x' });
+        document.body.appendChild(Object.assign(document.createElement('div'), { className: 'present' }));
 
-        const second = document.createElement('div');
-        second.className = 'present-second-target';
-        document.body.appendChild(second);
-        const third = document.createElement('div');
-        third.className = 'present-third-target';
-        document.body.appendChild(third);
+        render(<GuideContainer {...mock_props} />);
+        await userEvent.click(screen.getByText('skip'));
 
-        render(<GuideContainer {...mock_props} custom_steps={custom_steps} />);
+        expect(mock_props.onFinishGuide).toHaveBeenCalled();
+        expect(mockSetMarketSelectorOpen).toHaveBeenLastCalledWith(false);
+    });
+
+    it('keeps steps whose target is present or that create their own anchor (prepare hook); drops missing ones', () => {
+        mock_steps.push(
+            { target: '.missing', content: 'a', prepare: jest.fn() }, // kept: creates its own anchor
+            { target: '.present', content: 'b' }, // kept: in DOM
+            { target: '.missing-2', content: 'c' } // dropped
+        );
+        document.body.appendChild(Object.assign(document.createElement('div'), { className: 'present' }));
+
+        render(<GuideContainer {...mock_props} />);
 
         const last_call = mockJoyride.mock.calls.at(-1)?.[0];
         expect(last_call.steps).toHaveLength(2);
-        expect(last_call.steps[0].target).toBe('.present-second-target');
         expect(last_call.run).toBe(true);
-        expect(mock_props.onFinishGuide).not.toBeCalled();
+        expect(mock_props.onFinishGuide).not.toHaveBeenCalled();
     });
 
-    it('should finish the guide immediately when no step targets are present in the DOM', () => {
-        const custom_steps: Step[] = [
-            { target: '.missing-1', content: 'one' },
-            { target: '.missing-2', content: 'two' },
-        ];
+    it('finishes immediately when no step targets are present and none open their own anchor', () => {
+        mock_steps.push({ target: '.missing-1', content: 'one' }, { target: '.missing-2', content: 'two' });
 
-        render(<GuideContainer {...mock_props} custom_steps={custom_steps} />);
+        render(<GuideContainer {...mock_props} />);
 
         const last_call = mockJoyride.mock.calls.at(-1)?.[0];
         expect(last_call.steps).toHaveLength(0);
         expect(last_call.run).toBe(false);
-        expect(mock_props.onFinishGuide).toBeCalled();
+        expect(mock_props.onFinishGuide).toHaveBeenCalled();
     });
 });

@@ -11,6 +11,7 @@ type TStakeMultiplierProps = {
     strategy: TAutomationConfig['strategy'];
     selectedValue: number;
     description?: string;
+    disabled?: boolean;
     onSelect: (value: number) => void;
 };
 

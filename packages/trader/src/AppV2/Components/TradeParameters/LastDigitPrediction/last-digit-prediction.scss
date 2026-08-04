@@ -1,3 +1,8 @@
+// Pill-shaped footer (Save) button, matching the Stake/Duration sheets.
+.last-digit-prediction__footer button {
+    border-radius: 10rem !important;
+}
+
 .last-digit-prediction {
     display: flex;
     flex-direction: column;

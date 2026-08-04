@@ -41,6 +41,16 @@ export default class UIStore extends BaseStore {
     is_chart_countdown_visible = false;
     is_chart_layout_default = true;
 
+    // Mobile (AppV2) chart maximize mode: hides the header/market strip/bottom-nav so the
+    // chart grows while trade params stay visible. Session-only (not persisted) — resets on
+    // reload and on leaving the trade page. Read across packages (core shell + trader page).
+    is_chart_maximized = false;
+
+    // True only during the ~300ms maximize/minimize transition. Gates the chart container's
+    // height transition so it animates in lockstep with the collapsing chrome on toggle, but
+    // NOT on unrelated height changes (trade-type switches, viewport/keyboard resize).
+    is_chart_maximize_animating = false;
+
     // PWA event and config
     pwa_prompt_event = null;
 
@@ -197,6 +207,8 @@ export default class UIStore extends BaseStore {
             sub_section_index: observable,
             is_chart_countdown_visible: observable,
             is_chart_layout_default: observable,
+            is_chart_maximized: observable,
+            is_chart_maximize_animating: observable,
             pwa_prompt_event: observable,
             screen_width: observable,
             screen_height: observable,
@@ -304,6 +316,9 @@ export default class UIStore extends BaseStore {
             setAppContentsScrollRef: action.bound,
             setChartCountdown: action.bound,
             setChartLayout: action.bound,
+            setIsChartMaximized: action.bound,
+            setChartMaximizeAnimating: action.bound,
+            toggleChartMaximized: action.bound,
             setCurrentFocus: action.bound,
             setDarkMode: action.bound,
             setHashedValue: action.bound,
@@ -498,6 +513,21 @@ export default class UIStore extends BaseStore {
 
     setChartCountdown(is_visible) {
         this.is_chart_countdown_visible = is_visible;
+    }
+
+    setIsChartMaximized(is_maximized) {
+        this.is_chart_maximized = is_maximized;
+    }
+
+    setChartMaximizeAnimating(is_animating) {
+        this.is_chart_maximize_animating = is_animating;
+    }
+
+    toggleChartMaximized() {
+        // Flag the transition window synchronously with the toggle so the chart container's
+        // height transition is armed on the same render the height changes (both directions).
+        this.is_chart_maximize_animating = true;
+        this.is_chart_maximized = !this.is_chart_maximized;
     }
 
     // @action.bound

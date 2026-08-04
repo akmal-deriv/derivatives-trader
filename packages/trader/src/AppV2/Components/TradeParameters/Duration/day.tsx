@@ -1,7 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 
 import { useInvalidateQuery } from '@deriv/api';
-import { LabelPairedCalendarSmRegularIcon, LabelPairedClockThreeSmRegularIcon } from '@deriv/quill-icons';
+import {
+    LabelPairedCalendarSmRegularIcon,
+    LabelPairedChevronDownMdRegularIcon,
+    LabelPairedClockThreeSmRegularIcon,
+} from '@deriv/quill-icons';
 import { hasIntradayDurationUnit, mapErrorMessage, setTime, toMoment } from '@deriv/shared';
 import { useStore } from '@deriv/stores';
 import { ActionSheet, Text, TextField, useSnackbar } from '@deriv-com/quill-ui';
@@ -235,19 +239,20 @@ const DayInput = ({
                 readOnly
                 name='date'
                 data-testid='dt_date_input'
-                textAlignment='center'
+                textAlignment='left'
                 value={formatted_date}
                 disabled={duration_units_list.filter(item => item.value === 'd').length === 0}
                 onClick={() => {
                     setOpen(true);
                 }}
                 leftIcon={<LabelPairedCalendarSmRegularIcon width={24} height={24} fill='var(--color-text-primary)' />}
+                rightIcon={<LabelPairedChevronDownMdRegularIcon fill='var(--color-text-primary)' />}
             />
 
             <TextField
                 variant='fill'
                 readOnly
-                textAlignment='center'
+                textAlignment='left'
                 name='time'
                 value={`${browsing_expiry_time || '23:59:59'} GMT`}
                 disabled={!is_24_hours_contract}
@@ -257,6 +262,7 @@ const DayInput = ({
                 leftIcon={
                     <LabelPairedClockThreeSmRegularIcon width={24} height={24} fill='var(--color-text-primary)' />
                 }
+                rightIcon={<LabelPairedChevronDownMdRegularIcon fill='var(--color-text-primary)' />}
             />
 
             <div className='duration-container__days-input__expiry'>
@@ -308,6 +314,7 @@ const DayInput = ({
                     )}
                     <ActionSheet.Footer
                         alignment='vertical'
+                        className='duration-container__footer'
                         shouldCloseOnPrimaryButtonClick={false}
                         isPrimaryButtonDisabled={is_disabled}
                         primaryAction={{

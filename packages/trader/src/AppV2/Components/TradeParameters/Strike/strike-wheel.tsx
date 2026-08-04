@@ -2,10 +2,14 @@ import React from 'react';
 import debounce from 'lodash.debounce';
 
 import { Skeleton } from '@deriv/components';
-import { Localize } from '@deriv-com/translations';
+import { clickAndKeyEventHandler } from '@deriv/shared';
 import { ActionSheet, Text, WheelPicker } from '@deriv-com/quill-ui';
+import { Localize } from '@deriv-com/translations';
 
 import type { TV2ParamsInitialValues } from 'Stores/Modules/Trading/trade-store';
+
+// Carousel page index of the payout-per-point explanation (see Strike's action_sheet_content).
+const PAYOUT_PER_POINT_PAGE = 2;
 
 type TStrikeWheelProps = {
     current_strike: string;
@@ -16,6 +20,8 @@ type TStrikeWheelProps = {
         value: string;
     }[];
     setV2ParamsInitialValues: ({ value, name }: { value: number | string; name: keyof TV2ParamsInitialValues }) => void;
+    /** Opens the payout-per-point explanation as a page within the strike sheet. */
+    onDetailClick?: (page_index: number) => void;
 };
 
 const onWheelPickerScrollDebounced = debounce(
@@ -30,9 +36,13 @@ const StrikeWheel = ({
     payout_per_point,
     strike_price_list,
     setV2ParamsInitialValues,
+    onDetailClick,
 }: TStrikeWheelProps) => {
     const initial_value_ref = React.useRef<string | number>();
     const selected_value_ref = React.useRef<string | number>(current_strike);
+
+    const openPayoutPerPointInfo = (e?: React.MouseEvent<HTMLElement> | React.KeyboardEvent<HTMLElement>) =>
+        clickAndKeyEventHandler(() => onDetailClick?.(PAYOUT_PER_POINT_PAGE), e);
 
     const onSave = () => {
         initial_value_ref.current = selected_value_ref.current;
@@ -68,9 +78,15 @@ const StrikeWheel = ({
                         }}
                     />
                 </div>
-                <div className='strike__payout'>
-                    <Text color='quill-typography__color--subtle' size='sm'>
-                        <Localize i18n_default_text='Payout per point:' />
+                <div
+                    className='strike__payout'
+                    role='button'
+                    tabIndex={0}
+                    onClick={openPayoutPerPointInfo}
+                    onKeyDown={openPayoutPerPointInfo}
+                >
+                    <Text color='quill-typography__color--subtle' size='sm' className='strike__payout__label'>
+                        <Localize i18n_default_text='Payout per point' />
                     </Text>
                     <Text size='sm' as='div' className='strike__payout__content'>
                         {payout_per_point ? (

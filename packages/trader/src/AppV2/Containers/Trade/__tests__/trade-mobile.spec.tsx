@@ -6,7 +6,7 @@ import { ReportsStoreProvider } from '@deriv/reports/src/Stores/useReportsStores
 import { mockStore } from '@deriv/stores';
 import { act, render, screen } from '@testing-library/react';
 
-import MarketSelector from 'AppV2/Components/MarketSelector';
+import MarketTabs from 'AppV2/Components/MarketTabs';
 import ModulesProvider from 'Stores/Providers/modules-providers';
 
 import TraderProviders from '../../../../trader-providers';
@@ -55,9 +55,7 @@ jest.mock('AppV2/Components/AccumulatorStats', () =>
     jest.fn(() => <div data-testid='accumulator-stats'>AccumulatorStats</div>)
 );
 jest.mock('AppV2/Components/CurrentSpot', () => jest.fn(() => <div data-testid='current-spot'>CurrentSpot</div>));
-jest.mock('AppV2/Components/MarketSelector', () =>
-    jest.fn(() => <div data-testid='market-selector'>MarketSelector</div>)
-);
+jest.mock('AppV2/Components/MarketTabs', () => jest.fn(() => <div data-testid='market-tabs'>MarketTabs</div>));
 jest.mock('AppV2/Components/OnboardingGuide/GuideForPages', () =>
     jest.fn(() => <div data-testid='onboarding-guide'>OnboardingGuide</div>)
 );
@@ -79,7 +77,6 @@ jest.mock('AppV2/Components/TradeParameters', () => ({
 jest.mock('../../Chart', () => ({
     TradeChart: jest.fn(() => <div data-testid='trade-chart'>TradeChart</div>),
 }));
-jest.mock('../trade-types', () => jest.fn(() => <div data-testid='trade-types'>TradeTypes</div>));
 
 // Mock layout utils
 jest.mock('AppV2/Utils/layout-utils', () => ({
@@ -279,8 +276,7 @@ describe('Trade', () => {
         it('should render all main trading components when data is loaded', () => {
             renderTrade();
 
-            expect(screen.getByTestId('trade-types')).toBeInTheDocument();
-            expect(screen.getByTestId('market-selector')).toBeInTheDocument();
+            expect(screen.getByTestId('market-tabs')).toBeInTheDocument();
             expect(screen.getByTestId('trade-params-container')).toBeInTheDocument();
             expect(screen.getByTestId('trade-parameters')).toBeInTheDocument();
             expect(screen.getByTestId('trade-chart')).toBeInTheDocument();
@@ -392,8 +388,8 @@ describe('Trade', () => {
             expect(screen.queryByTestId('onboarding-guide')).not.toBeInTheDocument();
 
             // Simulate the user closing the market selector.
-            const { onOpenChange } = (MarketSelector as unknown as jest.Mock).mock.calls.at(-1)[0];
-            act(() => onOpenChange(false));
+            const { onSelectorOpenChange } = (MarketTabs as unknown as jest.Mock).mock.calls.at(-1)[0];
+            act(() => onSelectorOpenChange(false));
 
             expect(screen.getByTestId('onboarding-guide')).toBeInTheDocument();
 

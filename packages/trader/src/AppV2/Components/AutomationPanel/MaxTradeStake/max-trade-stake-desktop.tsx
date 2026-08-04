@@ -12,6 +12,7 @@ type TMaxTradeStakeDesktopProps = {
     initialValue: number | null;
     initialStake?: number;
     description?: string;
+    disabled?: boolean;
     onSave: (value: number | null) => void;
 };
 
@@ -99,7 +100,7 @@ const MaxTradeStakeContent = ({ currency, initialValue, initialStake, onSave }: 
             <Button
                 fullWidth
                 size='lg'
-                variant='secondary'
+                variant='primary'
                 color='black-white'
                 onClick={handleSave}
                 disabled={is_enabled && (!!error || !value)}
@@ -115,6 +116,7 @@ const MaxTradeStakeDesktop = ({
     initialValue,
     initialStake,
     description,
+    disabled,
     onSave,
 }: TMaxTradeStakeDesktopProps) => {
     const display_currency = getCurrencyDisplayCode(currency);
@@ -124,6 +126,7 @@ const MaxTradeStakeDesktop = ({
             label={<Localize i18n_default_text='Max. stake' />}
             value={initialValue ? `${initialValue} ${display_currency}` : '-'}
             popover_classname='automation-popover'
+            is_locked={disabled}
             description={
                 <Text size='sm'>
                     {description || (

@@ -32,3 +32,4 @@ export * from './utils/error-mapping';
 export { default as cacheTrackEvents } from './utils/analytics/analytics';
 export * from './utils/analytics/analytics-utils';
 export * from './utils/analytics/automation-analytics';
+export * from './utils/analytics/redesign-analytics';

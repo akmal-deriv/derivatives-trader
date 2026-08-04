@@ -7,6 +7,7 @@ import RiskManagementPicker from '../risk-management-picker';
 
 jest.mock('../deal-cancellation', () => jest.fn(() => <div>Page content 2</div>));
 jest.mock('../take-profit-and-stop-loss-container', () => jest.fn(() => <div>Page content 1</div>));
+jest.mock('../risk-management-info', () => jest.fn(() => null));
 
 const mock_props = {
     closeActionSheet: jest.fn(),

@@ -1,6 +1,6 @@
 .guide-tooltip {
     &__wrapper {
-        background-color: var(--component-textIcon-normal-prominent);
+        background-color: var(--core-color-solid-slate-1200);
         border-radius: var(--core-borderRadius-400);
         padding: var(--core-size-800);
         display: flex;
@@ -8,14 +8,20 @@
         flex-direction: column;
         align-items: flex-start;
         min-width: var(--core-size-4300);
-        // Keep the tooltip within the viewport with side margins. Without this it relies on
-        // react-floater's `max-width: 100%` (full viewport width); long translated content
-        // (e.g. Spanish) then fills the whole screen with zero margin and Popper's
-        // preventOverflow shifts it to a negative left offset, clipping the left edge.
+        // Cap the width so long translated copy can't fill the viewport (react-floater defaults to
+        // max-width: 100%), which Popper's preventOverflow would then shift off the left edge.
         max-width: min(calc(100vw - 2 * var(--core-spacing-800)), 380px);
         box-sizing: border-box;
         overflow-wrap: break-word;
         transition: transform 0.5s ease-in;
+
+        // Mobile full-page-selector step: a bottom-pinned callout that spans the width (minus side
+        // margins) so the copy reads as a short, wide rectangle instead of a narrow, square card.
+        &--bottom {
+            min-width: 0;
+            width: calc(100vw - 2 * var(--core-spacing-800));
+            max-width: none;
+        }
 
         @keyframes slide-in-tooltip {
             from {
@@ -30,6 +36,10 @@
 
         [dir='rtl'] & {
             direction: rtl;
+        }
+
+        .theme--dark & {
+            background-color: var(--core-color-solid-slate-50);
         }
     }
 
@@ -56,4 +66,37 @@
         inset-inline-start: var(--core-spacing-500);
         inset-block-end: var(--core-spacing-500);
     }
+}
+
+.onboarding-guide {
+    &__intro-body {
+        display: flex;
+        flex-direction: column;
+        gap: var(--core-spacing-1200);
+        text-align: start;
+
+        [dir='rtl'] & {
+            text-align: end;
+        }
+    }
+
+    &__intro-title {
+        font-size: var(--core-fontSize-300);
+        font-weight: var(--core-fontWeight-bold);
+        line-height: var(--core-lineHeight-500);
+        color: var(--component-textIcon-normal-prominent);
+        margin: 0;
+    }
+
+    &__intro-description {
+        font-size: var(--core-fontSize-100);
+        line-height: var(--core-lineHeight-300);
+        color: var(--component-textIcon-normal-default);
+        margin: 0;
+    }
+}
+
+.onboarding-guide__intro .quill-modal__button-wrapper .quill-button,
+.quill-action-sheet--root:has(.onboarding-guide__intro-body) .quill-modal__button-wrapper .quill-button {
+    border-radius: var(--component-button-border-radius-xl);
 }

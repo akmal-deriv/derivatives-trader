@@ -1,8 +1,7 @@
 import React from 'react';
 
 import { SegmentedControlSingleChoice } from '@deriv-com/quill-ui';
-
-import { KeyboardIcon, LightningIcon } from './icons';
+import { localize } from '@deriv-com/translations';
 
 type TTabSelectorProps = {
     activeTab: 'chips' | 'input';
@@ -10,9 +9,16 @@ type TTabSelectorProps = {
 };
 
 export const TabSelector: React.FC<TTabSelectorProps> = ({ activeTab, onTabChange }) => {
+    const bold_style = { fontWeight: 'var(--core-fontWeight-bold)' };
     const tab_options = [
-        { label: <LightningIcon />, value: 'chips' },
-        { label: <KeyboardIcon />, value: 'input' },
+        {
+            label: <span style={activeTab === 'chips' ? bold_style : undefined}>{localize('Quick picks')}</span>,
+            value: 'chips',
+        },
+        {
+            label: <span style={activeTab === 'input' ? bold_style : undefined}>{localize('Custom')}</span>,
+            value: 'input',
+        },
     ];
 
     const handleTabChange = (index: number) => {

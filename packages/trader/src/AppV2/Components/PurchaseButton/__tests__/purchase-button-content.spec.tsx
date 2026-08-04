@@ -17,6 +17,7 @@ const mock_props = {
             value: 19.23,
         },
     } as TInfo,
+    is_accumulator: false,
     is_multiplier: false,
     is_turbos: false,
     is_vanilla: false,
@@ -85,5 +86,21 @@ describe('PurchaseButtonContent', () => {
         const { container } = render(<PurchaseButtonContent {...mock_props} has_no_button_content />);
 
         expect(container).toBeEmptyDOMElement();
+    });
+
+    it('should render Max payout and its value for a fresh accumulator', () => {
+        render(<PurchaseButtonContent {...mock_props} is_accumulator max_payout={6000} />);
+
+        expect(screen.getByText(localized_basis.max_payout)).toBeInTheDocument();
+        expect(screen.getByText(/6,000/)).toBeInTheDocument();
+        expect(screen.getByText(/USD/i)).toBeInTheDocument();
+    });
+
+    it('should render the standard payout (not Max payout) for an accumulator with an open contract', () => {
+        render(<PurchaseButtonContent {...mock_props} is_accumulator has_open_accu_contract max_payout={6000} />);
+
+        expect(screen.getByText(localized_basis.payout)).toBeInTheDocument();
+        expect(screen.queryByText(localized_basis.max_payout)).not.toBeInTheDocument();
+        expect(screen.getByText(/19.23/)).toBeInTheDocument();
     });
 });

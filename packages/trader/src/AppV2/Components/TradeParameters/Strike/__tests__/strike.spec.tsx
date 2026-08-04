@@ -96,9 +96,25 @@ describe('Strike', () => {
 
         expect(screen.getByTestId('dt-actionsheet-overlay')).toBeInTheDocument();
         expect(screen.getByText('WheelPicker')).toBeInTheDocument();
-        expect(screen.getByText('Payout per point:')).toBeInTheDocument();
+        expect(screen.getByText('Payout per point')).toBeInTheDocument();
         expect(screen.getByText(/14.245555/)).toBeInTheDocument();
         expect(screen.getByText('Save')).toBeInTheDocument();
+    });
+
+    it('opens the payout-per-point explanation (retitling the sheet) when tapped', async () => {
+        const user = userEvent.setup();
+        mockStrike();
+
+        await user.click(screen.getByText(strike_trade_param_label));
+        // Only the payout row label before navigating to its page.
+        expect(screen.getAllByText('Payout per point')).toHaveLength(1);
+
+        await user.click(screen.getByText('Payout per point'));
+        // The carousel title now reads Payout per point too (row label + title), and its definition shows.
+        expect(screen.getAllByText('Payout per point')).toHaveLength(2);
+        expect(
+            screen.getByText("The money you earn or lose for every one-point change in an asset's price.")
+        ).toBeInTheDocument();
     });
 
     it('does not render Payout per point information if proposal_info is empty object', async () => {
@@ -108,7 +124,7 @@ describe('Strike', () => {
 
         await user.click(screen.getByText(strike_trade_param_label));
 
-        expect(screen.getByText('Payout per point:')).toBeInTheDocument();
+        expect(screen.getByText('Payout per point')).toBeInTheDocument();
         expect(screen.queryByText(/14.245555/)).not.toBeInTheDocument();
     });
 

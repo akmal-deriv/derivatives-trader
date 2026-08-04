@@ -11,9 +11,17 @@ import { useTraderStore } from 'Stores/useTraderStores';
 type TPurchaseButtonContent = {
     has_no_button_content?: boolean;
     info: ReturnType<typeof useTraderStore>['proposal_info'][0] | Record<string, never>;
+    /** Accumulators' max payout — shown in place of the standard payout for a fresh accumulator. */
+    max_payout?: number | string;
 } & Pick<
     ReturnType<typeof useTraderStore>,
-    'currency' | 'has_cancellation' | 'has_open_accu_contract' | 'is_multiplier' | 'is_vanilla' | 'is_turbos'
+    | 'currency'
+    | 'has_cancellation'
+    | 'has_open_accu_contract'
+    | 'is_accumulator'
+    | 'is_multiplier'
+    | 'is_vanilla'
+    | 'is_turbos'
 >;
 
 const PurchaseButtonContent = ({
@@ -22,14 +30,18 @@ const PurchaseButtonContent = ({
     has_open_accu_contract,
     has_no_button_content,
     info,
+    is_accumulator,
     is_multiplier,
     is_turbos,
     is_vanilla,
+    max_payout,
 }: TPurchaseButtonContent) => {
     const { localize } = useTranslations();
-    const { payout } = getLocalizedBasis();
+    const { max_payout: max_payout_label, payout } = getLocalizedBasis();
 
     if (has_no_button_content || (is_multiplier && !has_cancellation)) return null;
+
+    const is_accu_max_payout = is_accumulator && !has_open_accu_contract;
 
     const getAmount = () => {
         const { stake, obj_contract_basis } = info;
@@ -40,6 +52,7 @@ const PurchaseButtonContent = ({
             const total_cost = typeof stake === 'string' ? parseFloat(stake) || 0 : stake || 0;
             return total_cost;
         }
+        if (is_accu_max_payout) return max_payout;
         return obj_contract_basis?.value;
     };
 
@@ -47,6 +60,7 @@ const PurchaseButtonContent = ({
         if (is_multiplier) {
             return has_cancellation ? localize('Total cost') : undefined;
         }
+        if (is_accu_max_payout) return max_payout_label;
         return payout;
     };
 

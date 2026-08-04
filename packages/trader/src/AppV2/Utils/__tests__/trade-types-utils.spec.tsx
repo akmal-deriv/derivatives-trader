@@ -54,8 +54,8 @@ describe('trade-types-utils', () => {
             // Verify order matches AVAILABLE_CONTRACTS order
             const directionalTypes = grouped.directional.map(c => c.tradeType);
             expect(directionalTypes[0]).toBe('Rise/Fall');
-            expect(directionalTypes[1]).toBe('Higher/Lower');
-            expect(directionalTypes[2]).toBe('Touch/No Touch');
+            expect(directionalTypes[1]).toBe('Touch/No Touch');
+            expect(directionalTypes[2]).toBe('Higher/Lower');
 
             const growthTypes = grouped.growth_based.map(c => c.tradeType);
             expect(growthTypes[0]).toBe('Accumulators');
@@ -318,6 +318,23 @@ describe('trade-types-utils', () => {
 
         it('falls back to the contract_type when trade_types have not loaded yet', () => {
             expect(getDisplayedContractTypes({}, TRADE_TYPES.RISE_FALL, '')).toEqual([TRADE_TYPES.RISE_FALL]);
+        });
+    });
+
+    describe('AVAILABLE_CONTRACTS order', () => {
+        it('follows the PO-specified trade-type display order', () => {
+            expect(AVAILABLE_CONTRACTS.map(c => c.tradeType)).toEqual([
+                'Rise/Fall',
+                'Accumulators',
+                'Matches/Differs',
+                'Over/Under',
+                'Even/Odd',
+                'Multipliers',
+                'Touch/No Touch',
+                'Higher/Lower',
+                'Turbos',
+                'Vanillas',
+            ]);
         });
     });
 });

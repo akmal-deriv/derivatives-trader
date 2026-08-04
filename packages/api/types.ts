@@ -575,7 +575,9 @@ type TSocketEndpoints = {
         response: StatementResponse;
     };
     ticks_history: {
-        request: TicksHistoryRequest;
+        // The generated TicksHistoryRequest types `count` as the impossible `number & string`;
+        // correct it to `number` so callers can pass a candle count without casting.
+        request: Omit<TicksHistoryRequest, 'count'> & { count?: number };
         response: TicksHistoryResponse;
     };
     ticks: {

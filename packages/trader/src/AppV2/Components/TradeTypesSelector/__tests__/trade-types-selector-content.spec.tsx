@@ -216,10 +216,11 @@ describe('TradeTypesSelectorContent', () => {
         const limitedContracts = AVAILABLE_CONTRACTS.slice(0, 3);
         rerender(<TradeTypesSelectorContent {...defaultProps} available_contracts={limitedContracts} />);
 
-        // Verify grouped results
+        // Verify grouped results — the first three of AVAILABLE_CONTRACTS (Rise/Fall, Accumulators,
+        // Matches/Differs) render; Turbos (further down the list) does not.
         expect(screen.getByText(/Accumulators/)).toBeInTheDocument();
         expect(screen.getByText(/Rise\/Fall/)).toBeInTheDocument();
-        expect(screen.getByText(/Multipliers/)).toBeInTheDocument();
+        expect(screen.getByText(/Matches\/Differs/)).toBeInTheDocument();
         expect(screen.queryByText(/^Turbos$/)).not.toBeInTheDocument();
     });
 });

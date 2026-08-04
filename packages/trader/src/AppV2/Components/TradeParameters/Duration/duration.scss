@@ -1,66 +1,55 @@
+// Match the pill radius of .duration-end-time-desktop__footer button; the nested date/time
+// picker sheets portal to document.body, so their footer is targeted by its own class
+.duration-container .quill-action-sheet--footer button,
+.duration-container__footer button {
+    border-radius: 10rem !important;
+}
+
+.duration-container .quill-action-sheet--title-text {
+    font-size: var(--core-fontSize-300);
+}
+
 .duration-container {
     min-height: 37rem;
     display: flex;
     flex-direction: column;
-    &__chips {
-        display: flex;
-        width: 100vw;
-        overflow: auto;
-        position: relative;
-        inset-inline-start: calc(-1 * var(--core-spacing-400));
-        padding: var(--core-spacing-400) var(--core-spacing-800);
-        gap: var(--core-spacing-400);
-        overflow-x: auto;
-        min-height: var(--core-spacing-1600);
-        white-space: nowrap;
-        scrollbar-width: none;
-
-        @include rtl {
-            direction: rtl;
-        }
-        &::-webkit-scrollbar {
-            display: none;
-        }
-        -ms-overflow-style: none;
+    &__tab-content {
+        display: grid;
     }
-    &__tab-selector {
-        padding: var(--core-spacing-800);
+    &__tab-content > * {
+        grid-area: 1 / 1;
+        min-width: 0;
     }
-    .value-chips {
-        padding: 0 var(--core-spacing-800);
-
-        &__grid {
-            grid-template-columns: repeat(3, 1fr);
-        }
-
-        &__chip {
-            height: 4.8rem;
-        }
+    &__wheel--hidden {
+        visibility: hidden;
     }
-    .duration-input-desktop__wrapper {
-        padding: 0 var(--core-spacing-800) var(--core-spacing-800);
-        flex: 1;
+    &__endtime-tab {
         display: flex;
         flex-direction: column;
     }
     &__wheel-picker-container {
         padding: 0 var(--component-actionSheet-spacing-padding-md);
         min-height: 268px;
-        &__loading {
-            display: none;
-        }
         &__single {
             min-height: 236px;
         }
+
+        // The centered wheel value is the only item quill does not mark disabled — emphasise it
+        // at 18px bold; the rest stay 16px regular.
+        .quill-wheel-picker__data-item[class*='__disabled--false'] .quill-dropdown-item-label {
+            font-size: var(--core-fontSize-200);
+            font-weight: var(--semantic-typography-body-md-bold-default-fontWeight);
+        }
     }
     &__days-input {
+        flex: 1;
         padding: var(--core-spacing-800);
         padding-bottom: var(--core-spacing-50);
         display: flex;
         flex-direction: column;
         gap: var(--core-spacing-400);
         &__expiry {
-            margin-top: 8.2rem;
+            margin-top: auto;
             display: flex;
             justify-content: space-between;
         }

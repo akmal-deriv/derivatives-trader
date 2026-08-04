@@ -15,7 +15,9 @@ jest.mock('@deriv/quill-icons', () => ({
 
 jest.mock('@deriv-com/ui', () => ({
     ...jest.requireActual('@deriv-com/ui'),
-    useDevice: jest.fn(() => ({ isDesktop: false })),
+    // Mobile renders the ActionSheet; desktop/tablet render the popover. These tests cover the
+    // ActionSheet path, so report a mobile device (Barrier gates on `!isMobile`).
+    useDevice: jest.fn(() => ({ isMobile: true })),
 }));
 
 describe('Barrier Component', () => {

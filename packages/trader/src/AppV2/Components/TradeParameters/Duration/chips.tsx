@@ -4,38 +4,38 @@ import { localize } from '@deriv-com/translations';
 
 import { HorizontalTabSelector } from 'AppV2/Components/InputPopover';
 import type { HorizontalTabItem } from 'AppV2/Components/InputPopover/horizontal-tab-selector';
+import { DURATION_TAB, DURATION_UNIT, getTimeWheelVisibleUnits } from 'AppV2/Utils/trade-params-utils';
 
-const DurationChips = ({
+const DurationTabs = ({
     duration_units_list,
-    onChangeUnit,
-    unit,
+    onChangeTab,
+    tab,
 }: {
     duration_units_list: { text: string; value: string }[];
-    onChangeUnit: (arg: string) => void;
-    unit: string;
+    onChangeTab: (arg: string) => void;
+    tab: string;
 }) => {
-    const show_end_time = duration_units_list.length > 1;
+    const show_tabs = duration_units_list.length > 1;
 
     const items: HorizontalTabItem[] = useMemo(() => {
-        const tabs = duration_units_list
-            .filter(item => item.value !== 'd')
-            .map(item => ({
-                value: item.value,
-                label: item.text,
-            }));
+        const tabs: HorizontalTabItem[] = [];
 
-        if (show_end_time) {
-            tabs.push({ value: 'd', label: localize('End Time') });
+        if (duration_units_list.some(({ value }) => value === DURATION_UNIT.TICKS)) {
+            tabs.push({ value: DURATION_TAB.TICKS, label: localize('Ticks') });
         }
+        if (getTimeWheelVisibleUnits(duration_units_list).length) {
+            tabs.push({ value: DURATION_TAB.TIME, label: localize('Time') });
+        }
+        tabs.push({ value: DURATION_TAB.END_TIME, label: localize('End time') });
 
         return tabs;
-    }, [duration_units_list, show_end_time]);
+    }, [duration_units_list]);
 
-    if (!show_end_time) {
+    if (!show_tabs) {
         return <></>;
     }
 
-    return <HorizontalTabSelector items={items} selectedValue={unit} onSelect={onChangeUnit} />;
+    return <HorizontalTabSelector items={items} selectedValue={tab} onSelect={onChangeTab} />;
 };
 
-export default DurationChips;
+export default DurationTabs;

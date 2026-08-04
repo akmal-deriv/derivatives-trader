@@ -24,7 +24,7 @@ import './automation-panel.scss';
  */
 const AutomationPanel = observer(() => {
     const trade_store = useTraderStore();
-    const { amount, contract_type, currency } = trade_store;
+    const { amount, contract_type, currency, is_automation_params_locked } = trade_store;
     const automation_store = useAutomationStore();
     const { config } = automation_store;
 
@@ -75,6 +75,7 @@ const AutomationPanel = observer(() => {
                         options={strategy_options}
                         selectedValue={config.strategy}
                         description={strategy_description}
+                        disabled={is_automation_params_locked}
                         onSelect={selectStrategy}
                     />
 
@@ -83,6 +84,7 @@ const AutomationPanel = observer(() => {
                             strategy={config.strategy}
                             selectedValue={getParamNumber(KNOWN_PARAM_KEYS.MULTIPLIER)}
                             description={getSchemaDescription(KNOWN_PARAM_KEYS.MULTIPLIER)}
+                            disabled={is_automation_params_locked}
                             onSelect={value => setParamFromNumber(KNOWN_PARAM_KEYS.MULTIPLIER, value)}
                         />
                     )}
@@ -92,6 +94,7 @@ const AutomationPanel = observer(() => {
                             strategy={config.strategy}
                             selectedValue={getParamNumber(KNOWN_PARAM_KEYS.UNIT)}
                             description={getSchemaDescription(KNOWN_PARAM_KEYS.UNIT)}
+                            disabled={is_automation_params_locked}
                             onSelect={value => setParamFromNumber(KNOWN_PARAM_KEYS.UNIT, value)}
                         />
                     )}
@@ -102,6 +105,7 @@ const AutomationPanel = observer(() => {
                             initialValue={getParamNumberOrNull(KNOWN_PARAM_KEYS.MAX_STAKE)}
                             initialStake={Number(amount) || undefined}
                             description={getSchemaDescription(KNOWN_PARAM_KEYS.MAX_STAKE)}
+                            disabled={is_automation_params_locked}
                             onSave={value => setParamFromNumberOrNull(KNOWN_PARAM_KEYS.MAX_STAKE, value)}
                         />
                     )}
@@ -120,6 +124,7 @@ const AutomationPanel = observer(() => {
                             description={getSchemaDescription(KNOWN_PARAM_KEYS.TAKE_PROFIT)}
                             currency={display_currency}
                             initialValue={getParamNumber(KNOWN_PARAM_KEYS.TAKE_PROFIT)}
+                            disabled={is_automation_params_locked}
                             onSave={value => setParamFromNumber(KNOWN_PARAM_KEYS.TAKE_PROFIT, value)}
                         />
                     )}
@@ -130,6 +135,7 @@ const AutomationPanel = observer(() => {
                             description={getSchemaDescription(KNOWN_PARAM_KEYS.STOP_LOSS)}
                             currency={display_currency}
                             initialValue={getParamNumber(KNOWN_PARAM_KEYS.STOP_LOSS)}
+                            disabled={is_automation_params_locked}
                             onSave={value => setParamFromNumber(KNOWN_PARAM_KEYS.STOP_LOSS, value)}
                         />
                     )}

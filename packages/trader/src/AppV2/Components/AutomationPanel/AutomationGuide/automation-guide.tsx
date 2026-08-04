@@ -80,7 +80,7 @@ const AutomationGuide = observer(() => {
                         </ActionSheet.Content>
                         <ActionSheet.Footer
                             alignment='vertical'
-                            secondaryAction={{
+                            primaryAction={{
                                 content: <Localize i18n_default_text='Got it' />,
                                 onAction: onClose,
                             }}
@@ -93,7 +93,7 @@ const AutomationGuide = observer(() => {
                     toggleModal={onClose}
                     primaryButtonLabel={<Localize i18n_default_text='Got it' />}
                     primaryButtonCallback={onClose}
-                    buttonColor='coral'
+                    buttonColor='black-white'
                     showSecondaryButton={false}
                     showHandleBar={false}
                     isMobile={false}

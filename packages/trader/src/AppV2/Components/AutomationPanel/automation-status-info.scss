@@ -1,0 +1,19 @@
+.automation-status-info {
+    &__icon {
+        cursor: pointer;
+        vertical-align: middle;
+        fill: var(--component-textIcon-normal-prominent);
+
+        &:hover {
+            fill: var(--component-textIcon-normal-default);
+        }
+    }
+
+    &__tooltip {
+        // Match the automation param tooltip (getParamDescription) text size.
+        .dc-tooltip-portal__content {
+            font-size: var(--core-fontSize-75);
+            line-height: var(--core-lineHeight-100);
+        }
+    }
+}

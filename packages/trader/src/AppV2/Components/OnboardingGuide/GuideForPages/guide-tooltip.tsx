@@ -1,4 +1,4 @@
-import React from 'react';
+import clsx from 'clsx';
 import { TooltipRenderProps } from 'react-joyride';
 
 import { LabelPairedXmarkSmBoldIcon } from '@deriv/quill-icons';
@@ -6,13 +6,22 @@ import { Button, CaptionText, IconButton } from '@deriv-com/quill-ui';
 import { Localize } from '@deriv-com/translations';
 
 export interface GuideTooltipProps extends TooltipRenderProps {
-    setStepIndex: React.Dispatch<React.SetStateAction<number>>;
+    /** Advance the tour by one step (GuideContainer runs any `prepare` hook + waits for the anchor). */
+    onNext: (index: number) => void;
+    /** Finish/skip the tour. */
+    onClose: () => void;
 }
 
-const GuideTooltip = ({ isLastStep, primaryProps, skipProps, step, tooltipProps, setStepIndex }: GuideTooltipProps) => {
+const GuideTooltip = ({ index, isLastStep, step, tooltipProps, onNext, onClose }: GuideTooltipProps) => {
     const button_label = isLastStep ? <Localize i18n_default_text='Done' /> : <Localize i18n_default_text='Next' />;
+    // The 'center'-placed step is the mobile full-page-selector callout, pinned to the bottom. Widen
+    // it so the copy reads as a short, wide rectangle (per design) rather than a narrow, square card.
+    const is_bottom_callout = step.placement === 'center';
     return (
-        <div {...tooltipProps} className='guide-tooltip__wrapper'>
+        <div
+            {...tooltipProps}
+            className={clsx('guide-tooltip__wrapper', is_bottom_callout && 'guide-tooltip__wrapper--bottom')}
+        >
             <div>
                 {step.title && (
                     <div className='guide-tooltip__header'>
@@ -20,7 +29,7 @@ const GuideTooltip = ({ isLastStep, primaryProps, skipProps, step, tooltipProps,
                             {step.title}
                         </CaptionText>
                         <IconButton
-                            onClick={skipProps.onClick}
+                            onClick={onClose}
                             icon={
                                 <LabelPairedXmarkSmBoldIcon
                                     fill='var(--component-textIcon-inverse-prominent)'
@@ -37,10 +46,7 @@ const GuideTooltip = ({ isLastStep, primaryProps, skipProps, step, tooltipProps,
                 {step.content && <CaptionText className='guide-tooltip__content'>{step.content}</CaptionText>}
             </div>
             <Button
-                onClick={e => {
-                    setStepIndex((prev: number) => prev + 1);
-                    primaryProps.onClick(e);
-                }}
+                onClick={() => (isLastStep ? onClose() : onNext(index))}
                 color='white-black'
                 className='guide-tooltip__button'
                 variant='secondary'

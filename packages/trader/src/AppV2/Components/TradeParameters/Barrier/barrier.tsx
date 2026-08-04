@@ -29,7 +29,7 @@ const Barrier = observer(({ is_minimized }: TTradeParametersProps) => {
         trade_type_tab,
     } = useTraderStore();
     const is_turbos = isTurbosContract(contract_type);
-    const { isDesktop } = useDevice();
+    const { isMobile } = useDevice();
     const [is_open, setIsOpen] = React.useState(false);
     // Barriers should be absolute when using end time (expiry_type === 'endtime') or days duration
     const isDays = duration_unit === 'd' || expiry_type === 'endtime';
@@ -83,7 +83,7 @@ const Barrier = observer(({ is_minimized }: TTradeParametersProps) => {
         [isDays, onClose, is_open]
     );
 
-    if (isDesktop) {
+    if (!isMobile) {
         return <BarrierDesktop is_minimized={is_minimized} isDays={isDays} />;
     }
 

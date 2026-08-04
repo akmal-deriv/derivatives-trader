@@ -37,7 +37,7 @@ const CommissionFormula = ({ commission, multiplier, amount, currency }: TCommis
 
     return (
         <Localize
-            i18n_default_text='<0>{{commission_percentage}}%</0> of (<1/> * {{multiplier}})'
+            i18n_default_text='<0>{{commission_percentage}}%</0> of (<1/> × {{multiplier}})'
             values={{ commission_percentage, multiplier }}
             components={[<strong key={0} />, <Money key={1} amount={Number(amount)} currency={currency} />]}
         />

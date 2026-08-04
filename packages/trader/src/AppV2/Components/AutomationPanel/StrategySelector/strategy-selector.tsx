@@ -11,6 +11,7 @@ type TStrategySelectorProps = {
     options: TStrategyOption[];
     selectedValue: string;
     description?: string;
+    disabled?: boolean;
     onSelect: (value: string) => void;
 };
 

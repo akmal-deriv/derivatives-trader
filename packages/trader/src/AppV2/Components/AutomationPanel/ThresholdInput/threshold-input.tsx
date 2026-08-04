@@ -8,6 +8,7 @@ type TThresholdInputProps = {
     description?: string;
     currency: string;
     initialValue: number;
+    disabled?: boolean;
     onSave: (value: number) => void;
 };
 

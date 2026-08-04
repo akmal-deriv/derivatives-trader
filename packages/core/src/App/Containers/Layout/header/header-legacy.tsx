@@ -12,7 +12,7 @@ import NewVersionNotification from 'App/Containers/new-version-notification';
 const HeaderLegacy = observer(() => {
     const { client, ui, notifications } = useStore();
     const { is_logged_in, is_logging_in } = client;
-    const { is_app_disabled, is_route_modal_on } = ui;
+    const { is_app_disabled, is_route_modal_on, is_chart_maximized } = ui;
     const { addNotificationMessage, client_notifications, removeNotificationMessage } = notifications;
 
     const { isMobile } = useDevice();
@@ -32,6 +32,7 @@ const HeaderLegacy = observer(() => {
         <header
             className={classNames('header', {
                 'header--is-disabled': is_app_disabled || is_route_modal_on,
+                'header--chart-maximized': is_chart_maximized,
             })}
         >
             <div className='header__menu-items'>

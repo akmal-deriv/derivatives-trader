@@ -342,76 +342,177 @@ export const getClosestTimeToCurrentGMT = (interval: number): string => {
     return `${newHours}:${newMinutes}`;
 };
 
-type TDurationOption = {
-    value: number;
-    label: React.ReactNode;
-};
+// Single owner of the tick wheel's bounds — both the rendered options and the clamp applied when
+// restoring a stored selection must agree on this range
+export const getTickWheelRange = (duration_min_max: Record<string, { min: number; max: number }>) => ({
+    min: Math.max(1, duration_min_max?.tick?.min ?? 1),
+    max: Math.min(10, duration_min_max?.tick?.max ?? 10),
+});
 
-const generateOptions = (
-    startValue: number,
-    endValue: number,
-    singularLabel: React.ReactNode,
-    pluralLabel: React.ReactNode
-): TDurationOption[] => {
-    const length = endValue - startValue + 1;
-    return Array.from({ length }, (_, index): TDurationOption => {
-        const value = startValue + index;
-        return {
-            value,
-            label: (
-                <React.Fragment key={value}>
-                    {value} {value > 1 ? pluralLabel : singularLabel}
-                </React.Fragment>
-            ),
-        };
+export const getTicksWheelOptions = (duration_min_max: Record<string, { min: number; max: number }>) => {
+    const { min, max } = getTickWheelRange(duration_min_max);
+    return Array.from({ length: max - min + 1 }, (_, index) => {
+        const value = min + index;
+        return { value, label: `${value} ${value === 1 ? localize('tick') : localize('ticks')}` };
     });
 };
 
-export const getOptionPerUnit = (unit: string, duration_min_max: Record<string, { min: number; max: number }>) => {
-    const { intraday, tick, daily } = duration_min_max;
-    const unitConfig: Record<
-        string,
-        | { start: number; end: number; labelSingle: React.ReactNode; labelPlural: React.ReactNode }
-        | (() => { value: number; label: React.ReactNode }[][])
-    > = {
-        m: {
-            start: Math.max(1, intraday?.min / 60),
-            end: Math.min(59, intraday?.max / 60),
-            labelSingle: <Localize i18n_default_text='min' />,
-            labelPlural: <Localize i18n_default_text='min' />,
-        },
-        s: {
-            start: Math.max(15, intraday?.min),
-            end: Math.min(59, intraday?.max),
-            labelSingle: <Localize i18n_default_text='sec' />,
-            labelPlural: <Localize i18n_default_text='sec' />,
-        },
-        d: {
-            start: Math.max(1, daily?.min / 86400),
-            end: Math.min(365, daily?.max / 86400),
-            labelSingle: <Localize i18n_default_text='days' />,
-            labelPlural: <Localize i18n_default_text='days' />,
-        },
-        t: {
-            start: Math.max(1, tick?.min),
-            end: Math.min(10, tick?.max),
-            labelSingle: <Localize i18n_default_text='tick' />,
-            labelPlural: <Localize i18n_default_text='ticks' />,
-        },
-    };
+export const DURATION_TAB = {
+    TICKS: DURATION_UNIT.TICKS,
+    TIME: 'time',
+    END_TIME: DURATION_UNIT.DAYS,
+} as const;
 
-    const config = unitConfig[unit];
+// Ordered coarse → fine; index in this array is the index in a [hours, minutes, seconds] selection
+export const TIME_WHEEL_UNITS = [DURATION_UNIT.HOURS, DURATION_UNIT.MINUTES, DURATION_UNIT.SECONDS];
 
-    if (typeof config === 'function') {
-        return config();
+const TIME_WHEEL_UNIT_SECONDS: Record<string, number> = { h: 3600, m: 60, s: 1 };
+
+export const getDurationTab = (duration_unit: string, has_expiry_time?: boolean) => {
+    if (has_expiry_time || duration_unit === DURATION_UNIT.DAYS) return DURATION_TAB.END_TIME;
+    if (duration_unit === DURATION_UNIT.TICKS) return DURATION_TAB.TICKS;
+    return DURATION_TAB.TIME;
+};
+
+export const getTimeWheelVisibleUnits = (duration_units_list: { value: string }[] = []) => {
+    const available_units = duration_units_list.map(({ value }) => value);
+    return TIME_WHEEL_UNITS.filter(unit => available_units.includes(unit));
+};
+
+/**
+ * Valid range for one column of the merged hr/min/sec wheel, given the values selected in the
+ * coarser columns. The combined total (h*3600 + m*60 + s) always stays within intraday min/max:
+ * finer columns can still reach the minimum (their max capacity counts towards it), and the
+ * coarser prefix is subtracted from both bounds.
+ */
+export const getTimeWheelColumnRange = (
+    unit: string,
+    visible_units: string[],
+    intraday: { min: number; max: number },
+    selected: number[]
+) => {
+    const unit_seconds = TIME_WHEEL_UNIT_SECONDS[unit];
+    const prefix_seconds = visible_units
+        .filter(u => TIME_WHEEL_UNIT_SECONDS[u] > unit_seconds)
+        .reduce((total, u) => total + (selected[TIME_WHEEL_UNITS.indexOf(u)] || 0) * TIME_WHEEL_UNIT_SECONDS[u], 0);
+    const finer_capacity_seconds = visible_units
+        .filter(u => TIME_WHEEL_UNIT_SECONDS[u] < unit_seconds)
+        .reduce((total, u) => total + 59 * TIME_WHEEL_UNIT_SECONDS[u], 0);
+    const natural_cap = unit === DURATION_UNIT.HOURS ? Math.floor(intraday.max / 3600) : 59;
+    const min = Math.max(0, Math.ceil((intraday.min - prefix_seconds - finer_capacity_seconds) / unit_seconds));
+    const max = Math.min(natural_cap, Math.floor((intraday.max - prefix_seconds) / unit_seconds));
+    return { min, max: Math.max(min, max) };
+};
+
+/**
+ * Full set of values rendered on one column of the merged hr/min/sec wheel. Bounds are static
+ * (independent of the other columns' selections) so column identities stay stable while
+ * scrolling: a value is rendered when it appears in at least one valid combination, e.g. seconds
+ * render from 0 even when the intraday minimum is 15s. Combinations that end up below the
+ * minimum (or above the maximum) snap back to the valid range once scrolling settles.
+ */
+export const getTimeWheelColumnOptions = (
+    unit: string,
+    visible_units: string[],
+    intraday: { min: number; max: number }
+) => {
+    const getNaturalCap = (u: string) =>
+        u === DURATION_UNIT.HOURS
+            ? Math.floor(intraday.max / 3600)
+            : Math.min(59, Math.floor(intraday.max / TIME_WHEEL_UNIT_SECONDS[u]));
+    const others_capacity = visible_units
+        .filter(u => u !== unit)
+        .reduce((total, u) => total + getNaturalCap(u) * TIME_WHEEL_UNIT_SECONDS[u], 0);
+    const min = Math.max(0, Math.ceil((intraday.min - others_capacity) / TIME_WHEEL_UNIT_SECONDS[unit]));
+    const max = Math.max(min, getNaturalCap(unit));
+    const unit_label = {
+        [DURATION_UNIT.HOURS]: localize('hr'),
+        [DURATION_UNIT.MINUTES]: localize('min'),
+        [DURATION_UNIT.SECONDS]: localize('sec'),
+    }[unit];
+    return Array.from({ length: max - min + 1 }, (_, index) => {
+        const value = min + index;
+        return { value, label: `${value} ${unit_label}` };
+    });
+};
+
+// Clamps coarse → fine so each finer range is computed against already-clamped coarser values
+export const clampTimeWheelSelection = (
+    visible_units: string[],
+    intraday: { min: number; max: number },
+    selected: number[]
+) =>
+    TIME_WHEEL_UNITS.reduce(
+        (clamped, unit, index) => {
+            if (!visible_units.includes(unit)) {
+                clamped[index] = 0;
+                return clamped;
+            }
+            const { min, max } = getTimeWheelColumnRange(unit, visible_units, intraday, clamped);
+            clamped[index] = Math.min(max, Math.max(min, clamped[index] || 0));
+            return clamped;
+        },
+        [...selected]
+    );
+
+/**
+ * A selection with seconds can only be expressed in seconds; anything else is sent in minutes,
+ * matching how production has always submitted hour-based durations (hours * 60 as minutes).
+ * When minutes are not an offered unit (hours-only contracts), whole hours are sent as hours —
+ * otherwise the validity check against duration_units_list would reject the commit.
+ */
+export const getDurationFromTimeWheelSelection = (
+    [hours = 0, minutes = 0, seconds = 0]: number[],
+    duration_units_list: { value: string }[] = []
+) => {
+    if (seconds > 0) {
+        return { duration: hours * 3600 + minutes * 60 + seconds, duration_unit: DURATION_UNIT.SECONDS };
     }
-
-    if (config) {
-        const { start, end, labelSingle, labelPlural } = config;
-        return [generateOptions(Math.ceil(start), Math.floor(end), labelSingle, labelPlural)];
+    const available_units = duration_units_list.map(({ value }) => value);
+    if (
+        minutes === 0 &&
+        hours > 0 &&
+        !available_units.includes(DURATION_UNIT.MINUTES) &&
+        available_units.includes(DURATION_UNIT.HOURS)
+    ) {
+        return { duration: hours, duration_unit: DURATION_UNIT.HOURS };
     }
+    return { duration: hours * 60 + minutes, duration_unit: DURATION_UNIT.MINUTES };
+};
 
-    return [[]];
+export const getTimeWheelSelectionFromDuration = (duration: number, duration_unit: string): number[] => {
+    if (duration_unit === DURATION_UNIT.SECONDS)
+        return [Math.floor(duration / 3600), Math.floor((duration % 3600) / 60), duration % 60];
+    if (duration_unit === DURATION_UNIT.MINUTES) return [Math.floor(duration / 60), duration % 60, 0];
+    if (duration_unit === DURATION_UNIT.HOURS) return [duration, 0, 0];
+    return [0, 0, 0];
+};
+
+/**
+ * Stake presets shown in the Stake sheet: the trade type's base presets filtered to the
+ * contract's [min, max] stake limits so only valid values are offered. When the market minimum
+ * invalidates the lower presets, the minimum itself becomes the first preset (a valid one-tap
+ * floor always exists); if filtering leaves fewer than 3 options, presets are derived from
+ * multiples of the minimum. Missing limits (first proposal still in flight) return the base
+ * presets unchanged, matching current production behavior.
+ */
+export const getStakePresetValues = (
+    base_presets: number[],
+    min_stake?: string | number,
+    max_stake?: string | number
+): number[] => {
+    const min = Number(min_stake);
+    const max = Number(max_stake);
+    if (!min_stake || !max_stake || !Number.isFinite(min) || !Number.isFinite(max)) return base_presets;
+
+    const in_range = base_presets.filter(preset => preset >= min && preset <= max);
+    const with_floor =
+        in_range.length && Math.min(...base_presets) < min && !in_range.includes(min) ? [min, ...in_range] : in_range;
+
+    if (with_floor.length >= 3) return with_floor.slice(0, 6);
+
+    const from_minimum = [1, 2, 5, 10, 15, 25].map(multiplier => min * multiplier).filter(value => value <= max);
+    return (from_minimum.length ? from_minimum : [min]).slice(0, 6);
 };
 
 export const getSmallestDuration = (

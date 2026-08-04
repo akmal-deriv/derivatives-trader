@@ -11,7 +11,7 @@ const usePopoverPosition = ({
 }: UsePopoverPositionProps): PopoverPosition => {
     const [position, setPosition] = React.useState<PopoverPosition>({ top: 0, left: 0 });
 
-    React.useEffect(() => {
+    React.useLayoutEffect(() => {
         if (!isOpen || !triggerRef.current) return;
 
         const calculatePosition = () => {

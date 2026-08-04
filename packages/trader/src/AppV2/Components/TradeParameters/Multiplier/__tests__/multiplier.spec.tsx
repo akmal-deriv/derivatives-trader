@@ -108,7 +108,8 @@ describe('<Multiplier />', () => {
         expect(screen.getByTestId('dt-actionsheet-overlay')).toBeInTheDocument();
         expect(screen.getByText('WheelPicker')).toBeInTheDocument();
         expect(screen.getByText('Save')).toBeInTheDocument();
-        expect(screen.getByText(mocked_definition)).toBeInTheDocument();
+        // Two definition pages now: the multiplier explanation and the commission explanation.
+        expect(screen.getAllByText(mocked_definition).length).toBeGreaterThan(0);
         expect(screen.getByText('Commission')).toBeInTheDocument();
         expect(screen.getByText('0.01')).toBeInTheDocument();
     });
@@ -155,29 +156,36 @@ describe('<Multiplier />', () => {
             expect(default_mock_store.modules.trade.onChange).toBeCalled();
         });
     });
-    it('reveals the commission formula in the wheel-picker when the Commission label is tapped', async () => {
+    it('makes the Commission label open its explanation page when a formula can be derived', async () => {
         const user = userEvent.setup();
         default_mock_store.modules.trade.amount = 10; // multiplier 1, commission 0.01 -> 0.1000%
         mockMultiplier();
 
         await user.click(screen.getByText(multiplier_param_label));
 
-        expect(screen.queryByTestId('dt_commission_formula')).not.toBeInTheDocument();
-
-        await user.click(screen.getByText('Commission'));
-
-        // commission_percentage = (0.01 * 100) / (1 * 10) = 0.1000
-        expect(screen.getByTestId('dt_commission_formula')).toBeInTheDocument();
-        expect(screen.getByText('0.1000%')).toBeInTheDocument();
+        // The commission row is interactive (navigates to the commission page in the sheet).
+        expect(screen.getByRole('button', { name: /commission/i })).toBeInTheDocument();
     });
-    it('does not reveal a commission formula when stake is unavailable', async () => {
+    it('sets the sheet title to Commission when the commission explanation is opened', async () => {
+        const user = userEvent.setup();
+        default_mock_store.modules.trade.amount = 10;
+        mockMultiplier();
+
+        await user.click(screen.getByText(multiplier_param_label));
+        // Only the commission row label before navigating to its page.
+        expect(screen.getAllByText('Commission')).toHaveLength(1);
+
+        await user.click(screen.getByRole('button', { name: /commission/i }));
+        // The carousel title now reads Commission too (row label + title).
+        expect(screen.getAllByText('Commission')).toHaveLength(2);
+    });
+    it('does not make the Commission label interactive when stake is unavailable', async () => {
         const user = userEvent.setup();
         // amount defaults to 0 in mockStore, so the percentage cannot be derived
         mockMultiplier();
 
         await user.click(screen.getByText(multiplier_param_label));
-        await user.click(screen.getByText('Commission'));
 
-        expect(screen.queryByTestId('dt_commission_formula')).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /commission/i })).not.toBeInTheDocument();
     });
 });
