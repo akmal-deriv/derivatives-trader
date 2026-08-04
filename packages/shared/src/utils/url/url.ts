@@ -1,5 +1,5 @@
+import { getDocumentsUrl, getTrustedDomainName } from '../brand';
 import { routes } from '../routes';
-import { getBrandUrl } from '../brand';
 
 let location_url: Location, default_language: string;
 
@@ -60,7 +60,15 @@ export const setUrlLanguage = (lang: string) => {
  * @deprecated Please use 'URLUtils.getDerivStaticURL' from '@deriv-com/utils' instead of this.
  */
 export const getStaticUrl = (path = '', is_document = false) => {
-    const host = getBrandUrl();
+    // Documents (T&C PDFs and other legal files) are served from the docs subdomain.
+    // The content site only 301-redirects there, and that redirect is not reachable
+    // everywhere, so build the link on the documents host directly.
+    if (is_document) return `${getDocumentsUrl()}/${normalizePath(path)}`;
+
+    // Static content (T&C, help centre, responsible trading, etc.) is served from the deriv.com
+    // content site — NOT the home dashboard returned by getBrandUrl() (e.g. home.deriv.com/dashboard).
+    // Build the host from the current brand domain so links resolve on deriv.com/.be/.me.
+    const host = `https://${getTrustedDomainName()}`;
     let lang = default_language?.toLowerCase();
 
     if (lang && lang !== 'en') {
@@ -68,8 +76,6 @@ export const getStaticUrl = (path = '', is_document = false) => {
     } else {
         lang = '';
     }
-
-    if (is_document) return `${host}/${normalizePath(path)}`;
 
     // Deriv.com supports languages separated by '-' not '_'
     if (lang.includes('_')) {

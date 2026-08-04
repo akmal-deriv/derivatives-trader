@@ -36,6 +36,15 @@ export const getBrandUrl = () => {
     return `https://${substituteDerivDomain(hostname)}`;
 };
 
+/**
+ * Host that serves legal documents (T&C PDFs, key information documents, etc.).
+ * These live on the docs subdomain — the content site only 301-redirects there —
+ * so link straight to it instead of relying on the redirect.
+ */
+export const getDocumentsUrl = () => {
+    return `https://${substituteDerivDomain(config_data.documents_hostname)}`;
+};
+
 export const getBrandHomeUrl = (language?: string) => {
     const baseUrl = `${getBrandUrl()}/home`;
     return appendLangParam(baseUrl, language);

@@ -6,6 +6,7 @@
         "staging": "staging-home.deriv.com/dashboard",
         "production": "home.deriv.com/dashboard"
     },
+    "documents_hostname": "docs.deriv.com",
     "platform": {
         "name": "Derivatives Trader",
         "logo": "IcRebrandingDerivTrader",

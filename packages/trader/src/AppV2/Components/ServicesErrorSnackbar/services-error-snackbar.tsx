@@ -1,7 +1,7 @@
 import React from 'react';
 import { useLocation } from 'react-router-dom';
 
-import { getBrandUrl, isEmptyObject, isValidToCancel, routes } from '@deriv/shared';
+import { getStaticUrl, isEmptyObject, isValidToCancel, routes } from '@deriv/shared';
 import { observer, useStore } from '@deriv/stores';
 import { SnackbarController, useSnackbar } from '@deriv-com/quill-ui';
 import { useTranslations } from '@deriv-com/translations';
@@ -10,6 +10,33 @@ import useContractDetails from 'AppV2/Hooks/useContractDetails';
 import { checkIsServiceModalError, SERVICE_ERROR } from 'AppV2/Utils/layout-utils';
 import { getDisplayedContractTypes } from 'AppV2/Utils/trade-types-utils';
 import { useTraderStore } from 'Stores/useTraderStores';
+
+/**
+ * Opens a document (T&C PDF) in a new tab. `window.open` on its own is not enough:
+ * in-app webviews and pop-up blockers refuse the request and return `null` (or throw),
+ * which is what made this action look completely dead — so fall back to navigating the
+ * current tab. `noopener` is deliberately not passed as a window feature because
+ * browsers then always return `null`, which is indistinguishable from a refusal; the
+ * opener reference is dropped right after opening instead.
+ */
+const openDocument = (url: string) => {
+    if (!url) return;
+
+    let document_window: Window | null = null;
+
+    try {
+        document_window = window.open(url, '_blank');
+    } catch {
+        document_window = null;
+    }
+
+    if (document_window) {
+        document_window.opener = null;
+        return;
+    }
+
+    window.location.href = url;
+};
 
 const ServicesErrorSnackbar = observer(() => {
     const { localize } = useTranslations();
@@ -64,7 +91,7 @@ const ServicesErrorSnackbar = observer(() => {
             : '48px';
     const action_props = {
         actionText: localize('View'),
-        onActionClick: () => window.open(`${getBrandUrl()}/tnc/trading-terms.pdf`),
+        onActionClick: () => openDocument(getStaticUrl('tnc/trading-terms.pdf', true)),
     };
 
     React.useEffect(() => {
