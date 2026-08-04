@@ -334,7 +334,7 @@ const DurationDesktop: React.FC<DurationDesktopProps> = observer(({ is_minimized
     }, [duration_units_list, expiry_type, duration_unit]);
 
     const popoverWidth = React.useMemo(() => {
-        return availableUnits.length === 1 ? 280 : 496;
+        return availableUnits.length === 1 ? 376 : 496;
     }, [availableUnits]);
 
     // Initialize selectedUnit based on current duration_unit or first available unit
