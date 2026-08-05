@@ -3,7 +3,7 @@
 .chart-maximize-button {
     position: absolute;
     inset-block-end: var(--core-spacing-1200);
-    inset-inline-end: var(--core-spacing-800);
+    right: var(--core-spacing-800);
     z-index: 3;
 
     display: inline-flex;
