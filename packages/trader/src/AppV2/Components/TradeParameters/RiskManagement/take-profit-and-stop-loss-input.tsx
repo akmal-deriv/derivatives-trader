@@ -108,7 +108,7 @@ const TakeProfitAndStopLossInput = ({
     const input_message =
         info.min_value && info.max_value ? (
             <Localize
-                i18n_default_text='Acceptable range: {{min_value}} to {{max_value}} {{currency}}'
+                i18n_default_text='Range: {{min_value}} to {{max_value}} {{currency}}'
                 values={{
                     currency: currency_display_code,
                     min_value: info.min_value,

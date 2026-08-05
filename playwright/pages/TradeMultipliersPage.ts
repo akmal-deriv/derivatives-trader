@@ -169,23 +169,23 @@ export class TradeMultipliersPage extends TradeParametersPage {
     }
 
     /**
-     * "Acceptable range" hint below the TP input — only visible after the proposal API responds.
+     * "Range" hint below the TP input — only visible after the proposal API responds.
      * Used as a readiness signal before clicking Save on mobile.
      */
     get tpAcceptableRangeHint(): Locator {
         return this.page
             .locator('.take-profit__wrapper', { has: this.page.locator('p', { hasText: 'Take profit' }) })
-            .locator('.message__container__text', { hasText: 'Acceptable range' });
+            .locator('.message__container__text', { hasText: 'Range' });
     }
 
     /**
-     * "Acceptable range" hint below the SL input — only visible after the proposal API responds.
+     * "Range" hint below the SL input — only visible after the proposal API responds.
      * Used as a readiness signal before clicking Save on mobile.
      */
     get slAcceptableRangeHint(): Locator {
         return this.page
             .locator('.take-profit__wrapper', { has: this.page.locator('p', { hasText: 'Stop loss' }) })
-            .locator('.message__container__text', { hasText: 'Acceptable range' });
+            .locator('.message__container__text', { hasText: 'Range' });
     }
 
     /**

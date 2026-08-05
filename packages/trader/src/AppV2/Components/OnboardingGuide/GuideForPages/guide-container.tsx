@@ -6,7 +6,7 @@ import { useDevice } from '@deriv-com/ui';
 import { useTraderStore } from 'Stores/useTraderStores';
 
 import GuideTooltip from './guide-tooltip';
-import getOnboardingSteps, { TOnboardingStep, TTourActions } from './steps-config';
+import getOnboardingSteps, { SPOTLIGHT_RADIUS, TOnboardingStep, TTourActions } from './steps-config';
 
 type TGuideContainerProps = {
     should_run: boolean;
@@ -126,7 +126,7 @@ const GuideContainer = ({ should_run, onFinishGuide }: TGuideContainerProps) => 
                     // hits the tooltip, not the selector's click-to-close backdrop. Tooltip = zIndex + 100.
                     zIndex: 1200,
                 },
-                spotlight: { borderRadius: 'unset' },
+                spotlight: { borderRadius: SPOTLIGHT_RADIUS },
             }}
             stepIndex={step_index}
             tooltipComponent={props => <GuideTooltip {...props} onNext={advance} onClose={finish} />}

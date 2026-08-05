@@ -343,7 +343,7 @@ const TakeProfitStopLossDesktop = observer(({ onClose, is_open }: TTakeProfitSto
             if (state.min_value && state.max_value) {
                 return (
                     <Localize
-                        i18n_default_text='Acceptable range: {{min_value}} to {{max_value}} {{currency}}'
+                        i18n_default_text='Range: {{min_value}} to {{max_value}} {{currency}}'
                         values={{
                             currency: getCurrencyDisplayCode(currency),
                             min_value: formatMoney(currency, +state.min_value, true),

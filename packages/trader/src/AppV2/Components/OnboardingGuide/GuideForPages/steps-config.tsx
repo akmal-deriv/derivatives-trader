@@ -4,6 +4,12 @@ import { Localize } from '@deriv-com/translations';
 
 import { TRADE_PANEL_TABS, type TTradePanelTab } from 'AppV2/Components/AutomationPanel/automation-config';
 
+// Spotlight corner radius — shared with the Joyride config in guide-container so the value lives once.
+export const SPOTLIGHT_RADIUS = '8px';
+// Composed-card steps (params spotlight + the panel switcher lifted flush against its top-right) keep
+// the radius on every corner except that top-right seam, so the switcher still meets it flush (LTR).
+const COMPOSED_SPOTLIGHT_RADIUS = `${SPOTLIGHT_RADIUS} 0 ${SPOTLIGHT_RADIUS} ${SPOTLIGHT_RADIUS}`;
+
 /** Store actions the tour drives between steps so each anchor is on-screen for the breakpoint. */
 export type TTourActions = {
     setMarketSelectorOpen: (open: boolean) => void;
@@ -63,6 +69,7 @@ const getOnboardingSteps = (isMobile: boolean): TOnboardingStep[] => [
         target: isMobile ? '.bottom-nav-item--trade' : '.trade-params__content',
         placement: isMobile ? 'top' : 'left',
         spotlight_switcher: !isMobile,
+        ...(!isMobile && { styles: { spotlight: { borderRadius: COMPOSED_SPOTLIGHT_RADIUS } } }),
         enter: ({ setMarketSelectorOpen, setActiveTradePanelTab }) => {
             setMarketSelectorOpen(false);
             if (!isMobile) setActiveTradePanelTab(TRADE_PANEL_TABS.TRADE);
@@ -76,6 +83,7 @@ const getOnboardingSteps = (isMobile: boolean): TOnboardingStep[] => [
         target: isMobile ? '.bottom-nav-item--automate' : '.trade-params__content',
         placement: isMobile ? 'top' : 'left',
         spotlight_switcher: !isMobile,
+        ...(!isMobile && { styles: { spotlight: { borderRadius: COMPOSED_SPOTLIGHT_RADIUS } } }),
         enter: ({ setActiveTradePanelTab }) => {
             if (!isMobile) setActiveTradePanelTab(TRADE_PANEL_TABS.AUTOMATION);
         },
