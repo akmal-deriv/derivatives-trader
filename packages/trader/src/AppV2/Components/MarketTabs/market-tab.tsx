@@ -57,22 +57,19 @@ const MarketTab = ({
     const has_profit = typeof profit === 'number';
     const tab_ref = useRef<HTMLDivElement>(null);
 
-    // When a tab becomes active it expands (its label appears) while the previously-active tab
-    // collapses — both over ~0.3s. We poll each animation frame and scroll the strip directly (all
-    // maths screen-physical, so `scrollBy` and the rects behave the same LTR/RTL) to keep the tab in
-    // view as it grows. The anchor is chosen ONCE from where the tab sits on screen: a tab before the
-    // strip's midpoint keeps its natural left-anchored, rightward growth; a tab past the midpoint has
-    // its RIGHT edge pinned where it began so the label grows toward the centre instead of overrunning
-    // the end and yanking the whole tab back into view. The 32px insets keep the visible edge clear of
-    // the edge-fade overlays (skipped for the first tab, which sits flush at the start).
+    // Keep the active tab in view as it expands (~0.3s): scroll once on activation, once after the
+    // transition settles — a per-frame chase jitters on iOS. Rect maths are screen-physical (RTL-safe).
+    // A tab past the strip's midpoint pins its right edge so the label grows toward the centre rather
+    // than overrunning the end; the 32px insets clear the edge fades (skipped for the flush first tab).
     useEffect(() => {
         const el = tab_ref.current;
         if (!is_active || !el) return undefined;
         const scroller = el.parentElement;
         let anchor_right: number | null = null; // pinned right-edge x for a right-of-centre tab
-        const reveal = () => {
+        const reveal = (smooth = false) => {
+            const behavior: ScrollBehavior = smooth ? 'smooth' : 'auto';
             if (!scroller) {
-                el.scrollIntoView?.({ inline: 'nearest', block: 'nearest' });
+                el.scrollIntoView?.({ inline: 'nearest', block: 'nearest', behavior });
                 return;
             }
             const tab = el.getBoundingClientRect();
@@ -102,19 +99,15 @@ const MarketTab = ({
                     delta = Math.min(right_over, Math.max(0, lead_room - lead_inset));
                 }
             }
-            if (Math.abs(delta) > 0.5) scroller.scrollBy({ left: delta });
+            if (Math.abs(delta) > 0.5) scroller.scrollBy({ left: delta, behavior });
         };
-        // Poll for the length of the activate/collapse transition (~0.3s) plus a small tail.
-        let raf = 0;
-        const loop = () => {
-            reveal();
-            raf = requestAnimationFrame(loop);
-        };
-        raf = requestAnimationFrame(loop);
-        const stop = setTimeout(() => cancelAnimationFrame(raf), 400);
+        // Reveal on the next frame (anchor is captured here), then once more after the ~0.3s
+        // activate/collapse transition settles — a single smooth scroll to the final layout.
+        const raf = requestAnimationFrame(() => reveal());
+        const settle = setTimeout(() => reveal(true), 340);
         return () => {
-            clearTimeout(stop);
             cancelAnimationFrame(raf);
+            clearTimeout(settle);
         };
     }, [is_active]);
 
