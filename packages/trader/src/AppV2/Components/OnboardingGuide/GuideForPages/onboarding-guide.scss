@@ -23,6 +23,10 @@
             max-width: none;
         }
 
+        &__body {
+            width: 100%;
+        }
+
         @keyframes slide-in-tooltip {
             from {
                 opacity: 0;

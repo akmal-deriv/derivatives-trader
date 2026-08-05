@@ -22,7 +22,7 @@ const GuideTooltip = ({ index, isLastStep, step, tooltipProps, onNext, onClose }
             {...tooltipProps}
             className={clsx('guide-tooltip__wrapper', is_bottom_callout && 'guide-tooltip__wrapper--bottom')}
         >
-            <div>
+            <div className='guide-tooltip__body'>
                 {step.title && (
                     <div className='guide-tooltip__header'>
                         <CaptionText bold className='guide-tooltip__header__title'>
