@@ -27,9 +27,9 @@ jest.mock('@deriv/shared', () => ({
  * click path is exercised: queued snackbar -> rendered action button -> navigation.
  */
 describe('ServicesErrorSnackbar action', () => {
-    let default_mock_store: ReturnType<typeof mockStore>;
-    let original_open: typeof window.open;
-    let original_location: PropertyDescriptor | undefined;
+    let default_mock_store: ReturnType<typeof mockStore>,
+        original_open: typeof window.open,
+        original_location: PropertyDescriptor | undefined;
 
     beforeEach(() => {
         (useLocation as jest.Mock).mockReturnValue({ pathname: '/' });
