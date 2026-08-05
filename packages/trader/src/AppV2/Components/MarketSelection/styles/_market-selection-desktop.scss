@@ -207,21 +207,28 @@ $market-desktop-sidebar-width: 22rem;
         min-width: 0;
     }
 
-    // Right-aligned cluster: worm chart, % change pill, info + favourite actions.
+    // Right-aligned cluster: worm chart, % change pill, then the info + favourite action group. The
+    // cluster spacing is 32px; the two action buttons sit tight (8px) within their own group. Grouping
+    // (rather than a negative margin on the second action) keeps spacing symmetric in LTR and RTL, so
+    // the favourite button always stays inside the row's hover highlight.
     &__meta {
         display: flex;
         align-items: center;
         gap: var(--core-spacing-1600, 32px);
+    }
 
-        // The favourite star sits tight (8px) to the info icon; the rest of the cluster stays 32px.
-        .market-row-desktop__action + .market-row-desktop__action {
-            margin-inline-start: calc(var(--core-spacing-400, 8px) - var(--core-spacing-1600, 32px));
-        }
+    &__actions {
+        display: flex;
+        align-items: center;
+        gap: var(--core-spacing-400, 8px);
     }
 
     &__change {
         padding: 0 var(--core-spacing-200, 4px);
         border-radius: var(--core-borderRadius-200, 4px);
+        // Keep the signed percentage LTR so the sign/% aren't reordered in an RTL layout.
+        direction: ltr;
+        unicode-bidi: isolate;
 
         &--positive {
             .quill-typography {

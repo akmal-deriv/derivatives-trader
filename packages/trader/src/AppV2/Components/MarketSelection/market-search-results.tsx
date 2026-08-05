@@ -7,8 +7,9 @@ import { useDevice } from '@deriv-com/ui';
 
 import useMarketDiscovery from 'AppV2/Hooks/useMarketDiscovery';
 import { DEFAULT_DISCOVERY_WINDOW } from 'AppV2/Utils/market-discovery-utils';
+import { getSubmarketLabel } from 'AppV2/Utils/market-selection-labels';
 import { filterSymbolsBySearch, groupSymbolsBySubmarket } from 'AppV2/Utils/market-selection-utils';
-import { getOrderedAvailableContracts } from 'AppV2/Utils/trade-types-utils';
+import { getOrderedAvailableContracts, getTradeTypeLabel } from 'AppV2/Utils/trade-types-utils';
 
 import MarketEmptyState from './market-empty-state';
 import { LazyRow } from './market-selection-list';
@@ -55,7 +56,6 @@ const MarketSearchResults = ({
         return getOrderedAvailableContracts(supported_trade_types)
             .map(contract => ({
                 trade_type: contract.id,
-                label: contract.tradeType,
                 subgroups: groupSymbolsBySubmarket(
                     filterSymbolsBySearch(symbols_by_trade_type.get(contract.id) ?? [], search_value)
                 ),
@@ -129,13 +129,13 @@ const MarketSearchResults = ({
             {groups.map(group => (
                 <div className='market-search-results__group' key={group.trade_type}>
                     <Text size='lg' bold className='market-search-results__trade-type'>
-                        {group.label}
+                        {getTradeTypeLabel(group.trade_type)}
                     </Text>
                     {group.subgroups.map(subgroup => (
                         <div className='market-selection-list__group' key={subgroup.submarket}>
                             <div className='market-selection-list__group-header'>
                                 <Text bold size='sm' className='market-selection-list__group-title'>
-                                    {subgroup.title}
+                                    {getSubmarketLabel(subgroup.submarket)}
                                 </Text>
                             </div>
                             {subgroup.items.map(item => (

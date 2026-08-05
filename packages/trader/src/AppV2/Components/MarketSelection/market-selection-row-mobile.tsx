@@ -2,7 +2,7 @@ import { Ref, useState } from 'react';
 import { useSwipeable } from 'react-swipeable';
 import clsx from 'clsx';
 
-import { TActiveSymbolsResponse } from '@deriv/api';
+import { TActiveSymbolsResponse, useIsRtl } from '@deriv/api';
 import {
     LabelPairedCircleInfoMdRegularIcon,
     StandaloneStarFillIcon,
@@ -45,15 +45,18 @@ const MarketSelectionRowMobile = observer(
     ({ item, trade_type, onSelect, change_percentage, onInfo, container_ref }: TMarketSelectionRowMobile) => {
         const underlying_symbol = item.underlying_symbol ?? '';
         const { isFavourite, toggleFavourite } = useFavouriteMarkets();
+        const is_rtl = useIsRtl();
         const [show_actions, setShowActions] = useState(false);
 
         const is_favourite = isFavourite(underlying_symbol, trade_type);
         const is_positive = (change_percentage ?? 0) > 0;
         const is_negative = (change_percentage ?? 0) < 0;
 
+        // The actions sit at the inline-end edge, so the reveal gesture is a swipe toward the inline
+        // start — left in LTR, right in RTL — and the opposite swipe hides them again.
         const swipe_handlers = useSwipeable({
-            onSwipedLeft: () => setShowActions(true),
-            onSwipedRight: () => setShowActions(false),
+            onSwipedLeft: () => setShowActions(!is_rtl),
+            onSwipedRight: () => setShowActions(is_rtl),
             ...SWIPE_CONFIG,
         });
 

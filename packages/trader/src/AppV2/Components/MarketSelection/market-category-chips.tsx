@@ -1,7 +1,8 @@
-import { useEffect, useRef } from 'react';
+import { ReactNode, useEffect, useRef } from 'react';
 
 import { trackMarketCategoryTabClicked } from '@deriv/shared';
 import { Chip, Text } from '@deriv-com/quill-ui';
+import { Localize } from '@deriv-com/translations';
 
 import { TMarketCategory } from 'AppV2/Utils/market-selection-utils';
 
@@ -9,6 +10,16 @@ type TMarketCategoryChips = {
     categories: TMarketCategory[];
     selected_id: string;
     onSelect: (category_id: string) => void;
+};
+
+const CATEGORY_LABELS: Record<string, ReactNode> = {
+    featured: <Localize i18n_default_text='Featured' />,
+    synthetic_index: <Localize i18n_default_text='Derived' />,
+    forex: <Localize i18n_default_text='Forex' />,
+    indices: <Localize i18n_default_text='Stocks & indices' />,
+    stock_index: <Localize i18n_default_text='Stocks & indices' />,
+    cryptocurrency: <Localize i18n_default_text='Cryptocurrencies' />,
+    commodities: <Localize i18n_default_text='Commodities' />,
 };
 
 /**
@@ -41,7 +52,7 @@ const MarketCategoryChips = ({ categories, selected_id, onSelect }: TMarketCateg
                         onSelect(category.id);
                     }}
                 >
-                    <Text size='sm'>{category.label}</Text>
+                    <Text size='sm'>{CATEGORY_LABELS[category.id] ?? category.label}</Text>
                 </Chip.Selectable>
             ))}
         </div>

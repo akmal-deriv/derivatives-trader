@@ -91,9 +91,15 @@ $market-row-action-width: 56px;
         cursor: pointer;
     }
 
-    // Reveal the two swipe actions by sliding the content left.
+    // Reveal the two swipe actions (pinned at the inline-end edge) by sliding the content toward the
+    // inline start. translateX is physical, so it's negative (leftward) in LTR and positive (rightward)
+    // in RTL — otherwise the content would slide away from the actions and never uncover them.
     &--show-actions &__content {
         transform: translateX(calc(-2 * #{$market-row-action-width}));
+
+        @include rtl {
+            transform: translateX(calc(2 * #{$market-row-action-width}));
+        }
     }
 
     &__name {
@@ -103,6 +109,9 @@ $market-row-action-width: 56px;
     &__change {
         padding: 0 var(--core-spacing-200, 4px);
         border-radius: var(--core-borderRadius-200, 4px);
+        // Keep the signed percentage LTR so the sign/% aren't reordered in an RTL layout.
+        direction: ltr;
+        unicode-bidi: isolate;
 
         &--positive {
             .quill-typography {

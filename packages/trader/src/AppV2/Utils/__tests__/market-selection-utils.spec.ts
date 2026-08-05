@@ -36,15 +36,15 @@ describe('market-selection-utils', () => {
             expect(result.map(c => c.id)).toEqual([SPECIAL_CATEGORIES.FEATURED, 'synthetic_index', 'forex', 'indices']);
         });
 
-        it('labels markets per the redesign (Derived / Forex / Stocks & indices)', () => {
+        it('supplies the raw market id as the fallback label', () => {
             const result = getMarketCategories([
                 makeSymbol('R_100', 'synthetic_index'),
                 makeSymbol('OTC_SPC', 'indices'),
             ]);
             const labels = Object.fromEntries(result.map(c => [c.id, c.label]));
-            expect(labels.synthetic_index).toBe('Derived');
-            expect(labels.indices).toBe('Stocks & indices');
-            expect(labels[SPECIAL_CATEGORIES.FEATURED]).toBe('Featured');
+            expect(labels.synthetic_index).toBe('synthetic_index');
+            expect(labels.indices).toBe('indices');
+            expect(labels[SPECIAL_CATEGORIES.FEATURED]).toBe(SPECIAL_CATEGORIES.FEATURED);
         });
     });
 
@@ -101,10 +101,13 @@ describe('market-selection-utils', () => {
                 display_order: 0,
             }) as ActiveSymbols[number];
 
+        // Sections/groups carry only the raw taxonomy keys — display labels are localized reactively at
+        // render (see market-selection-labels.spec), so these assert keys, not display strings.
         it('returns a single unlabelled section of submarket groups for non-Derived markets', () => {
             const sections = groupSymbolsForList([makeSymbol('frxEURUSD', 'forex'), makeSymbol('frxGBPUSD', 'forex')]);
             expect(sections).toHaveLength(1);
-            expect(sections[0].label).toBe('');
+            expect(sections[0].subgroup).toBe('');
+            expect(sections[0].market).toBe('');
             expect(sections[0].groups).toHaveLength(1);
             expect(sections[0].groups[0].items).toHaveLength(2);
         });
@@ -117,11 +120,11 @@ describe('market-selection-utils', () => {
                 derived('BOOM500', 'synthetics', 'crash_boom'),
             ]);
             // Baskets is ordered before Synthetics regardless of the incoming order.
-            expect(sections.map(section => section.label)).toEqual(['Baskets', 'Synthetics']);
+            expect(sections.map(section => section.subgroup)).toEqual(['baskets', 'synthetics']);
             const [baskets, synthetics] = sections;
-            expect(baskets.groups.map(group => group.title)).toEqual(['Forex basket']);
+            expect(baskets.groups.map(group => group.submarket)).toEqual(['forex_basket']);
             // Two synthetic submarkets, preserving encounter order.
-            expect(synthetics.groups.map(group => group.title)).toEqual(['Volatility indices', 'Crash/Boom']);
+            expect(synthetics.groups.map(group => group.submarket)).toEqual(['random_index', 'crash_boom']);
             expect(synthetics.groups[0].items.map(item => item.underlying_symbol)).toEqual(['R_100', 'R_50']);
         });
     });

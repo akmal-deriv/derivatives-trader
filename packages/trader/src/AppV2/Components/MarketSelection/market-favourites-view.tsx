@@ -1,7 +1,9 @@
 import { Text } from '@deriv-com/quill-ui';
 import { useDevice } from '@deriv-com/ui';
 
+import { FavouriteSubgroupTitle } from 'AppV2/Utils/market-selection-labels';
 import { TFavouriteGroup } from 'AppV2/Utils/market-selection-utils';
+import { getTradeTypeLabel } from 'AppV2/Utils/trade-types-utils';
 
 import MarketSelectionRowDesktop from './market-selection-row-desktop';
 import MarketSelectionRowMobile from './market-selection-row-mobile';
@@ -34,13 +36,17 @@ const MarketFavouritesView = ({
             {groups.map(group => (
                 <div className='market-favourites__group' key={group.trade_type}>
                     <Text bold size='lg' className='market-favourites__trade-type'>
-                        {group.label}
+                        {getTradeTypeLabel(group.trade_type)}
                     </Text>
                     {group.subgroups.map(subgroup => (
                         <div className='market-selection-list__group' key={subgroup.key}>
                             <div className='market-selection-list__group-header'>
                                 <Text bold size='sm' className='market-selection-list__group-title'>
-                                    {subgroup.title}
+                                    <FavouriteSubgroupTitle
+                                        subgroup={subgroup.subgroup}
+                                        submarket={subgroup.submarket}
+                                        market={subgroup.market}
+                                    />
                                 </Text>
                             </div>
                             {subgroup.items.map(item => (

@@ -6,6 +6,7 @@ import { Localize } from '@deriv-com/translations';
 import { useDevice } from '@deriv-com/ui';
 
 import { TDiscoveryWindow } from 'AppV2/Utils/market-discovery-utils';
+import { getSubgroupLabel, getSubmarketLabel } from 'AppV2/Utils/market-selection-labels';
 import { groupSymbolsForList } from 'AppV2/Utils/market-selection-utils';
 
 import MarketChangesDropdown from './market-changes-dropdown';
@@ -161,16 +162,16 @@ const MarketSelectionList = ({
         <div className='market-selection-list'>
             {sections.map((section, section_index) => (
                 <div className='market-selection-list__section' key={section.subgroup || 'all'}>
-                    {section.label && (
+                    {section.subgroup && (
                         <Text size='sm' className='market-selection-list__section-title'>
-                            {section.label}
+                            {getSubgroupLabel(section.subgroup, section.market)}
                         </Text>
                     )}
                     {section.groups.map((group, group_index) => (
                         <div className='market-selection-list__group' key={group.submarket}>
                             <div className='market-selection-list__group-header'>
                                 <Text bold size='sm' className='market-selection-list__group-title'>
-                                    {group.title}
+                                    {getSubmarketLabel(group.submarket)}
                                 </Text>
                                 {section_index === 0 && group_index === 0 && show_changes_dropdown && (
                                     <MarketChangesDropdown selected_window={window} onSelect={onSelectWindow} />

@@ -94,38 +94,43 @@ const MarketSelectionRowDesktop = observer(
                             size='sm'
                         />
                     )}
-                    {onInfo && (
+                    <div className='market-row-desktop__actions'>
+                        {onInfo && (
+                            <button
+                                type='button'
+                                className='market-row-desktop__action'
+                                aria-label={localize('Info')}
+                                onClick={event => {
+                                    event.stopPropagation();
+                                    trackMarketInfoViewed({
+                                        market_name: getSymbolDisplayName(underlying_symbol),
+                                        source: 'market_list',
+                                    });
+                                    onInfo(underlying_symbol, trade_type);
+                                }}
+                            >
+                                <StandaloneCircleInfoBoldIcon fill='var(--component-textIcon-normal-subtle)' />
+                            </button>
+                        )}
                         <button
                             type='button'
                             className='market-row-desktop__action'
-                            aria-label={localize('Info')}
+                            aria-label={localize(is_favourite ? 'Unfavourite' : 'Favourite')}
                             onClick={event => {
                                 event.stopPropagation();
-                                trackMarketInfoViewed({
-                                    market_name: getSymbolDisplayName(underlying_symbol),
-                                    source: 'market_list',
-                                });
-                                onInfo(underlying_symbol, trade_type);
+                                toggleFavourite(underlying_symbol, trade_type, 'market_list');
                             }}
                         >
-                            <StandaloneCircleInfoBoldIcon fill='var(--component-textIcon-normal-subtle)' />
+                            {is_favourite ? (
+                                <StandaloneStarFillIcon fill='var(--core-color-solid-mustard-700)' iconSize='sm' />
+                            ) : (
+                                <StandaloneStarRegularIcon
+                                    fill='var(--component-textIcon-normal-subtle)'
+                                    iconSize='sm'
+                                />
+                            )}
                         </button>
-                    )}
-                    <button
-                        type='button'
-                        className='market-row-desktop__action'
-                        aria-label={localize(is_favourite ? 'Unfavourite' : 'Favourite')}
-                        onClick={event => {
-                            event.stopPropagation();
-                            toggleFavourite(underlying_symbol, trade_type, 'market_list');
-                        }}
-                    >
-                        {is_favourite ? (
-                            <StandaloneStarFillIcon fill='var(--core-color-solid-mustard-700)' iconSize='sm' />
-                        ) : (
-                            <StandaloneStarRegularIcon fill='var(--component-textIcon-normal-subtle)' iconSize='sm' />
-                        )}
-                    </button>
+                    </div>
                 </div>
             </div>
         );

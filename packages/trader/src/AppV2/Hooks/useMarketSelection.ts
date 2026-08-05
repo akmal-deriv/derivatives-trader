@@ -47,7 +47,6 @@ const useMarketSelection = ({ onClose }: TUseMarketSelection) => {
     const { symbols, isLoading } = useTradeTypeSymbols(selected_trade_type);
     const { favourites } = useFavouriteMarkets();
     const { activeSymbols } = useActiveSymbols();
-
     const current_trade_type = selected_trade_type?.id ?? '';
 
     const categories = useMemo(() => getMarketCategories(symbols), [symbols]);

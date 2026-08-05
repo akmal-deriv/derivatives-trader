@@ -1,8 +1,6 @@
 import { TActiveSymbolsResponse } from '@deriv/api';
 import { getSymbolDisplayName } from '@deriv/shared';
-import { localize } from '@deriv-com/translations';
 
-import { getSubgroupDisplayName, getSubmarketDisplayName } from 'AppV2/Utils/symbol-categories-utils';
 import { AVAILABLE_CONTRACTS, TAvailableContract } from 'AppV2/Utils/trade-types-utils';
 import { type TFavouriteMarket } from 'Stores/Modules/Markets/markets-store';
 
@@ -21,16 +19,6 @@ export type TMarketCategory = { id: string; label: string };
 // Curated market display order for the category chips (mirrors sort-symbols-utils market order).
 const MARKET_CATEGORY_ORDER = ['synthetic_index', 'forex', 'indices', 'stock_index', 'cryptocurrency', 'commodities'];
 
-// Category-chip labels. Falls back to the shared market display name for anything not overridden.
-const MARKET_CATEGORY_LABELS: Record<string, () => string> = {
-    synthetic_index: () => localize('Derived'),
-    forex: () => localize('Forex'),
-    indices: () => localize('Stocks & indices'),
-    stock_index: () => localize('Stocks & indices'),
-    cryptocurrency: () => localize('Cryptocurrencies'),
-    commodities: () => localize('Commodities'),
-};
-
 /**
  * Builds the ordered category-chip list for a set of symbols: always Featured, then one chip per
  * market present in the set, in curated order. Favourites is a top-level tab, not a chip.
@@ -45,8 +33,8 @@ export const getMarketCategories = (symbols: ActiveSymbols): TMarketCategory[] =
     });
 
     return [
-        { id: SPECIAL_CATEGORIES.FEATURED, label: localize('Featured') },
-        ...ordered_markets.map(market => ({ id: market, label: MARKET_CATEGORY_LABELS[market]?.() ?? market })),
+        { id: SPECIAL_CATEGORIES.FEATURED, label: SPECIAL_CATEGORIES.FEATURED },
+        ...ordered_markets.map(market => ({ id: market, label: market })),
     ];
 };
 
@@ -74,11 +62,13 @@ export const filterSymbolsBySearch = (symbols: ActiveSymbols, query: string): Ac
 export const getTradeTypeForContractType = (contract_type: string): TAvailableContract | undefined =>
     AVAILABLE_CONTRACTS.find(contract => contract.for.includes(contract_type));
 
-export type TSubmarketGroup = { submarket: string; title: string; items: ActiveSymbols };
+// A submarket section of the list view. The `submarket` key drives the reactive title at render time
+// (via getSubmarketLabel in market-selection-labels) — no display string is baked in here.
+export type TSubmarketGroup = { submarket: string; items: ActiveSymbols };
 
 /**
- * Groups a symbol list into submarket sections (preserving the incoming order), each with a display
- * title (e.g. "Continuous indices"), for the titled list view.
+ * Groups a symbol list into submarket sections (e.g. "Continuous indices"), preserving the incoming
+ * order, for the titled list view.
  */
 export const groupSymbolsBySubmarket = (symbols: ActiveSymbols): TSubmarketGroup[] => {
     const groups: TSubmarketGroup[] = [];
@@ -89,7 +79,7 @@ export const groupSymbolsBySubmarket = (symbols: ActiveSymbols): TSubmarketGroup
         const existing_index = index_by_submarket.get(submarket);
         if (existing_index === undefined) {
             index_by_submarket.set(submarket, groups.length);
-            groups.push({ submarket, title: getSubmarketDisplayName(submarket), items: [symbol] });
+            groups.push({ submarket, items: [symbol] });
         } else {
             groups[existing_index].items.push(symbol);
         }
@@ -98,8 +88,9 @@ export const groupSymbolsBySubmarket = (symbols: ActiveSymbols): TSubmarketGroup
     return groups;
 };
 
-/** A titled section of the category list. `label` is empty for markets shown as a flat submarket list. */
-export type TListSection = { subgroup: string; label: string; groups: TSubmarketGroup[] };
+// A titled section of the category list. The `subgroup` + `market` keys drive the reactive section
+// heading at render (via getSubgroupLabel); both are empty for a market shown as a flat submarket list.
+export type TListSection = { subgroup: string; market: string; groups: TSubmarketGroup[] };
 
 // Derived (Baskets + Synthetics) is the only market split into subgroup sections; everything else is
 // a flat submarket list. Baskets is shown before Synthetics; any other subgroup follows in order.
@@ -114,7 +105,7 @@ const DERIVED_SUBGROUP_ORDER = ['baskets', 'synthetics'];
  */
 export const groupSymbolsForList = (symbols: ActiveSymbols): TListSection[] => {
     if (symbols[0]?.market !== DERIVED_MARKET) {
-        return [{ subgroup: '', label: '', groups: groupSymbolsBySubmarket(symbols) }];
+        return [{ subgroup: '', market: '', groups: groupSymbolsBySubmarket(symbols) }];
     }
 
     const symbols_by_subgroup = new Map<string, ActiveSymbols>();
@@ -134,7 +125,7 @@ export const groupSymbolsForList = (symbols: ActiveSymbols): TListSection[] => {
         .sort((a, b) => rank(a) - rank(b))
         .map(subgroup => ({
             subgroup,
-            label: getSubgroupDisplayName(subgroup, DERIVED_MARKET),
+            market: DERIVED_MARKET,
             groups: groupSymbolsBySubmarket(symbols_by_subgroup.get(subgroup) ?? []),
         }));
 };
@@ -143,26 +134,30 @@ export const groupSymbolsForList = (symbols: ActiveSymbols): TListSection[] => {
 export const getContractTypeForTradeType = (trade_type: string): string =>
     AVAILABLE_CONTRACTS.find(contract => contract.id === trade_type)?.for[0] ?? '';
 
-export type TFavouriteSubgroup = { key: string; title: string; items: ActiveSymbols };
-export type TFavouriteGroup = { trade_type: string; label: string; subgroups: TFavouriteSubgroup[] };
+// The `subgroup`/`submarket`/`market` keys drive the reactive "Subgroup (Submarket)" title at render
+// (via FavouriteSubgroupTitle in market-selection-labels); `key` is the stable grouping/React key.
+export type TFavouriteSubgroup = {
+    key: string;
+    subgroup: string;
+    submarket: string;
+    market: string;
+    items: ActiveSymbols;
+};
+export type TFavouriteGroup = { trade_type: string; subgroups: TFavouriteSubgroup[] };
 
-// Groups symbols by "subgroup + submarket" with a "Subgroup (Submarket)" title (e.g. "Baskets (Forex basket)").
+// Groups symbols by "subgroup + submarket"; the display title is rendered reactively from these keys.
 const groupBySubgroupSubmarket = (symbols: ActiveSymbols): TFavouriteSubgroup[] => {
     const groups: TFavouriteSubgroup[] = [];
     const index_by_key = new Map<string, number>();
 
     symbols.forEach(symbol => {
-        const key = `${symbol.subgroup ?? ''}|${symbol.submarket ?? ''}`;
+        const subgroup = symbol.subgroup ?? '';
+        const submarket = symbol.submarket ?? '';
+        const key = `${subgroup}|${submarket}`;
         const existing_index = index_by_key.get(key);
         if (existing_index === undefined) {
             index_by_key.set(key, groups.length);
-            const subgroup_label = getSubgroupDisplayName(symbol.subgroup ?? '', symbol.market ?? '');
-            const submarket_label = getSubmarketDisplayName(symbol.submarket ?? '');
-            const title =
-                subgroup_label && subgroup_label !== submarket_label
-                    ? `${subgroup_label} (${submarket_label})`
-                    : submarket_label;
-            groups.push({ key, title, items: [symbol] });
+            groups.push({ key, subgroup, submarket, market: symbol.market ?? '', items: [symbol] });
         } else {
             groups[existing_index].items.push(symbol);
         }
@@ -194,7 +189,6 @@ export const groupFavourites = (favourites: TFavouriteMarket[], active_symbols: 
         .sort((a, b) => (order.get(a) ?? Number.POSITIVE_INFINITY) - (order.get(b) ?? Number.POSITIVE_INFINITY))
         .map(trade_type => ({
             trade_type,
-            label: AVAILABLE_CONTRACTS.find(contract => contract.id === trade_type)?.tradeType ?? trade_type,
             subgroups: groupBySubgroupSubmarket(symbols_by_trade_type.get(trade_type) ?? []),
         }));
 };

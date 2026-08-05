@@ -102,6 +102,9 @@
     &__change {
         padding: 0 var(--core-spacing-200, 4px);
         border-radius: var(--core-borderRadius-200, 4px);
+        // Keep the signed percentage LTR so the sign/% aren't reordered in an RTL layout (see below).
+        direction: ltr;
+        unicode-bidi: isolate;
 
         &--positive {
             background: var(--component-tag-bg-success);

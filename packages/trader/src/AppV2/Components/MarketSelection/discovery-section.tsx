@@ -51,20 +51,28 @@ const DiscoverySection = ({
 }: TDiscoverySection) => {
     const { isMobile } = useDevice();
     const cards_ref = React.useRef<HTMLDivElement>(null);
-    const [can_scroll_left, setCanScrollLeft] = React.useState(false);
-    const [can_scroll_right, setCanScrollRight] = React.useState(false);
+    // Controls are logical (start/end), not physical (left/right): in an RTL layout the row scrolls the
+    // other way, so we key everything off the row's *actual* rendered direction rather than the language
+    // (the desktop popover is deliberately LTR even in Arabic, so language alone would mis-flip it).
+    const [is_rtl, setIsRtl] = React.useState(false);
+    const [can_scroll_start, setCanScrollStart] = React.useState(false);
+    const [can_scroll_end, setCanScrollEnd] = React.useState(false);
 
     const updateScrollState = React.useCallback(() => {
         const el = cards_ref.current;
         if (!el) return;
-        setCanScrollLeft(el.scrollLeft > 0);
-        // -1 for sub-pixel rounding so the right control disables cleanly at the end.
-        setCanScrollRight(Math.ceil(el.scrollLeft + el.clientWidth) < el.scrollWidth - 1);
+        // Distance scrolled from the inline start: LTR reports 0..max (positive), RTL reports 0..-max
+        // (negative in modern browsers), so abs() gives the from-start distance in both directions.
+        const scrolled = Math.abs(el.scrollLeft);
+        setCanScrollStart(scrolled > 0);
+        // -1 for sub-pixel rounding so the end control disables cleanly at the end.
+        setCanScrollEnd(Math.ceil(scrolled + el.clientWidth) < el.scrollWidth - 1);
     }, []);
 
     React.useEffect(() => {
         if (isMobile) return undefined;
         const el = cards_ref.current;
+        if (el) setIsRtl(getComputedStyle(el).direction === 'rtl');
         updateScrollState();
         el?.addEventListener('scroll', updateScrollState, { passive: true });
         window.addEventListener('resize', updateScrollState);
@@ -75,10 +83,14 @@ const DiscoverySection = ({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isMobile, is_loading, cards.length, updateScrollState]);
 
-    const scrollByPage = (direction: 1 | -1) => {
+    const scrollByPage = (toward: 'start' | 'end') => {
         const el = cards_ref.current;
         if (!el) return;
-        el.scrollBy({ left: direction * el.clientWidth * 0.8, behavior: 'smooth' });
+        const magnitude = el.clientWidth * 0.8;
+        // scrollBy({ left }) is physical (+ scrolls right). Toward the list end is physically right in
+        // LTR and physically left in RTL; toward the start is the reverse.
+        const toward_physical_right = toward === 'end' ? !is_rtl : is_rtl;
+        el.scrollBy({ left: toward_physical_right ? magnitude : -magnitude, behavior: 'smooth' });
     };
 
     if (!is_loading && cards.length === 0) return null;
@@ -95,29 +107,45 @@ const DiscoverySection = ({
                 </Text>
                 {!isMobile && (
                     <div className='market-selection__discovery-section-nav'>
+                        {/* "Start" button: scrolls toward the beginning of the row. Its chevron points the
+                            way it scrolls — left in LTR, right in RTL — so it stays consistent in Arabic. */}
                         <button
                             type='button'
                             className='market-selection__discovery-section-nav-button'
-                            aria-label={localize('Scroll left')}
-                            disabled={!can_scroll_left}
-                            onClick={() => scrollByPage(-1)}
+                            aria-label={localize('Scroll to start')}
+                            disabled={!can_scroll_start}
+                            onClick={() => scrollByPage('start')}
                         >
-                            <StandaloneChevronLeftBoldIcon
-                                iconSize='xs'
-                                fill='var(--component-textIcon-normal-subtle)'
-                            />
+                            {is_rtl ? (
+                                <StandaloneChevronRightBoldIcon
+                                    iconSize='xs'
+                                    fill='var(--component-textIcon-normal-subtle)'
+                                />
+                            ) : (
+                                <StandaloneChevronLeftBoldIcon
+                                    iconSize='xs'
+                                    fill='var(--component-textIcon-normal-subtle)'
+                                />
+                            )}
                         </button>
                         <button
                             type='button'
                             className='market-selection__discovery-section-nav-button'
-                            aria-label={localize('Scroll right')}
-                            disabled={!can_scroll_right}
-                            onClick={() => scrollByPage(1)}
+                            aria-label={localize('Scroll to end')}
+                            disabled={!can_scroll_end}
+                            onClick={() => scrollByPage('end')}
                         >
-                            <StandaloneChevronRightBoldIcon
-                                iconSize='xs'
-                                fill='var(--component-textIcon-normal-subtle)'
-                            />
+                            {is_rtl ? (
+                                <StandaloneChevronLeftBoldIcon
+                                    iconSize='xs'
+                                    fill='var(--component-textIcon-normal-subtle)'
+                                />
+                            ) : (
+                                <StandaloneChevronRightBoldIcon
+                                    iconSize='xs'
+                                    fill='var(--component-textIcon-normal-subtle)'
+                                />
+                            )}
                         </button>
                     </div>
                 )}

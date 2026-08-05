@@ -20,7 +20,9 @@
     gap: var(--core-spacing-400, 8px);
     padding: 0 0 var(--core-spacing-800, 16px) 0;
 
-    // Right-edge fade indicating the row scrolls horizontally for more markets (mobile only).
+    // Inline-end fade indicating the row scrolls horizontally for more markets (mobile only). The block
+    // sits at the inline-end edge (flips via inset-inline-end), but linear-gradient is physical, so the
+    // solid stop must point at that edge explicitly: to the right in LTR, to the left in RTL.
     &:after {
         content: '';
         position: absolute;
@@ -29,6 +31,10 @@
         width: 48px;
         background: linear-gradient(to right, transparent, var(--color-surface-primary));
         pointer-events: none;
+
+        @include rtl {
+            background: linear-gradient(to left, transparent, var(--color-surface-primary));
+        }
     }
 
     &-header {
@@ -153,6 +159,11 @@
     }
 
     &__change {
+        // A signed percentage (e.g. -0.23%) is bidi-neutral around its digits, so in an RTL layout the
+        // sign/% get reordered (0.23%-). Pin the pill LTR and isolate it so it always reads +0.23%/-0.23%.
+        direction: ltr;
+        unicode-bidi: isolate;
+
         &--positive {
             color: var(--semantic-color-green-solid-textIcon-normal-mid);
         }

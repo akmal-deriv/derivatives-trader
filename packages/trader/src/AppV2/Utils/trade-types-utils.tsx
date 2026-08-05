@@ -186,6 +186,26 @@ export const getCategoryLabel = (category: string): React.ReactNode => {
     }
 };
 
+// The trade-type display labels, keyed by contract id (which equals the English `tradeType`). Those
+// `tradeType` strings are plain English used for logic/keys/ordering; render these instead wherever a
+// heading is shown, so it re-localizes reactively on a language switch (via <Localize>) rather than
+// staying frozen in the old language. Falls back to the raw id for anything unmapped.
+const TRADE_TYPE_LABELS: Record<string, React.ReactNode> = {
+    [CONTRACT_LIST.RISE_FALL]: <Localize i18n_default_text='Rise/Fall' />,
+    [CONTRACT_LIST.ACCUMULATORS]: <Localize i18n_default_text='Accumulators' />,
+    [CONTRACT_LIST.MATCHES_DIFFERS]: <Localize i18n_default_text='Matches/Differs' />,
+    [CONTRACT_LIST.OVER_UNDER]: <Localize i18n_default_text='Over/Under' />,
+    [CONTRACT_LIST.EVEN_ODD]: <Localize i18n_default_text='Even/Odd' />,
+    [CONTRACT_LIST.MULTIPLIERS]: <Localize i18n_default_text='Multipliers' />,
+    [CONTRACT_LIST.TOUCH_NO_TOUCH]: <Localize i18n_default_text='Touch/No Touch' />,
+    [CONTRACT_LIST.HIGHER_LOWER]: <Localize i18n_default_text='Higher/Lower' />,
+    [CONTRACT_LIST.TURBOS]: <Localize i18n_default_text='Turbos' />,
+    [CONTRACT_LIST.VANILLAS]: <Localize i18n_default_text='Vanillas' />,
+};
+
+/** Reactive, localized label for a trade type (keyed by contract id). See TRADE_TYPE_LABELS. */
+export const getTradeTypeLabel = (trade_type: string): React.ReactNode => TRADE_TYPE_LABELS[trade_type] ?? trade_type;
+
 /**
  * The available contracts in the PO display order (the AVAILABLE_CONTRACTS array order), optionally
  * restricted to a supported set (e.g. Automate); an empty/absent set means "all". Used where a single
