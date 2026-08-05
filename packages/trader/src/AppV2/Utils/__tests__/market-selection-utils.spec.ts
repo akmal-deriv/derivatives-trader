@@ -26,14 +26,14 @@ const makeSymbol = (underlying_symbol: string, market: string): ActiveSymbols[nu
 
 describe('market-selection-utils', () => {
     describe('getMarketCategories', () => {
-        it('leads with Featured, then markets in curated order (no Favourites chip)', () => {
+        it('lists markets in curated order (Featured chip temporarily omitted, no Favourites chip)', () => {
             const symbols = [
                 makeSymbol('frxEURUSD', 'forex'),
                 makeSymbol('R_100', 'synthetic_index'),
                 makeSymbol('OTC_SPC', 'indices'),
             ];
             const result = getMarketCategories(symbols);
-            expect(result.map(c => c.id)).toEqual([SPECIAL_CATEGORIES.FEATURED, 'synthetic_index', 'forex', 'indices']);
+            expect(result.map(c => c.id)).toEqual(['synthetic_index', 'forex', 'indices']);
         });
 
         it('supplies the raw market id as the fallback label', () => {
@@ -44,7 +44,6 @@ describe('market-selection-utils', () => {
             const labels = Object.fromEntries(result.map(c => [c.id, c.label]));
             expect(labels.synthetic_index).toBe('synthetic_index');
             expect(labels.indices).toBe('indices');
-            expect(labels[SPECIAL_CATEGORIES.FEATURED]).toBe(SPECIAL_CATEGORIES.FEATURED);
         });
     });
 

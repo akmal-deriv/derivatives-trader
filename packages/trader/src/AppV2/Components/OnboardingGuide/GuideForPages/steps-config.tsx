@@ -44,7 +44,7 @@ const getOnboardingSteps = (isMobile: boolean): TOnboardingStep[] => [
     },
     {
         title: <Localize i18n_default_text='Trade types and markets' />,
-        content: <Localize i18n_default_text="Find trade types, markets, and today's top movers all in one place." />,
+        content: <Localize i18n_default_text='Find all your trade types and markets in one place.' />,
         target: isMobile ? '.market-selection' : '.market-selection-desktop',
         // Mobile: the selector is a full-height page, so a top/bottom anchor lands off-screen. A
         // 'center' step repinned to the bottom (below) reads as a bottom-sheet callout, always visible.

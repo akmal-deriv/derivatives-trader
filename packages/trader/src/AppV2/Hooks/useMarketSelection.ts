@@ -36,7 +36,7 @@ const useMarketSelection = ({ onClose }: TUseMarketSelection) => {
     const [selected_trade_type, setSelectedTradeType] = useState<TAvailableContract | undefined>(
         () => getTradeTypeForContractType(contract_type) ?? AVAILABLE_CONTRACTS[0]
     );
-    const [selected_category, setSelectedCategory] = useState<string>(SPECIAL_CATEGORIES.FEATURED);
+    const [selected_category, setSelectedCategory] = useState<string>('');
     const [is_favourites_tab, setIsFavouritesTab] = useState(false);
     const [is_searching, setIsSearching] = useState(false);
     const [info_symbol, setInfoSymbol] = useState<string | null>(null);
@@ -52,9 +52,11 @@ const useMarketSelection = ({ onClose }: TUseMarketSelection) => {
     const categories = useMemo(() => getMarketCategories(symbols), [symbols]);
     const favourite_groups = useMemo(() => groupFavourites(favourites, activeSymbols), [favourites, activeSymbols]);
 
+    const effective_category = selected_category || categories[0]?.id || '';
+
     const visible_symbols = useMemo(
-        () => filterSymbolsByCategory(symbols, selected_category),
-        [symbols, selected_category]
+        () => filterSymbolsByCategory(symbols, effective_category),
+        [symbols, effective_category]
     );
 
     // The symbols shown in a *list* (favourites tab or a non-Featured category); discovery uses its own
@@ -74,7 +76,7 @@ const useMarketSelection = ({ onClose }: TUseMarketSelection) => {
         setListWindow(next);
     }, []);
 
-    const is_list_view = is_favourites_tab || selected_category !== SPECIAL_CATEGORIES.FEATURED;
+    const is_list_view = is_favourites_tab || effective_category !== SPECIAL_CATEGORIES.FEATURED;
     const list_underlying = useMemo(() => {
         if (!is_list_view) return [];
         if (is_favourites_tab) return Array.from(new Set(favourites.map(favourite => favourite.symbol)));
@@ -142,12 +144,11 @@ const useMarketSelection = ({ onClose }: TUseMarketSelection) => {
 
     const handleSelectTradeType = (contract: TAvailableContract) => {
         setSelectedTradeType(contract);
-        setSelectedCategory(SPECIAL_CATEGORIES.FEATURED);
+        setSelectedCategory('');
         setIsFavouritesTab(false);
     };
 
-    // Featured shows the discovery sections; every other chip shows the flat list.
-    const show_discovery = selected_category === SPECIAL_CATEGORIES.FEATURED;
+    const show_discovery = false;
     // Prefer the current trade-type list, but fall back to the full active-symbols set so the info
     // screen is reachable for favourites that belong to a different trade type.
     const info_item = info_symbol
@@ -158,7 +159,7 @@ const useMarketSelection = ({ onClose }: TUseMarketSelection) => {
     return {
         // browse state
         current_trade_type,
-        selected_category,
+        selected_category: effective_category,
         setSelectedCategory,
         is_favourites_tab,
         setIsFavouritesTab,

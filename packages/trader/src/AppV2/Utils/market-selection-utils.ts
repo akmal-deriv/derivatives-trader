@@ -32,10 +32,7 @@ export const getMarketCategories = (symbols: ActiveSymbols): TMarketCategory[] =
         return (index_a === -1 ? Infinity : index_a) - (index_b === -1 ? Infinity : index_b);
     });
 
-    return [
-        { id: SPECIAL_CATEGORIES.FEATURED, label: SPECIAL_CATEGORIES.FEATURED },
-        ...ordered_markets.map(market => ({ id: market, label: market })),
-    ];
+    return [...ordered_markets.map(market => ({ id: market, label: market }))];
 };
 
 /**

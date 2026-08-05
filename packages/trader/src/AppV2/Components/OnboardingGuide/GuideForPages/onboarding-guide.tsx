@@ -5,7 +5,6 @@ import { Modal } from '@deriv-com/quill-ui';
 import { Localize } from '@deriv-com/translations';
 import { useDevice } from '@deriv-com/ui';
 
-import DiscoveryWarmup from './discovery-warmup';
 import GuideContainer from './guide-container';
 import OnboardingVideo from './onboarding-video';
 
@@ -124,9 +123,6 @@ const OnboardingGuide = ({ type = 'trade_page', callback }: TOnboardingGuideProp
                 </Modal.Body>
             </Modal>
             <GuideContainer should_run={should_run_guide} onFinishGuide={onFinishGuide} />
-            {/* Warm the Market Selection tick data as soon as the tour starts, so step 2 (which opens
-                the selector) hits a warm cache instead of a cold 10-20s ticks_history fan-out. */}
-            {should_run_guide && <DiscoveryWarmup />}
         </React.Fragment>
     );
 };
