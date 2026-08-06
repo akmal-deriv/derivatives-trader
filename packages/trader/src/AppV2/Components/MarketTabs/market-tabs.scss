@@ -2,12 +2,11 @@
     display: flex;
     align-items: center;
     gap: var(--core-spacing-400, 8px);
-    padding: var(--core-spacing-400, 8px);
+    padding: var(--core-spacing-400, 0);
     // The row itself doesn't scroll — only the tabs list does — so the add button stays fixed.
     overflow: hidden;
 
-    // Wrapper the "+" button gets when it's capped (renders the max-reached tooltip). Keeps the
-    // button pinned like the bare button does.
+    // Wrapper for the capped "+" button (renders the max-reached tooltip); keeps it pinned.
     &__add-tooltip {
         flex-shrink: 0;
         display: inline-flex;
@@ -43,6 +42,9 @@
         min-width: 0;
         overflow-x: auto;
         scrollbar-width: none;
+        // Let scrollIntoView settle a revealed tab with breathing room
+        // instead of flush against the edge — a softer landing.
+        scroll-padding-inline: var(--core-spacing-800, 16px);
 
         &::-webkit-scrollbar {
             display: none;
@@ -60,8 +62,8 @@
     background: var(--semantic-color-monochrome-surface-normal-lowest);
     cursor: pointer;
 
-    // Keep the market icon at its natural size — only the label absorbs the tab's shrink (desktop,
-    // where many tabs share the row) so the icon never squashes when the text truncates.
+    // Keep the icon at natural size — only the label absorbs the tab's shrink (desktop), so it
+    // never squashes when the text truncates.
     > svg {
         flex-shrink: 0;
     }
@@ -79,49 +81,25 @@
         color: var(--component-textIcon-normal-subtle);
     }
 
-    // Name is collapsed by default and expands when active — so switching animates in place (this is
-    // the mobile "icon only when inactive" behaviour; desktop always shows the label, see below).
+    // The two stacked label lines (name + trade type); reveal/expand lives in the blocks below.
     &__text {
         display: flex;
         flex-direction: column;
         white-space: nowrap;
-        max-width: 0;
-        margin-inline-start: 0;
-        opacity: 0;
-        overflow: hidden;
-        pointer-events: none;
-        transition:
-            max-width 0.3s ease-in-out,
-            margin-inline-start 0.3s ease-in-out,
-            opacity 0.3s ease-in-out;
     }
 
     &__subtitle {
         color: var(--component-textIcon-normal-default);
     }
 
-    // Remove ✕: always rendered, hidden by default; shown on the active tab (desktop also reveals it
-    // on hover). Keeps out of the layout when hidden so inactive tabs don't reserve space for it.
+    // Remove ✕: sits in a `&__reveal` — slides in with the label on mobile, a visibility-toggled
+    // reserved slot on desktop.
     &__close {
         flex-shrink: 0;
-        display: none;
+        display: inline-flex;
         align-items: center;
         justify-content: center;
         cursor: pointer;
-    }
-
-    &--active {
-        gap: var(--core-spacing-400, 8px);
-    }
-
-    &--active &__text {
-        max-width: 24rem;
-        opacity: 1;
-        pointer-events: auto;
-    }
-
-    &--active &__close {
-        display: inline-flex;
     }
 
     // Trade type not available in the current mode (e.g. Automate): greyed out, not selectable.
@@ -139,74 +117,44 @@
 }
 
 // ---- Mobile: open-positions P/L glow ----
-// A green/red wash indicating profit/loss when the market has running contracts (desktop shows the
-// P/L number instead). Per Figma: a 270° gradient from the P/L colour (-32%) to transparent (132%).
-// Painted as a translucent OVERLAY (its stops are semi-transparent) so it blends with the tab's real
-// background — sat above that background but below the icon + label (contained negative z-index) so
-// the content stays crisp.
+// Green/red wash for a market with running contracts (desktop shows the P/L number instead). Per
+// Figma: a 270° gradient from the P/L colour to transparent, painted as a translucent overlay below
+// the icon + label (contained negative z-index) so the content stays crisp.
 .market-tabs:not(.market-tabs--desktop) {
-    // Fade the row's edges (next to the add button on the start side, at the screen edge on the end
-    // side) into the page background to signal more tabs. Rendered as two overlays that fade the tabs
-    // into `frame-low` (the Trade page's background); JS toggles a side on only while there's more to
-    // scroll that way, so a side's fade persists as long as that end isn't reached. Opacity — unlike an
-    // animated mask — holds its end state, so the fade doesn't snap back off once scrolling settles.
-    position: relative;
-
-    &:before,
-    &:after {
-        content: '';
-        position: absolute;
-        inset-block: 0;
-        width: 3.2rem;
-        z-index: 1;
-        pointer-events: none;
-        opacity: 0;
-        transition: opacity 0.3s ease;
-    }
-
-    // Start-side fade: sits at the list's start edge, just past the fixed add button
-    // (row padding + 5.6rem button + gap).
-    &:before {
-        inset-inline-start: calc(var(--core-spacing-400) + 5.6rem + var(--core-spacing-400));
-        background: linear-gradient(to right, var(--semantic-color-slate-solid-surface-frame-low), transparent);
-
-        @include rtl {
-            background: linear-gradient(to left, var(--semantic-color-slate-solid-surface-frame-low), transparent);
-        }
-    }
-
-    // End-side fade: at the row's end edge (screen edge).
-    &:after {
-        inset-inline-end: 0;
-        background: linear-gradient(to left, var(--semantic-color-slate-solid-surface-frame-low), transparent);
-
-        @include rtl {
-            background: linear-gradient(to right, var(--semantic-color-slate-solid-surface-frame-low), transparent);
-        }
-    }
-
-    &.market-tabs--fade-left:before {
-        opacity: 1;
-    }
-
-    &.market-tabs--fade-right:after {
-        opacity: 1;
-    }
-
-    // Inactive tabs collapse to a 56×56 icon-only square (the active tab expands with its label).
+    // Inactive tab is an icon-only square: label + ✕ reveals sit at 0 width. Centre the lone icon
+    // within the min-width floor.
     .market-tab:not(.market-tab--active) {
-        padding: 0;
         justify-content: center;
     }
 
     .market-tab {
-        // The tab box is content-sized with a 56px floor, so activating/deactivating grows/shrinks it
-        // smoothly (in step with the label + padding transitions) instead of snapping between a fixed
-        // 56px and content width. `min-width` keeps the collapsed state an exact 56×56 icon square.
+        // 56px floor for the collapsed icon square. Padding is constant (base) so the icon never
+        // shifts as the tab grows — the width comes entirely from the reveals expanding.
         min-width: 5.6rem;
-        transition:
-            padding 0.3s ease-in-out,
-            gap 0.3s ease-in-out;
+
+        // Label + ✕ reveal: the grid track grows 0fr → content width (1fr), so easing maps 1:1 to the
+        // growth (no max-width over-estimate). Opacity fades in with it.
+        .market-tab__reveal {
+            display: grid;
+            grid-template-columns: 0fr;
+            opacity: 0;
+            transition:
+                grid-template-columns 0.3s ease-out,
+                opacity 0.3s ease-out;
+        }
+
+        .market-tab__clip {
+            overflow: hidden; // auto min-size 0 → lets the track collapse to 0fr
+        }
+
+        // Spacing sits inside the reveals so it's clipped when collapsed (no phantom gap).
+        .market-tab__text {
+            padding-inline-start: var(--core-spacing-400, 8px);
+        }
+
+        .market-tab__close {
+            padding-inline-start: var(--core-spacing-800, 16px);
+        }
 
         &--profit-positive,
         &--profit-negative {
@@ -241,17 +189,29 @@
             );
         }
     }
+
+    // Active tab: open both reveals to their content width and fade the content in.
+    .market-tab--active .market-tab__reveal {
+        grid-template-columns: 1fr;
+        opacity: 1;
+
+        // A newly opened tab mounts active with no 0fr to transition from — give it a collapsed start
+        // so it animates in (and scrolls into view) like a switched tab instead of popping full width.
+        @starting-style {
+            grid-template-columns: 0fr;
+            opacity: 0;
+        }
+    }
 }
 
 // ---- Desktop: Chrome-style tabs ----
-// Every tab shows its name + trade type (no icon-only collapse), tabs sit flush on the bottom edge
-// with rounded top corners, and the active tab is raised so it reads like a browser tab strip.
+// Every tab shows its label (no icon-only collapse); tabs sit flush with rounded top corners and the
+// active one is raised, like a browser tab strip.
 .market-tabs--desktop {
     height: 100%;
     gap: var(--core-spacing-400, 8px);
     padding-block-end: 0;
-    // Never wider than the header minus the space reserved for the account header on the right; the
-    // tabs shrink to fit within this cap (see the list/tab flex rules below).
+    // Cap width to leave room for the account header on the right; tabs shrink to fit (see flex below).
     max-width: calc(100% - 352px);
 
     .market-tabs__add {
@@ -297,15 +257,19 @@
             background: var(--color-interactive-hover);
         }
 
+        // Dissolve the mobile reveal wrappers so the label + ✕ lay out directly — desktop shows them
+        // always, so every `&__text`/`&__close` rule applies as before the wrappers existed.
+        .market-tab__reveal,
+        .market-tab__clip {
+            display: contents;
+        }
+
         // Always show the label on desktop — override the mobile icon-only collapse — and let it
         // absorb the tab's shrink, truncating with an ellipsis rather than overflowing.
         &__text {
             flex: 1 1 auto;
             min-width: 0;
             max-width: 24rem;
-            margin-inline-start: 0;
-            opacity: 1;
-            pointer-events: auto;
         }
 
         // Desktop shows the P/L number inline in the subtitle (mobile shows the glow instead).
@@ -320,14 +284,10 @@
             white-space: nowrap;
         }
 
-        // Reserve the ✕ slot on every desktop tab so revealing it — on the active tab, or on hovering
-        // an inactive one — never changes the tab's width. Because the tab is content-sized, toggling
-        // `display` would make it grow; keeping the ✕ in the layout (just hidden) means the label
-        // ellipsises into the remaining space instead. (Explicit `.market-tab__close`, not `&__close`:
-        // `&` here is the compound `.market-tabs--desktop .market-tab`, so `&__close` would re-expand
-        // that prefix into the descendant and never match.)
+        // Reserve the ✕ slot via visibility, not display — the content-sized tab would grow otherwise,
+        // so the label ellipsises into the space instead. Explicit `.market-tab__close`, not `&__close`
+        // (which here expands to `.market-tabs--desktop .market-tab__close` and never matches).
         .market-tab__close {
-            display: inline-flex;
             visibility: hidden;
         }
 

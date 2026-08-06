@@ -463,26 +463,4 @@ describe('MarketTabs', () => {
         expect(mockSelect).not.toHaveBeenCalled();
         expect(screen.queryByTestId('market-selection-open')).not.toBeInTheDocument();
     });
-
-    it('fades only the edge that still has tabs to scroll to', () => {
-        mockOpenMarkets = [rise_market, gbp_market, jpy_market];
-        render(<MarketTabs />);
-        const root = screen.getByTestId('dt_market_tabs');
-        const list = screen.getByTestId('dt_market_tabs_list');
-        // jsdom has no layout, so simulate an overflowing row (scrollWidth > clientWidth).
-        Object.defineProperty(list, 'scrollWidth', { configurable: true, value: 500 });
-        Object.defineProperty(list, 'clientWidth', { configurable: true, value: 200 });
-        Object.defineProperty(list, 'scrollLeft', { configurable: true, writable: true, value: 0 });
-
-        // At the start: only the end edge fades (more to the right, nothing to the left).
-        fireEvent.scroll(list);
-        expect(root).toHaveClass('market-tabs--fade-right');
-        expect(root).not.toHaveClass('market-tabs--fade-left');
-
-        // Scrolled to the end: only the start edge fades (nothing more to the right).
-        list.scrollLeft = 300;
-        fireEvent.scroll(list);
-        expect(root).toHaveClass('market-tabs--fade-left');
-        expect(root).not.toHaveClass('market-tabs--fade-right');
-    });
 });

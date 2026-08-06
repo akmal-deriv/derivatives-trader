@@ -96,31 +96,6 @@ const MarketTabs = observer(({ supported_trade_types, onSelectorOpenChange }: TM
     // Previous open-tab count, for emitting tab open/close/limit analytics off real count changes.
     const prev_tab_count_ref = useRef<number | null>(null);
 
-    // Edge fades on the tab row: a side stays faded as long as there's more to scroll that way, and
-    // clears only when that end is reached (start position → start-side clear; end → end-side clear).
-    const list_ref = useRef<HTMLDivElement>(null);
-    const [fade_left, setFadeLeft] = useState(false);
-    const [fade_right, setFadeRight] = useState(false);
-    const updateEdgeFades = useCallback(() => {
-        const el = list_ref.current;
-        if (!el) return;
-        // `scrollLeft` is negative in RTL on some engines; the absolute distance from the start works
-        // for both directions.
-        const scrolled = Math.abs(el.scrollLeft);
-        const max_scroll = el.scrollWidth - el.clientWidth;
-        setFadeLeft(scrolled > 1);
-        setFadeRight(scrolled < max_scroll - 1);
-    }, []);
-    // Recompute on mount, whenever the tab set changes (affects scrollWidth), and on any size change.
-    useEffect(() => {
-        updateEdgeFades();
-        const el = list_ref.current;
-        if (!el || typeof ResizeObserver === 'undefined') return undefined;
-        const observer = new ResizeObserver(updateEdgeFades);
-        observer.observe(el);
-        return () => observer.disconnect();
-    }, [updateEdgeFades, open_markets.length]);
-
     // Open/close the selector and notify the parent (so it can defer page onboarding while open).
     // Fires only on real open/close actions, so a view_markets landing can't spuriously unblock.
     // Closing also clears any pending "replace this tab" intent so a later add/select isn't hijacked.
@@ -387,8 +362,6 @@ const MarketTabs = observer(({ supported_trade_types, onSelectorOpenChange }: TM
         <div
             className={clsx('market-tabs', {
                 'market-tabs--desktop': !isMobile,
-                'market-tabs--fade-left': fade_left,
-                'market-tabs--fade-right': fade_right,
             })}
             data-testid='dt_market_tabs'
         >
@@ -405,12 +378,7 @@ const MarketTabs = observer(({ supported_trade_types, onSelectorOpenChange }: TM
             ) : (
                 add_button
             )}
-            <div
-                ref={list_ref}
-                className='market-tabs__list'
-                onScroll={updateEdgeFades}
-                data-testid='dt_market_tabs_list'
-            >
+            <div className='market-tabs__list' data-testid='dt_market_tabs_list'>
                 {open_markets.map(market => {
                     const is_disabled = isDisabled(market);
                     // Keep at least one tab overall, and never let the last tradeable tab be closed

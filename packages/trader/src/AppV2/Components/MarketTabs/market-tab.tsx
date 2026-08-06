@@ -11,10 +11,6 @@ import { TOpenMarket } from 'AppV2/Utils/open-markets-utils';
 import ProfitAmount from '../ProfitAmount';
 import SymbolIconsMapper from '../SymbolIconsMapper/symbol-icons-mapper';
 
-// Width (px) of the market-tabs edge-fade overlays; the active-tab reveal insets the visible edge by
-// this much so it clears the fade.
-const FADE = 32;
-
 type TMarketTab = {
     market: TOpenMarket;
     is_active: boolean;
@@ -32,10 +28,9 @@ type TMarketTab = {
 };
 
 /**
- * One market tab on the Trade page strip. The active tab is expanded (icon + market name + trade
- * type + a remove ✕); inactive tabs are compact (mobile: icon only). The ✕ is always rendered but
- * hidden by CSS — shown on the active tab, and on hover on desktop. Tapping an inactive tab activates
- * it; tapping the already-active tab opens the selector to replace it (handled by the parent).
+ * One market tab on the Trade strip: the active tab expands (icon + name + trade type + remove ✕),
+ * inactive tabs are compact (mobile: icon only). Tapping an inactive tab activates it; tapping the
+ * active tab opens the selector to replace it (handled by the parent).
  */
 const MarketTab = ({
     market,
@@ -48,66 +43,50 @@ const MarketTab = ({
     onRemove,
     onDisabledClick,
 }: TMarketTab) => {
-    // Prefer the AppV2 trade-type name (e.g. Vanillas) over the contract config title, which for
-    // Vanilla is the sub-type pair "Call/Put"; fall back to the config title for anything not in the
-    // AppV2 trade-type list. (For every other trade type the two already match.)
+    // Prefer the AppV2 trade-type name (e.g. Vanillas) over the config title, which for Vanilla is
+    // the "Call/Put" sub-type pair; fall back to the config title otherwise.
     const trade_type_title =
         getTradeTypeForContractType(market.contract_type)?.tradeType ??
         getContractTypesConfig()[market.contract_type]?.title;
     const has_profit = typeof profit === 'number';
     const tab_ref = useRef<HTMLDivElement>(null);
 
-    // Keep the active tab in view as it expands (~0.3s): scroll once on activation, once after the
-    // transition settles — a per-frame chase jitters on iOS. Rect maths are screen-physical (RTL-safe).
-    // A tab past the strip's midpoint pins its right edge so the label grows toward the centre rather
-    // than overrunning the end; the 32px insets clear the edge fades (skipped for the flush first tab).
+    // After the label expands, glide the tab fully into view (an overflow strip won't follow a tab
+    // that grew past its edge). Native smooth-scroll isn't tunable, so we drive it: an instant
+    // scrollIntoView finds the target (RTL/scroll-padding-safe), then we tween scrollLeft to it.
     useEffect(() => {
         const el = tab_ref.current;
-        if (!is_active || !el) return undefined;
-        const scroller = el.parentElement;
-        let anchor_right: number | null = null; // pinned right-edge x for a right-of-centre tab
-        const reveal = (smooth = false) => {
-            const behavior: ScrollBehavior = smooth ? 'smooth' : 'auto';
-            if (!scroller) {
-                el.scrollIntoView?.({ inline: 'nearest', block: 'nearest', behavior });
-                return;
-            }
-            const tab = el.getBoundingClientRect();
-            const view = scroller.getBoundingClientRect();
-            const lead_inset = el.previousElementSibling ? FADE : 0;
-            // Decide the growth direction from the tab's position at activation.
-            if (anchor_right === null) {
-                const past_mid = (tab.left + tab.right) / 2 > (view.left + view.right) / 2;
-                // Pin the right edge where it starts (clamped inside the end fade); NaN sentinel means
-                // "left-anchored" so we fall through to the natural rightward-growth branch below.
-                anchor_right = past_mid ? Math.min(tab.right, view.right - FADE) : NaN;
-            }
-            let delta = 0;
-            if (!Number.isNaN(anchor_right)) {
-                // Right-of-centre: hold the right edge steady so the label spills toward the start…
-                delta = tab.right - anchor_right;
-                // …but never bury the leading edge under the start fade (caps growth for a wide tab).
-                delta = Math.min(delta, tab.left - (view.left + lead_inset));
-            } else {
-                const lead_room = tab.left - view.left;
-                const right_over = tab.right - view.right;
-                if (lead_room < lead_inset - 1) {
-                    // Reveal the leading edge just past the fade (priority — even if the ✕ clips).
-                    delta = lead_room - lead_inset;
-                } else if (right_over > 1) {
-                    // Reveal the trailing edge without pushing the leading edge back under the fade.
-                    delta = Math.min(right_over, Math.max(0, lead_room - lead_inset));
-                }
-            }
-            if (Math.abs(delta) > 0.5) scroller.scrollBy({ left: delta, behavior });
+        const list = el?.closest<HTMLElement>('.market-tabs__list');
+        if (!is_active || !el || !list || !el.scrollIntoView) return undefined;
+
+        let raf = 0;
+        const glideIntoView = () => {
+            cancelAnimationFrame(raf); // label + ✕ reveals both fire this — never run two tweens
+            const from = list.scrollLeft;
+            el.scrollIntoView({ inline: 'nearest', block: 'nearest' }); // instant: snaps to target
+            const to = list.scrollLeft;
+            const reduce_motion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+            if (to === from || reduce_motion) return; // already in view, or motion off — leave snapped
+
+            list.scrollLeft = from; // rewind (same frame — not painted) and ease in
+            const start = performance.now();
+            const ease_out = (t: number) => 1 - (1 - t) ** 3;
+            const step = (now: number) => {
+                const t = Math.min((now - start) / 450, 1);
+                list.scrollLeft = from + (to - from) * ease_out(t);
+                if (t < 1) raf = requestAnimationFrame(step);
+            };
+            raf = requestAnimationFrame(step);
         };
-        // Reveal on the next frame (anchor is captured here), then once more after the ~0.3s
-        // activate/collapse transition settles — a single smooth scroll to the final layout.
-        const raf = requestAnimationFrame(() => reveal());
-        const settle = setTimeout(() => reveal(true), 340);
+
+        // The reveal's grid track finishing its transition bubbles up from the label to this tab.
+        const onExpandEnd = (event: TransitionEvent) => {
+            if (event.propertyName === 'grid-template-columns') glideIntoView();
+        };
+        el.addEventListener('transitionend', onExpandEnd);
         return () => {
+            el.removeEventListener('transitionend', onExpandEnd);
             cancelAnimationFrame(raf);
-            clearTimeout(settle);
         };
     }, [is_active]);
 
@@ -141,35 +120,48 @@ const MarketTab = ({
             }}
         >
             <SymbolIconsMapper symbol={market.symbol} />
-            <div className='market-tab__text'>
-                <Text size='sm' bold>
-                    {getSymbolDisplayName(market.symbol)}
-                </Text>
-                {trade_type_title && (
-                    <CaptionText className='market-tab__subtitle' size='sm'>
-                        {trade_type_title}
-                        {has_profit && (
-                            <span className='market-tab__profit'>
-                                <span className='market-tab__profit-dot'>•</span>
-                                <ProfitAmount amount={profit as number} currency={currency} />
-                            </span>
+            {/* Label + ✕ each sit in a grid reveal (mobile): track grows 0fr→content width; the
+                inner clip hides content while collapsed. */}
+            <div className='market-tab__reveal'>
+                <div className='market-tab__clip'>
+                    <div className='market-tab__text'>
+                        <Text size='sm' bold>
+                            {getSymbolDisplayName(market.symbol)}
+                        </Text>
+                        {trade_type_title && (
+                            <CaptionText className='market-tab__subtitle' size='sm'>
+                                {trade_type_title}
+                                {has_profit && (
+                                    <span className='market-tab__profit'>
+                                        <span className='market-tab__profit-dot'>•</span>
+                                        <ProfitAmount amount={profit as number} currency={currency} />
+                                    </span>
+                                )}
+                            </CaptionText>
                         )}
-                    </CaptionText>
-                )}
+                    </div>
+                </div>
             </div>
             {is_removable && (
-                <button
-                    type='button'
-                    className='market-tab__close'
-                    aria-label='Remove market'
-                    tabIndex={is_active ? 0 : -1}
-                    onClick={event => {
-                        event.stopPropagation();
-                        onRemove(market);
-                    }}
-                >
-                    <StandaloneCircleXmarkFillIcon iconSize='sm' fill='var(--component-textIcon-normal-subtle)' />
-                </button>
+                <div className='market-tab__reveal'>
+                    <div className='market-tab__clip'>
+                        <button
+                            type='button'
+                            className='market-tab__close'
+                            aria-label='Remove market'
+                            tabIndex={is_active ? 0 : -1}
+                            onClick={event => {
+                                event.stopPropagation();
+                                onRemove(market);
+                            }}
+                        >
+                            <StandaloneCircleXmarkFillIcon
+                                iconSize='sm'
+                                fill='var(--component-textIcon-normal-subtle)'
+                            />
+                        </button>
+                    </div>
+                </div>
             )}
         </div>
     );
