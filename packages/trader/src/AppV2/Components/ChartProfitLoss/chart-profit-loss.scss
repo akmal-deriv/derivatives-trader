@@ -12,7 +12,9 @@ $marker-color-down: #de0040;
         display: inline-flex;
         align-items: center;
         gap: var(--core-spacing-200);
-        padding: var(--core-spacing-200) var(--core-spacing-400) var(--core-spacing-200) var(--core-spacing-200);
+        height: var(--core-size-1200);
+        padding-block: 0;
+        padding-inline: var(--core-spacing-400) var(--core-spacing-200);
         border: none;
         border-radius: var(--core-borderRadius-2400);
         background-color: var(--semantic-color-monochrome-surface-normal-lowest);
@@ -26,12 +28,16 @@ $marker-color-down: #de0040;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        min-width: var(--core-spacing-1000);
-        height: var(--core-spacing-1000);
-        padding: 0 var(--core-spacing-100);
+        box-sizing: border-box;
+        min-width: var(--core-size-700);
+        height: var(--core-size-700);
+        padding-inline: var(--core-spacing-100);
         border-radius: var(--core-borderRadius-1000);
-        background-color: var(--semantic-color-slate-opacity-surface-low);
-        color: var(--component-field-label-color-enabled);
+        background-color: var(--semantic-color-monochrome-surface-normal-high);
+        color: var(--semantic-color-slate-solid-surface-frame-low);
+        font-size: var(--core-size-500);
+        font-weight: 700;
+        line-height: 1;
     }
 
     &__return {

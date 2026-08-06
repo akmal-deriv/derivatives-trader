@@ -15,9 +15,7 @@ export type TProfitLossPillProps = {
 
 const ProfitLossPill = ({ count, currency, onClick, totalProfit }: TProfitLossPillProps) => (
     <button type='button' className='chart-profit-loss__pill' onClick={onClick} data-testid='dt_chart_profit_loss_pill'>
-        <span className='chart-profit-loss__count'>
-            <CaptionText bold>{count}</CaptionText>
-        </span>
+        <span className='chart-profit-loss__count'>{count}</span>
         <span className='chart-profit-loss__return'>
             <CaptionText bold className='chart-profit-loss__label'>
                 <Localize i18n_default_text='P/L' />
