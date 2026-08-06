@@ -117,8 +117,7 @@ export class TradeTurbosPage extends TradeParametersPage {
         await this.switchToAccountType(accountType);
 
         // 1. Configure and buy
-        await this.selectMarket(market);
-        await this.selectTradeType('Turbos'); // verifies Duration, Payout per point, Take profit, Barrier info, Buy
+        await this.selectMarketAndTradeType(market, 'Turbos'); // verifies Duration, Payout per point, Take profit, Barrier info, Buy
         await this.selectDirection(direction);
         if (takeProfit !== undefined) {
             // Assert TP is configured on the FORM (deterministic) before buying.

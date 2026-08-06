@@ -18,7 +18,7 @@ import { ContractDetailsPage } from './ContractDetailsPage';
  * test.beforeEach(async ({ page, loginPage, tradeRiseFallPage }) => {
  *     await TradeBasePage.seedLocalStorageOnOrigin(page);
  *     await loginPage.login(accountEmail, accountPassword);
- *     await tradeRiseFallPage.selectTradeType('Rise/Fall');
+ *     await tradeRiseFallPage.selectMarketAndTradeType('Volatility 100 Index', 'Rise/Fall');
  * });
  * ```
  */
@@ -140,8 +140,7 @@ export class TradeRiseFallPage extends TradeParametersPage {
         await this.switchToAccountType(accountType);
 
         // 1. Configure and buy
-        await this.selectMarket(market);
-        await this.selectTradeType('Rise/Fall');
+        await this.selectMarketAndTradeType(market, 'Rise/Fall');
         if (allowEquals) {
             await this.enableAllowEquals();
             await this.verifyAllowEqualsEnabled();
@@ -260,8 +259,7 @@ export class TradeRiseFallPage extends TradeParametersPage {
         await this.switchToAccountType(accountType);
 
         // 1. Configure and buy
-        await this.selectMarket(market);
-        await this.selectTradeType('Rise/Fall');
+        await this.selectMarketAndTradeType(market, 'Rise/Fall');
         if (allowEquals) {
             await this.enableAllowEquals();
             await this.verifyAllowEqualsEnabled();

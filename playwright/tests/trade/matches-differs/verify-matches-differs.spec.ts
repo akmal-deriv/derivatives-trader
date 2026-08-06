@@ -15,9 +15,6 @@ test.describe('Trade — Matches/Differs', { tag: ['@desktop', '@mobile', '@trad
     test.describe.configure({ mode: 'serial' });
 
     test.beforeAll(async () => {
-        // Create a fresh funded real USD trading account each run. The dedicated backup account uses a
-        // custom password (not the shared TEST_PASSWORD), so pass it as `password` — that becomes the
-        // password for both freshly created accounts and the backup account used on creation failure.
         const account = await createAccountV2viaJS('real', {
             currency: 'USD',
             trading: true,

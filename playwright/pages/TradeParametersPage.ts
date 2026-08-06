@@ -23,17 +23,6 @@ export class TradeParametersPage extends TradeBasePage {
     // ============================================
 
     /**
-     * Contract type selector button — opens the trade types grid popover.
-     * - Desktop: icon button with aria-label="View all trade types" (trade-types-selector.tsx)
-     * - Mobile: "View all" text button in the trade types scrollable bar
-     */
-    get tradeTypeSelector(): Locator {
-        return this.isMobile
-            ? this.page.getByRole('button', { name: 'View all' })
-            : this.page.getByLabel('View all trade types');
-    }
-
-    /**
      * Rise button in the Rise/Fall segmented control.
      * Default selected contract type on page load.
      */
@@ -46,15 +35,6 @@ export class TradeParametersPage extends TradeBasePage {
      */
     get fallButton(): Locator {
         return this.page.getByRole('button', { name: 'Fall', exact: true });
-    }
-
-    /**
-     * Guide link/button — viewport-aware.
-     * - Desktop: `.guide-link` anchor with "How to trade?" text
-     * - Mobile: `.trade__guide` icon button (no text)
-     */
-    get guideLink(): Locator {
-        return this.isMobile ? this.page.locator('.trade__guide') : this.page.locator('.guide-link');
     }
 
     /**
@@ -79,7 +59,8 @@ export class TradeParametersPage extends TradeBasePage {
 
     /**
      * Allow equals minimized text field (mobile only).
-     * Tapping this opens the action sheet with the toggle + Save button.
+     * Tapping this toggles `is_equal` inline and shows a confirmation snackbar — there's no action
+     * sheet, toggle, or Save step (see allowEqualsSnackbarMessage).
      * Source: allow-equals.tsx is_minimized branch — TextField with label "Allow equals"
      */
     get allowEqualsMobileField(): Locator {
@@ -87,20 +68,13 @@ export class TradeParametersPage extends TradeBasePage {
     }
 
     /**
-     * Allow equals toggle inside the mobile action sheet.
-     * Visible after tapping allowEqualsMobileField.
-     * Source: allow-equals.tsx is_minimized ActionSheet — ToggleSwitch inside .allow-equals__toggle-row
+     * Confirmation snackbar message shown after tapping allowEqualsMobileField (mobile only).
+     * Source: allow-equals.tsx toggleAllowEquals — addSnackbar() (@deriv-com/quill-ui). Auto-dismisses
+     * after 4s by default (status="neutral") — wait for it to clear rather than clicking its close
+     * button, which races the dismiss animation and can flake.
      */
-    get allowEqualsSheetToggle(): Locator {
-        return this.page.locator('.allow-equals__toggle-row button.toggle-switch');
-    }
-
-    /**
-     * "Save" button inside the mobile Allow equals action sheet.
-     * Source: allow-equals.tsx ActionSheet.Footer primaryAction
-     */
-    get allowEqualsSheetSaveButton(): Locator {
-        return this.page.locator('.allow-equals__button').getByRole('button', { name: 'Save' });
+    get allowEqualsSnackbarMessage(): Locator {
+        return this.page.locator('.snackbar--container .quill-snackbar__message');
     }
 
     /**
@@ -118,6 +92,26 @@ export class TradeParametersPage extends TradeBasePage {
      */
     get takeProfitLabel(): Locator {
         return this.page.locator('label', { hasText: 'Take profit' }).first();
+    }
+
+    /**
+     * "Multiplier" label — Multipliers only, stable across both viewports.
+     * Desktop: TradeParameterPopover renders a readOnly TextField labelled "Multiplier".
+     * Mobile: ActionSheet TextField labelled "Multiplier".
+     * Source: multiplier-desktop.tsx / multiplier.tsx — i18n_default_text='Multiplier'
+     */
+    get multiplierLabel(): Locator {
+        return this.page.locator('label', { hasText: 'Multiplier' }).first();
+    }
+
+    /**
+     * Risk management label — Multipliers only, stable across both viewports.
+     * Desktop: TradeParameterPopover labelled "Risk management".
+     * Mobile: ActionSheet TextField labelled "Risk management".
+     * Source: risk-management-desktop.tsx / risk-management.tsx — i18n_default_text='Risk management'
+     */
+    get riskManagementLabel(): Locator {
+        return this.page.locator('label', { hasText: 'Risk management' }).first();
     }
 
     /**
@@ -199,63 +193,313 @@ export class TradeParametersPage extends TradeBasePage {
     }
 
     /**
-     * Market / symbol selector — viewport-aware.
-     * - Mobile (< 1024px): .market-selector__container (market-selector.tsx)
-     * - Desktop (≥ 1024px): .cq-symbol-select-btn inside SmartCharts (trade-desktop.tsx)
-     *   MarketSelector is commented out on desktop; symbol selection is via the chart header.
+     * "Add market" button on the market-tabs strip — opens the market-selection picker to add a
+     * NEW tab (as opposed to clicking the active tab, which opens it to REPLACE that tab).
+     * Source: market-tabs.tsx aria-label='Add market'
      */
-    get marketSelector(): Locator {
-        return this.isMobile
-            ? this.page.locator('.market-selector__container')
-            : this.page.locator('.cq-symbol-select-btn');
+    get addMarketButton(): Locator {
+        return this.page.getByRole('button', { name: 'Add market' });
     }
 
     /**
-     * Market search input — viewport-aware.
-     * - Desktop: text input inside the SmartCharts market picker dialog (.sc-search-input)
-     * - Mobile: text input inside the Quill action sheet symbols search field
+     * Root panel of the market-selection picker — present only while it's open. Both shells
+     * unmount entirely when closed (`return null`), so this also doubles as the "closed" check via
+     * `.not.toBeAttached()`.
+     * - Desktop: `.market-selection-desktop` (InputPopover's className, market-selection-desktop.tsx)
+     * - Mobile: the full-screen modal, `role="dialog"` `aria-label="Market selection"`
+     *   (market-selection-mobile.tsx)
+     */
+    get marketSelectionPanel(): Locator {
+        return this.isMobile
+            ? this.page.locator('[role="dialog"][aria-label="Market selection"]')
+            : this.page.locator('.market-selection-desktop');
+    }
+
+    /**
+     * Search-icon trigger that opens the dedicated mobile search page — desktop's search field is
+     * already inline, so this is mobile-only chrome.
+     * Source: market-selection-header.tsx aria-label='Search'
+     */
+    get marketSelectionSearchButton(): Locator {
+        return this.page.getByRole('button', { name: 'Search' });
+    }
+
+    /**
+     * Market-selection search input — viewport-aware. Searching by name reaches any market across
+     * every trade type in one step, rather than switching categories and scrolling a long list.
+     * - Desktop: always-inline field, placeholder "Search by market name" (market-selection-desktop.tsx)
+     * - Mobile: on the dedicated search page (opened via `marketSelectionSearchButton`), placeholder
+     *   "Search markets" (market-search-page.tsx)
      */
     get marketSearchInput(): Locator {
         return this.isMobile
-            ? this.page.locator('.symbols-search-field__container input')
-            : this.page.locator('.sc-mcd__content .sc-search-input input');
+            ? this.page.getByPlaceholder('Search markets')
+            : this.page.getByPlaceholder('Search by market name');
     }
 
     /**
-     * Selected market label — viewport-aware.
-     * - Desktop: .cq-symbol text inside the SmartCharts symbol select button
-     * - Mobile: first <p> inside .market-selector-info__label (Quill typography)
+     * Search-results group for one trade type — results are grouped by trade type (a symbol can
+     * appear under several), and selecting a row commits it under whichever group it's in.
+     * Source: market-search-results.tsx `.market-search-results__group` / `__trade-type` header
+     *
+     * @param tradeType - Visible trade-type label (e.g. 'Rise/Fall', 'Multipliers')
      */
-    get selectedMarketLabel(): Locator {
+    marketSearchResultsGroup(tradeType: string): Locator {
+        return this.page
+            .locator('.market-search-results__group')
+            .filter({ has: this.page.locator('.market-search-results__trade-type', { hasText: tradeType }) })
+            .first();
+    }
+
+    /**
+     * Market row within a search-results trade-type group, filtered by display name —
+     * viewport-aware. Clicking it commits BOTH this symbol and the group's trade type.
+     * - Desktop: `.market-row-desktop` (market-selection-row-desktop.tsx)
+     * - Mobile: `.market-selection-row` (market-selection-row-mobile.tsx)
+     *
+     * @param market - Visible market name (e.g. 'Volatility 100 Index')
+     * @param tradeType - Visible trade-type label the row must be grouped under
+     */
+    marketSearchResultRow(market: string, tradeType: string): Locator {
+        const group = this.marketSearchResultsGroup(tradeType);
         return this.isMobile
-            ? this.page.locator('.market-selector-info__label p.quill-typography').first()
-            : this.page.locator('.cq-symbol-select-btn .cq-symbol');
+            ? group
+                  .locator('.market-selection-row')
+                  .filter({ has: this.page.locator('.market-selection-row__name', { hasText: market }) })
+                  .locator('.market-selection-row__content')
+                  .first()
+            : group
+                  .locator('.market-row-desktop')
+                  .filter({ has: this.page.locator('.market-row-desktop__name', { hasText: market }) })
+                  .first();
     }
 
     /**
-     * Market item in the mobile Quill action sheet filtered by display name.
-     * Source: market-category-item.tsx
-     *
-     * @param market - Visible market name (e.g. 'Volatility 100 Index')
+     * Empty-state title inside the market-selection picker — shown for both "no search
+     * results" ("No result found") and "no favourites yet" ("No favourites yet").
+     * Source: market-empty-state.tsx `.market-empty-state__title`
      */
-    marketCategoryItem(market: string): Locator {
-        return this.page
-            .locator('.market-category-item')
-            .filter({ has: this.page.locator('.market-category-item-symbol span', { hasText: market }) })
-            .first();
+    get marketEmptyStateTitle(): Locator {
+        return this.page.locator('.market-empty-state__title');
     }
 
     /**
-     * Market item in the SmartCharts desktop picker filtered by display name.
-     * Source: SmartCharts sc-mcd__item
+     * A market row within the Favourite tab/section, filtered by display name. Distinct from
+     * {@link marketSearchResultRow} — the Favourites view groups rows under
+     * `.market-favourites__group`, not `.market-search-results__group`.
+     * Source: market-favourites-view.tsx
      *
      * @param market - Visible market name (e.g. 'Volatility 100 Index')
      */
-    smartChartsMarketItem(market: string): Locator {
+    favouriteMarketRow(market: string): Locator {
         return this.page
-            .locator('.sc-mcd__item')
-            .filter({ has: this.page.locator('.sc-mcd__item__name', { hasText: market }) })
-            .first();
+            .locator('.market-favourites__group')
+            .locator(this.isMobile ? '.market-selection-row' : '.market-row-desktop', { hasText: market });
+    }
+
+    /**
+     * Empty-state description text under {@link marketEmptyStateTitle}.
+     * Source: market-empty-state.tsx `.market-empty-state__description`
+     */
+    get marketEmptyStateDescription(): Locator {
+        return this.page.locator('.market-empty-state__description');
+    }
+
+    /**
+     * Asset-class category chip (e.g. 'Derived', 'Forex', 'Stocks & indices', 'Commodities',
+     * 'Cryptocurrencies') in the market-selection picker. There is no 'Featured' chip — it was
+     * removed in master PR #974 (2026-08-06) along with the Trending/Gainers/Losers discovery
+     * view. Selected state is exposed as `data-state="selected"` (confirmed live — Quill's
+     * `Chip.Selectable`), not `aria-selected`.
+     * Source: market-category-chips.tsx `.market-selection__category-chips`
+     *
+     * @param label - Visible chip label (e.g. 'Forex')
+     */
+    marketCategoryChip(label: string): Locator {
+        return this.page.locator('.market-selection__category-chips button', { hasText: label });
+    }
+
+    /**
+     * Trade-type navigation item — viewport-aware. Mobile renders a `role="tablist"` strip
+     * (`market-selection__trade-type-tab`); desktop renders a grouped sidebar
+     * (`market-selection-sidebar__item`) under Directional/Growth based/Digit based headers.
+     * Source: trade-type-tabs.tsx (mobile) / market-selection-sidebar.tsx (desktop)
+     */
+    get tradeTypeNavItems(): Locator {
+        return this.isMobile
+            ? this.page.locator('.market-selection__trade-type-tab')
+            : this.page.locator('.market-selection-sidebar__item');
+    }
+
+    /**
+     * Trade-type navigation item filtered by visible label — same viewport split as
+     * {@link tradeTypeNavItems}.
+     *
+     * @param tradeType - Visible trade-type label (e.g. 'Accumulators')
+     */
+    tradeTypeNavItem(tradeType: string): Locator {
+        return this.tradeTypeNavItems.filter({ hasText: tradeType });
+    }
+
+    /**
+     * "Favourite ({{count}})" tab/sidebar-item — viewport-aware. Mobile: leading tab in the
+     * trade-type tablist. Desktop: pinned item at the bottom of the sidebar.
+     * Source: trade-type-tabs.tsx / market-selection-sidebar.tsx
+     */
+    get favouritesTab(): Locator {
+        return this.isMobile
+            ? this.page.locator('.market-selection__trade-type-tab').filter({ hasText: 'Favourite' })
+            : this.page.locator('.market-selection-sidebar__favourite');
+    }
+
+    /**
+     * "Changes ({window})" time-window dropdown trigger — appears in every category list view
+     * (the picker's default landing state, since the Featured/Discovery screen was removed in
+     * master PR #974) and on the Market Info screen's chart. NOT present on the Favourite tab —
+     * `MarketFavouritesView` never wires a window selector.
+     * Source: market-changes-dropdown.tsx `.market-changes-dropdown__trigger`
+     */
+    get marketChangesDropdownTrigger(): Locator {
+        return this.page.locator('.market-changes-dropdown__trigger');
+    }
+
+    /**
+     * An option inside the open {@link marketChangesDropdownTrigger} menu, filtered by label
+     * (e.g. '15 minutes'). Desktop renders a `role="listbox"` popover; mobile an ActionSheet
+     * titled "Change period" — both expose `role="option"` rows.
+     */
+    marketChangesDropdownOption(label: string): Locator {
+        return this.page.getByRole('option', { name: label });
+    }
+
+    /**
+     * Info button on a market row or discovery card — opens the Market Info screen for that
+     * symbol. Present on rows (list/search/favourites) and discovery cards alike.
+     * Source: market-card.tsx / market-selection-row-desktop.tsx / market-selection-row-mobile.tsx `aria-label="Info"`
+     *
+     * @param market - Visible market name whose row/card to target
+     */
+    marketInfoButton(market: string): Locator {
+        return this.page.locator('button, [role="button"]', { hasText: market }).getByRole('button', { name: 'Info' });
+    }
+
+    /**
+     * Favourite/Unfavourite toggle button on a market row or the Info screen. Label flips
+     * between "Favourite" and "Unfavourite" based on current state.
+     * Source: market-selection-row-desktop.tsx / market-selection-row-mobile.tsx / market-info-screen.tsx
+     *
+     * @param market - Visible market name whose row to target
+     */
+    favouriteButton(market: string): Locator {
+        return this.page
+            .locator('button, [role="button"]', { hasText: market })
+            .getByRole('button', { name: /^(Favourite|Unfavourite)$/ });
+    }
+
+    /**
+     * Root of the Market Info screen — replaces the browse panel/modal in place (same popover
+     * footprint on desktop, same full-screen dialog on mobile).
+     * Source: market-info-screen.tsx `.market-info`
+     */
+    get marketInfoScreen(): Locator {
+        return this.page.locator('.market-info');
+    }
+
+    /**
+     * Back button on the Market Info screen — returns to whichever browse view was active
+     * before Info opened.
+     * Source: market-info-screen.tsx `aria-label="Back"`
+     */
+    get marketInfoBackButton(): Locator {
+        return this.marketInfoScreen.getByRole('button', { name: 'Back' });
+    }
+
+    /**
+     * Favourite/Unfavourite toggle on the Market Info screen itself (distinct from the row
+     * button — scoped to the Info screen so it doesn't collide with a row of the same name).
+     * Source: market-info-screen.tsx `.market-info__favourite`
+     */
+    get marketInfoFavouriteButton(): Locator {
+        return this.marketInfoScreen.locator('.market-info__favourite');
+    }
+
+    /**
+     * "Trade on" section listing every trade type the Info screen's symbol supports as a
+     * direct CTA.
+     * Source: market-info-screen.tsx `.market-info__trade-types`
+     */
+    get marketInfoTradeOnSection(): Locator {
+        return this.marketInfoScreen.locator('.market-info__trade-types');
+    }
+
+    /**
+     * A "Trade on" CTA card, filtered by trade-type label. Clicking it commits the Info
+     * screen's symbol under that trade type and closes the whole picker.
+     * Source: market-info-screen.tsx `.market-info__trade-type-card`
+     *
+     * @param tradeType - Visible trade-type label (e.g. 'Multipliers')
+     */
+    marketInfoTradeOnCard(tradeType: string): Locator {
+        return this.marketInfoScreen.locator('.market-info__trade-type-card', { hasText: tradeType });
+    }
+
+    /**
+     * Guide trigger — opens the "how to trade" description modal for the currently-selected
+     * trade type. Rendered in the mobile header and the desktop sidebar header alike.
+     * Source: guide.tsx `aria-label="Guide"`
+     */
+    get guideButton(): Locator {
+        return this.page.getByRole('button', { name: 'Guide' });
+    }
+
+    /**
+     * Guide description modal — opened by {@link guideButton}.
+     * Source: guide-description-modal.tsx
+     */
+    get guideDescriptionModal(): Locator {
+        return this.page.getByRole('dialog').filter({ has: this.page.getByText('How to trade', { exact: false }) });
+    }
+
+    /**
+     * Close ("X") button on the mobile market-selection modal header. Desktop has no
+     * equivalent button — its popover closes via an outside click instead, see
+     * {@link closeMarketSelectionPicker}.
+     * Source: market-selection-header.tsx `aria-label="Close"`
+     */
+    get marketSelectionCloseButton(): Locator {
+        return this.page.getByRole('button', { name: 'Close' });
+    }
+
+    /**
+     * All currently-open market tabs on the trade-page strip.
+     * Source: market-tabs.tsx `[data-testid="dt_market_tabs_list"] [data-testid="dt_market_tab"]`
+     */
+    get marketTabs(): Locator {
+        return this.page.locator('[data-testid="dt_market_tabs_list"] [data-testid="dt_market_tab"]');
+    }
+
+    /**
+     * A specific market tab, filtered by its market name and trade-type subtitle.
+     * Source: market-tab.tsx `[data-testid="dt_market_tab"]`
+     *
+     * @param market - Visible market name (e.g. 'Volatility 100 Index')
+     * @param tradeType - Visible trade-type subtitle (e.g. 'Rise/Fall')
+     */
+    marketTab(market: string, tradeType: string): Locator {
+        return this.marketTabs.filter({ hasText: market }).filter({ hasText: tradeType });
+    }
+
+    /**
+     * Remove ("×") button for a specific market tab — only rendered/tappable when the tab is
+     * removable (more than one tab open, and not the last tradeable tab). On desktop it's
+     * hidden until the tab is hovered; on the active tab it is shown by default.
+     * Source: market-tab.tsx `aria-label="Remove market"`
+     *
+     * @param market - Visible market name of the tab to target
+     * @param tradeType - Visible trade-type subtitle of the tab to target
+     */
+    removeMarketTabButton(market: string, tradeType: string): Locator {
+        return this.marketTab(market, tradeType).getByRole('button', { name: 'Remove market' });
     }
 
     /**
@@ -320,13 +564,20 @@ export class TradeParametersPage extends TradeBasePage {
 
     /**
      * Duration unit tab button — both desktop (vertical-tab-selector) and mobile (horizontal-tab-selector)
-     * render unit tabs as `role="tab"` with the unit label as accessible name.
-     * Uses case-insensitive match to handle desktop "End time" vs mobile "End Time".
+     * render unit tabs as `role="tab"` with the unit label as accessible name. Matched case-insensitively
+     * (callers may pass 'End Time' or 'end time') but anchored to the full name, since `exact: false`
+     * substring matching would let bare "Time" also match "End time".
+     *
+     * Desktop keeps separate Seconds/Minutes/Hours tabs, but mobile unifies them into one "Time"
+     * tab holding a 3-column hr/min/sec wheel (duration-wheel-picker.tsx `DurationTimeWheel`) — so
+     * on mobile, those three unit names all resolve to the "Time" tab instead.
      *
      * @param unit - Duration unit label (e.g. 'Ticks', 'Seconds', 'Minutes', 'Hours', 'End Time')
      */
     durationUnitTab(unit: string): Locator {
-        return this.page.getByRole('tab', { name: unit, exact: false });
+        const isTimeUnit = ['seconds', 'minutes', 'hours'].includes(unit.toLowerCase());
+        const tabName = this.isMobile && isTimeUnit ? 'Time' : unit;
+        return this.page.getByRole('tab', { name: new RegExp(`^${tabName}$`, 'i') });
     }
 
     /**
@@ -337,6 +588,17 @@ export class TradeParametersPage extends TradeBasePage {
      */
     durationChip(formattedValue: string): Locator {
         return this.page.getByRole('button', { name: `Select value ${formattedValue}` });
+    }
+
+    /**
+     * Backdrop overlay behind a `type="modal"` (the default) Quill ActionSheet — mobile only.
+     * Clicking it calls the sheet's `onClose` (unless `disableCloseOnOverlay` is set), same as a
+     * real tap outside the sheet. Used to dismiss sheets that commit on selection with no Save
+     * button (e.g. the Ticks-only duration WheelPicker).
+     * Source: @deriv-com/quill-ui ActionSheet.Portal — data-testid="dt-actionsheet-overlay".
+     */
+    get actionSheetOverlay(): Locator {
+        return this.page.getByTestId('dt-actionsheet-overlay');
     }
 
     /**
@@ -436,12 +698,12 @@ export class TradeParametersPage extends TradeBasePage {
     /**
      * Barrier type selector inside the popover/action-sheet.
      * Desktop: role="tab" buttons inside .barrier-popover__sidebar (VerticalTabSelector)
-     * Mobile: .quill-chip buttons inside .barrier-params__chips — no aria-label, matched by text content
+     * Mobile: role="tab" buttons inside .barrier-params__tabs (horizontal-tab-selector)
      * Source: barrier-type-selector.tsx (desktop), barrier-input.tsx (mobile)
      */
     barrierTypeTab(type: 'Above spot' | 'Below spot' | 'Fixed barrier'): Locator {
         return this.isMobile
-            ? this.page.locator('.barrier-params__chips').locator('.quill-chip', { hasText: type })
+            ? this.page.locator('.barrier-params__tabs').getByRole('tab', { name: type, exact: true })
             : this.page.locator('.barrier-popover__sidebar').getByRole('tab', { name: type });
     }
 
@@ -467,26 +729,25 @@ export class TradeParametersPage extends TradeBasePage {
     }
 
     /**
-     * Manual input toggle button (second item in the segmented control) inside the stake popover/action sheet.
-     * Switches from preset chips view to the text input view.
-     * - Desktop: inside `.stake-popover`
-     * - Mobile: inside `.stake-container__tab-selector`
+     * Manual input toggle button (second item in the segmented control) inside the stake popover —
+     * desktop only. Switches the popover from the preset-chips view to the text-input view.
+     * Mobile's action sheet (stake-input.tsx) renders the TextField and preset chips together in one
+     * view with no toggle, so this control doesn't exist there — `setStake()` skips it on mobile.
+     * Source: `.stake-popover` wraps `TabSelector` → `SegmentedControlSingleChoice`.
      */
     get stakeManualInputToggle(): Locator {
-        return this.isMobile
-            ? this.page.locator('.stake-container__tab-selector .segmented-control-single .item:nth-child(2)')
-            : this.page.locator('.stake-popover .segmented-control-single .item:nth-child(2)');
+        return this.page.locator('.stake-popover .segmented-control-single .item:nth-child(2)');
     }
 
     /**
-     * Stake amount input inside the stake popover/action sheet — visible only after
-     * switching to manual input mode via stakeManualInputToggle.
-     * - Desktop: dt_stake_input_desktop (stake-input-desktop.tsx)
-     * - Mobile: dt_input_with_steppers (stake-input.tsx TextFieldWithSteppers)
+     * Stake amount input inside the stake popover/action sheet.
+     * - Desktop: dt_stake_input_desktop (stake-input-desktop.tsx) — visible only after switching to
+     *   manual input mode via stakeManualInputToggle.
+     * - Mobile: dt_stake_input (stake-input.tsx) — always visible alongside the preset chips.
      */
     get stakePopoverInput(): Locator {
         return this.isMobile
-            ? this.page.getByTestId('dt_input_with_steppers')
+            ? this.page.getByTestId('dt_stake_input')
             : this.page.getByTestId('dt_stake_input_desktop');
     }
 
@@ -496,8 +757,17 @@ export class TradeParametersPage extends TradeBasePage {
      */
     get stakeSaveButton(): Locator {
         return this.isMobile
-            ? this.page.locator('.stake-container').getByRole('button', { name: 'Save' })
+            ? this.stakeContainer.getByRole('button', { name: 'Save' })
             : this.page.getByRole('button', { name: 'Save' });
+    }
+
+    /**
+     * Mobile Stake action sheet's root container (stake-mobile.tsx `<div className='stake-container'>`).
+     * Present while the sheet is open; used both to scope its Save button and to confirm it dismisses
+     * after closing.
+     */
+    get stakeContainer(): Locator {
+        return this.page.locator('.stake-container');
     }
 
     /**
@@ -572,46 +842,8 @@ export class TradeParametersPage extends TradeBasePage {
     // ============================================
 
     /**
-     * Select a trade type by its chip label.
-     * Opens the trade types selector, clicks the matching item, asserts the chip becomes selected,
-     * then verifies the trade-type-specific params are visible.
-     *
-     * @param tradeType - Visible label exactly as rendered (e.g. 'Rise/Fall', 'Multipliers', 'Accumulators')
-     *
-     * @example
-     * ```typescript
-     * await tradeParametersPage.selectTradeType('Rise/Fall');
-     * await tradeParametersPage.selectTradeType('Multipliers');
-     * ```
-     */
-    async selectTradeType(tradeType: string): Promise<void> {
-        await this.tradeTypeSelector.click();
-
-        if (this.isMobile) {
-            const item = this.page
-                .locator('.trade-type-list-item')
-                .filter({ has: this.page.locator('.trade-type-list-item__title', { hasText: tradeType }) })
-                .first();
-            await item.click();
-            const chip = this.page.locator('.quill-chip', { hasText: tradeType }).first();
-            await expect(chip, `'${tradeType}' chip should become selected`).toHaveAttribute('data-state', 'selected');
-        } else {
-            // Label is "Select X trade type" or "Select X trade type, currently selected" — use prefix match
-            const item = this.page.getByLabel(`Select ${tradeType} trade type`).first();
-            await item.click();
-            const chip = this.page.locator('.quill-chip', { hasText: tradeType }).first();
-            await expect(chip, `'${tradeType}' chip should become selected`).toHaveAttribute('data-state', 'selected');
-        }
-
-        await this.verifyParamsForTradeType(tradeType);
-    }
-
-    /**
-     * Enable the Allow Equals toggle, adapting for desktop vs mobile layout.
-     *
-     * Desktop: clicks the toggle button in .allow-equals__wrapper.
-     * Mobile: taps the minimized text field to open the action sheet,
-     *         clicks the toggle inside the sheet, then taps Save.
+     * Enable the Allow Equals toggle. Desktop clicks the toggle button; mobile taps the minimized
+     * field, which toggles inline (no action sheet/Save). Idempotent — no-ops if already enabled.
      *
      * Precondition: Allow Equals must be visible (Rise/Fall trade type selected,
      * duration unit compatible with callputequal, e.g. Minutes not Ticks).
@@ -622,17 +854,28 @@ export class TradeParametersPage extends TradeBasePage {
                 this.allowEqualsMobileField,
                 'Allow equals field should be visible before enabling (mobile)'
             ).toBeVisible();
-            await this.allowEqualsMobileField.click();
+            // .catch() — unlike toHaveValue(), inputValue() doesn't retry; a transient DOM miss (Quill's
+            // minimized field can lazily (re)mount its <input>) would throw here instead of just falling
+            // through to the toggle attempt, which the toHaveValue('Yes') assertion below still verifies.
+            const currentValue = await this.allowEqualsMobileField
+                .locator('input')
+                .inputValue()
+                .catch(() => '');
+            if (currentValue !== 'Yes') {
+                await this.allowEqualsMobileField.click();
+                await expect(
+                    this.allowEqualsSnackbarMessage,
+                    'Snackbar should confirm allow equals was enabled'
+                ).toHaveText('You will win a payout if the exit spot is equal to the entry spot.');
+                await expect(
+                    this.allowEqualsSnackbarMessage,
+                    'Snackbar should disappear on its own after enabling'
+                ).not.toBeVisible({ timeout: 6_000 });
+            }
             await expect(
-                this.allowEqualsSheetToggle,
-                'Allow equals toggle inside action sheet should be visible'
-            ).toBeVisible();
-            await this.allowEqualsSheetToggle.click();
-            await expect(
-                this.allowEqualsSheetToggle,
-                'Allow equals toggle should be pressed after click'
-            ).toHaveAttribute('aria-pressed', 'true');
-            await this.allowEqualsSheetSaveButton.click();
+                this.allowEqualsMobileField.locator('input'),
+                'Allow equals minimized field should show "Yes" after enabling'
+            ).toHaveValue('Yes');
         } else {
             await expect(
                 this.allowEqualsToggle,
@@ -651,41 +894,202 @@ export class TradeParametersPage extends TradeBasePage {
     }
 
     /**
-     * Select a market / symbol by its display name.
-     * Opens the market selector, searches for the market, clicks the matching item,
-     * then asserts the selector label reflects the new market.
-     *
-     * Desktop path: SmartCharts symbol picker (.sc-mcd__item → .sc-mcd__item__name)
-     * Mobile path: Quill action sheet (.market-category-item → .market-category-item-symbol span)
+     * Select a (market, trade type) pair via the market-selection picker's search — reliably
+     * reaches any market in one step regardless of which category it's grouped under. Search
+     * results are grouped by trade type, so selecting the row under the matching group commits
+     * both together.
      *
      * @param market - Visible market name as rendered (e.g. 'Volatility 100 Index')
+     * @param tradeType - Visible trade-type label as rendered (e.g. 'Rise/Fall', 'Multipliers')
+     * @param options.openInNewTab - Open via "Add market" (new tab) instead of replacing the
+     *   active tab. Defaults to `false`.
      *
      * @example
      * ```typescript
-     * await tradeParametersPage.selectMarket('Volatility 100 Index');
+     * await tradeParametersPage.selectMarketAndTradeType('Volatility 100 Index', 'Multipliers');
      * ```
      */
-    async selectMarket(market: string): Promise<void> {
-        await this.marketSelector.click();
-        await this.marketSearchInput.fill(market);
+    async selectMarketAndTradeType(
+        market: string,
+        tradeType: string,
+        options: { openInNewTab?: boolean } = {}
+    ): Promise<void> {
+        const { openInNewTab = false } = options;
+
+        if (openInNewTab) {
+            await this.addMarketButton.click();
+        } else {
+            await this.activeMarketTab.click();
+        }
+        await expect(
+            this.marketSelectionPanel,
+            'Market-selection picker should be visible after opening'
+        ).toBeVisible();
 
         if (this.isMobile) {
-            await this.marketCategoryItem(market).click();
-            await expect(
-                this.page.locator('input[placeholder^="Search markets on"]'),
-                'Market search input should be hidden after market selection'
-            ).not.toBeVisible();
-        } else {
-            await this.smartChartsMarketItem(market).click();
-            await expect(
-                this.page.locator('.cq-menu-dropdown-enter-done'),
-                'SmartCharts market picker should be closed after market selection'
-            ).not.toBeAttached();
+            await this.marketSelectionSearchButton.click();
         }
+        await this.marketSearchInput.fill(market);
+        await this.marketSearchResultRow(market, tradeType).click();
 
-        await expect(this.selectedMarketLabel, `Market selector should show '${market}' after selection`).toContainText(
-            market
+        await expect(
+            this.marketSelectionPanel,
+            'Market-selection picker should close after selecting a market'
+        ).not.toBeAttached();
+        await expect(
+            this.activeMarketTab,
+            `Active market tab should reflect trade type '${tradeType}' after selection`
+        ).toContainText(tradeType);
+        await expect(
+            this.activeMarketTab,
+            `Active market tab should reflect market '${market}' after selection`
+        ).toContainText(market);
+
+        await this.verifyParamsForTradeType(tradeType);
+    }
+
+    /**
+     * Switch to an already-open market tab by market + trade type.
+     *
+     * @param market - Visible market name of the tab to activate
+     * @param tradeType - Visible trade-type subtitle of the tab to activate
+     */
+    async switchToMarketTab(market: string, tradeType: string): Promise<void> {
+        await this.marketTab(market, tradeType).click();
+    }
+
+    /**
+     * Remove an open market tab. Desktop reveals the close control on hover for non-active
+     * tabs, so this hovers first — a no-op on mobile (no hover state) and harmless on the
+     * active tab (its close control is always visible).
+     *
+     * @param market - Visible market name of the tab to remove
+     * @param tradeType - Visible trade-type subtitle of the tab to remove
+     */
+    async removeMarketTab(market: string, tradeType: string): Promise<void> {
+        const tab = this.marketTab(market, tradeType);
+        await tab.hover();
+        await this.removeMarketTabButton(market, tradeType).click();
+    }
+
+    /**
+     * Select an asset-class category chip in the market-selection picker (e.g. 'Forex',
+     * 'Derived'). The picker must already be open.
+     *
+     * @param label - Visible chip label
+     */
+    async selectMarketCategory(label: string): Promise<void> {
+        await this.marketCategoryChip(label).click();
+    }
+
+    /**
+     * Select a trade type inside the market-selection picker's navigation (mobile tab strip
+     * or desktop sidebar). The picker must already be open. Unlike
+     * {@link selectMarketAndTradeType}, this only switches which trade type is being browsed —
+     * it does not commit a market or close the picker.
+     *
+     * @param tradeType - Visible trade-type label (e.g. 'Accumulators')
+     */
+    async selectTradeTypeInPicker(tradeType: string): Promise<void> {
+        await this.tradeTypeNavItem(tradeType).click();
+    }
+
+    /**
+     * Toggle the Favourite state for a market row in the currently-browsed list/search/
+     * favourites view. The picker must already be open and the row visible.
+     *
+     * Desktop reveals Info/Favourite inline (hover suffices); mobile only reveals them via a
+     * swipe-left gesture on the row, which Playwright cannot simulate as a real touch swipe —
+     * the buttons are always present in the DOM (`tabIndex`/`aria-hidden` toggle, not
+     * `display: none`), so a forced click exercises the real handler without the gesture.
+     *
+     * @param market - Visible market name whose row to toggle
+     */
+    async toggleFavourite(market: string): Promise<void> {
+        if (this.isMobile) {
+            await this.favouriteButton(market).click({ force: true });
+        } else {
+            await this.favouriteButton(market).click();
+        }
+    }
+
+    /**
+     * Open the Market Info screen for a market row or discovery card.
+     *
+     * Mobile rows only reveal the Info button via a swipe-left gesture — see
+     * {@link toggleFavourite} for why a forced click is used instead. Discovery cards show
+     * Info inline on both viewports, so this is safe for both entry points.
+     *
+     * @param market - Visible market name whose Info button to click
+     */
+    async openMarketInfo(market: string): Promise<void> {
+        if (this.isMobile) {
+            await this.marketInfoButton(market).click({ force: true });
+        } else {
+            await this.marketInfoButton(market).click();
+        }
+    }
+
+    /**
+     * Open the Guide description modal for the currently-selected trade type.
+     */
+    async openGuide(): Promise<void> {
+        await this.guideButton.click();
+    }
+
+    /**
+     * Close the market-selection picker without selecting a market. Mobile taps the header's
+     * Close (X) button; desktop clicks the popover's outside-click overlay (`InputPopover`
+     * renders a full-viewport `.input-popover-overlay` whose own click handler closes it — a
+     * corner position is used so the click doesn't land on the popover panel itself).
+     */
+    async closeMarketSelectionPicker(): Promise<void> {
+        if (this.isMobile) {
+            await this.marketSelectionCloseButton.click();
+        } else {
+            await this.page.locator('.input-popover-overlay').click({ position: { x: 10, y: 10 } });
+        }
+    }
+
+    /**
+     * Buy a Rise/Fall contract on a NEW tab and confirm the balance deducts exactly the given
+     * stake — the strongest available signal that the currently ACTIVE tab's (symbol,
+     * contract_type) pair was purchased, not any other open tab. Opens the new tab itself so
+     * the caller doesn't need to pre-open one and track which tab ends up active.
+     *
+     * @param options.accountType - 'real' or 'demo' — the account created in beforeAll is real by default.
+     * @param options.stake - Stake amount, e.g. '5.00'.
+     * @param options.currency - Account currency, e.g. 'USD' (used only for context, not asserted here).
+     *
+     * @example
+     * ```typescript
+     * await tradeParametersPage.buyOnActiveTabAndVerify({ accountType: 'demo', stake: '5.00', currency: 'USD' });
+     * ```
+     */
+    async buyOnActiveTabAndVerify({
+        accountType,
+        stake,
+        currency,
+    }: {
+        accountType: 'real' | 'demo';
+        stake: string;
+        currency: string;
+    }): Promise<void> {
+        await this.switchToAccountType(accountType);
+        await expect(this.balance, `Active account should be trading in ${currency}`).toContainText(currency);
+
+        // Open a second tab so there is another open market whose balance/positions must NOT change.
+        await this.selectMarketAndTradeType('Bull Market Index', 'Rise/Fall', { openInNewTab: true });
+        await expect(this.activeMarketTab, 'Bull Market Index should be the active (new) tab').toContainText(
+            'Bull Market Index'
         );
+
+        await this.riseButton.click();
+        await this.setStake(stake);
+        const balanceBefore = await this.getBalance();
+        await this.clickBuy();
+
+        await this.verifyBalanceAfterContractPurchase(balanceBefore, stake);
     }
 
     /**
@@ -738,55 +1142,130 @@ export class TradeParametersPage extends TradeBasePage {
             return;
         }
 
+        const unitLower = unit.toLowerCase();
+        const isMobileTimeUnit = this.isMobile && ['seconds', 'minutes', 'hours'].includes(unitLower);
+        const mobileTimeComponents = isMobileTimeUnit ? this.parseTimeComponents(unit, formattedValue) : undefined;
+
         // Expected displayed value, computed once and reused by the Save retry and the final assertion.
-        // Mobile expands all abbreviations to full words (e.g. "15 min" → "15 minutes"). On desktop most
-        // units keep the chip abbreviation, EXCEPT hours, which the app renders in full ("1 hr" → "1 hour",
-        // "1h 30m" → "1 hour 30 minutes"). So expand hours on both viewports; other units only on mobile.
+        // Mobile expands abbreviations to full words (e.g. "15 min" → "15 minutes") EXCEPT once the
+        // combined hr/min/sec value includes an hour component, where the field switches to a zero-padded
+        // clock format instead (e.g. "1 hr" → "01:00:00", "1h 30m" → "01:30:00") — see duration.tsx
+        // getInputValues(). On desktop most units keep the chip abbreviation, EXCEPT hours, which the app
+        // renders in full ("1 hr" → "1 hour", "1h 30m" → "1 hour 30 minutes").
         const isHoursFormat = /\bhr\b/.test(formattedValue) || /^\d+h(\s+\d+m)?$/.test(formattedValue);
         const displayValue =
-            this.isMobile || isHoursFormat ? this.expandDurationForDisplay(formattedValue) : formattedValue;
+            mobileTimeComponents && mobileTimeComponents.hours > 0
+                ? [mobileTimeComponents.hours, mobileTimeComponents.minutes, mobileTimeComponents.seconds]
+                      .map(value => String(value).padStart(2, '0'))
+                      .join(':')
+                : this.isMobile || isHoursFormat
+                  ? this.expandDurationForDisplay(formattedValue)
+                  : formattedValue;
         const displayRegex = new RegExp(`^${displayValue.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`);
 
-        const chip = this.durationChip(formattedValue);
-        if (await chip.isVisible()) {
-            await chip.click();
-        } else {
-            await this.durationManualInputToggle.click();
-            const unitLower = unit.toLowerCase();
-            if (unitLower === 'hours') {
-                // formattedValue expected as 'Xh Ym' (e.g. '1h 30m') or 'Xh' (e.g. '2h')
-                const hoursMatch = formattedValue.match(/(\d+)h/);
-                const minutesMatch = formattedValue.match(/(\d+)m/);
-                const popover = this.isMobile
-                    ? this.page.locator('.duration-container')
-                    : this.page.locator('.duration-popover__content');
-                await popover.getByRole('textbox', { name: 'Hours' }).fill(hoursMatch ? hoursMatch[1] : '0');
-                await popover.getByRole('textbox', { name: 'Minutes' }).fill(minutesMatch ? minutesMatch[1] : '0');
+        if (this.isMobile) {
+            if (unitLower === 'ticks') {
+                await this.selectWheelPickerOption('[data-testid="dt_duration_ticks_wheel"]', formattedValue);
             } else {
-                const testId = unitLower === 'ticks' ? 'dt_duration_ticks_input_desktop' : 'dt_duration_input_desktop';
-                await this.page.getByTestId(testId).fill(formattedValue.replace(/[^\d.]/g, ''));
+                // Non-null: this branch only runs when isMobileTimeUnit is true, which is exactly when
+                // mobileTimeComponents was computed above.
+                const { hours, minutes, seconds } = mobileTimeComponents!;
+                const timeWheel = '[data-testid="dt_duration_time_wheel"]';
+                const columnCount = await this.page
+                    .locator(timeWheel)
+                    .locator('.quill-wheel-picker__container')
+                    .count();
+                if (columnCount === 3) {
+                    await this.selectWheelPickerColumnOption(timeWheel, 0, `${hours} hr`);
+                    await this.selectWheelPickerColumnOption(timeWheel, 1, `${minutes} min`);
+                    await this.selectWheelPickerColumnOption(timeWheel, 2, `${seconds} sec`);
+                } else if (columnCount === 2) {
+                    // [hr, min] is only confirmed for the 'Hours' tab (Higher/Lower) — other trade types could render [min, sec] instead.
+                    if (unitLower !== 'hours') {
+                        throw new Error(
+                            `selectDuration: 2-column Time wheel encountered for unit '${unit}', but the ` +
+                                `[hr, min] layout is only confirmed for the 'Hours' tab. Verify this trade ` +
+                                `type's actual column order (it may be [min, sec]) before mapping it here.`
+                        );
+                    }
+                    await this.selectWheelPickerColumnOption(timeWheel, 0, `${hours} hr`);
+                    await this.selectWheelPickerColumnOption(timeWheel, 1, `${minutes} min`);
+                } else {
+                    throw new Error(
+                        `selectDuration: unexpected Time wheel column count ${columnCount} for '${timeWheel}'`
+                    );
+                }
             }
-            // The Save button can stay a no-op until the proposal re-validates the duration, and it may
-            // detach/re-render mid-click (observed as "element detached"/timeout). Retry the click until
-            // the field reflects the value. The manual input (ticks/seconds/minutes/hours) renders its
-            // own Save inside `.duration-input-desktop__footer` on BOTH viewports — desktop wraps it in
-            // `.duration-popover`, mobile in a `.duration-container` action sheet (the mobile action-sheet
-            // footer only exists for the Days unit), so scope to that shared footer.
-            const durationSaveButton = this.page
-                .locator('.duration-input-desktop__footer')
-                .getByRole('button', { name: 'Save' });
-            await expect(async () => {
-                await durationSaveButton.click({ timeout: 3_000 }).catch(() => {});
-                await expect(
-                    this.durationField,
-                    `Duration field should show '${displayValue}' after saving`
-                ).toHaveValue(displayRegex, { timeout: 3_000 });
-            }).toPass({ timeout: 20_000 });
+            // Both wheels commit on scroll with no Save button — dismiss via the sheet's backdrop.
+            await this.actionSheetOverlay.click();
+        } else {
+            const chip = this.durationChip(formattedValue);
+            if (await chip.isVisible()) {
+                await chip.click();
+            } else {
+                await this.durationManualInputToggle.click();
+                if (unitLower === 'hours') {
+                    // formattedValue expected as 'Xh Ym' (e.g. '1h 30m') or 'Xh' (e.g. '2h')
+                    const hoursMatch = formattedValue.match(/(\d+)h/);
+                    const minutesMatch = formattedValue.match(/(\d+)m/);
+                    const popover = this.page.locator('.duration-popover__content');
+                    await popover.getByRole('textbox', { name: 'Hours' }).fill(hoursMatch ? hoursMatch[1] : '0');
+                    await popover.getByRole('textbox', { name: 'Minutes' }).fill(minutesMatch ? minutesMatch[1] : '0');
+                } else {
+                    const testId =
+                        unitLower === 'ticks' ? 'dt_duration_ticks_input_desktop' : 'dt_duration_input_desktop';
+                    await this.page.getByTestId(testId).fill(formattedValue.replace(/[^\d.]/g, ''));
+                }
+                const durationSaveButton = this.page
+                    .locator('.duration-input-desktop__footer')
+                    .getByRole('button', { name: 'Save' });
+                await expect(async () => {
+                    await durationSaveButton.click({ timeout: 3_000 }).catch(() => {});
+                    await expect(
+                        this.durationField,
+                        `Duration field should show '${displayValue}' after saving`
+                    ).toHaveValue(displayRegex, { timeout: 3_000 });
+                }).toPass({ timeout: 20_000 });
+            }
         }
 
         await expect(this.durationField, `Duration field should show '${displayValue}' after selection`).toHaveValue(
             displayRegex
         );
+    }
+
+    /**
+     * Parse a single-unit Seconds/Minutes/Hours `formattedValue` into hr/min/sec components for the
+     * mobile unified Time wheel, defaulting any unmentioned component to 0. Hours also accepts the
+     * compound custom format ('1h 30m') or bare hours-only ('2h'), matching desktop's manual-input
+     * formats — the wheel can express these directly without needing a separate custom-entry path.
+     */
+    private parseTimeComponents(
+        unit: string,
+        formattedValue: string
+    ): { hours: number; minutes: number; seconds: number } {
+        const unitLower = unit.toLowerCase();
+        if (unitLower === 'hours') {
+            const compound = formattedValue.match(/^(\d+)h(?:\s+(\d+)m)?$/);
+            if (compound) {
+                return {
+                    hours: parseInt(compound[1], 10),
+                    minutes: compound[2] ? parseInt(compound[2], 10) : 0,
+                    seconds: 0,
+                };
+            }
+            const chip = formattedValue.match(/^(\d+)\s*hr$/);
+            if (chip) return { hours: parseInt(chip[1], 10), minutes: 0, seconds: 0 };
+            throw new Error(`selectDuration: unrecognized Hours value "${formattedValue}"`);
+        }
+        if (unitLower === 'minutes') {
+            const match = formattedValue.match(/^(\d+)\s*min$/);
+            if (!match) throw new Error(`selectDuration: unrecognized Minutes value "${formattedValue}"`);
+            return { hours: 0, minutes: parseInt(match[1], 10), seconds: 0 };
+        }
+        const match = formattedValue.match(/^(\d+)\s*sec$/);
+        if (!match) throw new Error(`selectDuration: unrecognized Seconds value "${formattedValue}"`);
+        return { hours: 0, minutes: 0, seconds: parseInt(match[1], 10) };
     }
 
     /**
@@ -839,11 +1318,18 @@ export class TradeParametersPage extends TradeBasePage {
         const chip = this.stakeChip(amount);
         if (await chip.isVisible()) {
             await chip.click();
+            if (this.isMobile) {
+                await expect(
+                    this.stakeSaveButton,
+                    'Stake save button should be enabled after selecting a preset'
+                ).toBeEnabled({ timeout: 10_000 });
+                await this.stakeSaveButton.click();
+                await expect(this.stakeContainer, 'Stake action sheet should dismiss after saving').not.toBeVisible();
+            }
         } else {
-            await this.stakeManualInputToggle.click();
-            // The Save button stays disabled until the proposal re-validates the amount, and the input
-            // can debounce/reset under load. Retry fill → value → enabled as a unit so a slow proposal
-            // simply triggers another attempt instead of failing the whole test.
+            if (!this.isMobile) {
+                await this.stakeManualInputToggle.click();
+            }
             await expect(async () => {
                 await this.stakePopoverInput.click();
                 await this.stakePopoverInput.clear();
@@ -858,56 +1344,57 @@ export class TradeParametersPage extends TradeBasePage {
             }).toPass({ timeout: 20_000 });
             await this.stakeSaveButton.click();
             if (this.isMobile) {
-                await expect(
-                    this.page.locator('.stake-container__tab-selector'),
-                    'Stake action sheet should dismiss after saving'
-                ).not.toBeVisible();
+                await expect(this.stakeContainer, 'Stake action sheet should dismiss after saving').not.toBeVisible();
             }
         }
 
+        // Escape all regex special chars (not just '.') and anchor to the start, so e.g. '5.00' can't
+        // false-positive match a wrong committed value like '25.00 USD' via unanchored substring match.
+        const escapedAmount = amount.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         await expect(this.stakeField, `Stake field should contain '${amount}' after saving`).toHaveValue(
-            new RegExp(amount.replace('.', '\\.'))
+            new RegExp(`^${escapedAmount}`)
         );
     }
 
     /**
-     * Select a value in a quill-ui `WheelPicker` action sheet — shared by Growth rate, Multiplier,
-     * Payout per point and Strike.
+     * Core scroll-and-confirm mechanics shared by single- and multi-column `WheelPicker` sheets:
+     * scroll the listbox to the target option's snap position, then wait for the library to mark
+     * it as the committed selection.
      *
      * Touch-drag/`mouse.wheel` are unreliable under Playwright's `hasTouch` emulation, so we set
      * `scrollTop` directly and wait for the picker's `scroll` listener to commit the selection before
      * returning — without this wait, a caller that clicks "Save" immediately after can commit the
      * previous value instead, with no chance to retry since Save closes the sheet in one shot.
      *
-     * @param wheelSelector - CSS selector of the wheel-picker wrapper (e.g. '.multiplier__wheel-picker')
-     * @param value - Option label exactly as rendered (e.g. 'x200', '5%')
+     * @param scope - Locator scoped to exactly one listbox (the whole wheel for a single-column
+     *   picker, or one column's container for a multi-column picker).
+     * @param value - Option label exactly as rendered (e.g. 'x200', '5%', '15 min')
      */
-    protected async selectWheelPickerOption(wheelSelector: string, value: string): Promise<void> {
-        const wheel = this.page.locator(wheelSelector);
-        await expect(wheel, `Wheel picker '${wheelSelector}' should be visible`).toBeVisible();
-
+    private async commitWheelPickerOption(scope: Locator, value: string): Promise<void> {
         // Options load asynchronously (Skeleton → WheelPicker). Wait for the target option to render
         // before reading the option list, otherwise the labels array can be read empty/partial.
         await expect(
-            wheel.getByText(value, { exact: true }).first(),
+            scope.getByText(value, { exact: true }).first(),
             `Wheel picker option '${value}' should render (range list loaded)`
         ).toBeAttached({ timeout: 15_000 });
 
-        const listbox = wheel.locator('[role="listbox"]');
-        const options = await wheel.locator('[role="option"]').all();
+        const listbox = scope.locator('[role="listbox"]');
+        const options = await scope.locator('[role="option"]').all();
         // `textContent()`, not `innerText()` — WebKit under Playwright automation doesn't reliably
         // compute `innerText` (layout/paint-dependent) for this scroll-snap wheel, returning "" for
         // every option even though they're rendered; `textContent` reads the DOM directly.
         const labels = await Promise.all(options.map(o => o.textContent()));
         const targetIndex = labels.findIndex(t => t?.trim() === value);
-        if (targetIndex < 0) throw new Error(`Wheel picker option '${value}' not found in ${wheelSelector}`);
+        if (targetIndex < 0) throw new Error(`Wheel picker option '${value}' not found`);
 
-        // Snap formula: index*48+24 (item height 48px, half-item snap offset 24px).
+        // Snap formula: index*itemHeight + itemHeight/2 (half-item snap offset). Measured live rather
+        // than hardcoded, so a future quill-ui item-height change can't silently snap to the wrong option.
+        const itemHeight = await options[0].evaluate(el => el.getBoundingClientRect().height);
         await listbox.evaluate(
             (el, scrollTop) => {
                 (el as HTMLElement).scrollTop = scrollTop;
             },
-            targetIndex * 48 + 24
+            targetIndex * itemHeight + itemHeight / 2
         );
 
         // Confirm the picker's own scroll handler has actually processed the new position before
@@ -922,6 +1409,42 @@ export class TradeParametersPage extends TradeBasePage {
                 `Wheel picker option '${value}' should become the committed selection after scrolling`
             ).toBeNull();
         }).toPass({ timeout: 5_000 });
+    }
+
+    /**
+     * Select a value in a single-column quill-ui `WheelPicker` action sheet — shared by Growth rate,
+     * Multiplier, Payout per point, Strike, and the Duration Ticks-only wheel.
+     *
+     * @param wheelSelector - CSS selector of the wheel-picker wrapper (e.g. '.multiplier__wheel-picker')
+     * @param value - Option label exactly as rendered (e.g. 'x200', '5%')
+     */
+    protected async selectWheelPickerOption(wheelSelector: string, value: string): Promise<void> {
+        const wheel = this.page.locator(wheelSelector);
+        await expect(wheel, `Wheel picker '${wheelSelector}' should be visible`).toBeVisible();
+        await this.commitWheelPickerOption(wheel, value);
+    }
+
+    /**
+     * Select a value in one column of a multi-column quill-ui `WheelPicker` — the mobile Duration
+     * "Time" tab unifies Seconds/Minutes/Hours into one hr/min/sec wheel (duration-wheel-picker.tsx
+     * `DurationTimeWheel`), rendered as sibling `.quill-wheel-picker__container` columns inside one
+     * wrapper, each with its own listbox.
+     *
+     * @param wheelSelector - CSS selector of the wheel-picker wrapper containing all columns
+     * @param columnIndex - 0-based column index (e.g. 0 = hours, 1 = minutes, 2 = seconds)
+     * @param value - Option label exactly as rendered (e.g. '1 hr', '15 min', '30 sec')
+     */
+    protected async selectWheelPickerColumnOption(
+        wheelSelector: string,
+        columnIndex: number,
+        value: string
+    ): Promise<void> {
+        const column = this.page.locator(wheelSelector).locator('.quill-wheel-picker__container').nth(columnIndex);
+        await expect(
+            column,
+            `Wheel picker column ${columnIndex} in '${wheelSelector}' should be visible`
+        ).toBeVisible();
+        await this.commitWheelPickerOption(column, value);
     }
 
     /**
@@ -1010,8 +1533,8 @@ export class TradeParametersPage extends TradeBasePage {
         if (type) {
             await this.barrierTypeTab(type).click();
             await expect(this.barrierTypeTab(type), `Barrier type "${type}" should be selected`).toHaveAttribute(
-                this.isMobile ? 'data-state' : 'aria-selected',
-                this.isMobile ? 'selected' : 'true'
+                'aria-selected',
+                'true'
             );
         }
         await this.barrierInput.clear();
@@ -1065,7 +1588,6 @@ export class TradeParametersPage extends TradeBasePage {
     private async verifyParamsForTradeType(tradeType: string): Promise<void> {
         switch (tradeType) {
             case 'Rise/Fall':
-                await expect(this.guideLink, 'Guide link should be visible for Rise/Fall').toBeVisible();
                 await expect(this.riseButton, 'Rise button should be visible for Rise/Fall').toBeVisible();
                 await expect(this.fallButton, 'Fall button should be visible for Rise/Fall').toBeVisible();
                 await expect(this.durationLabel, 'Duration param should be visible for Rise/Fall').toBeVisible();
@@ -1074,7 +1596,6 @@ export class TradeParametersPage extends TradeBasePage {
                 await expect(this.purchaseButton, 'Buy button should be visible for Rise/Fall').toBeVisible();
                 break;
             case 'Accumulators':
-                await expect(this.guideLink, 'Guide link should be visible for Accumulators').toBeVisible();
                 await expect(
                     this.growthRateLabel,
                     'Growth rate param should be visible for Accumulators'
@@ -1139,11 +1660,26 @@ export class TradeParametersPage extends TradeBasePage {
                 ).toBeVisible();
                 await expect(this.stakeLabel, 'Stake param should be visible for Turbos').toBeVisible();
                 await expect(this.takeProfitLabel, 'Take profit param should be visible for Turbos').toBeVisible();
-                await expect(this.barrierInfoPanel, 'Barrier info panel should be visible for Turbos').toBeVisible();
                 // Turbos render a single buy button with no payout content wrapper.
                 await expect(this.singlePurchaseButton, 'Buy button should be visible for Turbos').toBeVisible();
                 break;
-            // Add cases for Multipliers, Vanillas, etc. as they are implemented
+            case 'Multipliers':
+                await expect(this.multiplierLabel, 'Multiplier param should be visible for Multipliers').toBeVisible();
+                await expect(this.stakeLabel, 'Stake param should be visible for Multipliers').toBeVisible();
+                await expect(
+                    this.riskManagementLabel,
+                    'Risk management param should be visible for Multipliers'
+                ).toBeVisible();
+                // Multipliers render a single buy button with no payout content wrapper (no fixed payout).
+                await expect(this.singlePurchaseButton, 'Buy button should be visible for Multipliers').toBeVisible();
+                break;
+            // Add a case for Vanillas once it's implemented — no page object/locators exist for it
+            // yet, so its param structure hasn't been confirmed against the live app.
+            default:
+                throw new Error(
+                    `verifyParamsForTradeType: no assertions defined for trade type '${tradeType}'. ` +
+                        `Add a case to this switch before using selectMarketAndTradeType() with this type.`
+                );
         }
     }
 
@@ -1153,13 +1689,9 @@ export class TradeParametersPage extends TradeBasePage {
     async verifyDTraderLandingPageLoggedOut(): Promise<void> {
         await expect(this.loginButton, 'Login button should be visible when logged out').toBeVisible();
         await expect(this.accountInfo, 'Account info should not be visible when logged out').not.toBeVisible();
-        await expect(this.tradeTypeSelector, 'Trade type selector should be visible before login').toBeVisible();
-        await expect(
-            this.selectedTradeTypeChip,
-            'Rise/Fall should be the selected trade type chip by default'
-        ).toBeVisible();
+        await expect(this.addMarketButton, '"Add market" button should be visible before login').toBeVisible();
+        await expect(this.activeMarketTab, 'Rise/Fall should be the active market tab by default').toBeVisible();
         await expect(this.purchaseButton, 'Purchase button should be visible before login').toBeVisible();
-        await expect(this.marketSelector, 'Market selector should be visible before login').toBeVisible();
 
         if (this.isMobile) {
             await expect(this.bottomNavHome, 'Bottom nav Home tab should be visible when logged out').toBeVisible();
@@ -1189,8 +1721,8 @@ export class TradeParametersPage extends TradeBasePage {
                 'Sidebar Reports button should not be visible when logged out'
             ).not.toBeVisible();
             await expect(
-                this.sidebarAccountButton,
-                'Sidebar Account button should not be visible when logged out'
+                this.sidebarLogoutButton,
+                'Sidebar Log out button should not be visible when logged out'
             ).not.toBeVisible();
         }
     }
@@ -1200,11 +1732,8 @@ export class TradeParametersPage extends TradeBasePage {
      */
     async verifyDTraderLandingPage(): Promise<void> {
         await this.verifySuccessfulLogin();
-        await expect(this.marketSelector, 'Market selector should be visible on the trade form').toBeVisible();
-        await expect(
-            this.tradeTypeSelector,
-            'Contract type selector button should be visible on the trade form'
-        ).toBeVisible();
+        await expect(this.addMarketButton, '"Add market" button should be visible on the trade form').toBeVisible();
+        await expect(this.activeMarketTab, 'Active market tab should be visible on the trade form').toBeVisible();
         await expect(this.riseButton, 'Rise button should be visible as the default contract type').toBeVisible();
         await expect(this.fallButton, 'Fall button should be visible as the default contract type').toBeVisible();
         await expect(this.durationLabel, 'Duration field should be visible on the trade form').toBeVisible();
@@ -1222,7 +1751,6 @@ export class TradeParametersPage extends TradeBasePage {
             ).toBeVisible();
             await expect(this.tradeParamsHandle, 'Trade params drag handle should be visible on mobile').toBeVisible();
         } else {
-            await expect(this.guideLink, 'Guide link should be visible on the desktop trade form').toBeVisible();
             await expect(
                 this.networkStatus,
                 'Network status indicator should be visible on the desktop trade form'

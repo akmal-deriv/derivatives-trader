@@ -38,11 +38,11 @@ test.describe('Trade — Touch/No Touch', { tag: ['@desktop', '@mobile', '@trade
     test('VERIFY Buy "Touch" Contract and Close (Demo Account)', async ({ tradeTouchNoTouchPage }) => {
         await tradeTouchNoTouchPage.buyTouchAndVerify({
             accountType: 'demo',
-            market: 'Volatility 25 (1s) Index',
+            market: 'Volatility 10 (1s) Index',
             durationUnit: 'Minutes',
             durationValue: '15 min',
             barrierType: 'Above spot',
-            barrier: '5.11',
+            barrier: '8.60',
             stake: '5.01',
             currency: 'USD',
         });
@@ -51,11 +51,11 @@ test.describe('Trade — Touch/No Touch', { tag: ['@desktop', '@mobile', '@trade
     test('VERIFY Buy "Touch" Contract and Close (Real Account)', async ({ tradeTouchNoTouchPage }) => {
         await tradeTouchNoTouchPage.buyTouchAndVerify({
             accountType: 'real',
-            market: 'Volatility 25 (1s) Index',
+            market: 'Volatility 10 (1s) Index',
             durationUnit: 'Minutes',
             durationValue: '15 min',
             barrierType: 'Above spot',
-            barrier: '5.11',
+            barrier: '8.60',
             stake: '5.01',
             currency: 'USD',
         });
@@ -68,11 +68,11 @@ test.describe('Trade — Touch/No Touch', { tag: ['@desktop', '@mobile', '@trade
     test('VERIFY Buy "No Touch" Contract and Close (Demo Account)', async ({ tradeTouchNoTouchPage }) => {
         await tradeTouchNoTouchPage.buyNoTouchAndVerify({
             accountType: 'demo',
-            market: 'Volatility 25 (1s) Index',
+            market: 'Volatility 10 (1s) Index',
             durationUnit: 'Minutes',
             durationValue: '5 min',
             barrierType: 'Below spot',
-            barrier: '5.05',
+            barrier: '6.05',
             stake: '6.09',
             currency: 'USD',
         });
@@ -81,11 +81,11 @@ test.describe('Trade — Touch/No Touch', { tag: ['@desktop', '@mobile', '@trade
     test('VERIFY Buy "No Touch" Contract and Close (Real Account)', async ({ tradeTouchNoTouchPage }) => {
         await tradeTouchNoTouchPage.buyNoTouchAndVerify({
             accountType: 'real',
-            market: 'Volatility 25 (1s) Index',
+            market: 'Volatility 10 (1s) Index',
             durationUnit: 'Minutes',
             durationValue: '5 min',
             barrierType: 'Below spot',
-            barrier: '5.05',
+            barrier: '6.05',
             stake: '6.09',
             currency: 'USD',
         });

@@ -18,8 +18,8 @@
 | Flow 1     | `trade/verify-trade-form-loads.spec.ts`                          | `@trade @smoke @desktop @mobile @production` |
 | Flow 2.1   | `trade/rise-fall/verify-rise-fall.spec.ts`                       | `@trade @smoke @desktop @mobile @production` |
 | Flow 2.2   | `trade/rise-fall/verify-rise-fall.spec.ts`                       | `@trade @smoke @desktop @mobile`             |
-| Flow 2.3   | `trade/rise-fall/verify-rise-fall.spec.ts`                       | `@trade @smoke @desktop @mobile`             |
-| Flow 2.4   | `trade/rise-fall/verify-rise-fall.spec.ts`                       | `@trade @smoke @desktop @mobile`             |
+| Flow 2.3   | `trade/rise-fall/verify-rise-fall-allow-equals.spec.ts`          | `@trade @desktop @mobile`                    |
+| Flow 2.4   | `trade/rise-fall/verify-rise-fall-allow-equals.spec.ts`          | `@trade @desktop @mobile`                    |
 | Flow 3.1   | `trade/higher-lower/verify-higher-lower.spec.ts`                 | `@trade @desktop @mobile`                    |
 | Flow 3.2   | `trade/higher-lower/verify-higher-lower.spec.ts`                 | `@trade @desktop @mobile`                    |
 | Flow 4.1   | `trade/touch-no-touch/verify-touch-no-touch.spec.ts`             | `@trade @desktop @mobile`                    |
@@ -123,7 +123,7 @@ test.describe('Trade — Rise/Fall', { tag: ['@trade', '@smoke', '@desktop', '@m
 
 **`buyRiseAndVerify` / `buyFallAndVerify` cover (in order):**
 
-1. `selectMarket` → `selectTradeType('Rise/Fall')` → `clickRiseFallOption` → `selectDuration` → `setStake` → `clickBuy`
+1. `selectMarketAndTradeType('Volatility 100 Index', 'Rise/Fall')` → `clickRiseFallOption` → `selectDuration` → `setStake` → `clickBuy`
 2. `verifyOpenPositionsVisible` + `verifyContractCardDetails` + `verifyBalanceAfterContractPurchase`
 3. `verifyOpenPositionsInReports` (Open positions tab) — captures `buyId`
 4. `verifyContractDetailsPage` (open contract) — captures `entrySpot`
@@ -145,17 +145,18 @@ test.describe('Trade — Rise/Fall', { tag: ['@trade', '@smoke', '@desktop', '@m
 ### Flow 2.4 — Rise/Fall Allow Equals: enable toggle → buy Fall → close
 
 ```typescript
-// Co-located in verify-rise-fall.spec.ts alongside Flow 2.1 + 2.2 (same describe block, serial mode)
-test.describe('Trade — Rise/Fall', { tag: ['@trade', '@smoke', '@desktop', '@mobile'] }, () => {
+// Own spec file (verify-rise-fall-allow-equals.spec.ts) — split out from verify-rise-fall.spec.ts
+// since Allow Equals never runs in production (no @production-tagged test here).
+test.describe('Trade — Rise/Fall — Allow Equals', { tag: ['@desktop', '@mobile', '@trade'] }, () => {
     test.describe.configure({ mode: 'serial' });
 
     test.beforeAll(async ({}, testInfo) => {
         const isMobile = testInfo.project.name.includes('mobile');
-        const backupEmailVar = isMobile ? 'TEST_EMAIL_RISE_FALL_MOBILE' : 'TEST_EMAIL_RISE_FALL';
+        const emailVar = isMobile ? 'TEST_EMAIL_RISE_FALL_MOBILE' : 'TEST_EMAIL_RISE_FALL';
         const account = await createAccountV2viaJS('real', {
             currency: 'USD',
             trading: true,
-            backupAccount: process.env[backupEmailVar],
+            backupAccount: process.env[emailVar],
         });
         accountEmail = account.email;
         accountPassword = account.password;
@@ -189,18 +190,20 @@ test.describe('Trade — Rise/Fall', { tag: ['@trade', '@smoke', '@desktop', '@m
             allowEquals: true,
         });
     });
+    // (Real Account) counterparts follow the same pattern with accountType: 'real'
 });
 ```
 
 **`buyRiseAndVerify` / `buyFallAndVerify` with `allowEquals: true` cover (in order):**
 
-1. `selectMarket` → `selectTradeType('Rise/Fall')` → enable Allow Equals toggle → `clickRiseFallOption` → `selectDuration` → `setStake` → `clickBuy`
+1. `selectMarketAndTradeType('Volatility 100 Index', 'Rise/Fall')` → enable Allow Equals toggle → `clickRiseFallOption` → `selectDuration` → `setStake` → `clickBuy`
 2. Contract type submitted as `RISEEQUAL` / `FALLEQUAL` (pays out when exit spot = entry spot too)
 3. Same full verification chain as Flow 2.1/2.2: open positions → reports → contract details → close → closed card → balance → reports
 
-> **Spec:** `playwright/tests/trade/rise-fall/verify-rise-fall.spec.ts`
+> **Spec:** `playwright/tests/trade/rise-fall/verify-rise-fall-allow-equals.spec.ts`
 > **Fixture:** `tradeRiseFallPage` from `playwright/fixtures/fixtures.ts`
-> **Serial mode:** all four Rise/Fall tests share the same funded account; order matters
+> **Serial mode:** all four tests share the same funded account; order matters
+> **No `@production` test:** unlike Flow 2.1, none of these run against production — `beforeAll` always creates a fresh account
 > **Flow 2.3** = `VERIFY Buy "Rise" Contract with Allow Equals Enabled` · **Flow 2.4** = `VERIFY Buy "Fall" Contract with Allow Equals Enabled`
 
 ---
@@ -728,7 +731,7 @@ test.describe('Trade — Multipliers with Deal Cancellation', { tag: ['@trade', 
         await loginPage.login();
         await tradePage.goto();
         await NavigationUtils.waitForDerivApiSettled(page);
-        await tradePage.selectTradeType('Multipliers');
+        await tradePage.selectMarketAndTradeType('Jump 10 Index', 'Multipliers');
     });
 
     test('VERIFY buy Up multiplier contract with deal cancellation and cancel', async ({ tradePage, page }) => {
@@ -834,7 +837,7 @@ test.describe('Trade — Vanillas', { tag: ['@trade', '@desktop', '@mobile'] }, 
         await loginPage.login();
         await tradePage.goto();
         await NavigationUtils.waitForDerivApiSettled(page);
-        await tradePage.selectTradeType('Vanillas');
+        await tradePage.selectMarketAndTradeType('EUR/USD', 'Vanillas');
     });
 
     test('VERIFY buy Vanillas Call contract and verify in positions', async ({ tradePage, page }) => {

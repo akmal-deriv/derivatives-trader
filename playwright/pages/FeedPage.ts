@@ -11,21 +11,24 @@ export interface Market {
 }
 
 /**
- * FeedPage — Verifies the live WebSocket price feed on the trade page.
+ * FeedPage — Verifies every market's trade form loads correctly (or shows the closed-market
+ * state) after the WebSocket feed connects.
  *
- * Owns all locators and interactions related to the market selector header's
- * spot price display — the element that ticks in real-time via the `ticks`
- * WebSocket subscription.
+ * The redesigned trade page no longer exposes the live-ticking spot price anywhere in the DOM
+ * (the old SmartCharts symbol-info header — `.cq-animated-price` / `.market-selector-info__price`
+ * — was removed; the price now renders only on the chart `<canvas>`, which Playwright cannot read).
+ * So "the feed is alive" is instead verified indirectly: for each market, selecting it + Multipliers
+ * succeeds and the trade form's params render with no error (asserted inside
+ * `selectMarketAndTradeType()`'s own `verifyParamsForTradeType()` call) — this only happens once the
+ * `ticks`/`proposal` subscriptions for that symbol have actually resolved.
  *
- * Navigation to the trade page and trade type selection is handled by
- * `TradeParametersPage.gotoTradePage()` + `selectTradeType('Multipliers')`.
+ * Navigation to the trade page and market/trade-type selection is handled by
+ * `TradeParametersPage.gotoTradePage()` + `selectMarketAndTradeType(market, 'Multipliers')`.
  *
  * @example
  * ```typescript
  * await tradeParametersPage.gotoTradePage();
- * await tradeParametersPage.selectTradeType('Multipliers');
- * const initial = await feedPage.getCurrentSpotPrice();
- * await feedPage.waitForPriceChange(initial);
+ * await tradeParametersPage.selectMarketAndTradeType('Volatility 100 Index', 'Multipliers');
  * ```
  */
 export class FeedPage extends TradeBasePage {
@@ -122,28 +125,10 @@ export class FeedPage extends TradeBasePage {
     // ============================================
 
     /**
-     * The animated spot price rendered by SmartCharts inside `.cq-symbol-info`.
-     * Class `.cq-animated-price` is set by SmartCharts and updates on every tick.
-     * Falls back to `.market-selector-info__price` (mobile MarketSelector layout).
-     */
-    get spotPrice(): Locator {
-        return this.page.locator('.cq-animated-price').or(this.page.locator('.market-selector-info__price')).first();
-    }
-
-    /**
-     * "CLOSED" badge in the market selector header.
-     * Desktop: SmartCharts renders `.cq-symbol-closed-text` inside the chart header.
-     * Mobile:  Quill renders a `.tag.tag__color--error` chip inside `.market-selector-info__label`.
-     */
-    get symbolClosedBadge(): Locator {
-        return this.isMobile
-            ? this.page.locator('.market-selector-info__label .tag.tag__color--error')
-            : this.page.locator('.cq-symbol-closed-text');
-    }
-
-    /**
      * "This market will reopen at…" banner rendered by the trade form when the selected
-     * market is outside its trading hours.
+     * market is outside its trading hours. Also doubles as the closed-state signal itself —
+     * the redesign removed the old "CLOSED" badge from the chart header entirely, so this
+     * banner's presence is now the only DOM-visible indicator that a market is closed.
      * Source: `.closed-market-message--container` in market-closed-message.tsx.
      */
     get closedMarketMessageContainer(): Locator {
@@ -162,36 +147,8 @@ export class FeedPage extends TradeBasePage {
     // ACTIONS
     // ============================================
 
-    /**
-     * Read the current spot price text from the market selector header.
-     *
-     * @returns The price string as displayed (e.g. `"9987.779"`), or `""` if not visible.
-     */
-    async getCurrentSpotPrice(): Promise<string> {
-        return (await this.spotPrice.textContent()) ?? '';
-    }
-
     resolveLabel(market: Market): string {
         return this.isMobile && market.mobileLabel ? market.mobileLabel : market.label;
-    }
-
-    /**
-     * Wait until the spot price displayed in the market selector header changes
-     * from the provided `previousPrice`. Relies on Playwright's `waitForFunction`
-     * which polls the DOM — no manual sleep needed.
-     *
-     * @param previousPrice - The price value to compare against (captured before this call).
-     * @param timeout        - Maximum wait time in milliseconds (default: 5 000 ms).
-     */
-    async waitForPriceChange(previousPrice: string, timeout = 5_000): Promise<void> {
-        await this.page.waitForFunction(
-            ({ selectors, prev }: { selectors: string[]; prev: string }) => {
-                const el = selectors.map(s => document.querySelector(s)).find(Boolean);
-                return !!el && el.textContent?.trim() !== prev && el.textContent?.trim() !== '';
-            },
-            { selectors: ['.cq-animated-price', '.market-selector-info__price'], prev: previousPrice },
-            { timeout }
-        );
     }
 
     // ============================================
@@ -199,39 +156,23 @@ export class FeedPage extends TradeBasePage {
     // ============================================
 
     /**
-     * Assert that the spot price element is visible and contains a non-empty string.
-     */
-    async verifySpotPriceVisible(): Promise<void> {
-        await expect(this.spotPrice, 'Spot price should be visible in the market selector header').toBeVisible();
-        const price = await this.getCurrentSpotPrice();
-        expect(price, 'Spot price text should be non-empty').not.toBe('');
-    }
-
-    /**
      * Assert the closed-market UI state for a session-gated symbol.
      *
-     * Checks three signals on both desktop and mobile:
-     *   1. "CLOSED" badge in the market selector header
-     *      Desktop: `.cq-symbol-closed-text` (SmartCharts)
-     *      Mobile:  `.market-selector-info__label .tag.tag__color--error` (Quill chip)
-     *   2. Trade form reopen-time banner (`.closed-market-message--container`)
-     *   3. Countdown timer inside the banner (`.market-countdown-timer`)
+     * Checks two signals on both desktop and mobile:
+     *   1. Trade form reopen-time banner (`.closed-market-message--container`)
+     *   2. Countdown timer inside the banner (`.market-countdown-timer`)
      *
      * @param label - Human-readable market name used in assertion messages, e.g. `'Hong Kong 50'`.
      */
     async verifyMarketClosedState(label: string): Promise<void> {
-        const isClosed = await this.symbolClosedBadge.isVisible();
+        const isClosed = await this.closedMarketMessageContainer.isVisible().catch(() => false);
 
         if (!isClosed) {
-            // Market is within trading hours at runtime — verify live feed instead
-            await this.verifySpotPriceVisible();
+            // Market is within trading hours at runtime — selectMarketAndTradeType() already
+            // confirmed the trade form loaded without error, nothing further to assert here.
             return;
         }
 
-        await expect(
-            this.symbolClosedBadge,
-            `[${label}] Market selector header should show CLOSED badge`
-        ).toBeVisible();
         await expect(
             this.closedMarketMessageContainer,
             `[${label}] Closed-market reopen banner should be visible on the trade form`

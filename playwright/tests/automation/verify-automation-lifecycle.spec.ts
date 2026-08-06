@@ -18,10 +18,6 @@ test.describe('Automation — Lifecycle', { tag: ['@automation', '@smoke', '@des
         const isMobile = testInfo.project.name.includes('mobile');
         const backupEmailVar = isMobile ? 'TEST_EMAIL_AUTOMATION_MOBILE' : 'TEST_EMAIL_AUTOMATION';
 
-        // 'real' is intentional — this suite validates the real-account experience, matching the
-        // rest of the trade specs. On the default staging environment a 'real' account is a
-        // virtual/test account funded via top-up (no real money, no production). Automation itself
-        // is gated by EU status (useIsAutomationEnabled), not by real-vs-demo, so it runs on both.
         const account = await createAccountV2viaJS('real', {
             currency: 'USD',
             trading: true,

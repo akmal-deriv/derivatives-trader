@@ -17,9 +17,6 @@ test.describe('Trade — Even/Odd', { tag: ['@desktop', '@mobile', '@trade'] }, 
     test.beforeAll(async ({}, testInfo) => {
         const isMobile = testInfo.project.name.includes('mobile');
         const backupEmailVar = isMobile ? 'TEST_EMAIL_EVEN_ODD_MOBILE' : 'TEST_EMAIL_EVEN_ODD';
-        // No `password` field: this suite creates a fresh account each run and (if provisioned) the
-        // backup account uses the shared TEST_PASSWORD — unlike Matches/Differs, whose dedicated backup
-        // account uses a custom password and therefore passes `password` explicitly.
         const account = await createAccountV2viaJS('real', {
             currency: 'USD',
             trading: true,

@@ -213,8 +213,7 @@ export class TradeAccumulatorsPage extends TradeParametersPage {
         await this.switchToAccountType(accountType);
 
         // 1. Configure
-        await this.selectMarket(market);
-        await this.selectTradeType('Accumulators');
+        await this.selectMarketAndTradeType(market, 'Accumulators');
         await expect(this.durationLabel, 'Duration param should NOT be shown for Accumulators').not.toBeVisible();
         await this.setGrowthRate(growthRate);
         await this.setStake(stake);

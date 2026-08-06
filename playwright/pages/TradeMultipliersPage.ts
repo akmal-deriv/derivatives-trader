@@ -38,16 +38,6 @@ export class TradeMultipliersPage extends TradeParametersPage {
     // ============================================
 
     /**
-     * "Multiplier" label — stable across both viewports.
-     * Desktop: TradeParameterPopover renders a readOnly TextField labelled "Multiplier".
-     * Mobile: ActionSheet TextField labelled "Multiplier".
-     * Source: multiplier-desktop.tsx / multiplier.tsx — i18n_default_text='Multiplier'
-     */
-    get multiplierLabel(): Locator {
-        return this.page.locator('label', { hasText: 'Multiplier' }).first();
-    }
-
-    /**
      * Multiplier field trigger (read-only TextField that opens the popover/action-sheet).
      * Desktop: TradeParameterPopover renders a readOnly TextField labelled "Multiplier".
      * Mobile: multiplier.tsx renders a readOnly TextField labelled "Multiplier".
@@ -55,16 +45,6 @@ export class TradeMultipliersPage extends TradeParametersPage {
      */
     get multiplierField(): Locator {
         return this.page.getByLabel('Multiplier').first();
-    }
-
-    /**
-     * Risk management label — stable across both viewports.
-     * Desktop: TradeParameterPopover labelled "Risk management".
-     * Mobile: ActionSheet TextField labelled "Risk management".
-     * Source: risk-management-desktop.tsx / risk-management.tsx — i18n_default_text='Risk management'
-     */
-    get riskManagementLabel(): Locator {
-        return this.page.locator('label', { hasText: 'Risk management' }).first();
     }
 
     /**
@@ -88,20 +68,27 @@ export class TradeMultipliersPage extends TradeParametersPage {
     }
 
     /**
-     * Stop out value shown below the trade params (e.g. "10.00 USD").
-     * Desktop: .multipliers-information__row > dt_span
-     * Mobile: second <p> in .stake-content__details-row containing "Stop out" — only visible while stake action sheet is open.
+     * Stop out value — viewport-aware.
+     * - Desktop: always visible on the landing page, `.multipliers-information__row` > `dt_span`.
+     * - Mobile: no landing-page equivalent — only rendered inside the Stake action sheet's details
+     *   rows (stake-details.tsx) while it's open; value is the row's last text node.
      */
     get stopOutValue(): Locator {
-        return this.page.locator('.multipliers-information__row', { hasText: 'Stop out' }).getByTestId('dt_span');
+        return this.isMobile
+            ? this.page.locator('.stake-content__details-row', { hasText: 'Stop out' }).locator('p').last()
+            : this.page.locator('.multipliers-information__row', { hasText: 'Stop out' }).getByTestId('dt_span');
     }
 
     /**
-     * Commission value from .multipliers-information__container on the trade page.
-     * Same locator on both desktop and mobile.
+     * Commission value — viewport-aware.
+     * - Desktop: always visible on the landing page, `.multipliers-information__row` > `dt_span`.
+     * - Mobile: no landing-page equivalent — only rendered inside the Stake action sheet's details
+     *   rows (stake-details.tsx) while it's open.
      */
     get commissionValue(): Locator {
-        return this.page.locator('.multipliers-information__row', { hasText: 'Commission' }).getByTestId('dt_span');
+        return this.isMobile
+            ? this.page.locator('.stake-content__details-row', { hasText: 'Commission' }).locator('p').last()
+            : this.page.locator('.multipliers-information__row', { hasText: 'Commission' }).getByTestId('dt_span');
     }
 
     /**
@@ -292,11 +279,14 @@ export class TradeMultipliersPage extends TradeParametersPage {
 
     /**
      * "Save" button inside the risk management panel.
-     * Desktop TP/SL: .risk-management-desktop__tp-sl-wrapper > Save
+     * Desktop TP/SL: .risk-management-desktop__tp-sl-wrapper > Save — real `disabled` attribute tied
+     *                to tp_is_loading/sl_is_loading, so `toBeEnabled()` is a reliable readiness check.
      * Desktop DC:    .deal-cancellation-desktop__footer > Save
-     * Mobile TP/SL:  Quill ActionSheet hoists Save to .quill-action-sheet--footer outside
-     *                .risk-management__tp-sl__wrapper — scope via .risk-management__picker instead
-     * Mobile DC:     Same picker container, use .last() to disambiguate when segmented control visible
+     * Mobile TP/SL:  Rendered directly inside .risk-management__tp-sl__wrapper (NOT hoisted to any
+     *                ActionSheet footer) — take-profit-and-stop-loss-container.tsx. This button has
+     *                no `disabled` state at all; `onSave` silently no-ops if the TP/SL proposal ref
+     *                isn't ready yet, so callers must retry the click rather than trust one attempt.
+     * Mobile DC:     Same picker container, scoped via .risk-management__picker.
      * Source: take-profit-stop-loss-desktop.tsx, deal-cancellation-desktop.tsx,
      *         take-profit-and-stop-loss-container.tsx, deal-cancellation.tsx, risk-management-picker.tsx
      */
@@ -488,13 +478,27 @@ export class TradeMultipliersPage extends TradeParametersPage {
                         'SL acceptable range hint should contain a numeric range'
                     ).toContainText(/\d/);
                 }
-                await this.riskManagementSaveButton('tp_sl').click();
+                // Mobile's Save button (take-profit-and-stop-loss-container.tsx) has no `disabled`
+                // state — it's always clickable, but `onSave` silently no-ops if the proposal ref for
+                // TP/SL hasn't resolved yet. That ref flips independently of the "Acceptable range"
+                // hint (which can already show digits left over from an earlier keystroke's response
+                // while the latest one is still in flight), so a single click can land in that gap.
+                // Retry the click until the sheet actually closes instead of trusting one attempt.
+                await expect(async () => {
+                    await this.riskManagementSaveButton('tp_sl').click();
+                    await expect(
+                        this.page.locator('.risk-management__picker'),
+                        'Risk management ActionSheet should close after saving'
+                    ).not.toBeVisible({ timeout: 3_000 });
+                }).toPass({ timeout: 20_000 });
             }
 
-            await expect(
-                this.page.locator('.risk-management__picker'),
-                'Risk management ActionSheet should close after saving'
-            ).not.toBeVisible();
+            if (dealCancellation) {
+                await expect(
+                    this.page.locator('.risk-management__picker'),
+                    'Risk management ActionSheet should close after saving'
+                ).not.toBeVisible();
+            }
         } else {
             await expect(
                 this.page.locator('.risk-management-popover__main'),
@@ -567,10 +571,20 @@ export class TradeMultipliersPage extends TradeParametersPage {
     }
 
     /**
-     * Read commission and stop out values from .multipliers-information__container on the trade page.
-     * Same element on both desktop and mobile — no need to open the stake action sheet.
+     * Read commission and stop out values from the Stake action sheet's details rows
+     * (stake-details.tsx) — no longer shown on the trade-page landing container, so this opens
+     * the sheet to read them, then closes it via Save (re-saving the already-committed amount is
+     * a no-op). Same rows on both desktop and mobile.
      */
     private async readCommissionAndStopOut(): Promise<{ commission: string; stopOut: string }> {
+        if (this.isMobile) {
+            await this.stakeField.click();
+            await expect(
+                this.stakeSaveButton,
+                'Stake save button should be enabled — confirms the reopened sheet has a fresh proposal'
+            ).toBeEnabled({ timeout: 15_000 });
+        }
+
         // Commission and stop out are populated from the proposal response, which can lag under load.
         // not.toBeEmpty() auto-retries, so give it a generous budget instead of the default window.
         await expect(this.commissionValue, 'Commission value should be visible and non-empty').not.toBeEmpty({
@@ -581,6 +595,11 @@ export class TradeMultipliersPage extends TradeParametersPage {
         });
         const commission = (await this.commissionValue.innerText()).trim();
         const stopOut = (await this.stopOutValue.innerText()).trim();
+
+        if (this.isMobile) {
+            await this.stakeSaveButton.click();
+            await expect(this.stakeContainer, 'Stake action sheet should dismiss after closing').not.toBeVisible();
+        }
         return { commission, stopOut };
     }
 
@@ -624,8 +643,7 @@ export class TradeMultipliersPage extends TradeParametersPage {
         await this.switchToAccountType(accountType);
 
         // 1. Configure and buy
-        await this.selectMarket(market);
-        await this.selectTradeType('Multipliers');
+        await this.selectMarketAndTradeType(market, 'Multipliers');
         await this.clickUpDownOption('Up');
         await this.setMultiplier(multiplier);
         await this.setStake(stake);
@@ -764,8 +782,7 @@ export class TradeMultipliersPage extends TradeParametersPage {
         await this.switchToAccountType(accountType);
 
         // 1. Configure and buy
-        await this.selectMarket(market);
-        await this.selectTradeType('Multipliers');
+        await this.selectMarketAndTradeType(market, 'Multipliers');
         await this.clickUpDownOption('Down');
         await this.setMultiplier(multiplier);
         await this.setStake(stake);

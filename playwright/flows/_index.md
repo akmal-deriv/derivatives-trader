@@ -5,7 +5,7 @@ This folder contains plain-English journey specifications, coverage scorecards, 
 
 Updated when new flows are added, tests are implemented, or coverage status changes.
 
-Last updated: 2026-07-21
+Last updated: 2026-08-06
 
 ---
 
@@ -34,16 +34,17 @@ Each module section lists every documented flow with its current **status** and 
 
 ## Coverage Summary
 
-| Module          | Total Flows | Documented | Automated |
-| --------------- | ----------- | ---------- | --------- |
-| `trade`         | 34          | 34         | 21        |
-| `positions`     | 11          | 11         | 0         |
-| `reports`       | 8           | 8          | 0         |
-| `notifications` | 9           | 9          | 0         |
-| `auth`          | 3           | 3          | 3         |
-| `automation`    | 9           | 9          | 6         |
-| `feed`          | 1           | 1          | 1         |
-| **Total**       | **75**      | **75**     | **31**    |
+| Module             | Total Flows | Documented | Automated |
+| ------------------ | ----------- | ---------- | --------- |
+| `trade`            | 34          | 34         | 27        |
+| `positions`        | 11          | 11         | 0         |
+| `reports`          | 8           | 8          | 0         |
+| `notifications`    | 9           | 9          | 0         |
+| `auth`             | 3           | 3          | 3         |
+| `automation`       | 9           | 9          | 6         |
+| `feed`             | 1           | 1          | 1         |
+| `market-selection` | 26          | 26         | 2         |
+| **Total**          | **101**     | **101**    | **39**    |
 
 > Status advances: `documented` → `automated`
 
@@ -70,8 +71,8 @@ Each module section lists every documented flow with its current **status** and 
 | Flow 6.2  | P2       | Over/Under — buy Under → expiry                            | authenticated, funded        | `automated`  |
 | Flow 7.1  | P2       | Even/Odd — buy Even → expiry                               | authenticated, funded        | `automated`  |
 | Flow 7.2  | P2       | Even/Odd — buy Odd → expiry                                | authenticated, funded        | `automated`  |
-| Flow 8.1  | P0       | Accumulators without TP — buy → close                      | authenticated, funded        | `documented` |
-| Flow 8.2  | P0       | Accumulators with TP — buy → verify TP set → close         | authenticated, funded        | `documented` |
+| Flow 8.1  | P0       | Accumulators without TP — buy → close                      | authenticated, funded        | `automated`  |
+| Flow 8.2  | P0       | Accumulators with TP — buy → verify TP set → close         | authenticated, funded        | `automated`  |
 | Flow 9.1  | P0       | Multipliers no TP/SL — buy Up → close                      | authenticated, funded        | `automated`  |
 | Flow 9.2  | P0       | Multipliers no TP/SL — buy Down → close                    | authenticated, funded        | `automated`  |
 | Flow 9.3  | P0       | Multipliers with TP — buy Up → close                       | authenticated, funded        | `automated`  |
@@ -80,10 +81,10 @@ Each module section lists every documented flow with its current **status** and 
 | Flow 9.6  | P1       | Multipliers with SL — buy Down → close                     | authenticated, funded        | `automated`  |
 | Flow 9.7  | P2       | Multipliers with Deal Cancellation — buy Up → cancel       | authenticated, funded        | `documented` |
 | Flow 9.8  | P2       | Multipliers with Deal Cancellation — buy Down → cancel     | authenticated, funded        | `documented` |
-| Flow 10.1 | P1       | Turbos without TP — buy Up → verify in positions           | authenticated, funded        | `documented` |
-| Flow 10.2 | P1       | Turbos without TP — buy Down → verify in positions         | authenticated, funded        | `documented` |
-| Flow 10.3 | P1       | Turbos with TP — buy Up → verify TP set in positions       | authenticated, funded        | `documented` |
-| Flow 10.4 | P1       | Turbos with TP — buy Down → verify TP set in positions     | authenticated, funded        | `documented` |
+| Flow 10.1 | P1       | Turbos without TP — buy Up → verify in positions           | authenticated, funded        | `automated`  |
+| Flow 10.2 | P1       | Turbos without TP — buy Down → verify in positions         | authenticated, funded        | `automated`  |
+| Flow 10.3 | P1       | Turbos with TP — buy Up → verify TP set in positions       | authenticated, funded        | `automated`  |
+| Flow 10.4 | P1       | Turbos with TP — buy Down → verify TP set in positions     | authenticated, funded        | `automated`  |
 | Flow 11.1 | P1       | Vanillas — buy Call → verify in positions                  | authenticated, funded        | `documented` |
 | Flow 11.2 | P1       | Vanillas — buy Put → verify in positions                   | authenticated, funded        | `documented` |
 | Flow 12   | P2       | Market closed → purchase hidden, countdown visible         | authenticated, closed market | `documented` |
@@ -192,15 +193,51 @@ Each module section lists every documented flow with its current **status** and 
 
 ---
 
+## Module: `market-selection` — Market Selection & Trade Tabs
+
+**Flow docs:** `playwright/flows/market-selection/` · **Test folder:** `playwright/tests/market-selection/`
+
+| Flow    | Priority | Description                                                           | User State            | Status       |
+| ------- | -------- | --------------------------------------------------------------------- | --------------------- | ------------ |
+| Flow 1  | P1       | Add market opens the picker as a new-tab flow                         | unauthenticated       | `documented` |
+| Flow 2  | P1       | Clicking the active tab replaces it instead of adding a new one       | unauthenticated       | `documented` |
+| Flow 3  | P1       | Trade-type navigation lists the same set on both platforms            | unauthenticated       | `documented` |
+| Flow 4  | P1       | Switching trade type reloads the list to only tradeable symbols       | unauthenticated       | `documented` |
+| Flow 5  | P1       | Asset-class category filter chips scope the list                      | unauthenticated       | `documented` |
+| Flow 6  | P1       | Featured/Discovery view removed (regression guard)                    | unauthenticated       | `documented` |
+| Flow 7  | P2       | Time-window dropdown is always present in the category list           | unauthenticated       | `documented` |
+| Flow 8  | P2       | Market Info screen                                                    | unauthenticated       | `documented` |
+| Flow 9  | P0       | Search by market name                                                 | unauthenticated       | `automated`  |
+| Flow 10 | P1       | Search with no matches                                                | unauthenticated       | `automated`  |
+| Flow 11 | P2       | Favourite toggle from the browse list                                 | unauthenticated       | `documented` |
+| Flow 12 | P2       | Favourites persist across a page reload                               | unauthenticated       | `documented` |
+| Flow 13 | P3       | Guide affordance opens the trade-type description modal               | unauthenticated       | `documented` |
+| Flow 14 | P1       | Close without selecting                                               | unauthenticated       | `documented` |
+| Flow 15 | P0       | Switch between existing tabs                                          | unauthenticated       | `documented` |
+| Flow 16 | P0       | Re-selecting an already-open pair focuses the existing tab            | unauthenticated       | `documented` |
+| Flow 17 | P0       | Same market, different trade type are independent tabs                | unauthenticated       | `documented` |
+| Flow 18 | P0       | Remove a non-active tab                                               | unauthenticated       | `documented` |
+| Flow 19 | P0       | Remove the active tab falls back to an adjacent tab                   | unauthenticated       | `documented` |
+| Flow 20 | P0       | Remove the last remaining tab is blocked                              | unauthenticated       | `documented` |
+| Flow 21 | P1       | Tab strip scroll and active/inactive tab sizing                       | unauthenticated       | `documented` |
+| Flow 22 | P2       | Tabs persist across page reload                                       | unauthenticated       | `documented` |
+| Flow 23 | P1       | Buy always targets the active tab's pair                              | authenticated, funded | `documented` |
+| Flow 24 | P0       | Tab icon reflects its own market                                      | unauthenticated       | `documented` |
+| Flow 25 | P1       | Max tab limit enforced (4 mobile / 7 desktop) — confirmed intentional | unauthenticated       | `documented` |
+| —       | —        | No trade parameter is tab-scoped except (symbol, contract_type) (G1)  | unauthenticated       | `documented` |
+
+---
+
 ## Implementation Priority Order
 
-| Priority | Module          | Key Flows to Implement First                                                             |
-| -------- | --------------- | ---------------------------------------------------------------------------------------- |
-| **Now**  | `trade`         | Flow 8.1/8.2 (Accumulators) + Flow 9.7/9.8 (Deal Cancellation) + Flow 10.1–10.4 (Turbos) |
-| **Now**  | `positions`     | Flow 1 (open positions mobile), Flow 2 (desktop flyout)                                  |
-| **Next** | `reports`       | Flow 1 (page load), Flow 5 (Trade Table), Flow 6 (Statement)                             |
-| **Next** | `notifications` | Flow 3 (bell → dialog desktop), Flow 4 (bell → modal mobile), Flow 1 (trade banner)      |
-| **Soon** | `automation`    | Flow 5 (resync after account switch) + G1 (already-running snackbar) + G2 (validation)   |
+| Priority | Module             | Key Flows to Implement First                                                                                               |
+| -------- | ------------------ | -------------------------------------------------------------------------------------------------------------------------- |
+| **Now**  | `trade`            | Flow 9.7/9.8 (Deal Cancellation) + Flow 11.1/11.2 (Vanillas)                                                               |
+| **Now**  | `market-selection` | Flow 9–10 (search) done — verify Flow 15–21, 24 (core tab mechanics) next, then the remaining written-but-unverified specs |
+| **Now**  | `positions`        | Flow 1 (open positions mobile), Flow 2 (desktop flyout)                                                                    |
+| **Next** | `reports`          | Flow 1 (page load), Flow 5 (Trade Table), Flow 6 (Statement)                                                               |
+| **Next** | `notifications`    | Flow 3 (bell → dialog desktop), Flow 4 (bell → modal mobile), Flow 1 (trade banner)                                        |
+| **Soon** | `automation`       | Flow 5 (resync after account switch) + G1 (already-running snackbar) + G2 (validation)                                     |
 
 ---
 
@@ -218,12 +255,13 @@ AI will read all `coverage.md` files and `playwright/tests/` spec files, compute
 
 ## File Reference
 
-| Module        | flow.md                       | catalog.md                          | coverage.md                           |
-| ------------- | ----------------------------- | ----------------------------------- | ------------------------------------- |
-| trade         | [flow](trade/flow.md)         | [catalog](trade/catalog.md)         | [coverage](trade/coverage.md)         |
-| positions     | [flow](positions/flow.md)     | [catalog](positions/catalog.md)     | [coverage](positions/coverage.md)     |
-| reports       | [flow](reports/flow.md)       | [catalog](reports/catalog.md)       | [coverage](reports/coverage.md)       |
-| notifications | [flow](notifications/flow.md) | [catalog](notifications/catalog.md) | [coverage](notifications/coverage.md) |
-| auth          | [flow](auth/flow.md)          | [catalog](auth/catalog.md)          | [coverage](auth/coverage.md)          |
-| automation    | [flow](automation/flow.md)    | [catalog](automation/catalog.md)    | [coverage](automation/coverage.md)    |
-| feed          | [flow](feed/flow.md)          | [catalog](feed/catalog.md)          | [coverage](feed/coverage.md)          |
+| Module           | flow.md                          | catalog.md                             | coverage.md                              |
+| ---------------- | -------------------------------- | -------------------------------------- | ---------------------------------------- |
+| trade            | [flow](trade/flow.md)            | [catalog](trade/catalog.md)            | [coverage](trade/coverage.md)            |
+| positions        | [flow](positions/flow.md)        | [catalog](positions/catalog.md)        | [coverage](positions/coverage.md)        |
+| reports          | [flow](reports/flow.md)          | [catalog](reports/catalog.md)          | [coverage](reports/coverage.md)          |
+| notifications    | [flow](notifications/flow.md)    | [catalog](notifications/catalog.md)    | [coverage](notifications/coverage.md)    |
+| auth             | [flow](auth/flow.md)             | [catalog](auth/catalog.md)             | [coverage](auth/coverage.md)             |
+| automation       | [flow](automation/flow.md)       | [catalog](automation/catalog.md)       | [coverage](automation/coverage.md)       |
+| feed             | [flow](feed/flow.md)             | [catalog](feed/catalog.md)             | [coverage](feed/coverage.md)             |
+| market-selection | [flow](market-selection/flow.md) | [catalog](market-selection/catalog.md) | [coverage](market-selection/coverage.md) |

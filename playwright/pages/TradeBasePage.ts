@@ -104,10 +104,11 @@ export class TradeBasePage {
     }
 
     /**
-     * Sidebar Account button — desktop only, triggers account dropdown / logout.
+     * Sidebar Log out button — desktop only. Direct nav item, only rendered while logged in
+     * (no separate account-dropdown trigger anymore). Source: sidebar.tsx `dt_sidebar_logout`.
      */
-    get sidebarAccountButton(): Locator {
-        return this.page.getByTestId('dt_sidebar_account');
+    get sidebarLogoutButton(): Locator {
+        return this.page.getByTestId('dt_sidebar_logout');
     }
 
     /** Bottom nav Home tab — mobile only */
@@ -153,14 +154,16 @@ export class TradeBasePage {
         return this.page.getByRole('button', { name: 'Log out' }).or(this.page.locator('.header__menu-logout'));
     }
 
-    /** Selected trade type chip — confirms the trade form is fully loaded */
-    get selectedTradeTypeChip(): Locator {
-        return this.page.locator('.quill-chip[data-state="selected"]').first();
-    }
-
-    /** Rise/Fall chip in selected state — asserts it is the active trade type */
-    get selectedRiseFallChip(): Locator {
-        return this.page.locator('.quill-chip[data-state="selected"]', { hasText: 'Rise/Fall' });
+    /**
+     * The active (symbol, trade type) tab on the market-tabs strip — confirms the trade form is
+     * fully loaded. Replaces the pre-redesign `.quill-chip[data-state="selected"]` trade-type chip,
+     * which no longer renders on the main trade page (that pattern now only appears inside the
+     * market-selection modal's picker list). Source: market-tab.tsx — each tab is
+     * `[data-testid="dt_market_tab"]` with `aria-current="true"` when active. Present both logged
+     * in and logged out.
+     */
+    get activeMarketTab(): Locator {
+        return this.page.locator('[data-testid="dt_market_tab"][aria-current="true"]').first();
     }
 
     /**
@@ -273,8 +276,8 @@ export class TradeBasePage {
         await this.page.waitForLoadState('domcontentloaded');
         await NavigationUtils.waitForDerivApiSettled(this.page);
         await expect(
-            this.selectedTradeTypeChip,
-            'Selected trade type chip should be visible — confirms trade form is fully loaded'
+            this.activeMarketTab,
+            'Active market tab should be visible — confirms trade form is fully loaded'
         ).toBeVisible();
     }
 
@@ -314,19 +317,13 @@ export class TradeBasePage {
 
     /**
      * Trigger logout for the current viewport.
-     * - Desktop: clicks the sidebar account button then "Log out"
+     * - Desktop: clicks the sidebar's "Log out" nav item directly
      * - Mobile: navigates to the menu page via the bottom nav then clicks "Log out"
      */
     async logout(): Promise<void> {
         if (this.isMobile) {
             await this.bottomNavMenu.click();
             await this.page.waitForURL('**/menu');
-        } else {
-            await expect(
-                this.sidebarAccountButton,
-                'Sidebar account button should be visible before logout'
-            ).toBeVisible();
-            await this.sidebarAccountButton.click();
         }
         await this.logoutButton.click();
     }
@@ -514,8 +511,8 @@ export class TradeBasePage {
             ).toBeVisible();
             await expect(this.sidebarThemeButton, 'Sidebar Theme button should be visible after login').toBeVisible();
             await expect(
-                this.sidebarAccountButton,
-                'Sidebar Account button should be visible after login'
+                this.sidebarLogoutButton,
+                'Sidebar Log out button should be visible after login'
             ).toBeVisible();
         }
     }

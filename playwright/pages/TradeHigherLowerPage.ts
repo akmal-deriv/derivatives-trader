@@ -105,8 +105,7 @@ export class TradeHigherLowerPage extends TradeParametersPage {
         await this.switchToAccountType(accountType);
 
         // 1. Configure and buy
-        await this.selectMarket(market);
-        await this.selectTradeType('Higher/Lower');
+        await this.selectMarketAndTradeType(market, 'Higher/Lower');
         await this.clickHigherLowerOption('Higher');
         await this.selectDuration(durationUnit, durationValue);
         // The app snaps the barrier to a market-valid offset; use the accepted value downstream.
@@ -231,8 +230,7 @@ export class TradeHigherLowerPage extends TradeParametersPage {
         await this.switchToAccountType(accountType);
 
         // 1. Configure and buy
-        await this.selectMarket(market);
-        await this.selectTradeType('Higher/Lower');
+        await this.selectMarketAndTradeType(market, 'Higher/Lower');
         await this.clickHigherLowerOption('Lower');
         await this.selectDuration(durationUnit, durationValue);
         // The app snaps the barrier to a market-valid offset; use the accepted value downstream.

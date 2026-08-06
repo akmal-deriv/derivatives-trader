@@ -123,8 +123,7 @@ export class TradeTouchNoTouchPage extends TradeParametersPage {
         await this.switchToAccountType(accountType);
 
         // 1. Configure and buy
-        await this.selectMarket(market);
-        await this.selectTradeType('Touch/No Touch');
+        await this.selectMarketAndTradeType(market, 'Touch/No Touch');
         await this.clickTouchNoTouchOption('Touch');
         await this.selectDuration(durationUnit, durationValue);
         // The app snaps the barrier to a market-valid offset; use the accepted value downstream.
@@ -249,8 +248,7 @@ export class TradeTouchNoTouchPage extends TradeParametersPage {
         await this.switchToAccountType(accountType);
 
         // 1. Configure and buy
-        await this.selectMarket(market);
-        await this.selectTradeType('Touch/No Touch');
+        await this.selectMarketAndTradeType(market, 'Touch/No Touch');
         await this.clickTouchNoTouchOption('No Touch');
         await this.selectDuration(durationUnit, durationValue);
         // The app snaps the barrier to a market-valid offset; use the accepted value downstream.

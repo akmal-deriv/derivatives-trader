@@ -120,15 +120,24 @@ export abstract class TradeDigitsPage extends TradeParametersPage {
     /**
      * Select a Ticks duration for a digit contract.
      *
-     * Digit contracts support Ticks only, so the duration popover renders the tick value chips
-     * directly — there is no unit-tab sidebar (Ticks/Seconds/Minutes/Hours). The base
-     * `selectDuration()` cannot be reused because it always tries to click a unit tab first.
+     * Digit contracts support Ticks only, so there is no unit-tab sidebar (Ticks/Seconds/Minutes/
+     * Hours) — the base `selectDuration()` cannot be reused because it always tries to click a unit
+     * tab first. The picker itself also differs by viewport:
+     * - Desktop: preset value chips (value-chips.tsx), matching `durationChip()`.
+     * - Mobile: a scroll-snap WheelPicker (duration-wheel-picker.tsx, `dt_duration_ticks_wheel`) with
+     *   no Save button — selecting a value commits immediately, so the sheet is dismissed via the
+     *   ActionSheet's backdrop overlay instead.
      *
-     * @param value - Ticks chip label as rendered (e.g. '10 ticks', '1 tick')
+     * @param value - Ticks value as rendered (e.g. '10 ticks', '1 tick')
      */
     async selectTicksDuration(value: string): Promise<void> {
         await this.durationField.click();
-        await this.durationChip(value).click();
+        if (this.isMobile) {
+            await this.selectWheelPickerOption('[data-testid="dt_duration_ticks_wheel"]', value);
+            await this.actionSheetOverlay.click();
+        } else {
+            await this.durationChip(value).click();
+        }
         await expect(this.durationField, `Duration field should show '${value}' after selection`).toHaveValue(
             new RegExp(`^${value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`)
         );
@@ -200,8 +209,7 @@ export abstract class TradeDigitsPage extends TradeParametersPage {
         await this.switchToAccountType(accountType);
 
         // 1. Configure and buy. Even/Odd has no last-digit selector, so `digit` is omitted there.
-        await this.selectMarket(market);
-        await this.selectTradeType(tradeTypeLabel);
+        await this.selectMarketAndTradeType(market, tradeTypeLabel);
         if (digit !== undefined) {
             await expect(
                 this.lastDigitPredictionParam,
