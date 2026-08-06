@@ -108,7 +108,7 @@
         width: 32px;
         border-radius: var(--core-borderRadius-200, 4px);
         background: rgb(165, 86, 221);
-        color: var(--component-textIcon-inverse-prominent);
+        color: var(--component-textIcon-static-prominentDark, #fff);
         font-size: 1rem;
     }
 

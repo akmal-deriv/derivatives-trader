@@ -163,7 +163,7 @@ $market-desktop-sidebar-width: 22rem;
         width: 32px;
         border-radius: var(--core-borderRadius-200, 4px);
         background: var(--semantic-color-grape-solid-surface-inverse-mid, #610a9f);
-        color: var(--component-textIcon-inverse-prominent);
+        color: var(--component-textIcon-static-prominentDark, #fff);
         font-size: 1rem;
     }
 

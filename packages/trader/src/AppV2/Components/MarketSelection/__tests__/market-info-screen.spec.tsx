@@ -129,7 +129,7 @@ describe('MarketInfoScreen', () => {
         // Market availability: open status + countdown (134 min → 2 hr 14 min). The schedule summary
         // now lives in the title's info tooltip, so it isn't asserted inline here.
         expect(screen.getByText('Market availability')).toBeInTheDocument();
-        expect(screen.getByText('Open now')).toBeInTheDocument();
+        expect(screen.getByText('Open')).toBeInTheDocument();
         expect(screen.getByText('Closes in 2 hr 14 min')).toBeInTheDocument();
     });
 
@@ -210,7 +210,7 @@ describe('MarketInfoScreen', () => {
             description: 'Open Monday to Friday from 01:30–04:00 GMT and 05:00–08:00 GMT.',
         };
         render(<MarketInfoScreen item={item} onBack={jest.fn()} onTraded={jest.fn()} />);
-        expect(screen.getByText('Open now')).toBeInTheDocument();
+        expect(screen.getByText('Open')).toBeInTheDocument();
         expect(screen.getByText('Closes 04:00 GMT')).toBeInTheDocument();
         expect(screen.getByText('Reopens 05:00 GMT')).toBeInTheDocument();
     });
@@ -224,7 +224,7 @@ describe('MarketInfoScreen', () => {
             description: 'Open 24 hours a day, 7 days a week.',
         };
         render(<MarketInfoScreen item={item} onBack={jest.fn()} onTraded={jest.fn()} />);
-        expect(screen.getByText('Open now')).toBeInTheDocument();
+        expect(screen.getByText('Open')).toBeInTheDocument();
         expect(screen.getByText('24 hours a day (GMT)')).toBeInTheDocument();
         expect(screen.queryByText(/Closes in/)).not.toBeInTheDocument();
     });

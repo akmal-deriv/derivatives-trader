@@ -293,11 +293,11 @@
     }
 
     // Market availability: a title row (with an info tooltip holding the schedule summary) above a
-    // status line (clock + Open now/Closed + close/reopen or next-open).
+    // status line (clock + Open/Closed + close/reopen or next-open).
     &__availability-header {
         display: flex;
         align-items: center;
-        gap: var(--core-spacing-400, 8px);
+        gap: var(--core-spacing-100, 2px);
     }
 
     &__availability-info {
@@ -315,7 +315,11 @@
         gap: var(--core-spacing-400, 8px);
     }
 
-    // "Open now" reads green, "Closed" red (the rest of the line stays default/subtle).
+    &__availability-state {
+        margin-inline-start: calc(var(--core-spacing-100, 2px) - var(--core-spacing-400, 8px));
+    }
+
+    // "Open" reads green, "Closed" red (the rest of the line stays default/subtle).
     &__availability-state--open {
         color: var(--semantic-color-green-solid-textIcon-normal-mid);
     }

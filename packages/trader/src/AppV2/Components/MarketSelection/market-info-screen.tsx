@@ -436,15 +436,15 @@ const MarketInfoScreen = observer(({ item, onBack, onTraded, default_trade_type 
                                 >
                                     <StandaloneCircleInfoRegularIcon
                                         iconSize='sm'
-                                        fill='var(--component-textIcon-normal-subtle)'
-                                    />
+                                        fill='var(--component-textIcon-normal-default, rgba(0, 0, 0, 0.72))'
+                                    />{' '}
                                 </Tooltip>
                             </div>
                             <div className='market-info__availability-status'>
                                 <StandaloneClockThreeRegularIcon
                                     iconSize='sm'
-                                    fill='var(--component-textIcon-normal-subtle)'
-                                />
+                                    fill='var(--component-textIcon-normal-default, rgba(0, 0, 0, 0.72))'
+                                />{' '}
                                 <Text
                                     size='sm'
                                     className={clsx('market-info__availability-state', {
@@ -455,14 +455,16 @@ const MarketInfoScreen = observer(({ item, onBack, onTraded, default_trade_type 
                                     {is_market_closed ? (
                                         <Localize i18n_default_text='Closed' />
                                     ) : (
-                                        <Localize i18n_default_text='Open now' />
+                                        <Localize i18n_default_text='Open' />
                                     )}
                                 </Text>
                                 {availability_segments.map((segment, index) => (
                                     // eslint-disable-next-line react/no-array-index-key
                                     <Fragment key={index}>
                                         <span className='market-info__availability-separator'>•</span>
-                                        <Text size='sm'>{segment}</Text>
+                                        <Text size='sm' color='quill-typography__color--default'>
+                                            {segment}
+                                        </Text>
                                     </Fragment>
                                 ))}
                             </div>

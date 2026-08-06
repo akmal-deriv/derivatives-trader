@@ -2,7 +2,7 @@ import { Ref } from 'react';
 import clsx from 'clsx';
 
 import { TActiveSymbolsResponse } from '@deriv/api';
-import { StandaloneCircleInfoBoldIcon, StandaloneStarFillIcon, StandaloneStarRegularIcon } from '@deriv/quill-icons';
+import { StandaloneCircleInfoRegularIcon, StandaloneStarFillIcon, StandaloneStarRegularIcon } from '@deriv/quill-icons';
 import { getSymbolDisplayName, trackMarketInfoViewed } from '@deriv/shared';
 import { observer } from '@deriv/stores';
 import { Tag, Text } from '@deriv-com/quill-ui';
@@ -109,7 +109,7 @@ const MarketSelectionRowDesktop = observer(
                                     onInfo(underlying_symbol, trade_type);
                                 }}
                             >
-                                <StandaloneCircleInfoBoldIcon fill='var(--component-textIcon-normal-subtle)' />
+                                <StandaloneCircleInfoRegularIcon fill='var(--component-textIcon-normal-default, rgba(0, 0, 0, 0.72))' />
                             </button>
                         )}
                         <button
@@ -125,7 +125,7 @@ const MarketSelectionRowDesktop = observer(
                                 <StandaloneStarFillIcon fill='var(--core-color-solid-mustard-700)' iconSize='sm' />
                             ) : (
                                 <StandaloneStarRegularIcon
-                                    fill='var(--component-textIcon-normal-subtle)'
+                                    fill='var(--component-textIcon-normal-default, rgba(0, 0, 0, 0.72))'
                                     iconSize='sm'
                                 />
                             )}
