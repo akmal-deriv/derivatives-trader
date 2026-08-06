@@ -2,6 +2,8 @@
 
 Shared end-to-end test utilities, common scripts, and integration helpers for projects using the `e2e-tests-core` submodule.
 
+> **Vendored copy, not a submodule.** In **derivatives-trader** specifically, this entire `playwright/e2e-tests-core/` tree is a manually copied ("vendored") snapshot of the upstream [`deriv-com/e2e-tests-core`](https://github.com/deriv-com/e2e-tests-core) `agent/`, `scripts/`, `skills/`, and `utils/` folders — there is no `.gitmodules` entry and no live submodule link. It will **not** auto-update. Whenever upstream changes, someone must manually re-copy the relevant files into this path and open a PR here. The sections below describing `git submodule add/update` do not apply to this repo — they're kept as-is because they describe how _other_ consuming repos (that do use the real submodule) work; treat them as reference only.
+
 ## Overview
 
 This repository contains reusable test infrastructure for E2E suites across consuming applications. It is intended to be included via `git submodule` into other repositories, such as `home-app`, so teams can share utilities across projects.
@@ -47,17 +49,15 @@ The reusable workflow accepts these inputs:
 | `slack_channel_id`     | empty                        | Optional override; otherwise `vars.PLAYWRIGHT_HEALING_SLACK_CHANNEL_ID` is used. |
 | `e2e_tests_core_ref`   | `main`                       | Ref to checkout for shared Playwright healing automation scripts.                |
 
-Use `secrets: inherit` or map these secrets explicitly from the caller repository:
+> **Note:** the table and secrets list above describe an older shape of the reusable workflow. The version currently vendored at `agent/docs/workflow-template.yaml` (and used by `derivatives-trader`'s `.github/workflows/playwright-healing.yaml`) maps secrets explicitly rather than using `secrets: inherit`, and uses a GitHub App + LiteLLM proxy instead of a direct Anthropic key:
 
-- `ANTHROPIC_API_KEY`
-- `TESTDINO_ACCESS_TOKEN`
-- `TESTDINO_MCP_PAT`
-- `E2E_TESTS_CORE_PAT`
-- `ENV_ENCRYPTION_KEY`
-- `PLAYWRIGHT_HEALING_PR_CREATE_TOKEN` (optional; falls back to `github.token`)
-- `AUTO_OPS_BOT_TOKEN` (optional; only needed for Slack notifications)
+- `TESTDINO_ACCESS_TOKEN` — TestDino API/MCP auth (`run-llm-agent.sh`, `download-testdino-artifacts.mjs`)
+- `LITELLM_API_KEY` / `LITELLM_API_URL` — auth + endpoint for the Claude Code CLI, routed through a LiteLLM proxy instead of talking to Anthropic directly (`run-llm-agent.sh` exports these as `ANTHROPIC_API_KEY`/`ANTHROPIC_AUTH_TOKEN`/`ANTHROPIC_BASE_URL`)
+- `CLIENT_ID_GHAPP` / `PRIVATE_KEY_GHAPP` — mints a short-lived GitHub App installation token used to push branches / open PRs
+- `AUTO_OPS_BOT_TOKEN` — Slack bot token used to post the healing summary and PR-created replies
+- `ENV_ENCRYPTION_KEY` — decrypts `playwright/.env.staging.enc` / `.env.production.enc` so healed tests can run against real env vars
 
-The caller repository must also provide `vars.TESTDINO_PROJECT_ID` unless it passes `testdino_project_id`, and may provide `vars.PLAYWRIGHT_HEALING_SLACK_CHANNEL_ID` unless it passes `slack_channel_id`.
+Repository variables: `TESTDINO_PROJECT_ID` (required unless `testdino_project_id` is passed explicitly), plus optional `PW_HEALER_LLM_MODEL`, `PW_HEALER_CUSTOM_VARIABLES`, `PLAYWRIGHT_HEALING_SLACK_CHANNEL_ID`, `PLAYWRIGHT_HEALING_SLACK_CC`.
 
 ## Typical submodule workflow
 

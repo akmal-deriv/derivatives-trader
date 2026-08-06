@@ -1,0 +1,17 @@
+{
+  "name": "@deriv-com/playwright-healing-agent",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-code": "2.1.207",
+    "testdino-mcp": "1.0.10"
+  },
+  "overrides": {
+    "fast-uri": "3.1.4",
+    "@hono/node-server": "2.0.12",
+    "body-parser": "2.3.0"
+  }
+}

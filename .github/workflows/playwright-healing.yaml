@@ -1,0 +1,64 @@
+name: Playwright Tests Healing
+run-name: ${{ github.event_name == 'workflow_dispatch' && format('Playwright Healing | lookback {0}h | counters {1} | create_pr {2}', inputs.lookback_hours || '24', inputs.run_counters || 'auto', inputs.create_pr) || 'Daily Playwright Auto Healing' }}
+
+on:
+  # TODO: re-enable once CLIENT_ID_GHAPP/PRIVATE_KEY_GHAPP are configured and a manual dry run passes.
+  # schedule:
+  #   # Runs at 5:30 AM MYT.
+  #   - cron: "30 21 * * *"
+  workflow_dispatch:
+    inputs:
+      lookback_hours:
+        description: "Hours of TestDino runs to inspect"
+        required: false
+        default: "24"
+        type: string
+      run_counters:
+        description: "Optional comma-separated TestDino run counters; when set, only these counters are inspected"
+        required: false
+        default: ""
+        type: string
+      create_pr:
+        description: "Create a pull request when fixes are made"
+        required: false
+        default: true
+        type: boolean
+      use_pinned_submodule:
+        description: "Use the consuming repo's pinned e2e-tests-core submodule commit instead of updating from .gitmodules branch"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  actions: write
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: playwright-healing-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  playwright-healing:
+    uses: deriv-com/e2e-tests-core/.github/workflows/playwright-healing-reusable.yaml@master
+    with:
+      lookback_hours: ${{ inputs.lookback_hours || '24' }}
+      run_counters: ${{ inputs.run_counters || '' }}
+      create_pr: ${{ github.event_name == 'schedule' || inputs.create_pr }}
+      testdino_project_id: ${{ vars.TESTDINO_PROJECT_ID }}
+      testdino_branch: main
+      # Leave empty (or omit) to skip environment filtering — many CI runs are tagged "unmapped", not "staging".
+      testdino_environment: ""
+      use_pinned_submodule: ${{ inputs.use_pinned_submodule || false }}
+      litellm_model: ${{ vars.PW_HEALER_LLM_MODEL || 'claude-sonnet-5' }}
+      pw_healer_custom_variables: ${{ vars.PW_HEALER_CUSTOM_VARIABLES || '{}' }}
+      playwright_healing_slack_channel_id: ${{ vars.PLAYWRIGHT_HEALING_SLACK_CHANNEL_ID || '' }}
+      playwright_healing_slack_cc: ${{ vars.PLAYWRIGHT_HEALING_SLACK_CC || '' }}
+    secrets:
+      CLIENT_ID_GHAPP: ${{ secrets.CLIENT_ID_GHAPP }}
+      PRIVATE_KEY_GHAPP: ${{ secrets.PRIVATE_KEY_GHAPP }}
+      TESTDINO_ACCESS_TOKEN: ${{ secrets.TESTDINO_ACCESS_TOKEN }}
+      LITELLM_API_KEY: ${{ secrets.LITELLM_API_KEY }}
+      LITELLM_API_URL: ${{ secrets.LITELLM_API_URL }}
+      ENV_ENCRYPTION_KEY: ${{ secrets.ENV_ENCRYPTION_KEY }}
+      AUTO_OPS_BOT_TOKEN: ${{ secrets.AUTO_OPS_BOT_TOKEN }}

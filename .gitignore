@@ -41,6 +41,7 @@ packages/*/bundle-stats.json
 playwright/playwright-report/
 playwright/test-results/
 playwright/agent/.healing/
+**/agent/.healing/
 .playwright-mcp/
 /performance/
 test-results/
