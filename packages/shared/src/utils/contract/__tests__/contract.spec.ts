@@ -123,6 +123,44 @@ describe('isUserSold', () => {
     });
 });
 
+describe('isPendingSettlement', () => {
+    it('should return true when contract is expired but not sold yet', () => {
+        const contract_info = mockContractInfo({
+            status: 'open',
+            is_expired: 1,
+            is_sold: 0,
+        });
+        expect(ContractUtils.isPendingSettlement(contract_info)).toEqual(true);
+    });
+    it('should return true when contract is settleable but not sold yet', () => {
+        const contract_info = mockContractInfo({
+            status: 'open',
+            is_settleable: 1,
+            is_sold: 0,
+        });
+        expect(ContractUtils.isPendingSettlement(contract_info)).toEqual(true);
+    });
+    it('should return false while contract is still open', () => {
+        const contract_info = mockContractInfo({
+            status: 'open',
+            is_expired: 0,
+            is_sold: 0,
+        });
+        expect(ContractUtils.isPendingSettlement(contract_info)).toEqual(false);
+    });
+    it('should return false once contract is sold', () => {
+        const contract_info = mockContractInfo({
+            status: 'lost',
+            is_expired: 1,
+            is_sold: 1,
+        });
+        expect(ContractUtils.isPendingSettlement(contract_info)).toEqual(false);
+    });
+    it('should return false for undefined contract info', () => {
+        expect(ContractUtils.isPendingSettlement(undefined)).toEqual(false);
+    });
+});
+
 describe('isValidToSell', () => {
     it('should return true if contract is not ended and is not sold and contract is valid to_sell', () => {
         const contract_info = mockContractInfo({

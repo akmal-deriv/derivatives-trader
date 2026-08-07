@@ -12,6 +12,7 @@ import {
     hasContractEntered,
     isAccumulatorContract,
     isOpen,
+    isPendingSettlement,
     isValidToSell,
     trackAnalyticsEvent,
 } from '@deriv/shared';
@@ -105,6 +106,21 @@ const PurchaseButton = observer(({ onPurchaseSuccess }: TPurchaseButtonProps = {
         : undefined;
 
     const has_open_accu_contract = !!active_accu_contract;
+
+    // Accu that is expired/settleable but the backend hasn't sold it yet (is_sold still 0).
+    // The server still counts it as open and rejects a new buy, so hold the Buy button in a
+    // loading state until is_sold arrives — however long backend settlement takes. No timed
+    // release: a stuck settlement can outlast any timeout, and an early-released Buy is
+    // guaranteed to fail with an open-position-limit error.
+    const is_accu_settling =
+        is_accumulator &&
+        !has_open_accu_contract &&
+        all_positions.some(
+            ({ contract_info, type }) =>
+                isAccumulatorContract(type) &&
+                contract_info.underlying_symbol === symbol &&
+                isPendingSettlement(contract_info)
+        );
     const basis_options = React.useMemo(
         () => (basis_list.length ? basis_list.map(item => item.value) : []),
         [basis_list]
@@ -315,7 +331,8 @@ const PurchaseButton = observer(({ onPurchaseSuccess }: TPurchaseButtonProps = {
                             (info.has_error && !is_insufficient_balance) ||
                             (!!purchase_info.error && !is_modal_error && !is_insufficient_balance) ||
                             is_switching_account;
-                        const is_button_disabled = is_disabled && !is_purchasing;
+                        const is_button_disabled = is_disabled && !is_purchasing && !is_accu_settling;
+                        const is_button_loading = is_purchasing || is_accu_settling;
 
                         return (
                             <Button
@@ -326,9 +343,9 @@ const PurchaseButton = observer(({ onPurchaseSuccess }: TPurchaseButtonProps = {
                                 className={clsx(
                                     'purchase-button',
                                     'purchase-button--single',
-                                    is_purchasing && 'purchase-button--loading'
+                                    is_button_loading && 'purchase-button--loading'
                                 )}
-                                isLoading={is_purchasing}
+                                isLoading={is_button_loading}
                                 isOpaque
                                 disabled={is_button_disabled}
                                 onMouseEnter={() => {
@@ -340,6 +357,9 @@ const PurchaseButton = observer(({ onPurchaseSuccess }: TPurchaseButtonProps = {
                                     onHoverPurchase(false, trade_type);
                                 }}
                                 onClick={() => {
+                                    // A buy while the previous accu is still settling is rejected by
+                                    // the backend (position still counts as open) — swallow the click.
+                                    if (is_accu_settling) return;
                                     if (!is_logged_in) {
                                         // Logged-out users can't buy: the server always rejects with
                                         // AuthorizationRequired. Open the auth sheet directly instead of
@@ -371,7 +391,7 @@ const PurchaseButton = observer(({ onPurchaseSuccess }: TPurchaseButtonProps = {
                                     });
                                 }}
                             >
-                                {!is_purchasing && (
+                                {!is_button_loading && (
                                     <PurchaseButtonContent
                                         {...purchase_button_content_props}
                                         has_no_button_content={has_no_button_content}

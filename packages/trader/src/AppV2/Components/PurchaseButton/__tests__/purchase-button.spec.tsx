@@ -363,4 +363,49 @@ describe('PositionsContent', () => {
         await userEvent.click(sell_button);
         expect(default_mock_store.portfolio.onClickSell).toBeCalled();
     });
+
+    const setAccuTradeType = () => {
+        default_mock_store.client.is_logged_in = true;
+        default_mock_store.modules.trade.is_accumulator = true;
+        default_mock_store.modules.trade.contract_type = TRADE_TYPES.ACCUMULATOR;
+        default_mock_store.modules.trade.trade_types = {
+            [CONTRACT_TYPES.ACCUMULATOR]: 'Accumulator Up',
+        };
+    };
+
+    it('should show a loading Buy button and not call onPurchaseV2 while an Accumulators contract is expired but not sold yet', async () => {
+        setAccuTradeType();
+        const accu_position = default_mock_store.portfolio.all_positions[2];
+        accu_position.contract_info = {
+            ...accu_position.contract_info,
+            is_expired: 1,
+            is_sold: 0,
+            status: 'open',
+        };
+        mockPurchaseButton();
+
+        const purchase_button = screen.getAllByRole('button')[0];
+        expect(purchase_button).toHaveClass('purchase-button--loading');
+
+        await userEvent.click(purchase_button);
+        expect(default_mock_store.modules.trade.onPurchaseV2).not.toBeCalled();
+    });
+
+    it('should show a normal Buy button and allow purchase once the Accumulators contract is sold', async () => {
+        setAccuTradeType();
+        const accu_position = default_mock_store.portfolio.all_positions[2];
+        accu_position.contract_info = {
+            ...accu_position.contract_info,
+            is_expired: 1,
+            is_sold: 1,
+            status: 'lost',
+        };
+        mockPurchaseButton();
+
+        const purchase_button = screen.getAllByRole('button')[0];
+        expect(purchase_button).not.toHaveClass('purchase-button--loading');
+
+        await userEvent.click(purchase_button);
+        expect(default_mock_store.modules.trade.onPurchaseV2).toBeCalled();
+    });
 });

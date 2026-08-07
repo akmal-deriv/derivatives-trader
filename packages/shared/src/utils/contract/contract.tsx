@@ -173,6 +173,11 @@ export const isUserSold = (contract_info?: TContractInfo) => {
     return result;
 };
 
+// Ended on our side (expired/settleable/exit spot) but not yet settled by the backend —
+// the server still counts it as an open position until is_sold arrives.
+export const isPendingSettlement = (contract_info?: TContractInfo) =>
+    !!contract_info && isEnded(contract_info) && !isUserSold(contract_info);
+
 export const isValidToCancel = (contract_info?: TContractInfo) => !!contract_info?.is_valid_to_cancel;
 
 export const isValidToSell = (contract_info?: TContractInfo) =>

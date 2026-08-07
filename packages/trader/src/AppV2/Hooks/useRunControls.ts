@@ -4,6 +4,7 @@ import {
     getAutomationPlatform,
     isAccumulatorContract,
     isOpen,
+    isPendingSettlement,
     trackStrategyRunClicked,
     trackStrategySessionStarted,
     trackStrategyStopClicked,
@@ -248,13 +249,15 @@ const useRunControls = ({ onRunStarted }: TUseRunControlsOptions = {}) => {
     // Accumulators allow only one open contract per symbol — the BE rejects a
     // second buy. If one is already open on the current symbol (e.g. bought in
     // manual trading), block Run, mirroring manual swapping Buy for Close.
+    // A contract that is expired but not yet sold (is_sold still 0) also counts
+    // as open on the BE, so keep Run blocked until settlement completes.
     const has_open_accu_contract =
         trade_store.is_accumulator &&
         all_positions.some(
             ({ contract_info, type }) =>
                 isAccumulatorContract(type) &&
                 contract_info.underlying_symbol === trade_store.symbol &&
-                isOpen(contract_info)
+                (isOpen(contract_info) || isPendingSettlement(contract_info))
         );
 
     const { is_automation_params_locked } = trade_store;
