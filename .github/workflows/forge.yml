@@ -1,0 +1,207 @@
+name: Forge — issue to PR
+
+# Add the `forge` label to an issue and this opens a PR that closes it.
+#
+# Engine: deriv-com/spec-to-pr. It classifies the issue (bugfix | feature |
+# refactor) itself, writes a design doc and a plan, implements them, verifies
+# the result, and opens the PR — all committed so the "why" travels with the
+# change.
+#
+# Auth is PAT-free: two GitHub App installation tokens minted from
+# CLIENT_ID_GHAPP — one write-scoped to this repo, one read-only for the engine.
+#
+# Verify commands live in spec-to-pr.config.json (not auto-detected: the default
+# `npm test` runs stylelint + eslint + jest across every workspace, which does
+# not fit the token lifetime).
+
+on:
+  issues:
+    types: [labeled]
+
+jobs:
+  forge:
+    if: github.event.label.name == 'forge'
+
+    # ubuntu-latest is deliberate: spec-to-pr grants the agent unrestricted
+    # shell when GITHUB_ACTIONS=true, which is only safe on a disposable
+    # runner. Do not move this to runner_8cores_derivatives_trader (or any
+    # persistent runner) without also forcing least-privilege mode.
+    runs-on: ubuntu-latest
+
+    # App installation tokens expire after 1 hour. Stay inside that window so
+    # the final push and PR creation can still authenticate.
+    timeout-minutes: 55
+
+    concurrency:
+      group: forge-${{ github.event.issue.number }}
+      cancel-in-progress: false
+
+    permissions:
+      contents: read
+      issues: write
+
+    steps:
+      # ---- token --------------------------------------------------------
+      - name: Mint token for this repo (labels, comments, branch, PR)
+        id: repo-token
+        uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1.12.0
+        with:
+          app-id: ${{ secrets.CLIENT_ID_GHAPP }}
+          private-key: ${{ secrets.PRIVATE_KEY_GHAPP }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+          permission-contents: write
+          permission-issues: write
+          permission-pull-requests: write
+
+      # ---- authorize ----------------------------------------------------
+      - name: Verify the labeller is a collaborator
+        env:
+          GH_TOKEN: ${{ steps.repo-token.outputs.token }}
+          ACTOR: ${{ github.event.sender.login }}
+        run: |
+          set -euo pipefail
+          if ! gh api "repos/${GITHUB_REPOSITORY}/collaborators/${ACTOR}" --silent 2>/dev/null; then
+            echo "::error::${ACTOR} is not a collaborator on ${GITHUB_REPOSITORY} — refusing to run."
+            exit 1
+          fi
+          echo "Authorized: ${ACTOR}"
+
+      # Minted only after authorization, so an unauthorized label costs nothing.
+      - name: Mint token to read the spec-to-pr engine
+        id: engine-token
+        uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1.12.0
+        with:
+          app-id: ${{ secrets.CLIENT_ID_GHAPP }}
+          private-key: ${{ secrets.PRIVATE_KEY_GHAPP }}
+          owner: deriv-com
+          repositories: spec-to-pr
+          permission-contents: read
+
+      # ---- claim the issue ----------------------------------------------
+      - name: Claim the issue
+        id: claim
+        env:
+          GH_TOKEN: ${{ steps.repo-token.outputs.token }}
+          ISSUE: ${{ github.event.issue.number }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          # Consume the trigger label so re-applying it re-runs Forge.
+          gh issue edit "$ISSUE" --repo "$GITHUB_REPOSITORY" \
+            --remove-label "forge" --add-label "forge:running"
+          URL=$(gh issue comment "$ISSUE" --repo "$GITHUB_REPOSITORY" \
+            --body "🔨 **Forge** picked this up — [watch the run]($RUN_URL).")
+          # .../issues/12#issuecomment-345 -> 345, so we can edit this comment later.
+          echo "comment_id=${URL##*issuecomment-}" >> "$GITHUB_OUTPUT"
+
+      # ---- workspace -----------------------------------------------------
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          token: ${{ steps.repo-token.outputs.token }}
+          fetch-depth: 0 # spec-to-pr diffs against the base branch
+
+      - name: Setup Node
+        uses: ./.github/actions/setup_node
+
+      - name: Install dependencies
+        # Same path as Test & Validate, so the agent sees the tree CI sees.
+        uses: ./.github/actions/npm_install_from_cache
+
+      - name: Fetch the spec-to-pr engine
+        # Fetched into RUNNER_TEMP, not the workspace, so the agent can never see
+        # or commit the engine's own files.
+        #
+        # ENGINE_REF is an immutable commit SHA, not a branch: this job runs the
+        # engine with a write token in scope, so tracking `master` would let any
+        # push to that repo execute here. Bump this deliberately.
+        env:
+          ENGINE_TOKEN: ${{ steps.engine-token.outputs.token }}
+          ENGINE_REF: 6223a741f025066119e16029a50390f468d7d459 # deriv-com/spec-to-pr master, 2026-08-07
+        run: |
+          set -euo pipefail
+          DIR="$RUNNER_TEMP/forge-engine"
+          # `git clone --branch` only accepts branch/tag names, so fetch the SHA
+          # explicitly. Works for a tag name too if you switch to releases later.
+          git init -q "$DIR"
+          git -C "$DIR" remote add origin \
+            "https://x-access-token:${ENGINE_TOKEN}@github.com/deriv-com/spec-to-pr.git"
+          git -C "$DIR" fetch -q --depth 1 origin "$ENGINE_REF"
+          git -C "$DIR" checkout -q --detach FETCH_HEAD
+          # Drop the embedded credential; it isn't needed past the fetch.
+          git -C "$DIR" remote set-url origin "https://github.com/deriv-com/spec-to-pr.git"
+          echo "Engine at $(git -C "$DIR" rev-parse HEAD)"
+          # The engine has its own dependency tree; install it in its own dir so
+          # it never mixes with this repo's workspaces.
+          ( cd "$DIR" && npm ci --omit=dev )
+          echo "FORGE_CLI=$DIR/bin/cli.js" >> "$GITHUB_ENV"
+
+      # ---- run ------------------------------------------------------------
+      - name: Run Forge
+        id: forge
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GH_TOKEN: ${{ steps.repo-token.outputs.token }}
+          GITHUB_TOKEN: ${{ steps.repo-token.outputs.token }}
+          ISSUE_URL: ${{ github.event.issue.html_url }}
+        run: |
+          set -o pipefail
+          git config --global user.name  "forge[bot]"
+          git config --global user.email "forge@users.noreply.github.com"
+
+          # `|| STATUS=$?` keeps the default `bash -e` from aborting before we
+          # can salvage the result line and surface the log.
+          node "$FORGE_CLI" auto "$ISSUE_URL" --cwd . --yes --json 2>&1 | tee /tmp/forge.log || STATUS=$?
+          STATUS=${STATUS:-0}
+
+          # --json writes the result as a single JSON line on stdout.
+          RESULT=$(grep -oE '^\{.*\}$' /tmp/forge.log | tail -1 || true)
+          if [ -n "$RESULT" ]; then
+            echo "pr_url=$(printf '%s' "$RESULT" | jq -r '.pr_url // empty')" >> "$GITHUB_OUTPUT"
+          fi
+          exit $STATUS
+
+      # ---- report ---------------------------------------------------------
+      - name: Report outcome
+        if: always()
+        env:
+          GH_TOKEN: ${{ steps.repo-token.outputs.token }}
+          ISSUE: ${{ github.event.issue.number }}
+          COMMENT_ID: ${{ steps.claim.outputs.comment_id }}
+          PR_URL: ${{ steps.forge.outputs.pr_url }}
+          OUTCOME: ${{ steps.forge.outcome }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -uo pipefail
+
+          if [ "$OUTCOME" = "success" ] && [ -n "${PR_URL:-}" ]; then
+            BODY=$(printf '🔨 **Forge** opened %s\n\nThe design doc and implementation plan are committed in the PR.' "$PR_URL")
+            LABEL="forge:done"
+          else
+            # The log is the agent's combined stdout/stderr, so scrub anything
+            # token-shaped before it lands in an issue comment. Defence in depth:
+            # Actions already masks registered secrets, but tokens minted at run
+            # time (and anything the agent echoes) are not registered.
+            TAIL=$(tail -c 3000 /tmp/forge.log 2>/dev/null | sed -E \
+              -e 's/gh[pousr]_[A-Za-z0-9]{20,}/***/g' \
+              -e 's/github_pat_[A-Za-z0-9_]{20,}/***/g' \
+              -e 's/sk-ant-[A-Za-z0-9_-]{20,}/***/g' \
+              -e 's#x-access-token:[^@]*@#x-access-token:***@#g' \
+              || echo "no output captured")
+            BODY=$(printf '🔨 **Forge** failed — [full log](%s)\n\n<details><summary>Last output</summary>\n\n```\n%s\n```\n\n</details>\n\nRe-apply the `forge` label to retry.' "$RUN_URL" "$TAIL")
+            LABEL="forge:failed"
+          fi
+
+          # Best-effort: never fail the job on reporting.
+          if [ -n "${COMMENT_ID:-}" ]; then
+            gh api --method PATCH "repos/${GITHUB_REPOSITORY}/issues/comments/${COMMENT_ID}" \
+              -f body="$BODY" --silent || gh issue comment "$ISSUE" --repo "$GITHUB_REPOSITORY" --body "$BODY" || true
+          else
+            gh issue comment "$ISSUE" --repo "$GITHUB_REPOSITORY" --body "$BODY" || true
+          fi
+
+          # `forge` is also removed here in case we failed before the claim step
+          # (e.g. authorization) — otherwise re-labelling can't retrigger.
+          gh issue edit "$ISSUE" --repo "$GITHUB_REPOSITORY" \
+            --remove-label "forge" --remove-label "forge:running" --add-label "$LABEL" || true
