@@ -50,7 +50,7 @@ jobs:
       # Leave empty (or omit) to skip environment filtering — many CI runs are tagged "unmapped", not "staging".
       testdino_environment: ""
       use_pinned_submodule: ${{ inputs.use_pinned_submodule || false }}
-      litellm_model: ${{ vars.PW_HEALER_LLM_MODEL || 'claude-sonnet-5' }}
+      litellm_model: ${{ vars.PW_HEALER_LLM_MODEL || 'claude-sonnet-4-6' }}
       pw_healer_custom_variables: ${{ vars.PW_HEALER_CUSTOM_VARIABLES || '{}' }}
       playwright_healing_slack_channel_id: ${{ vars.PLAYWRIGHT_HEALING_SLACK_CHANNEL_ID || '' }}
       playwright_healing_slack_cc: ${{ vars.PLAYWRIGHT_HEALING_SLACK_CC || '' }}
