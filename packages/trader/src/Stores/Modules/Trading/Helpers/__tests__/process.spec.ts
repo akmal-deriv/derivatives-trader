@@ -42,6 +42,32 @@ describe('processTradeParams', () => {
         expect(trade_store.is_trade_enabled).toBe(true);
         expect(trade_store.is_trade_enabled_v2).toBe(true);
     });
+
+    it('NEVER writes market identity (symbol/contract_type) — params processors do not own it', async () => {
+        // Field-traced bug: a process function re-derived contract_type from a stale (previous
+        // symbol's) category list and silently swapped the user's committed trade type, producing
+        // phantom tabs / wrong-tab activation. Even if a future process function returns identity
+        // keys, the choke point must strip them before updateStore.
+        const { ContractType } = jest.requireMock('Stores/Modules/Trading/Helpers/contract-type');
+        (ContractType.getContractValues as jest.Mock).mockReturnValueOnce({
+            form_components: ['duration'],
+            contract_type: 'hijacked_type',
+            symbol: 'HIJACKED',
+        });
+        const store = {
+            ...mock_store,
+            contract_type: '', // forces onChangeContractType (getContractValues) into the sequence
+            updateStore: jest.fn(),
+            getSnapshot: jest.fn(() => ({ ...mock_store, contract_type: '' })),
+        };
+
+        await processTradeParams(store, { contract_type: 'match_diff' });
+
+        (store.updateStore as jest.Mock).mock.calls.forEach(call => {
+            expect(call[0]).not.toHaveProperty('contract_type');
+            expect(call[0]).not.toHaveProperty('symbol');
+        });
+    });
 });
 
 describe('processInSequence (via processTradeParams)', () => {

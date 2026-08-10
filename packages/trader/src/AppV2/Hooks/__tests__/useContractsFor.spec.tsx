@@ -61,6 +61,9 @@ describe('useContractsFor', () => {
                     setIsAwaitingContractsFor: jest.fn(),
                     onChange: jest.fn(),
                     processContractsForV2: jest.fn(),
+                    resolveContractTypeAvailability: jest.fn(),
+                    setDefaultStake: jest.fn(),
+                    contract_type: 'type_1',
                     symbol: 'R_50',
                 },
             },
@@ -178,6 +181,58 @@ describe('useContractsFor', () => {
             expect(mocked_store.modules.trade.processContractsForV2).toHaveBeenCalled();
         });
         expect(mocked_store.modules.trade.setIsAwaitingContractsFor).not.toHaveBeenCalled();
+    });
+
+    it('reports availability to the store instead of changing the trade type itself', async () => {
+        (useQuery as jest.Mock).mockReturnValue({
+            data: {
+                contracts_for: {
+                    available: [
+                        { contract_type: 'type_1', underlying_symbol: 'EURUSD', default_stake: 10 },
+                        { contract_type: 'type_2', underlying_symbol: 'GBPUSD', default_stake: 20 },
+                    ],
+                    hit_count: 2,
+                },
+            },
+            error: null,
+            isLoading: false,
+        });
+
+        renderHook(() => useContractsFor(), { wrapper });
+
+        await waitFor(() => {
+            expect(mocked_store.modules.trade.resolveContractTypeAvailability).toHaveBeenCalledWith('R_50', [
+                'type_1',
+                'type_2',
+            ]);
+        });
+        // The old in-hook swap called onChange from a (possibly stale) render closure; the hook must
+        // never mutate the trade type directly any more — that decision lives in the store.
+        expect(mocked_store.modules.trade.onChange).not.toHaveBeenCalled();
+    });
+
+    it('reports availability BEFORE processContractsForV2 runs (it needs the corrected type)', async () => {
+        (useQuery as jest.Mock).mockReturnValue({
+            data: {
+                contracts_for: {
+                    available: [{ contract_type: 'type_1', underlying_symbol: 'EURUSD', default_stake: 10 }],
+                    hit_count: 1,
+                },
+            },
+            error: null,
+            isLoading: false,
+        });
+
+        renderHook(() => useContractsFor(), { wrapper });
+
+        await waitFor(() => {
+            expect(mocked_store.modules.trade.processContractsForV2).toHaveBeenCalled();
+        });
+        const resolve_order = (mocked_store.modules.trade.resolveContractTypeAvailability as jest.Mock).mock
+            .invocationCallOrder[0];
+        const process_order = (mocked_store.modules.trade.processContractsForV2 as jest.Mock).mock
+            .invocationCallOrder[0];
+        expect(resolve_order).toBeLessThan(process_order);
     });
 
     it('should not set unsupported contract types', async () => {

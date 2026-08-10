@@ -25,6 +25,12 @@ const processInSequence = async (
         Object.assign(snapshot, result);
         Object.assign(diff, result);
     }
+    // Params processors may never write the market identity: `symbol`/`contract_type` are owned
+    // exclusively by the selection pipeline (selectMarketAndTradeType / resolveInitialMarket /
+    // setTradeSubType / resolveContractTypeAvailability). Enforced here at the choke point so no
+    // future process function can regress into an identity writer.
+    delete diff.symbol;
+    delete diff.contract_type;
     store.updateStore({
         ...diff,
     });
@@ -50,7 +56,6 @@ const getMethodsList = (
     const filtered_keys = Object.keys(new_state).filter(key => /\b(symbol|contract_type|is_equal)\b/.test(key));
     return [
         ContractTypeHelper.getContractCategories,
-        ContractType.onChangeContractTypeList,
         ...(filtered_keys.length > 0 || !store.contract_type // symbol/contract_type changed or contract_type not set yet
             ? [ContractType.onChangeContractType]
             : []),

@@ -58,9 +58,7 @@ const MarketTabs = observer(({ supported_trade_types, onSelectorOpenChange }: TM
         is_reconciling_url_trade_type,
         is_automation_market_locked,
         automation_run_market,
-        addOpenMarket,
         removeOpenMarket,
-        replaceOpenMarket,
         setAutomationSupportedTradeTypes,
         selectMarketAndTradeType,
         setReplacingMarket,
@@ -112,37 +110,6 @@ const MarketTabs = observer(({ supported_trade_types, onSelectorOpenChange }: TM
         setReplacingMarket(null);
         setSelectorOpen(true);
     };
-
-    // Ensure the active (symbol, trade type) always has a tab (initial load / URL deep-link /
-    // programmatic change). Skipped while an explicit selection is committing (records the exact pair
-    // up-front, so reacting to its cascade would seed a stale pair) or while the store is reconciling a
-    // URL trade-type override (switching the market to honour the URL trade type — so we don't tab the
-    // store's transient swap). If the active pair has no matching tab (symbol + trade-type category),
-    // open one; at the cap, replace the last tab so the trade page never shows a chart/params with no
-    // active tab.
-    useEffect(() => {
-        if (!symbol || !contract_type || is_selecting_market || is_reconciling_url_trade_type) return;
-        if (supported_trade_types) return;
-        const has_matching_tab = open_markets.some(
-            market => market.symbol === symbol && isSameTradeTypeCategory(market.contract_type, contract_type)
-        );
-        if (has_matching_tab) return;
-        if (open_markets.length >= max_open_markets) {
-            replaceOpenMarket(open_markets[open_markets.length - 1], { symbol, contract_type });
-        } else {
-            addOpenMarket({ symbol, contract_type });
-        }
-    }, [
-        symbol,
-        contract_type,
-        open_markets,
-        is_selecting_market,
-        is_reconciling_url_trade_type,
-        supported_trade_types,
-        addOpenMarket,
-        replaceOpenMarket,
-        max_open_markets,
-    ]);
 
     // Open the selector on load when Deriv Home's "View all markets" entry sets `view_markets=true`.
     useEffect(() => {

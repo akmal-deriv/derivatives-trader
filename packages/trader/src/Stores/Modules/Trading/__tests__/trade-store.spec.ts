@@ -680,19 +680,6 @@ describe('TradeStore', () => {
     });
 
     describe('Symbol and Previous Symbol Management', () => {
-        describe('setPreviousSymbol', () => {
-            it('should set previous symbol', () => {
-                tradeStore.setPreviousSymbol('R_100');
-                expect(tradeStore.previous_symbol).toBe('R_100');
-            });
-
-            it('should not update if symbol is same', () => {
-                tradeStore.previous_symbol = 'R_100';
-                tradeStore.setPreviousSymbol('R_100');
-                expect(tradeStore.previous_symbol).toBe('R_100');
-            });
-        });
-
         describe('is_symbol_in_active_symbols', () => {
             beforeEach(() => {
                 tradeStore.active_symbols = [
@@ -801,43 +788,104 @@ describe('TradeStore', () => {
         });
     });
 
-    describe('URL trade_type reconciliation (contract_types_list_v2 when-reaction)', () => {
-        const setUrlTradeType = (trade_type: string) => window.history.pushState({}, '', `/?trade_type=${trade_type}`);
-        // setImmediate fires only after the entire microtask queue has drained, so this settles the
-        // reconciliation's chained awaits (when → findSymbolForTradeType → onChange → when → onChange)
-        // regardless of how many hops the chain has — unlike a fixed number of setTimeout(0) rounds.
-        const flushPromises = () => new Promise(resolve => jest.requireActual('timers').setImmediate(resolve));
+    describe('resolveInitialMarket (single owner of initial symbol + trade-type selection)', () => {
+        const setUrl = (query: string) => window.history.pushState({}, '', `/${query}`);
+        // The resolver awaits a macrotask up-front (BaseStore's deferred sessionStorage restore) and
+        // then a chain of when()/promise hops — flush several full timer rounds so every hop settles.
+        const flushPromises = async () => {
+            const { setTimeout: realSetTimeout } = jest.requireActual<typeof import('timers')>('timers');
+            for (let i = 0; i < 10; i++) {
+                // eslint-disable-next-line no-await-in-loop -- rounds must run sequentially by design
+                await new Promise(resolve => realSetTimeout(resolve, 0));
+            }
+        };
+
+        // URL params are read when the resolver starts (store construction) — each test sets the URL
+        // and any session-restored state FIRST, then builds its own store.
+        const buildStore = () => {
+            const store = new TradeStore({ root_store: mockRootStore });
+            // Force manual mode so the tab-record phase isn't skipped by automation state leaked
+            // into localStorage ('active_trade_panel_tab') by earlier tests.
+            store.active_trade_panel_tab = TRADE_PANEL_TABS.TRADE;
+            store.is_automation_page = false;
+            const onChangeSpy = jest.spyOn(store, 'onChange').mockResolvedValue(undefined);
+            return { store, onChangeSpy };
+        };
+        const feedSymbols = (store: TradeStore, symbols: string[]) => {
+            store.setActiveSymbolsV2(
+                symbols.map(underlying_symbol => ({ underlying_symbol, exchange_is_open: 1 })) as NonNullable<
+                    TActiveSymbolsResponse['active_symbols']
+                >
+            );
+        };
+        const rise_fall_list = {
+            'Ups & Downs': {
+                name: 'Ups & Downs',
+                categories: [{ value: TRADE_TYPES.RISE_FALL, text: 'Rise/Fall' }],
+            },
+        } as TradeStore['contract_types_list_v2'];
+        const multipliers_only_list = {
+            Multipliers: {
+                name: 'Multipliers',
+                categories: [{ value: TRADE_TYPES.MULTIPLIER, text: 'Multipliers' }],
+            },
+        } as unknown as TradeStore['contract_types_list_v2'];
 
         afterEach(() => {
             window.history.pushState({}, '', '/');
             (findSymbolForTradeType as jest.Mock).mockResolvedValue('');
-            // The valid-trade-type path persists contract_type to sessionStorage; clear it so a later
-            // test's fresh store doesn't restore a leaked contract_type via retrieveFromStorage.
+            // The resolver persists symbol/contract_type via the store's session sync; clear it so a
+            // later test's fresh store doesn't restore leaked state via retrieveFromStorage.
             sessionStorage.clear();
+            Object.values(OPEN_MARKETS_STORAGE_KEYS).forEach(key => localStorage.removeItem(key));
         });
 
-        it('applies a valid URL trade type that the current market supports', () => {
-            setUrlTradeType(TRADE_TYPES.RISE_FALL);
-            tradeStore.contract_types_list_v2 = {
-                'Ups & Downs': {
-                    name: 'Ups & Downs',
-                    categories: [{ value: TRADE_TYPES.RISE_FALL, text: 'Rise/Fall' }],
-                },
-            } as typeof tradeStore.contract_types_list_v2;
+        it('keeps a valid URL symbol and applies a URL trade type the market offers', async () => {
+            setUrl(`?symbol=1HZ100V&trade_type=${TRADE_TYPES.RISE_FALL}`);
+            const { store, onChangeSpy } = buildStore();
+            feedSymbols(store, ['1HZ100V', 'BOOM1000']);
+            store.contract_types_list_v2 = rise_fall_list;
 
-            expect(tradeStore.contract_type).toBe(TRADE_TYPES.RISE_FALL);
-            expect(tradeStore.url_trade_type).toBe(TRADE_TYPES.RISE_FALL);
+            await flushPromises();
+
+            // Symbol was URL-seeded synchronously in the constructor and is valid — no symbol change.
+            expect(store.symbol).toBe('1HZ100V');
+            expect(onChangeSpy).not.toHaveBeenCalledWith({ target: { name: 'symbol', value: expect.anything() } });
+            expect(onChangeSpy).toHaveBeenCalledWith({
+                target: { name: 'contract_type', value: TRADE_TYPES.RISE_FALL },
+            });
+            expect(store.url_trade_type).toBe(TRADE_TYPES.RISE_FALL);
             expect(mockRootStore.ui.toggleUrlUnavailableModal).not.toHaveBeenCalled();
         });
 
-        it('shows the URL-unavailable modal for an unknown/invalid trade type', () => {
-            setUrlTradeType('not_a_real_trade_type');
-            tradeStore.contract_types_list_v2 = {
-                'Ups & Downs': {
-                    name: 'Ups & Downs',
-                    categories: [{ value: TRADE_TYPES.RISE_FALL, text: 'Rise/Fall' }],
-                },
-            } as typeof tradeStore.contract_types_list_v2;
+        it('falls back to the default symbol when nothing valid is restored or in the URL', async () => {
+            const { store, onChangeSpy } = buildStore();
+            feedSymbols(store, ['1HZ100V']);
+
+            await flushPromises();
+
+            // pickDefaultSymbol (mocked → 1HZ100V) provides the fallback, committed via the pipeline.
+            expect(onChangeSpy).toHaveBeenCalledWith({ target: { name: 'symbol', value: '1HZ100V' } });
+        });
+
+        it('shows the URL-unavailable modal for an invalid URL symbol and falls back to default', async () => {
+            setUrl('?symbol=NOT_A_SYMBOL');
+            const { store, onChangeSpy } = buildStore();
+            feedSymbols(store, ['1HZ100V']);
+
+            await flushPromises();
+
+            expect(mockRootStore.ui.toggleUrlUnavailableModal).toHaveBeenCalledWith(true);
+            expect(onChangeSpy).toHaveBeenCalledWith({ target: { name: 'symbol', value: '1HZ100V' } });
+        });
+
+        it('shows the URL-unavailable modal for an unknown/invalid trade type', async () => {
+            setUrl('?trade_type=not_a_real_trade_type');
+            const { store } = buildStore();
+            feedSymbols(store, ['1HZ100V']);
+            store.contract_types_list_v2 = rise_fall_list;
+
+            await flushPromises();
 
             expect(mockRootStore.ui.toggleUrlUnavailableModal).toHaveBeenCalledWith(true);
         });
@@ -847,41 +895,28 @@ describe('TradeStore', () => {
             // Boom 1000 (Multipliers only). The URL trade type wins: switch to a market that offers it,
             // then apply the trade type once the new market's list has loaded.
             (findSymbolForTradeType as jest.Mock).mockResolvedValue('1HZ100V');
-            const onChangeSpy = jest.spyOn(tradeStore, 'onChange').mockResolvedValue(undefined);
-            setUrlTradeType(TRADE_TYPES.RISE_FALL);
-            tradeStore.symbol = 'BOOM1000';
-            tradeStore.active_symbols = [
-                { underlying_symbol: 'BOOM1000', exchange_is_open: 1 },
-                { underlying_symbol: '1HZ100V', exchange_is_open: 1 },
-            ] as NonNullable<TActiveSymbolsResponse['active_symbols']>;
+            setUrl(`?trade_type=${TRADE_TYPES.RISE_FALL}`);
+            sessionStorage.setItem('trade_store', JSON.stringify({ symbol: 'BOOM1000' }));
+            const { store, onChangeSpy } = buildStore();
+            feedSymbols(store, ['BOOM1000', '1HZ100V']);
             // Current market (Boom 1000) offers only Multipliers.
-            tradeStore.contract_types_list_v2 = {
-                Multipliers: {
-                    name: 'Multipliers',
-                    categories: [{ value: TRADE_TYPES.MULTIPLIER, text: 'Multipliers' }],
-                },
-            } as unknown as typeof tradeStore.contract_types_list_v2;
+            store.contract_types_list_v2 = multipliers_only_list;
 
             await flushPromises();
 
             // The symbol switch is requested and the URL landing recorded, but the trade type isn't
             // applied yet because the new market's list hasn't arrived.
-            expect(findSymbolForTradeType).toHaveBeenCalledWith(tradeStore.active_symbols, TRADE_TYPES.RISE_FALL);
-            expect(tradeStore.url_trade_type).toBe(TRADE_TYPES.RISE_FALL);
+            expect(findSymbolForTradeType).toHaveBeenCalledWith(store.active_symbols, TRADE_TYPES.RISE_FALL);
+            expect(store.url_trade_type).toBe(TRADE_TYPES.RISE_FALL);
             expect(onChangeSpy).toHaveBeenCalledWith({ target: { name: 'symbol', value: '1HZ100V' } });
             expect(onChangeSpy).not.toHaveBeenCalledWith({
                 target: { name: 'contract_type', value: TRADE_TYPES.RISE_FALL },
             });
             // The loader flag stays set while the switch is in progress so the page keeps its loader.
-            expect(tradeStore.is_reconciling_url_trade_type).toBe(true);
+            expect(store.is_reconciling_url_trade_type).toBe(true);
 
             // Simulate useContractsFor loading the new market's list (which offers Rise/Fall).
-            tradeStore.contract_types_list_v2 = {
-                'Ups & Downs': {
-                    name: 'Ups & Downs',
-                    categories: [{ value: TRADE_TYPES.RISE_FALL, text: 'Rise/Fall' }],
-                },
-            } as unknown as typeof tradeStore.contract_types_list_v2;
+            store.contract_types_list_v2 = rise_fall_list;
 
             await flushPromises();
 
@@ -890,18 +925,16 @@ describe('TradeStore', () => {
             });
             expect(mockRootStore.ui.toggleUrlUnavailableModal).not.toHaveBeenCalled();
             // Reconciliation finished — the loader flag is cleared so the page renders.
-            expect(tradeStore.is_reconciling_url_trade_type).toBe(false);
+            expect(store.is_reconciling_url_trade_type).toBe(false);
         });
 
         it('shows the URL-unavailable modal when no open market offers the requested trade type', async () => {
             (findSymbolForTradeType as jest.Mock).mockResolvedValue('');
-            setUrlTradeType(TRADE_TYPES.MATCH_DIFF);
-            tradeStore.active_symbols = [{ underlying_symbol: '1HZ100V', exchange_is_open: 1 }] as NonNullable<
-                TActiveSymbolsResponse['active_symbols']
-            >;
-            tradeStore.contract_types_list_v2 = {
-                'Ups & Downs': { name: 'Ups & Downs', categories: [TRADE_TYPES.RISE_FALL] },
-            } as unknown as typeof tradeStore.contract_types_list_v2;
+            setUrl(`?trade_type=${TRADE_TYPES.MATCH_DIFF}`);
+            sessionStorage.setItem('trade_store', JSON.stringify({ symbol: '1HZ100V' }));
+            const { store } = buildStore();
+            feedSymbols(store, ['1HZ100V']);
+            store.contract_types_list_v2 = rise_fall_list;
 
             await flushPromises();
 
@@ -913,31 +946,198 @@ describe('TradeStore', () => {
             // doesn't expose the trade type (e.g. native-app/region filtering). No symbol change means
             // nothing will refetch, so we must not wait out the timeout — show the modal immediately.
             (findSymbolForTradeType as jest.Mock).mockResolvedValue('1HZ100V');
-            const onChangeSpy = jest.spyOn(tradeStore, 'onChange').mockResolvedValue(undefined);
-            setUrlTradeType(TRADE_TYPES.RISE_FALL);
-            tradeStore.symbol = '1HZ100V';
-            tradeStore.active_symbols = [{ underlying_symbol: '1HZ100V', exchange_is_open: 1 }] as NonNullable<
-                TActiveSymbolsResponse['active_symbols']
-            >;
-            tradeStore.contract_types_list_v2 = {
-                Multipliers: {
-                    name: 'Multipliers',
-                    categories: [{ value: TRADE_TYPES.MULTIPLIER, text: 'Multipliers' }],
-                },
-            } as unknown as typeof tradeStore.contract_types_list_v2;
+            setUrl(`?trade_type=${TRADE_TYPES.RISE_FALL}`);
+            sessionStorage.setItem('trade_store', JSON.stringify({ symbol: '1HZ100V' }));
+            const { store, onChangeSpy } = buildStore();
+            feedSymbols(store, ['1HZ100V']);
+            store.contract_types_list_v2 = multipliers_only_list;
 
             await flushPromises();
 
             expect(mockRootStore.ui.toggleUrlUnavailableModal).toHaveBeenCalledWith(true);
             expect(onChangeSpy).not.toHaveBeenCalled();
             // The loader flag is released rather than left blocking the page for the full timeout.
-            expect(tradeStore.is_reconciling_url_trade_type).toBe(false);
+            expect(store.is_reconciling_url_trade_type).toBe(false);
+        });
+
+        it('records the resolved pair as the ONE initial tab (matched by category, never duplicated)', async () => {
+            sessionStorage.setItem('trade_store', JSON.stringify({ symbol: '1HZ100V', contract_type: 'rise_fall' }));
+            const { store } = buildStore();
+            // With onChange spied, the restored pair stays as-is; the resolver must still record it.
+            feedSymbols(store, ['1HZ100V']);
+
+            await flushPromises();
+
+            expect(store.open_markets).toEqual([{ symbol: '1HZ100V', contract_type: 'rise_fall' }]);
+        });
+
+        it('on a RESTORE, converges to the strip instead of materialising a never-committed pair', async () => {
+            // Browser-restart field bug: the session/URL held a pair with no matching tab (hybrid
+            // mirrors / half-loaded actives / default pick). A restore must never mint a tab — it
+            // converges to the strip's most recent tab, the durable record of explicit intent.
+            localStorage.setItem(
+                OPEN_MARKETS_STORAGE_KEYS.manual,
+                JSON.stringify([
+                    { symbol: '1HZ100V', contract_type: 'rise_fall' },
+                    { symbol: 'RDBULL', contract_type: 'match_diff' },
+                    { symbol: 'WLDAUD', contract_type: 'multiplier' },
+                ])
+            );
+            sessionStorage.setItem('trade_store', JSON.stringify({ symbol: 'RDBULL', contract_type: 'rise_fall' }));
+            // Self-stamped URL (equals the session pair) → a restore, NOT a deep link.
+            setUrl('?symbol=RDBULL&trade_type=rise_fall');
+            const { store } = buildStore();
+            const selectSpy = jest.spyOn(store, 'selectMarketAndTradeType').mockResolvedValue(undefined);
+            feedSymbols(store, ['1HZ100V', 'RDBULL', 'WLDAUD']);
+
+            await flushPromises();
+
+            expect(selectSpy).toHaveBeenCalledWith('WLDAUD', 'multiplier');
+            expect(store.open_markets).toHaveLength(3); // nothing minted
+            expect(mockRootStore.ui.toggleUrlUnavailableModal).not.toHaveBeenCalled();
+        });
+
+        it('on a RESTORE with a half-loaded actives list, prefers an open-tab symbol and shows no modal', async () => {
+            // e.g. the first active_symbols response after a browser restart is the pre-auth list
+            // and lacks the restored symbol. That is not user error (no modal), and the fallback
+            // must come from the user's own tabs — not pickDefaultSymbol (which can dredge up chart
+            // favourites the user never traded).
+            localStorage.setItem(
+                OPEN_MARKETS_STORAGE_KEYS.manual,
+                JSON.stringify([{ symbol: 'RDBULL', contract_type: 'match_diff' }])
+            );
+            sessionStorage.setItem('trade_store', JSON.stringify({ symbol: 'WLDAUD', contract_type: 'rise_fall' }));
+            setUrl('?symbol=WLDAUD&trade_type=rise_fall');
+            const { store, onChangeSpy } = buildStore();
+            const selectSpy = jest.spyOn(store, 'selectMarketAndTradeType').mockResolvedValue(undefined);
+            feedSymbols(store, ['RDBULL']); // WLDAUD missing from the half-loaded list
+
+            await flushPromises();
+
+            expect(mockRootStore.ui.toggleUrlUnavailableModal).not.toHaveBeenCalled();
+            // Fallback = strip symbol, NOT the mocked pickDefaultSymbol ('1HZ100V').
+            expect(onChangeSpy).toHaveBeenCalledWith({ target: { name: 'symbol', value: 'RDBULL' } });
+            expect(onChangeSpy).not.toHaveBeenCalledWith({ target: { name: 'symbol', value: '1HZ100V' } });
+            expect(selectSpy).toHaveBeenCalledWith('RDBULL', 'match_diff'); // converged, nothing minted
+            expect(store.open_markets).toHaveLength(1);
+        });
+
+        it('a genuine DEEP LINK (URL ≠ session) still opens its own tab with a populated strip', async () => {
+            localStorage.setItem(
+                OPEN_MARKETS_STORAGE_KEYS.manual,
+                JSON.stringify([{ symbol: '1HZ100V', contract_type: 'multiplier' }])
+            );
+            sessionStorage.setItem('trade_store', JSON.stringify({ symbol: '1HZ100V', contract_type: 'multiplier' }));
+            setUrl('?symbol=RDBULL&trade_type=rise_fall'); // differs from session → external intent
+            const { store, onChangeSpy } = buildStore();
+            // Apply field writes so the resolver's committed pair is observable in phase 3.
+            onChangeSpy.mockImplementation(async ({ target }) => {
+                (store as unknown as Record<string, unknown>)[target.name as string] = target.value;
+            });
+            feedSymbols(store, ['1HZ100V', 'RDBULL']);
+            store.contract_types_list_v2 = rise_fall_list;
+
+            await flushPromises();
+
+            expect(store.open_markets).toEqual([
+                { symbol: '1HZ100V', contract_type: 'multiplier' },
+                { symbol: 'RDBULL', contract_type: 'rise_fall' },
+            ]);
+            expect(mockRootStore.ui.toggleUrlUnavailableModal).not.toHaveBeenCalled();
+        });
+
+        it('does not duplicate a category-sibling tab at init (restored strip has rise_fall_equal)', async () => {
+            localStorage.setItem(
+                OPEN_MARKETS_STORAGE_KEYS.manual,
+                JSON.stringify([{ symbol: '1HZ100V', contract_type: 'rise_fall_equal' }])
+            );
+            sessionStorage.setItem('trade_store', JSON.stringify({ symbol: '1HZ100V', contract_type: 'rise_fall' }));
+            const { store } = buildStore();
+            feedSymbols(store, ['1HZ100V']);
+
+            await flushPromises();
+
+            expect(store.open_markets).toEqual([{ symbol: '1HZ100V', contract_type: 'rise_fall_equal' }]);
         });
 
         it('clearUrlTradeType consumes the signal', () => {
             tradeStore.url_trade_type = TRADE_TYPES.RISE_FALL;
             tradeStore.clearUrlTradeType();
             expect(tradeStore.url_trade_type).toBeNull();
+        });
+    });
+
+    describe('atomic trade URL sync (hybrid-URL phantom regression)', () => {
+        beforeEach(() => {
+            (tradeStore.root_store.ui as unknown as { is_mobile: boolean }).is_mobile = false;
+            tradeStore.is_automation_page = false;
+            tradeStore.active_trade_panel_tab = TRADE_PANEL_TABS.TRADE;
+            jest.spyOn(tradeStore, 'validateAllProperties').mockImplementation(() => undefined);
+            tradeStore.symbol = '1HZ100V';
+            tradeStore.contract_type = 'rise_fall';
+            window.history.pushState({}, '', '/?symbol=1HZ100V&trade_type=rise_fall');
+        });
+
+        afterEach(() => {
+            window.history.pushState({}, '', '/');
+            Object.values(OPEN_MARKETS_STORAGE_KEYS).forEach(key => localStorage.removeItem(key));
+            localStorage.removeItem('active_trade_panel_tab');
+        });
+
+        it('stamps BOTH url params together only after the commit fully settles', async () => {
+            await tradeStore.selectMarketAndTradeType('R_50', 'multiplier');
+            const params = new URLSearchParams(window.location.search);
+            expect(params.get('symbol')).toBe('R_50');
+            expect(params.get('trade_type')).toBe('multiplier');
+        });
+
+        it('leaves the URL untouched when the commit dies mid-cascade (no hybrid URL)', async () => {
+            // Reproduces the field bug: a commit whose symbol write landed but whose cascade then
+            // failed (dead socket after machine wake). The old per-field reactions left the URL as
+            // {new symbol, old trade type} — which resolveInitialMarket would resurrect on the next
+            // refresh as a phantom pair + tab. The URL must keep the LAST COMMITTED pair instead.
+            const { processTradeParams } = jest.requireMock('../Helpers/process');
+            (processTradeParams as jest.Mock).mockRejectedValueOnce(new Error('socket dropped'));
+
+            await expect(tradeStore.selectMarketAndTradeType('R_50', 'multiplier')).rejects.toThrow('socket dropped');
+
+            const params = new URLSearchParams(window.location.search);
+            expect(params.get('symbol')).toBe('1HZ100V');
+            expect(params.get('trade_type')).toBe('rise_fall');
+        });
+    });
+
+    describe('setTradeSubType (fenced same-category sub-toggle writer)', () => {
+        beforeEach(() => {
+            jest.spyOn(tradeStore, 'validateAllProperties').mockImplementation(() => undefined);
+        });
+
+        it('commits a same-category sub-type through the pipeline', async () => {
+            tradeStore.contract_type = TRADE_TYPES.TURBOS.LONG;
+            await tradeStore.setTradeSubType(TRADE_TYPES.TURBOS.SHORT);
+            expect(tradeStore.contract_type).toBe(TRADE_TYPES.TURBOS.SHORT);
+        });
+
+        it('REJECTS a cross-category switch (tab identity may only change via selectMarketAndTradeType)', async () => {
+            const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+            tradeStore.contract_type = TRADE_TYPES.TURBOS.LONG;
+            await tradeStore.setTradeSubType(TRADE_TYPES.ACCUMULATOR);
+            expect(tradeStore.contract_type).toBe(TRADE_TYPES.TURBOS.LONG);
+            consoleSpy.mockRestore();
+        });
+
+        it('flips rise_fall ↔ rise_fall_equal when is_equal changes (Allow equals, pipeline step — no reaction)', async () => {
+            tradeStore.contract_type = TRADE_TYPES.RISE_FALL;
+            await tradeStore.onChange({ target: { name: 'is_equal', value: 1 } });
+            expect(tradeStore.contract_type).toBe(TRADE_TYPES.RISE_FALL_EQUAL);
+            await tradeStore.onChange({ target: { name: 'is_equal', value: 0 } });
+            expect(tradeStore.contract_type).toBe(TRADE_TYPES.RISE_FALL);
+        });
+
+        it('does not touch the trade type when is_equal changes outside the Rise/Fall family', async () => {
+            tradeStore.contract_type = TRADE_TYPES.ACCUMULATOR;
+            await tradeStore.onChange({ target: { name: 'is_equal', value: 1 } });
+            expect(tradeStore.contract_type).toBe(TRADE_TYPES.ACCUMULATOR);
         });
     });
 
@@ -1397,6 +1597,139 @@ describe('TradeStore', () => {
             tradeStore.setAutomationSupportedTradeTypes(set);
             expect(spy).not.toHaveBeenCalled();
             spy.mockRestore();
+        });
+    });
+
+    describe('market selection supersession (phantom-tab races)', () => {
+        const flushAsync = () => new Promise(resolve => setTimeout(resolve, 0));
+
+        beforeEach(() => {
+            // Force manual mode (earlier tests persist 'active_trade_panel_tab' to localStorage,
+            // which would silently point `open_markets` at the automation collection).
+            (tradeStore.root_store.ui as unknown as { is_mobile: boolean }).is_mobile = false;
+            tradeStore.is_automation_page = false;
+            tradeStore.active_trade_panel_tab = TRADE_PANEL_TABS.TRADE;
+            // The full validation pipeline needs prebuild DVRs unavailable in this harness; it's not
+            // what these tests exercise.
+            jest.spyOn(tradeStore, 'validateAllProperties').mockImplementation(() => undefined);
+        });
+
+        afterEach(() => {
+            Object.values(OPEN_MARKETS_STORAGE_KEYS).forEach(key => localStorage.removeItem(key));
+            localStorage.removeItem('active_trade_panel_tab');
+        });
+
+        it('a newer selectMarketAndTradeType supersedes an in-flight one (no stale trade-type write)', async () => {
+            tradeStore.symbol = '1HZ100V';
+            // First selection changes the symbol, so its trade-type write only happens after an
+            // await; the second selection (same symbol, already written by the first's synchronous
+            // prefix) commits its trade type immediately. Without epoch supersession the FIRST
+            // cascade would resume afterwards and overwrite the newer choice with 'rise_fall'.
+            const first = tradeStore.selectMarketAndTradeType('R_50', 'rise_fall');
+            const second = tradeStore.selectMarketAndTradeType('R_50', 'multiplier');
+            await Promise.all([first, second]);
+            await flushAsync();
+            expect(tradeStore.symbol).toBe('R_50');
+            expect(tradeStore.contract_type).toBe('multiplier');
+            // Both explicit intents are recorded as tabs — and nothing else.
+            expect(tradeStore.open_markets).toEqual([
+                { symbol: 'R_50', contract_type: 'rise_fall' },
+                { symbol: 'R_50', contract_type: 'multiplier' },
+            ]);
+            // The guard is a counter: it must only release once BOTH cascades have settled.
+            expect(tradeStore.is_selecting_market).toBe(false);
+        });
+
+        it('keeps the seed-effect guard up while any of two overlapping commits is still in flight', () => {
+            tradeStore.startSelectingMarket();
+            tradeStore.startSelectingMarket();
+            tradeStore.stopSelectingMarket();
+            // A boolean flag would already read false here and let the tab strip's seed effect
+            // observe the second cascade's transient pair.
+            expect(tradeStore.is_selecting_market).toBe(true);
+            tradeStore.stopSelectingMarket();
+            expect(tradeStore.is_selecting_market).toBe(false);
+        });
+    });
+
+    describe('resolveContractTypeAvailability', () => {
+        const flushAsync = () => new Promise(resolve => setTimeout(resolve, 0));
+
+        beforeEach(() => {
+            // Force manual mode (see the supersession describe above for why).
+            (tradeStore.root_store.ui as unknown as { is_mobile: boolean }).is_mobile = false;
+            tradeStore.is_automation_page = false;
+            tradeStore.active_trade_panel_tab = TRADE_PANEL_TABS.TRADE;
+            jest.spyOn(tradeStore, 'validateAllProperties').mockImplementation(() => undefined);
+            tradeStore.symbol = 'R_50';
+            tradeStore.contract_type = 'multiplier';
+        });
+
+        afterEach(() => {
+            Object.values(OPEN_MARKETS_STORAGE_KEYS).forEach(key => localStorage.removeItem(key));
+            localStorage.removeItem('active_trade_panel_tab');
+        });
+
+        it('keeps the current type (and its tab) when the response offers it', () => {
+            tradeStore.open_markets_manual = [{ symbol: 'R_50', contract_type: 'multiplier' }];
+            tradeStore.resolveContractTypeAvailability('R_50', ['multiplier', 'rise_fall']);
+            expect(tradeStore.contract_type).toBe('multiplier');
+            expect(tradeStore.open_markets).toEqual([{ symbol: 'R_50', contract_type: 'multiplier' }]);
+        });
+
+        it('treats a same-category sibling as available (rise_fall_equal vs rise_fall)', () => {
+            tradeStore.contract_type = 'rise_fall_equal';
+            tradeStore.resolveContractTypeAvailability('R_50', ['rise_fall']);
+            expect(tradeStore.contract_type).toBe('rise_fall_equal');
+        });
+
+        it('ignores a response for a symbol that is no longer active', () => {
+            tradeStore.resolveContractTypeAvailability('1HZ100V', ['rise_fall']);
+            expect(tradeStore.contract_type).toBe('multiplier');
+        });
+
+        it('swaps an unavailable type to the first available one and replaces the dead tab IN PLACE', async () => {
+            tradeStore.open_markets_manual = [
+                { symbol: '1HZ100V', contract_type: 'rise_fall' },
+                { symbol: 'R_50', contract_type: 'multiplier' },
+            ];
+            tradeStore.resolveContractTypeAvailability('R_50', ['accumulator', 'high_low']);
+            // The store write is synchronous (useContractsFor reads the corrected type right after).
+            expect(tradeStore.contract_type).toBe('accumulator');
+            // The dead (R_50, multiplier) tab is replaced in its position — never appended, so the
+            // strip can't grow a phantom tab out of an availability correction.
+            expect(tradeStore.open_markets).toEqual([
+                { symbol: '1HZ100V', contract_type: 'rise_fall' },
+                { symbol: 'R_50', contract_type: 'accumulator' },
+            ]);
+            await flushAsync();
+            expect(tradeStore.is_selecting_market).toBe(false);
+        });
+
+        it('removes the dead tab instead of duplicating when a fallback-category tab already exists', async () => {
+            tradeStore.open_markets_manual = [
+                { symbol: 'R_50', contract_type: 'multiplier' },
+                { symbol: 'R_50', contract_type: 'accumulator' },
+            ];
+            tradeStore.resolveContractTypeAvailability('R_50', ['accumulator']);
+            expect(tradeStore.contract_type).toBe('accumulator');
+            // Two tabs must never share a (symbol, trade-type category) pair.
+            expect(tradeStore.open_markets).toEqual([{ symbol: 'R_50', contract_type: 'accumulator' }]);
+            await flushAsync();
+        });
+
+        it('defers while a selection is committing, then re-evaluates against the settled state', async () => {
+            tradeStore.startSelectingMarket();
+            tradeStore.resolveContractTypeAvailability('R_50', ['rise_fall']);
+            // Mid-commit: nothing may change — the in-flight selection owns the state.
+            expect(tradeStore.contract_type).toBe('multiplier');
+            // The in-flight selection commits a type the response DOES offer…
+            tradeStore.contract_type = 'rise_fall';
+            tradeStore.stopSelectingMarket();
+            await flushAsync();
+            // …so the deferred re-evaluation finds it available and leaves everything alone.
+            expect(tradeStore.contract_type).toBe('rise_fall');
+            expect(tradeStore.open_markets).toEqual([]);
         });
     });
 

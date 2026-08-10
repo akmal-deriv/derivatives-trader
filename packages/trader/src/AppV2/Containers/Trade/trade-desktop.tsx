@@ -22,9 +22,9 @@ import TradeErrorSnackbar from 'AppV2/Components/TradeErrorSnackbar';
 import TradePanelTabs from 'AppV2/Components/TradePanelTabs/trade-panel-tabs';
 import { TradeParameters } from 'AppV2/Components/TradeParameters';
 import TradeParamsFooter from 'AppV2/Components/TradeParamsFooter';
+import useActiveSymbols from 'AppV2/Hooks/useActiveSymbols';
 import useAutomationSupportedTradeTypes from 'AppV2/Hooks/useAutomationSupportedTradeTypes';
 import useContractsFor from 'AppV2/Hooks/useContractsFor';
-import useDefaultSymbol from 'AppV2/Hooks/useDefaultSymbol';
 import useIsAutomationEnabled from 'AppV2/Hooks/useIsAutomationEnabled';
 import useNonAutomatableSymbolSnackbar from 'AppV2/Hooks/useNonAutomatableSymbolSnackbar';
 import useTabletLandscape from 'AppV2/Hooks/useTabletLandscape';
@@ -76,7 +76,7 @@ const TradeDesktop = observer(() => {
     const is_automation_active = is_automation_enabled && is_automation_tab;
     const should_render_automation_panel = is_automation_active && supported_automation_trade_types.has(contract_type);
 
-    useDefaultSymbol(); // This will initialize and set the default symbol
+    useActiveSymbols();
     useNonAutomatableSymbolSnackbar();
     const { should_show_portrait_loader } = useTabletLandscape({
         is_chart_loading,

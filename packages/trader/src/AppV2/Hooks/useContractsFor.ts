@@ -1,11 +1,10 @@
 import React, { useCallback, useEffect, useRef } from 'react';
 
 import { useMobileBridge, useQuery } from '@deriv/api';
-import { cloneObject, getContractCategoriesConfig, getContractTypesConfig, setTradeURLParams } from '@deriv/shared';
+import { cloneObject, getContractCategoriesConfig, getContractTypesConfig } from '@deriv/shared';
 import { useStore } from '@deriv/stores';
 
 import { TContractType } from 'AppV2/Types/contract-type';
-import { checkContractTypePrefix } from 'AppV2/Utils/contract-type';
 import { getTradeTypesList } from 'AppV2/Utils/trade-types-utils';
 import { ContractType } from 'Stores/Modules/Trading/Helpers/contract-type';
 import { useTraderStore } from 'Stores/useTraderStores';
@@ -19,8 +18,8 @@ const useContractsFor = () => {
     const [trade_types, setTradeTypes] = React.useState<TContractType[]>([]);
     const {
         contract_type,
-        onChange,
         processContractsForV2,
+        resolveContractTypeAvailability,
         setContractTypesListV2,
         setDefaultStake,
         setIsAwaitingContractsFor,
@@ -85,15 +84,6 @@ const useContractsFor = () => {
 
     const is_fetching_ref = useRef(isLoading);
 
-    const isContractTypeAvailable = useCallback(
-        (trade_types: TContractType[]) => {
-            return trade_types.some(
-                type => checkContractTypePrefix([contract_type, type.value]) || contract_type === type.value
-            );
-        },
-        [contract_type]
-    );
-
     const getTradeTypes = useCallback(
         (categories: TContractTypesList) => {
             return Array.isArray(categories) && categories.length === 0
@@ -101,32 +91,6 @@ const useContractsFor = () => {
                 : getTradeTypesList(categories as TContractTypesList, nativeAppAllowedTradeTypes);
         },
         [nativeAppAllowedTradeTypes]
-    );
-
-    const getNewContractType = useCallback(
-        (trade_types: TContractType[]) => {
-            if (!isContractTypeAvailable(trade_types) && trade_types.length > 0) {
-                return trade_types[0].value;
-            }
-            return contract_type;
-        },
-        [contract_type, isContractTypeAvailable]
-    );
-
-    const processNewContractType = useCallback(
-        (new_contract_type: string) => {
-            const has_contract_type_changed = contract_type != new_contract_type && new_contract_type;
-            if (has_contract_type_changed) {
-                onChange({
-                    target: {
-                        name: 'contract_type',
-                        value: new_contract_type,
-                    },
-                });
-            }
-            setTradeURLParams({ contractType: new_contract_type });
-        },
-        [contract_type, onChange]
     );
 
     useEffect(() => {
@@ -224,15 +188,22 @@ const useContractsFor = () => {
                 const trade_types = getTradeTypes(available_categories);
                 setTradeTypes(trade_types);
 
-                const new_contract_type = getNewContractType(trade_types);
-                processNewContractType(new_contract_type);
+                // Report availability to the store; the store owns the "current type isn't offered"
+                // policy (evaluated against its live state, deferred while a selection is committing,
+                // and correcting the tab strip in place). This hook never changes the trade type
+                // itself — the old in-hook swap ran on stale render closures and could override a
+                // user's mid-cascade selection, spawning phantom tabs on the strip.
+                resolveContractTypeAvailability(
+                    symbol,
+                    trade_types.map(type => type.value)
+                );
 
-                // Call processContractsForV2 AFTER processNewContractType ensures the
-                // correct contract_type is set in the store. On page refresh, the contract_type
-                // may be empty or stale before processNewContractType runs.
-                // getContractValues(this) needs the correct contract_type to return
-                // barrier/duration config from the populated ContractType closure.
-                // processContractsForV2 now awaits its calls sequentially and triggers
+                // Call processContractsForV2 AFTER resolveContractTypeAvailability ensures the
+                // correct contract_type is set in the store (a synchronous fallback swap has been
+                // applied by now). On page refresh, the contract_type may be empty or stale before
+                // the resolution runs. getContractValues(this) needs the correct contract_type to
+                // return barrier/duration config from the populated ContractType closure.
+                // processContractsForV2 awaits its calls sequentially and triggers
                 // debouncedProposal internally after all values are applied.
                 processContractsForV2();
             } else {

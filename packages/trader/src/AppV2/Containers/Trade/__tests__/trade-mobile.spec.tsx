@@ -141,8 +141,9 @@ const mockUseContractsFor = jest.fn(() => ({
     resetTradeTypes: jest.fn(),
 }));
 
-const mockUseDefaultSymbol = jest.fn(() => ({
-    symbol: 'cryBTCUSD',
+const mockUseActiveSymbols = jest.fn(() => ({
+    activeSymbols: mockActiveSymbols,
+    isLoading: false,
 }));
 
 const mockUseTraderStore = jest.fn(() => ({
@@ -171,9 +172,9 @@ jest.mock('AppV2/Hooks/useContractsFor', () => ({
     default: () => mockUseContractsFor(),
 }));
 
-jest.mock('AppV2/Hooks/useDefaultSymbol', () => ({
+jest.mock('AppV2/Hooks/useActiveSymbols', () => ({
     __esModule: true,
-    default: () => mockUseDefaultSymbol(),
+    default: () => mockUseActiveSymbols(),
 }));
 
 jest.mock('Stores/useTraderStores', () => ({

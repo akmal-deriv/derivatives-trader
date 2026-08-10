@@ -54,15 +54,14 @@ import {
     routes,
     setLimitOrderBarriers,
     setTradeURLParams,
-    showUnavailableLocationError,
     trackAnalyticsEvent,
     TRADE_TYPES,
     WS,
 } from '@deriv/shared';
 import { safeParse } from '@deriv/utils';
-import { localize } from '@deriv-com/translations';
 
 import { TRADE_PANEL_TABS, type TTradePanelTab } from 'AppV2/Components/AutomationPanel/automation-config';
+import { checkContractTypePrefix } from 'AppV2/Utils/contract-type';
 import { isDigitContractType, isDigitTradeType } from 'AppV2/Utils/digits';
 import {
     addToOpenMarkets,
@@ -83,7 +82,6 @@ import { TContractTypesList, TRootStore, TTextValueNumber, TTextValueStrings } f
 import BaseStore from '../../base-store';
 
 import { processPurchase } from './Actions/purchase';
-import * as Symbol from './Actions/symbol';
 import { getUpdatedTicksHistoryStats } from './Helpers/accumulator';
 import { getChartAnalyticsData, STATE_TYPES, TPayload } from './Helpers/chart';
 import { processTradeParams } from './Helpers/process';
@@ -264,7 +262,6 @@ export default class TradeStore extends BaseStore {
     // Underlying
     symbol = '';
     is_market_closed = false;
-    previous_symbol = '';
     active_symbols: ActiveSymbols = [];
     has_symbols_for_v2 = false;
 
@@ -291,10 +288,16 @@ export default class TradeStore extends BaseStore {
     // The tab a long-press is about to replace: while set, the next `selectMarketAndTradeType` swaps
     // this tab in place instead of appending a new one. Transient (not observable/persisted).
     replacing_market: TOpenMarket | null = null;
-    // True while `selectMarketAndTradeType` is committing (records the pair up-front, then runs the
-    // symbol-first/contract_type cascade). The tab strip's seed effect skips while this is set so the
-    // transient {new symbol, old trade type} mid-cascade state never spawns a stale tab.
-    is_selecting_market = false;
+    // Count of in-flight market/trade-type commit cascades (see `is_selecting_market`). A counter,
+    // not a boolean: commits can overlap (rapid tab clicks, un-awaited mode reconcile), and a boolean
+    // would drop the guard when the FIRST cascade finished while a second was still mid-flight.
+    selecting_market_depth = 0;
+    // Monotonic id of the most recent market/trade-type selection intent (user click, URL reconcile,
+    // mode reconcile). Async selection flows capture it at start and abort their remaining writes if
+    // a newer intent has started — latest intent always wins, so two overlapping cascades can never
+    // interleave into a hybrid {symbol from one, trade type from another} state. Deliberately NOT
+    // observable: it's read imperatively inside the flows, never rendered.
+    private selection_seq = 0;
 
     form_components: string[] = [];
 
@@ -566,7 +569,6 @@ export default class TradeStore extends BaseStore {
             multiplier_range_list: observable.ref, // Array of objects - use ref
             multiplier: observable,
             non_available_contract_types_list: observable.ref, // Object - use ref
-            previous_symbol: observable,
             ref: observable,
             proposal_info: observable.ref,
             purchase_info: observable.ref,
@@ -590,7 +592,8 @@ export default class TradeStore extends BaseStore {
             open_markets_automation: observable,
             open_markets: computed,
             is_automation_mode: computed,
-            is_selecting_market: observable,
+            selecting_market_depth: observable,
+            is_selecting_market: computed,
             take_profit: observable,
             tick_data: observable.ref, // Object - use ref
             tick_size_barrier_percentage: observable,
@@ -640,8 +643,8 @@ export default class TradeStore extends BaseStore {
             main_barrier_flattened: computed,
             applyDefaultDuration: action.bound,
             networkStatusChangeListener: action.bound,
-            onAllowEqualsChange: action.bound,
             onChange: action.bound,
+            setTradeSubType: action.bound,
             onChangeMultiple: action.bound,
             selectMarketAndTradeType: action.bound,
             setActiveOpenMarkets: action.bound,
@@ -650,7 +653,9 @@ export default class TradeStore extends BaseStore {
             replaceOpenMarket: action.bound,
             setAutomationSupportedTradeTypes: action.bound,
             setReplacingMarket: action.bound,
-            setIsSelectingMarket: action.bound,
+            startSelectingMarket: action.bound,
+            stopSelectingMarket: action.bound,
+            resolveContractTypeAvailability: action.bound,
             onChartBarrierChange: action.bound,
             onHoverPurchase: action.bound,
             onMount: action.bound,
@@ -666,22 +671,17 @@ export default class TradeStore extends BaseStore {
             requestProposal: action.bound,
             resetAccumulatorData: action.bound,
             resetErrorServices: action.bound,
-            resetPreviousSymbol: action.bound,
-            setActiveSymbols: action.bound,
             setActiveSymbolsV2: action.bound,
             setBarrierChoices: action.bound,
             setPayoutChoices: action.bound,
             setChartModeFromURL: action.bound,
             setChartStatus: action.bound,
-            setContractTypes: action.bound,
             setContractTypesListV2: action.bound,
-            setDefaultSymbol: action.bound,
             setIsTradeParamsExpanded: action.bound,
             setIsDigitsWidgetActive: action.bound,
             setMarketStatus: action.bound,
             getTurbosChartBarrier: action.bound,
             setMobileDigitView: action.bound,
-            setPreviousSymbol: action.bound,
             setSkipPrePostLifecycle: action.bound,
             setStakeBoundary: action.bound,
             setTradeTypeTab: action.bound,
@@ -689,7 +689,6 @@ export default class TradeStore extends BaseStore {
             setV2ParamsInitialValues: action.bound,
             show_digits_stats: computed,
             updateStore: action.bound,
-            updateSymbol: action.bound,
             setPayoutPerPoint: action.bound,
             handleTradeParamsResetOnSymbolChange: action.bound,
         });
@@ -705,75 +704,17 @@ export default class TradeStore extends BaseStore {
             }
         }
 
-        when(
-            () => !isEmptyObject(this.contract_types_list_v2),
-            () => {
-                if (!this.contract_types_list_v2 || !this.is_dtrader_v2) return;
-                const searchParams = new URLSearchParams(window.location.search);
-                const urlContractType = searchParams.get('trade_type');
-                const tradeStoreString = sessionStorage.getItem('trade_store');
-                const tradeStoreObj = safeParse(tradeStoreString ?? '{}') ?? {};
-                const flattedContractTypesV2 = Object.values(this.contract_types_list_v2)
-                    .map(contract_type => contract_type.categories)
-                    .flatMap(categories => categories);
-                const isValidContractType = flattedContractTypesV2.some(
-                    contract_type => contract_type.value === urlContractType
-                );
-                if (urlContractType) {
-                    if (isValidContractType) {
-                        tradeStoreObj.contract_type = urlContractType;
-                        sessionStorage.setItem('trade_store', JSON.stringify(tradeStoreObj));
-                        this.contract_type = urlContractType;
-                        // Set atomically with contract_type so consumers can tell a URL landing
-                        // from manual navigation. The app mirrors trade_type into the URL, so
-                        // reloads count as URL landings too — deliberate.
-                        this.url_trade_type = urlContractType;
-                    } else if (!Object.keys(getContractTypesConfig()).includes(urlContractType)) {
-                        // Unknown/invalid trade type in the URL (a genuine dead-end deep link) — show the modal.
-                        this.root_store.ui.toggleUrlUnavailableModal(true);
-                    } else {
-                        // A real trade type the current market doesn't offer (e.g. arriving from Deriv Home
-                        // with trade_type=rise_fall while the last-used market was Boom 1000, which only offers
-                        // Multipliers). Prioritise the URL trade type: switch to a market that offers it instead
-                        // of silently overriding the requested trade type with the market's default.
-                        this.reconcileUrlTradeTypeWithSymbol(urlContractType);
-                    }
-                }
-            }
-        );
-
-        when(
-            () => this.has_symbols_for_v2,
-            () => {
-                if (!this.contract_types_list_v2 || !this.is_dtrader_v2) return;
-                const searchParams = new URLSearchParams(window.location.search);
-                const urlSymbol = searchParams.get('symbol');
-                const tradeStoreString = sessionStorage.getItem('trade_store');
-                const tradeStoreObj = safeParse(tradeStoreString ?? '{}') ?? {};
-                const isValidSymbol = this.active_symbols.some(symbol => symbol.underlying_symbol === urlSymbol);
-
-                if (urlSymbol) {
-                    if (isValidSymbol) {
-                        tradeStoreObj.symbol = urlSymbol;
-                        sessionStorage.setItem('trade_store', JSON.stringify(tradeStoreObj));
-                        this.symbol = urlSymbol;
-                    } else {
-                        this.root_store.ui.toggleUrlUnavailableModal(true);
-                    }
-                }
-            }
-        );
+        // The single owner of initial market/trade-type selection. Fire-and-forget: each phase waits for the
+        // data it needs and aborts if a user selection supersedes it.
+        this.resolveInitialMarket().catch((error: unknown) => {
+            // eslint-disable-next-line no-console
+            console.error('[TradeStore] resolveInitialMarket failed:', error);
+        });
 
         reaction(
             () => [this.contract_expiry_type, this.duration_min_max, this.duration_unit, this.expiry_type],
             () => {
                 this.changeDurationValidationRules();
-            }
-        );
-        reaction(
-            () => this.is_equal,
-            () => {
-                this.contract_type?.includes(TRADE_TYPES.RISE_FALL) && this.onAllowEqualsChange();
             }
         );
         reaction(
@@ -789,9 +730,6 @@ export default class TradeStore extends BaseStore {
                 }
                 this.setDefaultGrowthRate();
                 this.resetAccumulatorData();
-                if (this.active_symbols.length) {
-                    setTradeURLParams({ symbol: this.symbol });
-                }
                 this.root_store.notifications.removeTradeNotifications();
             }
         );
@@ -826,9 +764,6 @@ export default class TradeStore extends BaseStore {
                     delete this.validation_rules.take_profit;
                 }
                 this.resetAccumulatorData();
-                if (!isEmptyObject(this.contract_types_list) || !isEmptyObject(this.contract_types_list_v2)) {
-                    setTradeURLParams({ contractType: this.contract_type });
-                }
                 this.root_store.notifications.removeTradeNotifications();
             }
         );
@@ -974,60 +909,10 @@ export default class TradeStore extends BaseStore {
         this.root_store.contract_trade.contracts = [];
     };
 
-    async loadActiveSymbols(should_set_default_symbol = true, should_show_loading = true) {
-        if (this.is_dtrader_v2) {
-            await when(() => this.has_symbols_for_v2);
-            return;
-        }
-        this.should_show_active_symbols_loading = should_show_loading;
-
-        try {
-            await this.setActiveSymbols();
-
-            const { symbol, showModal } = getTradeURLParams({ active_symbols: this.active_symbols });
-            if (showModal && should_show_loading && !this.root_store.client.is_logging_in) {
-                this.root_store.ui.toggleUrlUnavailableModal(true);
-            }
-            const hasSymbolChanged = symbol && symbol !== this.symbol;
-            if (hasSymbolChanged) this.symbol = symbol;
-            if (should_set_default_symbol && !symbol) await this.setDefaultSymbol();
-            setTradeURLParams({ symbol: hasSymbolChanged ? symbol : this.symbol });
-
-            const r = await WS.storage.contractsFor(this.symbol);
-            if (['InvalidSymbol', 'InputValidationFailed'].includes(r.error?.code)) {
-                const symbol_to_update = await pickDefaultSymbol(this.active_symbols);
-                await this.processNewValuesAsync({ symbol: symbol_to_update });
-            }
-        } finally {
-            runInAction(() => {
-                this.should_show_active_symbols_loading = false;
-            });
-        }
-    }
-
-    async setDefaultSymbol() {
-        if (!this.is_symbol_in_active_symbols) {
-            this.is_trade_enabled = false;
-
-            const symbol = await pickDefaultSymbol(this.active_symbols);
-            await this.processNewValuesAsync({ symbol });
-        }
-    }
-
-    async setActiveSymbols() {
-        const showError = this.root_store.common.showError;
-
-        const { active_symbols, error } = await WS.activeSymbols();
-
-        if (error) {
-            showError({ message: localize('Trading is unavailable at this time.') });
-            return;
-        }
-
-        if (!active_symbols?.length) {
-            showUnavailableLocationError(showError);
-        }
-        await this.processNewValuesAsync({ active_symbols });
+    // V2: active symbols arrive via the useActiveSymbols React Query hook — this only waits for
+    // them to land in the store.
+    async loadActiveSymbols() {
+        await when(() => this.has_symbols_for_v2);
     }
 
     async processContractsForV2() {
@@ -1101,42 +986,7 @@ export default class TradeStore extends BaseStore {
         this.debouncedProposal();
     }
 
-    async setContractTypes() {
-        if (this.is_dtrader_v2) {
-            return;
-        }
-
-        let contractType: string | undefined = '';
-        if (this.symbol && this.is_symbol_in_active_symbols) {
-            await Symbol.onChangeSymbolAsync(this.symbol);
-            runInAction(() => {
-                const contract_categories = ContractType.getContractCategories();
-                const { contractType: contractTypeParam, showModal } = getTradeURLParams({
-                    contract_types_list: contract_categories.contract_types_list,
-                });
-                contractType = contractTypeParam;
-                const { is_logging_in } = this.root_store.client;
-                if (showModal && !is_logging_in) {
-                    this.root_store.ui.toggleUrlUnavailableModal(true);
-                }
-                this.processNewValuesAsync({
-                    ...(contract_categories as Pick<TradeStore, 'contract_types_list'>),
-                    ...ContractType.getContractType(
-                        contract_categories.contract_types_list,
-                        contractType ?? this.contract_type
-                    ),
-                });
-                this.processNewValuesAsync(ContractType.getContractValues(this));
-            });
-        }
-        this.root_store.common.setSelectedContractType(contractType ?? this.contract_type);
-        this.root_store.portfolio.setContractType(contractType ?? this.contract_type);
-        setTradeURLParams({
-            contractType: contractType ?? this.contract_type,
-        });
-    }
-
-    async prepareTradeStore(should_set_default_symbol = true) {
+    async prepareTradeStore() {
         this.initial_barriers = { barrier_1: this.barrier_1, barrier_2: this.barrier_2 };
         await when(() => !this.root_store.client.is_logging_in);
 
@@ -1151,8 +1001,7 @@ export default class TradeStore extends BaseStore {
                 false
             );
         });
-        await this.loadActiveSymbols(should_set_default_symbol);
-        await this.setContractTypes();
+        await this.loadActiveSymbols();
         await this.processNewValuesAsync(
             {
                 is_market_closed: isMarketClosed(this.active_symbols, this.symbol),
@@ -1184,39 +1033,56 @@ export default class TradeStore extends BaseStore {
      * pre-processing (chart-loading flag, Vanilla/accumulator resets) intact.
      */
     async selectMarketAndTradeType(underlying_symbol: string, contract_type: string) {
+        // This call is now the newest selection intent: any older cascade still in flight must not
+        // write symbol/contract_type past this point (each checks the epoch before its next write).
+        const epoch = ++this.selection_seq;
         // Record the tab up-front, from the explicit intent — BEFORE the symbol-first/contract_type
         // cascade below (which transiently pairs the new symbol with the stale type, and may re-swap
         // the type via useContractsFor). The strip is thus never built from those transient values.
         const next_market = { symbol: underlying_symbol, contract_type };
         // Captured before mutating so the optimistic tab change can be rolled back on failure below.
         const replaced_market = this.replacing_market;
+        // A tab whose (symbol, trade-type CATEGORY) already matches the commit — committing.
+        const category_sibling_tab = this.open_markets.find(
+            market =>
+                market.symbol === underlying_symbol && this.isSameTradeTypeGroup(market.contract_type, contract_type)
+        );
         if (replaced_market) {
             // Long-press "replace this tab" flow: swap the long-pressed tab in place instead of
             // appending a new one.
             this.replaceOpenMarket(replaced_market, next_market);
             this.setReplacingMarket(null);
-        } else {
+        } else if (!category_sibling_tab) {
             this.addOpenMarket(next_market);
         }
         // Guard the cascade so the tab strip's seed effect ignores the transient {new symbol, old
         // trade type} state and doesn't spawn a stale tab (the exact pair is already recorded above).
-        this.setIsSelectingMarket(true);
+        this.startSelectingMarket();
         try {
             if (underlying_symbol && underlying_symbol !== this.symbol) {
                 await this.onChange({ target: { name: 'symbol', value: underlying_symbol } });
             }
+            // A newer selection started while the symbol cascade was in flight — it owns the state
+            // now (its own tab is already recorded); writing our trade type would produce a hybrid
+            // {its symbol, our trade type} pair.
+            if (this.selection_seq !== epoch) return;
             if (contract_type && contract_type !== this.contract_type) {
                 await this.onChange({ target: { name: 'contract_type', value: contract_type } });
             }
+            // Commit fully settled — mirror the pair into the URL atomically.
+            if (this.selection_seq === epoch) this.syncTradeURLParams();
         } catch (error) {
             // The commit failed (e.g. the WS dropped mid-cascade) — undo the optimistic tab change so
             // the strip doesn't keep a "phantom" tab whose chart never loaded. Re-throw so the caller
-            // (commitAndClose) keeps the selector open for retry.
-            if (replaced_market) this.replaceOpenMarket(next_market, replaced_market);
-            else this.removeOpenMarket(next_market);
+            // (commitAndClose) keeps the selector open for retry. Skipped when superseded (a newer
+            // selection owns the strip) and when nothing was added (a pre-existing tab must survive).
+            if (this.selection_seq === epoch) {
+                if (replaced_market) this.replaceOpenMarket(next_market, replaced_market);
+                else if (!category_sibling_tab) this.removeOpenMarket(next_market);
+            }
             throw error;
         } finally {
-            this.setIsSelectingMarket(false);
+            this.stopSelectingMarket();
         }
     }
 
@@ -1224,8 +1090,90 @@ export default class TradeStore extends BaseStore {
         this.replacing_market = market;
     }
 
-    setIsSelectingMarket(value: boolean) {
-        this.is_selecting_market = value;
+    get is_selecting_market() {
+        return this.selecting_market_depth > 0;
+    }
+
+    startSelectingMarket() {
+        this.selecting_market_depth += 1;
+    }
+
+    stopSelectingMarket() {
+        this.selecting_market_depth = Math.max(0, this.selecting_market_depth - 1);
+    }
+
+    /** Category matcher for open-market tabs, mirroring `isSameTradeTypeCategory` in
+     * AppV2/Utils/trade-types-utils (not imported here — that module reaches back into the stores via
+     * `useTraderStores`, which would create an import cycle). The only multi-member categories are
+     * exactly the three prefix families checked by `checkContractTypePrefix` (rise/fall±equals,
+     * turbos long/short, vanilla call/put); everything else matches by equality. */
+    private isSameTradeTypeGroup(contract_type_1: string, contract_type_2: string) {
+        return (
+            contract_type_1 === contract_type_2 ||
+            (!!contract_type_1 && !!contract_type_2 && checkContractTypePrefix([contract_type_1, contract_type_2]))
+        );
+    }
+
+    /**
+     * Applies the single policy for "the current trade type isn't offered by the current symbol",
+     * using the freshly-loaded `contracts_for` availability. Called by `useContractsFor` for every
+     * processed response — the hook only reports; the decision to change state lives here.
+     *
+     * Guarantees (vs the old in-hook swap, which caused phantom tabs on the strip):
+     * - Evaluates against the store's CURRENT symbol/contract_type at execution time, never a stale
+     *   render closure.
+     * - Defers while a selection or URL reconcile is committing, then re-evaluates against the
+     *   settled state — so it can never override a user's explicit choice mid-cascade.
+     * - On a genuine swap, corrects the tab strip FIRST (replacing the now-dead tab in place — never
+     *   appending) and runs the type change under the selecting-market guard, so the seed effect
+     *   never turns the transient hop into a new tab.
+     */
+    resolveContractTypeAvailability(response_symbol: string, available_types: string[]) {
+        if (!response_symbol || !available_types.length) return;
+        if (this.is_selecting_market || this.is_reconciling_url_trade_type) {
+            // A commit is in flight — its trade type may be about to change. Re-evaluate once every
+            // in-flight cascade has settled (bounded so a stuck flag can't leak a pending resolve).
+            when(() => !this.is_selecting_market && !this.is_reconciling_url_trade_type, { timeout: 30000 })
+                .then(() => this.resolveContractTypeAvailability(response_symbol, available_types))
+                .catch(() => undefined);
+            return;
+        }
+        // Stale response: the active market moved on while this response was in flight/cached. The
+        // current symbol's own response drives its own resolution.
+        if (response_symbol !== this.symbol) return;
+        const current = this.contract_type;
+        const is_available = available_types.some(type => type === current || checkContractTypePrefix([current, type]));
+        if (current && is_available) {
+            // Keep the URL in sync even when nothing changes (on initial load the restored pair
+            // never "changes", so no pipeline completion would otherwise stamp it).
+            this.syncTradeURLParams();
+            return;
+        }
+        const fallback = available_types[0];
+        if (!fallback || fallback === current) return;
+        // Correct the strip before the state hop. The tab carrying the unavailable type is dead
+        // (its pair can never load a proposal) — replace it in place with the fallback pair, unless a
+        // same-category tab for the fallback already exists (two tabs must never share a category).
+        const dead_tab = current
+            ? this.open_markets.find(
+                  market => market.symbol === this.symbol && this.isSameTradeTypeGroup(market.contract_type, current)
+              )
+            : undefined;
+        const has_fallback_tab = this.open_markets.some(
+            market => market.symbol === this.symbol && this.isSameTradeTypeGroup(market.contract_type, fallback)
+        );
+        const fallback_market = { symbol: this.symbol, contract_type: fallback };
+        if (dead_tab && !has_fallback_tab) this.replaceOpenMarket(dead_tab, fallback_market);
+        else if (dead_tab && has_fallback_tab) this.removeOpenMarket(dead_tab);
+        else if (!has_fallback_tab) this.addOpenMarket(fallback_market);
+        // Commit the fallback under the guard. Deliberately not awaited: the store write inside
+        // onChange is synchronous (callers like useContractsFor rely on reading the corrected type
+        // right after), while the guard covers the async tail of the cascade.
+        this.startSelectingMarket();
+        this.onChange({ target: { name: 'contract_type', value: fallback } })
+            .then(() => this.syncTradeURLParams())
+            .catch(() => undefined)
+            .finally(() => this.stopSelectingMarket());
     }
 
     // Persist `next` as the ACTIVE mode's collection (manual vs automation). All three mutators below
@@ -1371,36 +1319,41 @@ export default class TradeStore extends BaseStore {
         if (name === 'contract_type' && this.contract_type && this.current_duration_group !== previous_duration_group) {
             await this.applyDefaultDuration();
         }
+        // "Allow equals" flips the Rise/Fall sub-type (rise_fall ↔ rise_fall_equal). Done here in
+        // the pipeline (not a store reaction) so the flip is an explicit step of the is_equal change
+        // rather than an implicit reaction-driven contract_type write.
+        if (name === 'is_equal' && this.contract_type?.includes(TRADE_TYPES.RISE_FALL)) {
+            await this.setTradeSubType(this.is_equal ? TRADE_TYPES.RISE_FALL_EQUAL : TRADE_TYPES.RISE_FALL);
+        }
         this.validateAllProperties(); // then run validation before sending proposal
         this.root_store.common.setSelectedContractType(this.contract_type);
+    }
+
+    /**
+     * The ONLY writer for same-category trade-type sub-toggles (Allow equals, the Up/Down
+     * segmented control). Fenced: a cross-category value is rejected, so this writer can change
+     * the priced sub-type but provably never the tab identity — changing which (symbol, category)
+     * is active must go through `selectMarketAndTradeType`.
+     */
+    async setTradeSubType(contract_type: string) {
+        if (!contract_type || contract_type === this.contract_type) return;
+        if (this.contract_type && !this.isSameTradeTypeGroup(this.contract_type, contract_type)) {
+            // eslint-disable-next-line no-console
+            console.error(
+                `[TradeStore] setTradeSubType rejected cross-category switch: ${this.contract_type} → ${contract_type}`
+            );
+            return;
+        }
+        await this.onChange({ target: { name: 'contract_type', value: contract_type } });
+        this.syncTradeURLParams();
     }
 
     setDefaultStake(default_stake?: number) {
         this.default_stake = default_stake;
     }
 
-    setPreviousSymbol(symbol: string) {
-        if (this.previous_symbol !== symbol) this.previous_symbol = symbol;
-    }
-
     setIsTradeParamsExpanded(value: boolean) {
         this.is_trade_params_expanded = value;
-    }
-
-    async resetPreviousSymbol() {
-        if (this.previous_symbol && this.previous_symbol.trim() !== '') {
-            this.setMarketStatus(isMarketClosed(this.active_symbols, this.previous_symbol));
-        } else {
-            this.setMarketStatus(false);
-        }
-
-        await Symbol.onChangeSymbolAsync(this.previous_symbol);
-        this.updateSymbol(this.symbol);
-
-        this.setChartStatus(false);
-        runInAction(() => {
-            this.previous_symbol = ''; // reset the symbol to default
-        });
     }
 
     onHoverPurchase(is_over: boolean, contract_type?: string) {
@@ -1843,19 +1796,10 @@ export default class TradeStore extends BaseStore {
         }
 
         if (Object.keys(obj_new_values).includes('symbol')) {
-            this.setPreviousSymbol(this.symbol);
-
             // Clear barrier validation errors immediately when symbol change starts (V2 only)
             if (this.is_dtrader_v2) {
                 this.validation_errors.barrier_1 = [];
                 this.validation_errors.barrier_2 = [];
-            }
-
-            // In V2, useContractsFor() React Query hook handles contracts_for fetching.
-            // Skip the legacy WS path (onChangeSymbolAsync → buildContractTypesConfig → WS.contractsFor)
-            // to avoid duplicate contracts_for API calls.
-            if (!this.is_dtrader_v2) {
-                await Symbol.onChangeSymbolAsync(obj_new_values.symbol ?? '');
             }
 
             const symbol_to_check = obj_new_values.symbol ?? '';
@@ -2309,23 +2253,6 @@ export default class TradeStore extends BaseStore {
         this.processNewValuesAsync({ barrier_1, barrier_2 }, true);
     }
 
-    onAllowEqualsChange() {
-        this.processNewValuesAsync(
-            { contract_type: this.is_equal ? TRADE_TYPES.RISE_FALL_EQUAL : TRADE_TYPES.RISE_FALL },
-            true
-        );
-    }
-
-    updateSymbol(underlying: string) {
-        if (!underlying) return;
-        this.onChange({
-            target: {
-                name: 'symbol',
-                value: underlying,
-            },
-        });
-    }
-
     changeDurationValidationRules() {
         if (this.expiry_type === 'endtime' || this.form_components.indexOf('duration') === -1) {
             this.validation_errors.duration = [];
@@ -2358,21 +2285,8 @@ export default class TradeStore extends BaseStore {
     }
 
     async languageChangeListener() {
-        await this.loadActiveSymbols(false, false);
-
+        await this.loadActiveSymbols();
         this.resetErrorServices();
-        await this.setContractTypes();
-        runInAction(async () => {
-            if (!this.is_dtrader_v2) {
-                await this.processNewValuesAsync(
-                    { currency: this.root_store.client.currency || this.root_store.client.default_currency },
-                    true,
-                    { currency: this.currency },
-                    false
-                );
-            }
-        });
-        return Promise.resolve();
     }
 
     preSwitchAccountListener() {
@@ -2386,13 +2300,10 @@ export default class TradeStore extends BaseStore {
         this.clearContracts();
         this.refresh();
         this.resetErrorServices();
+        await this.loadActiveSymbols();
         if (this.root_store.common.is_language_changing) {
-            await this.loadActiveSymbols(false);
             this.root_store.common.is_language_changing = false;
-        } else {
-            await this.loadActiveSymbols();
         }
-        await this.setContractTypes();
         this.is_trade_enabled = true;
         this.is_trade_enabled_v2 = true;
         this.debouncedProposal();
@@ -2441,11 +2352,8 @@ export default class TradeStore extends BaseStore {
                 // Clear existing data
                 this.refresh();
 
-                // Reload active symbols (without loading indicator to avoid UI flicker)
-                await this.loadActiveSymbols(false, false);
-
-                // Reload contract types for current symbol
-                await this.setContractTypes();
+                // Wait for active symbols to be (re)available in the store
+                await this.loadActiveSymbols();
 
                 // Request new proposals
                 this.debouncedProposal();
@@ -2488,8 +2396,11 @@ export default class TradeStore extends BaseStore {
             granularity: granularityParam ?? Number(granularity),
         };
 
+        // NOTE: deliberately does NOT write this.contract_type. This runs on every Trade-page
+        // mount; the trade type is owned by the selection pipeline (resolveInitialMarket /
+        // selectMarketAndTradeType / setTradeSubType) — a raw chart-mode handler must never be a
+        // side-channel writer for it. It only mirrors the value back into the URL.
         if (contractType) {
-            this.contract_type = contractType ?? '';
             urlParams.contractType = contractType;
         }
 
@@ -2674,7 +2585,7 @@ export default class TradeStore extends BaseStore {
             option?.isClosed &&
             option.isClosed !== this.is_market_closed
         ) {
-            this.prepareTradeStore(false);
+            this.prepareTradeStore();
         }
         if (state === STATE_TYPES.SET_CHART_MODE) {
             if (!isNaN(Number(option?.granularity))) {
@@ -2882,6 +2793,11 @@ export default class TradeStore extends BaseStore {
         const target = remembered ?? collection[collection.length - 1];
         if (target && (target.symbol !== this.symbol || target.contract_type !== this.contract_type)) {
             this.selectMarketAndTradeType(target.symbol, target.contract_type);
+        } else if (!next_is_automation) {
+            // Entering manual mode with nothing to restore (first visit, empty strip): materialise
+            // the carried-over pair as the manual tab explicitly — tabs are never derived from
+            // watched state. (Automation seeds its own supported default via the strip's effect.)
+            this.recordActiveMarketTab();
         }
     }
 
@@ -2894,6 +2810,139 @@ export default class TradeStore extends BaseStore {
     }
 
     /**
+     * The single owner of initial market + trade-type selection, run once from the constructor.
+     *
+     * Priority ladder:
+     *   symbol:      valid URL symbol → session-restored symbol (validated) → default pick
+     *   trade type:  URL trade_type (offered → commit; known-but-not-offered → switch to a
+     *                compatible market via reconcileUrlTradeTypeWithSymbol; unknown → modal)
+     *                → session-restored type (validated by resolveContractTypeAvailability when
+     *                the symbol's contracts_for lands — not here)
+     *
+     * Ends by recording the resolved pair as the ONE initial tab on the strip — initial tabs are
+     * created here explicitly, never derived by watching store state. Each phase re-checks the
+     * selection epoch so a user selection made mid-resolve always wins.
+     */
+    async resolveInitialMarket() {
+        const search_params = new URLSearchParams(window.location.search);
+        const url_symbol = search_params.get('symbol');
+        const url_trade_type = search_params.get('trade_type');
+        const epoch = ++this.selection_seq;
+
+        // Only a genuine deep link may create a NEW tab, switch markets for a URL trade type, or
+        // show the URL-unavailable modal; a restore CONVERGES to the tab strip instead of trusting
+        // mirrors that can be stale (or an actives list that is only half-loaded pre-auth).
+        const stored_session = (safeParse(sessionStorage.getItem('trade_store') ?? '') ?? {}) as {
+            symbol?: string;
+            contract_type?: string;
+        };
+        const is_deep_link =
+            (!!url_symbol && url_symbol !== stored_session.symbol) ||
+            (!!url_trade_type && url_trade_type !== stored_session.contract_type);
+
+        // BaseStore applies the sessionStorage restore (symbol/contract_type) one macrotask after
+        // construction (see the setTimeout in its constructor). Wait it out so the resolver always
+        // evaluates the RESTORED pair, never the pre-restore blank/URL-seeded intermediate.
+        await new Promise(resolve => setTimeout(resolve, 0));
+        // ---- Phase 1: symbol (needs active_symbols) ----
+        await when(() => this.has_symbols_for_v2);
+        const isAvailable = (symbol?: string | null) =>
+            !!symbol && this.active_symbols.some(info => info.underlying_symbol === symbol);
+
+        let resolved_symbol = this.symbol; // session-restored, or URL-seeded by the constructor
+        if (url_symbol) {
+            if (isAvailable(url_symbol)) resolved_symbol = url_symbol;
+            // The modal is deep-link-only: on a restore an "invalid" symbol usually just means the
+            // actives list is half-loaded (e.g. pre-auth after a browser restart) — not user error.
+            else if (is_deep_link) this.root_store.ui.toggleUrlUnavailableModal(true);
+        }
+        if (!isAvailable(resolved_symbol) && !is_deep_link) {
+            // Restore with a stale/unavailable symbol: prefer a symbol the user explicitly has open
+            // over inventing a default (pickDefaultSymbol can dredge up chart favourites the user
+            // never traded.
+            const strip_symbol = [...this.open_markets].reverse().find(market => isAvailable(market.symbol))?.symbol;
+            if (strip_symbol) resolved_symbol = strip_symbol;
+        }
+        if (!isAvailable(resolved_symbol)) {
+            resolved_symbol = (await pickDefaultSymbol(this.active_symbols)) || '1HZ100V';
+        }
+        if (this.selection_seq !== epoch) return; // user already picked a market — honour it
+        if (resolved_symbol && resolved_symbol !== this.symbol) {
+            await this.onChange({ target: { name: 'symbol', value: resolved_symbol } });
+        }
+
+        // ---- Phase 2: URL trade-type intent — deep links only (needs the market's processed type
+        // list). On a restore the URL type is just a mirror of the session, not intent; if it turns
+        // out not to be offered any more, resolveContractTypeAvailability corrects it in place. ----
+        if (url_trade_type && !is_deep_link && url_trade_type === this.contract_type) {
+            // Self-stamped restore: still record the landing type so consumers (e.g. automation
+            // fallbacks) treat reloads as URL landings — the documented pre-existing behaviour.
+            runInAction(() => {
+                this.url_trade_type = url_trade_type;
+            });
+        }
+        if (url_trade_type && is_deep_link) {
+            await when(() => !isEmptyObject(this.contract_types_list_v2));
+            if (this.selection_seq !== epoch) return;
+            if (this.isTradeTypeOfferedInV2List(url_trade_type)) {
+                // Record the URL landing atomically with the type so consumers (e.g. automation
+                // fallbacks) can tell a URL landing from manual navigation.
+                runInAction(() => {
+                    this.url_trade_type = url_trade_type;
+                });
+                if (this.contract_type !== url_trade_type) {
+                    await this.onChange({ target: { name: 'contract_type', value: url_trade_type } });
+                }
+            } else if (!Object.keys(getContractTypesConfig()).includes(url_trade_type)) {
+                // Unknown trade type in the URL (a genuine dead-end deep link) — show the modal.
+                this.root_store.ui.toggleUrlUnavailableModal(true);
+            } else {
+                // A real trade type the resolved market doesn't offer (e.g. arriving from Deriv
+                // Home with trade_type=rise_fall while the last-used market only offers
+                // Multipliers). Prioritise the URL trade type: switch to a market that offers it.
+                await this.reconcileUrlTradeTypeWithSymbol(url_trade_type, epoch);
+            }
+        }
+
+        // ---- Phase 3: record the resolved pair as the one initial tab, and stamp it into the
+        // URL atomically (the per-field reactions deliberately no longer write the URL) ----
+        if (this.selection_seq !== epoch) return;
+        const has_matching_tab = this.open_markets.some(
+            market =>
+                market.symbol === this.symbol && this.isSameTradeTypeGroup(market.contract_type, this.contract_type)
+        );
+        if (!has_matching_tab && !is_deep_link && this.open_markets.length && !this.is_automation_mode) {
+            // Stale-mirror convergence: on a restore, a resolved pair with no tab was never
+            // explicitly committed by the user (hybrid mirrors, half-loaded actives, a default
+            // pick) — activating it would materialise a phantom tab. Converge to the strip's most
+            // recent tab instead: the strip is the durable record of explicit intent.
+            const last_tab = this.open_markets[this.open_markets.length - 1];
+            await this.selectMarketAndTradeType(last_tab.symbol, last_tab.contract_type);
+            return;
+        }
+        this.recordActiveMarketTab();
+        this.syncTradeURLParams();
+    }
+
+    // Mirror the committed (symbol, contract_type) pair into the URL ATOMICALLY.
+    private syncTradeURLParams() {
+        if (!this.symbol || !this.contract_type) return;
+        setTradeURLParams({ symbol: this.symbol, contractType: this.contract_type });
+    }
+
+    /** Ensure the active (symbol, contract_type) pair has a tab, matched by trade-type category.
+     * Only the init resolver calls this (manual mode only — the automation strip seeds its own
+     * supported default): every other tab is recorded by selectMarketAndTradeType at click time. */
+    recordActiveMarketTab() {
+        if (!this.symbol || !this.contract_type || this.is_automation_mode) return;
+        const has_matching_tab = this.open_markets.some(
+            market =>
+                market.symbol === this.symbol && this.isSameTradeTypeGroup(market.contract_type, this.contract_type)
+        );
+        if (!has_matching_tab) this.addOpenMarket({ symbol: this.symbol, contract_type: this.contract_type });
+    }
+
+    /**
      * Prioritise a trade type coming from a URL param over a persisted/loaded symbol that doesn't
      * offer it. Scenario: the user arrives from Deriv Home with e.g. `trade_type=rise_fall` while the
      * last-used symbol (restored from storage) was Boom 1000, which only offers Multipliers. Instead
@@ -2903,7 +2952,12 @@ export default class TradeStore extends BaseStore {
      * If no open symbol offers the trade type, fall back to the URL-unavailable modal (the trade type
      * is effectively unavailable), leaving the current symbol untouched.
      */
-    async reconcileUrlTradeTypeWithSymbol(trade_type: string) {
+    async reconcileUrlTradeTypeWithSymbol(trade_type: string, existing_epoch?: number) {
+        // The URL intent is a selection like any other: it supersedes older in-flight cascades, and a
+        // user selection made while this reconcile awaits supersedes IT (checked before each write).
+        // When called from resolveInitialMarket it continues the resolver's own epoch instead of
+        // starting a new one (the reconcile IS the URL intent, not a competing selection).
+        const epoch = existing_epoch ?? ++this.selection_seq;
         // Set synchronously (before the first await) so it is observed in the same render that
         // useContractsFor unblocks the page loader — keeps the loader up instead of flashing the
         // stale market + wrong trade type.
@@ -2918,6 +2972,9 @@ export default class TradeStore extends BaseStore {
             // search has candidates — otherwise it would find nothing and wrongly show the modal.
             await when(() => this.active_symbols.length > 0, { timeout: WAIT_TIMEOUT });
             const compatible_symbol = await findSymbolForTradeType(this.active_symbols, trade_type);
+            // Superseded by a newer selection (e.g. the user already picked a market while we waited)
+            // — honour the user's choice and drop the URL intent silently (no modal, no writes).
+            if (this.selection_seq !== epoch) return;
             if (!compatible_symbol) {
                 this.root_store.ui.toggleUrlUnavailableModal(true);
                 return;
@@ -2940,9 +2997,13 @@ export default class TradeStore extends BaseStore {
                 this.root_store.ui.toggleUrlUnavailableModal(true);
                 return;
             }
+            // Same supersession check after the waits above: never overwrite a user selection that
+            // started while the reconcile was pending.
+            if (this.selection_seq !== epoch) return;
             if (this.contract_type !== trade_type) {
                 await this.onChange({ target: { name: 'contract_type', value: trade_type } });
             }
+            if (this.selection_seq === epoch) this.syncTradeURLParams();
         } catch (error) {
             // active_symbols/market list didn't settle in time (when timeout), or a switch failed — leave
             // the current state untouched rather than surfacing an error. Logged so a timeout is

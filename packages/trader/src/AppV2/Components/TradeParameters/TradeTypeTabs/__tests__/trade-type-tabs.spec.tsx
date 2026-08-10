@@ -46,27 +46,30 @@ describe('TradeTypeTabs', () => {
         await userEvent.click(screen.getByText('Put'));
     });
 
-    it('should call onChange function if user clicks on another tab and not call it if he clicks on the already chosen one', async () => {
+    it('should call setTradeSubType if user clicks on another tab and not call it if he clicks on the already chosen one', async () => {
         default_mock_store.modules.trade.contract_type = TRADE_TYPES.TURBOS.LONG;
         render(mockTradeTypeTabs());
 
         const current_tab = screen.getByText('Up');
         const another_tab = screen.getByText('Down');
-        expect(default_mock_store.modules.trade.onChange).not.toBeCalled();
+        expect(default_mock_store.modules.trade.setTradeSubType).not.toBeCalled();
         await userEvent.click(current_tab);
-        expect(default_mock_store.modules.trade.onChange).not.toBeCalled();
+        expect(default_mock_store.modules.trade.setTradeSubType).not.toBeCalled();
 
         await userEvent.click(another_tab);
-        expect(default_mock_store.modules.trade.onChange).toBeCalled();
+        // The Up/Down toggle is a same-category sub-type switch — it must go through the fenced
+        // sub-type writer, never a raw contract_type onChange.
+        expect(default_mock_store.modules.trade.setTradeSubType).toBeCalledWith(TRADE_TYPES.TURBOS.SHORT);
+        expect(default_mock_store.modules.trade.onChange).not.toBeCalled();
     });
 
-    it('should not call onChange function if user clicks on another tab which has the same trade type as the one already set', async () => {
+    it('should not call setTradeSubType if user clicks on another tab which has the same trade type as the one already set', async () => {
         default_mock_store.modules.trade.contract_type = TRADE_TYPES.HIGH_LOW;
         render(mockTradeTypeTabs());
 
         const another_tab = screen.getByText('Lower');
 
         await userEvent.click(another_tab);
-        expect(default_mock_store.modules.trade.onChange).not.toBeCalled();
+        expect(default_mock_store.modules.trade.setTradeSubType).not.toBeCalled();
     });
 });

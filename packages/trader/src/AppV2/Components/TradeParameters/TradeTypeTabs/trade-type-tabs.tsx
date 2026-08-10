@@ -11,7 +11,7 @@ import { useTraderStore } from 'Stores/useTraderStores';
 import { TTradeParametersProps } from '../trade-parameters';
 
 const TradeTypeTabs = observer(({ is_minimized }: TTradeParametersProps) => {
-    const { contract_type, is_market_closed, onChange, trade_type_tab, setTradeTypeTab } = useTraderStore();
+    const { contract_type, is_market_closed, setTradeSubType, trade_type_tab, setTradeTypeTab } = useTraderStore();
     const { isMobile } = useDevice();
     const tab_list = getTradeTypeTabsList(contract_type);
     let initial_index = 0;
@@ -35,8 +35,10 @@ const TradeTypeTabs = observer(({ is_minimized }: TTradeParametersProps) => {
         const { contract_type: type, value: trade_type } = tab_list[selected_item_index] ?? {};
         setTabIndex(selected_item_index);
         setTradeTypeTab(type);
+        // Same-category sub-toggle (Up/Down within Turbos or Vanillas) — goes through the fenced
+        // sub-type writer, never the raw contract_type pipeline.
         if (trade_type !== contract_type) {
-            onChange({ target: { name: 'contract_type', value: trade_type } });
+            setTradeSubType(trade_type);
         }
     };
 

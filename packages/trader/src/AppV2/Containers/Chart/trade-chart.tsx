@@ -83,7 +83,7 @@ const TradeChart = observer(() => {
         setChartStatus,
         show_digits_stats,
         symbol,
-        onChange,
+        selectMarketAndTradeType,
         setTickData,
         prev_contract_type,
     } = useTraderStore();
@@ -132,10 +132,10 @@ const TradeChart = observer(() => {
 
     React.useEffect(() => {
         if ((is_accumulator || show_digits_stats) && ref.current?.hasPredictionIndicators()) {
-            const cancelCallback = () => onChange({ target: { name: 'contract_type', value: prev_contract_type } });
+            const cancelCallback = () => selectMarketAndTradeType(symbol, prev_contract_type);
             ref.current?.triggerPopup(cancelCallback);
         }
-    }, [is_accumulator, onChange, prev_contract_type, show_digits_stats]);
+    }, [is_accumulator, selectMarketAndTradeType, symbol, prev_contract_type, show_digits_stats]);
 
     // Memoize barriers array to prevent unnecessary recalculations
     const barriers: ChartBarrierStore[] = React.useMemo(

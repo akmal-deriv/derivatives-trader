@@ -294,11 +294,10 @@ describe('MarketTabs', () => {
         expect(screen.getByTestId('tab-frxEURUSD__rise_fall')).toHaveAttribute('data-active', 'true');
     });
 
-    it('does not seed while a market selection is committing (no stale mid-cascade tab)', () => {
-        // Selecting a market records the exact pair up-front, then runs a symbol-first/contract_type
-        // cascade that transiently pairs the new symbol with the old trade type. The seed must skip
-        // while `is_selecting_market` is set so that transient never spawns a stale tab.
-        mockIsSelectingMarket = true;
+    it('NEVER derives a tab from the active store state (root cause of phantom "random" tabs)', () => {
+        // The seed effect was removed: tabs are only created explicitly (selectMarketAndTradeType /
+        // resolveInitialMarket). An active pair with no matching tab must NOT grow the strip —
+        // regardless of guard flags, list length, or cap.
         mockStoreSymbol = 'frxBOOM300';
         mockStoreContractType = 'rise_fall';
         mockOpenMarkets = [{ symbol: 'frxBOOM300', contract_type: 'accumulator' }];
@@ -307,25 +306,7 @@ describe('MarketTabs', () => {
         expect(mockReplace).not.toHaveBeenCalled();
     });
 
-    it('seeds the active market when the symbol has no tab yet', () => {
-        mockStoreSymbol = 'frxEURUSD';
-        mockStoreContractType = 'rise_fall';
-        mockOpenMarkets = [];
-        render(<MarketTabs />);
-        expect(mockAdd).toHaveBeenCalledWith({ symbol: 'frxEURUSD', contract_type: 'rise_fall' });
-    });
-
-    it('opens a new tab when the active market+trade-type has no matching tab (URL deep-link)', () => {
-        // Symbol is open under a different trade-type category; the URL-landed pair has no matching
-        // tab, so a new tab is added (both R_100 tabs then coexist).
-        mockStoreSymbol = 'R_100';
-        mockStoreContractType = 'rise_fall';
-        mockOpenMarkets = [{ symbol: 'R_100', contract_type: 'accumulator' }];
-        render(<MarketTabs />);
-        expect(mockAdd).toHaveBeenCalledWith({ symbol: 'R_100', contract_type: 'rise_fall' });
-    });
-
-    it('replaces the last tab when landing on a new market+trade-type at the cap', () => {
+    it('never replaces a tab from the strip itself at the cap (explicit flows only)', () => {
         mockStoreSymbol = 'R_100';
         mockStoreContractType = 'rise_fall';
         mockOpenMarkets = Array.from({ length: MAX_OPEN_MARKETS }, (_, i) => ({
@@ -333,10 +314,7 @@ describe('MarketTabs', () => {
             contract_type: 'accumulator',
         }));
         render(<MarketTabs />);
-        expect(mockReplace).toHaveBeenCalledWith(mockOpenMarkets[MAX_OPEN_MARKETS - 1], {
-            symbol: 'R_100',
-            contract_type: 'rise_fall',
-        });
+        expect(mockReplace).not.toHaveBeenCalled();
         expect(mockAdd).not.toHaveBeenCalled();
     });
 

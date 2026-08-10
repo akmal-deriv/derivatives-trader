@@ -2,7 +2,7 @@ import { TRADE_TYPES } from '@deriv/shared';
 import { mockStore } from '@deriv/stores';
 
 import { ContractType } from '../../Helpers/contract-type';
-import { onChangeContractType, onChangeContractTypeList } from '../contract-type';
+import { onChangeContractType } from '../contract-type';
 
 jest.mock('@deriv/shared', () => {
     const barrier_intraday = '+0.000';
@@ -115,55 +115,7 @@ jest.mock('@deriv/shared', () => {
     };
 });
 
-const accumulators_title = 'Accumulators';
-const multipliers_title = 'Multipliers';
 const underlying = 'R_10';
-const vanillas_title = 'Vanillas';
-const call_put = 'Call/Put';
-
-describe('onChangeContractTypeList', () => {
-    const trade_store = mockStore({}).modules.trade;
-    const accumulators_contract_data = {
-        [accumulators_title]: {
-            name: accumulators_title,
-            categories: [{ value: TRADE_TYPES.ACCUMULATOR, text: accumulators_title }],
-        },
-    };
-    const vanillas_contract_data = {
-        [vanillas_title]: {
-            name: vanillas_title,
-            categories: [
-                { value: TRADE_TYPES.VANILLA.CALL, text: call_put },
-                {
-                    value: TRADE_TYPES.VANILLA.PUT,
-                    text: call_put,
-                },
-            ],
-        },
-    };
-
-    beforeAll(() => {
-        ContractType.buildContractTypesConfig(underlying);
-    });
-
-    it('should return the 1st contract_type from contract_types_list if Multipliers are not present in it', () => {
-        trade_store.contract_types_list = { ...accumulators_contract_data, ...vanillas_contract_data };
-        expect(onChangeContractTypeList(trade_store)).toMatchObject({ contract_type: TRADE_TYPES.ACCUMULATOR });
-    });
-    it('should return Multipliers contract_type if Multipliers are present in contract_types_list', () => {
-        trade_store.contract_types_list = {
-            ...vanillas_contract_data,
-            [multipliers_title]: {
-                name: multipliers_title,
-                categories: [{ value: TRADE_TYPES.MULTIPLIER, text: multipliers_title }],
-            },
-        };
-        expect(onChangeContractTypeList(trade_store)).toMatchObject({ contract_type: TRADE_TYPES.MULTIPLIER });
-    });
-    it('should return an empty object when called with an empty object', () => {
-        expect(onChangeContractTypeList({} as typeof trade_store)).toMatchObject({});
-    });
-});
 
 describe('onChangeContractType', () => {
     const trade_store = mockStore({}).modules.trade;

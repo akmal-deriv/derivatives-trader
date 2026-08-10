@@ -91,7 +91,7 @@ const ClosedMarketMessage = observer(() => {
                 setTimeLeft(calculateTimeLeft(when_market_opens.remaining_time_to_open));
                 if (+new Date(when_market_opens.remaining_time_to_open) - +new Date() < 1000) {
                     setLoading(true);
-                    prepareTradeStore(false);
+                    prepareTradeStore();
                 }
             }, 1000);
         }

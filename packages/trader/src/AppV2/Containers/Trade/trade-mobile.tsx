@@ -15,8 +15,8 @@ import MarketTabs from 'AppV2/Components/MarketTabs';
 import OnboardingGuide from 'AppV2/Components/OnboardingGuide/GuideForPages';
 import TradeErrorSnackbar from 'AppV2/Components/TradeErrorSnackbar';
 import { TradeParametersContainer } from 'AppV2/Components/TradeParameters';
+import useActiveSymbols from 'AppV2/Hooks/useActiveSymbols';
 import useContractsFor from 'AppV2/Hooks/useContractsFor';
-import useDefaultSymbol from 'AppV2/Hooks/useDefaultSymbol';
 import { isDigitTradeType } from 'AppV2/Utils/digits';
 import { CHART_MAXIMIZE_ANIMATION_MS, getChartHeight } from 'AppV2/Utils/layout-utils';
 import { getDisplayedContractTypes } from 'AppV2/Utils/trade-types-utils';
@@ -50,7 +50,7 @@ const Trade = observer(() => {
         is_reconciling_url_trade_type,
     } = useTraderStore();
     const { trade_types } = useContractsFor();
-    useDefaultSymbol(); // This will initialize and set the default symbol
+    useActiveSymbols();
 
     // On a `view_markets=true` landing the market selector opens on load (MarketTabs); defer onboarding
     // until it's closed so they don't overlap. One-shot: seed from the param on first render, then the

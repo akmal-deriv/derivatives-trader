@@ -21,11 +21,11 @@ import MarketTabs, { MarketTabsSkeleton } from 'AppV2/Components/MarketTabs';
 import ServiceErrorSheet from 'AppV2/Components/ServiceErrorSheet';
 import TradeErrorSnackbar from 'AppV2/Components/TradeErrorSnackbar';
 import { TradeParameters } from 'AppV2/Components/TradeParameters';
+import useActiveSymbols from 'AppV2/Hooks/useActiveSymbols';
 import useAutomationConfig from 'AppV2/Hooks/useAutomationConfig';
 import useAutomationSupportedTradeTypes from 'AppV2/Hooks/useAutomationSupportedTradeTypes';
 import useAutomationTicks from 'AppV2/Hooks/useAutomationTicks';
 import useContractsFor from 'AppV2/Hooks/useContractsFor';
-import useDefaultSymbol from 'AppV2/Hooks/useDefaultSymbol';
 import useNonAutomatableSymbolSnackbar from 'AppV2/Hooks/useNonAutomatableSymbolSnackbar';
 import useRunControls from 'AppV2/Hooks/useRunControls';
 import { isDigitTradeType } from 'AppV2/Utils/digits';
@@ -60,7 +60,9 @@ const AutomateMobile = observer(() => {
     const { supported_trade_types: supported_automation_trade_types, is_loading: are_strategies_loading } =
         useAutomationSupportedTradeTypes();
     const { localize } = useTranslations();
-    useDefaultSymbol();
+    // Drives the active_symbols fetch into the store (multiplier-only markets excluded on this
+    // route); selection itself is owned by the trade store's resolveInitialMarket.
+    useActiveSymbols();
     useNonAutomatableSymbolSnackbar();
     useAutomationTicks();
 
