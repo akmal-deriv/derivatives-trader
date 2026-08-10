@@ -27,8 +27,9 @@ const StakePopoverContent: React.FC<{
     currency: string;
     is_open: boolean;
     contract_type: string;
+    symbol: string;
     onChipSelect: (amount: number) => void;
-}> = ({ active_tab, amount, currency, is_open, contract_type, onChipSelect }) => {
+}> = ({ active_tab, amount, currency, is_open, contract_type, symbol, onChipSelect }) => {
     const { closePopover } = useTradeParameterPopover();
 
     const handleChipSelectAndClose = useCallback(
@@ -47,7 +48,7 @@ const StakePopoverContent: React.FC<{
 
     // Map contract_type to the preset key and get the appropriate stake presets
     const presetKey = mapContractTypeToStakePresetKey(contract_type);
-    const chipValues = presetKey ? getStakePresets(presetKey) : undefined;
+    const chipValues = presetKey ? getStakePresets(presetKey, symbol) : undefined;
 
     // Fallback to a default set if no presets found (backward compatibility)
     const defaultChipValues = [1, 5, 10, 20, 50, 100];
@@ -69,6 +70,7 @@ const Stake = observer(({ is_minimized, is_automation }: TTradeParametersProps) 
         amount,
         currency,
         contract_type,
+        symbol,
         has_open_accu_contract,
         is_automation_params_locked,
         is_market_closed,
@@ -141,6 +143,7 @@ const Stake = observer(({ is_minimized, is_automation }: TTradeParametersProps) 
                 currency={currency}
                 is_open={is_open}
                 contract_type={contract_type}
+                symbol={symbol}
                 onChipSelect={handleChipSelect}
             />
         </TradeParameterPopover>

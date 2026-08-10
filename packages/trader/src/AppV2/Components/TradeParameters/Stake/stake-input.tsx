@@ -163,6 +163,7 @@ const StakeInput = observer(({ onClose, is_open, onOpenStopOut, onOpenCommission
     const {
         contract_type,
         currency,
+        symbol,
         barrier_1,
         has_stop_loss,
         is_accumulator,
@@ -369,7 +370,7 @@ const StakeInput = observer(({ onClose, is_open, onOpenStopOut, onOpenCommission
     // Presets valid for the current contract; limits update from validation_params/proposal errors
     const preset_key = mapContractTypeToStakePresetKey(contract_type);
     const preset_values = getStakePresetValues(
-        (preset_key ? getStakePresets(preset_key) : undefined) ?? DEFAULT_PRESET_VALUES,
+        (preset_key ? getStakePresets(preset_key, symbol) : undefined) ?? DEFAULT_PRESET_VALUES,
         details.min_stake,
         details.max_stake
     );

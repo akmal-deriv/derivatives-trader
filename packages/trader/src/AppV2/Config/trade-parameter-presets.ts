@@ -405,20 +405,41 @@ export const DEFAULT_DURATION: Record<keyof DurationPresets, { value: number; un
 };
 
 /**
- * Helper function to get stake presets for a specific trade type
+ * Symbol-specific stake preset overrides.
+ *
+ * A few symbols have a minimum stake above every shared preset for the trade type — e.g. Turbos on
+ * Volatility 25 (1s) `1HZ25V` (min ≈ 34.06) and Volatility 50 (1s) `1HZ50V` — so the shared presets
+ * would all be invalid. These curated sets sit above those minimums.
+ */
+export const STAKE_PRESET_SYMBOL_OVERRIDES: Partial<Record<keyof StakePresets, Record<string, number[]>>> = {
+    turbos: {
+        '1HZ25V': [35, 40, 45, 50, 55, 60], // Volatility 25 (1s) Index — min ≈ 34.06
+        '1HZ50V': [25, 30, 35, 40, 45, 50], // Volatility 50 (1s) Index
+    },
+};
+
+/**
+ * Returns the curated stake presets for a trade type + symbol, if an override exists.
+ */
+export const getStakePresetOverride = (tradeType: keyof StakePresets, symbol?: string): number[] | undefined =>
+    symbol ? STAKE_PRESET_SYMBOL_OVERRIDES[tradeType]?.[symbol] : undefined;
+
+/**
+ * Helper function to get stake presets for a trade type, applying any symbol-specific override.
  *
  * @param tradeType - The trade type identifier
+ * @param symbol - Optional symbol; when it has a curated override (e.g. high-min Turbos indices)
+ *                 that override is returned instead of the shared presets
  * @returns Array of stake preset values, or undefined if not found
  *
  * @example
  * ```typescript
- * const stakes = getStakePresets('turbos');
- * // Returns: [1, 2, 5, 10, 15, 25]
+ * getStakePresets('turbos');           // [1, 2, 5, 10, 15, 25]
+ * getStakePresets('turbos', '1HZ25V'); // [35, 40, 45, 50, 55, 60]
  * ```
  */
-export const getStakePresets = (tradeType: keyof StakePresets): number[] | undefined => {
-    return TRADE_PARAMETER_PRESETS.stake[tradeType];
-};
+export const getStakePresets = (tradeType: keyof StakePresets, symbol?: string): number[] | undefined =>
+    getStakePresetOverride(tradeType, symbol) ?? TRADE_PARAMETER_PRESETS.stake[tradeType];
 
 /**
  * Helper function to get duration presets for a specific trade type, market, and unit
