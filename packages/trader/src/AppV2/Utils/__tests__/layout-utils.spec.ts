@@ -83,15 +83,15 @@ describe('getChartHeight', () => {
             is_accumulator: false,
             symbol: '1HZ100V',
         };
-        // window.innerHeight (740) - HEADER (56) - MARKET_SELECTOR (72) - TRADE_PARAM_SHEET (170) - BOTTOM_NAV (56) = 386
+        // window.innerHeight (740) - HEADER (56) - MARKET_SELECTOR (72) - TRADE_PARAM_SHEET (174) - BOTTOM_NAV (56) = 386
         // MATCH_DIFF is a digit type, so subtract DIGIT_INFO (56): 386 - 56 = 330
         // MATCH_DIFF has trade_type_tabs, so subtract TRADE_TYPE_TAB (48): 330 - 48 = 282
-        const default_chart_height = 282;
+        const default_chart_height = 288;
         // base (386) - CHART_STATS (44) = 342 (ACCUMULATOR has no trade_type_tabs)
-        const accumulators_chart_height = 342;
+        const accumulators_chart_height = 338;
         // base (386) - TRADE_TYPE_TAB (48) = 338. The below-params info rows are dropped on
         // responsive, so they no longer reduce the chart height.
-        const chart_height_with_trade_type_tabs = 338;
+        const chart_height_with_trade_type_tabs = 334;
 
         expect(
             getChartHeight({

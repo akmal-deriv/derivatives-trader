@@ -41,6 +41,8 @@ const CurrentSpot = observer(() => {
     const prev_last_contract_ticks = usePrevious(last_contract_ticks);
 
     let tick = tick_data;
+    // True only when `tick` below is sourced from a contract's tick_stream (not the live ticks feed).
+    let is_contract_stream_tick = false;
 
     const is_contract_elapsed = isContractElapsed(contract_info, tick);
     const is_prev_contract_elapsed = isContractElapsed(prev_contract?.contract_info, tick);
@@ -58,6 +60,7 @@ const CurrentSpot = observer(() => {
                 quote: latest_stream_tick,
                 current_tick: tick_stream.length,
             } as any;
+            is_contract_stream_tick = true;
         }
     }
     const current_tick = tick && 'current_tick' in tick ? (tick.current_tick as number) : null;
@@ -104,7 +107,10 @@ const CurrentSpot = observer(() => {
     const is_winning = isDigitContractWinning(contract_type, barrier, latest_digit.digit);
     const has_contract = is_digit_contract && status && latest_digit.spot && !!entry_spot;
     const has_open_contract = has_contract && !is_ended;
-    const has_relevant_tick_data = underlying === symbol || !underlying;
+    // The live ticks feed is always for the current symbol, so it's always relevant. Only a tick
+    // sourced from a contract's stream must be gated on the contract's symbol matching the selected
+    // one — otherwise a stale finished contract on another symbol would keep the spot on a skeleton.
+    const has_relevant_tick_data = !is_contract_stream_tick || underlying === symbol;
     const should_show_tick_count = has_contract && has_relevant_tick_data;
     const should_enter_from_left =
         !prev_contract?.contract_info ||

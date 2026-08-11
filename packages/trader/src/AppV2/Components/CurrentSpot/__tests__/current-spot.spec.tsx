@@ -317,4 +317,18 @@ describe('CurrentSpot', () => {
         expect(screen.getByText(current_spot)).toBeInTheDocument();
         expect(screen.getByText(current_last_digit)).toBeInTheDocument();
     });
+    it('should render the live spot (not a skeleton) when the last finished contract is for a different symbol', () => {
+        // Live ticks are flowing for the current symbol, but a stale finished contract on another
+        // symbol must not gate the spot behind a skeleton forever.
+        default_mock_store.modules.trade.tick_data = tick_data;
+        default_mock_store.contract_trade.last_contract = {
+            ...closed_contract,
+            contract_info: { ...closed_contract_info, underlying_symbol: 'R_50' },
+        } as unknown as TContractStore;
+        render(mockCurrentSpot());
+
+        expect(screen.queryByTestId('dt_skeleton')).not.toBeInTheDocument();
+        expect(screen.getByText(current_spot)).toBeInTheDocument();
+        expect(screen.getByText(current_last_digit)).toBeInTheDocument();
+    });
 });

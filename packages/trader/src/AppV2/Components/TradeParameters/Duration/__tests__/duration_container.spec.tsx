@@ -50,6 +50,7 @@ const default_props = {
     setSavedExpiryTime: jest.fn(),
     setSelectedExpiryDate: jest.fn(),
     setSavedExpiryDate: jest.fn(),
+    onRequestClose: jest.fn(),
 };
 
 describe('DurationActionSheetContainer', () => {

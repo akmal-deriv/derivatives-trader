@@ -27,19 +27,42 @@ const WheelContainer = ({ is_single_unit, children }: { is_single_unit: boolean;
 );
 
 export const DurationTicksWheel = observer(
-    ({ selected_ticks, setSelectedTicks }: { selected_ticks: number; setSelectedTicks: (arg: number) => void }) => {
+    ({
+        selected_ticks,
+        setSelectedTicks,
+        onRequestClose,
+    }: {
+        selected_ticks: number;
+        setSelectedTicks: (arg: number) => void;
+        onRequestClose: () => void;
+    }) => {
         const { duration_min_max, duration_units_list } = useTraderStore();
         const options = React.useMemo(() => getTicksWheelOptions(duration_min_max), [duration_min_max]);
         const is_single_unit = duration_units_list.length === 1;
 
+        // Tapping an item selects it and dismisses the sheet: pick the tapped option by its position in
+        // the column, apply it, then ask the sheet to commit + close.
+        const handleItemClick = (event: React.MouseEvent<HTMLDivElement>) => {
+            const item = (event.target as HTMLElement).closest('.quill-wheel-picker__data-item');
+            const list = item?.closest('.quill-wheel-picker__data-items');
+            if (!item || !list) return;
+            const index = Array.from(list.querySelectorAll('.quill-wheel-picker__data-item')).indexOf(item);
+            const value = options[index]?.value;
+            if (value == null) return;
+            setSelectedTicks(Number(value));
+            onRequestClose();
+        };
+
         return (
             <WheelContainer is_single_unit={is_single_unit}>
-                <WheelPickerContainer
-                    data={[options]}
-                    containerHeight={getWheelPickerHeight(is_single_unit)}
-                    inputValues={[selected_ticks]}
-                    setInputValues={(_, value) => setSelectedTicks(Number(value))}
-                />
+                <div onClick={handleItemClick}>
+                    <WheelPickerContainer
+                        data={[options]}
+                        containerHeight={getWheelPickerHeight(is_single_unit)}
+                        inputValues={[selected_ticks]}
+                        setInputValues={(_, value) => setSelectedTicks(Number(value))}
+                    />
+                </div>
             </WheelContainer>
         );
     }
@@ -49,7 +72,15 @@ export const DurationTicksWheel = observer(
 const SNAP_BACK_DELAY_MS = 300;
 
 export const DurationTimeWheel = observer(
-    ({ selected_time, setSelectedTime }: { selected_time: number[]; setSelectedTime: (arg: number[]) => void }) => {
+    ({
+        selected_time,
+        setSelectedTime,
+        onRequestClose,
+    }: {
+        selected_time: number[];
+        setSelectedTime: (arg: number[]) => void;
+        onRequestClose: () => void;
+    }) => {
         const { duration_min_max, duration_units_list } = useTraderStore();
         const intraday = duration_min_max?.intraday;
         const visible_units = React.useMemo(() => getTimeWheelVisibleUnits(duration_units_list), [duration_units_list]);
@@ -135,9 +166,25 @@ export const DurationTimeWheel = observer(
             updateSelectedTime(next);
         };
 
+        // Tapping an item selects it and dismisses the sheet: resolve which column + option was tapped,
+        // apply it through the same change handler (so finer units follow), then commit + close.
+        const handleItemClick = (event: React.MouseEvent<HTMLDivElement>) => {
+            const item = (event.target as HTMLElement).closest('.quill-wheel-picker__data-item');
+            const list = item?.closest('.quill-wheel-picker__data-items');
+            if (!item || !list || !wheel_ref.current) return;
+            const column_index = Array.from(
+                wheel_ref.current.querySelectorAll('.quill-wheel-picker__data-items')
+            ).indexOf(list);
+            const item_index = Array.from(list.querySelectorAll('.quill-wheel-picker__data-item')).indexOf(item);
+            const value = data[column_index]?.[item_index]?.value;
+            if (column_index < 0 || value == null) return;
+            onWheelChange(column_index, value);
+            onRequestClose();
+        };
+
         return (
             <WheelContainer is_single_unit={is_single_unit}>
-                <div ref={wheel_ref}>
+                <div ref={wheel_ref} onClick={handleItemClick}>
                     <WheelPickerContainer
                         data={data}
                         containerHeight={getWheelPickerHeight(is_single_unit)}

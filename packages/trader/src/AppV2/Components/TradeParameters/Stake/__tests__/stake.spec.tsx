@@ -9,7 +9,6 @@ import TraderProviders from '../../../../../trader-providers';
 import Stake from '../stake';
 import StakeInput from '../stake-input';
 import StakeInputDesktop from '../stake-input-desktop';
-import StakeMobile from '../stake-mobile';
 
 const stake_param_label = 'Stake';
 
@@ -454,76 +453,5 @@ describe('StakeInputDesktop', () => {
         // Typing '4' appends a second decimal digit — this must NOT be blocked
         await user.type(stake_input, '4');
         expect(stake_input).toHaveValue('5.34');
-    });
-});
-
-describe('StakeMobile inline steppers', () => {
-    let mobile_store: ReturnType<typeof mockStore>;
-
-    beforeEach(() => {
-        mobile_store = mockStore({
-            modules: {
-                trade: {
-                    ...mockStore({}).modules.trade,
-                    amount: 10,
-                    currency: 'USD',
-                    contract_type: TRADE_TYPES.RISE_FALL,
-                    onChange: jest.fn(),
-                    trade_types: { [CONTRACT_TYPES.CALL]: 'Higher', [CONTRACT_TYPES.PUT]: 'Lower' },
-                    trade_type_tab: 'CALL',
-                    validation_params: {
-                        [CONTRACT_TYPES.CALL]: { stake: { max: '100', min: '1' } },
-                        [CONTRACT_TYPES.PUT]: { stake: { max: '100', min: '1' } },
-                    },
-                },
-            },
-        });
-    });
-
-    const renderStakeMobile = () =>
-        render(
-            <TraderProviders store={mobile_store}>
-                <ModulesProvider store={mobile_store}>
-                    <StakeMobile />
-                </ModulesProvider>
-            </TraderProviders>
-        );
-
-    it('increments and decrements the stake by 1 for fiat', async () => {
-        renderStakeMobile();
-
-        await userEvent.click(screen.getByTestId('dt_stepper_increment'));
-        expect(mobile_store.modules.trade.onChange).toHaveBeenCalledWith({ target: { name: 'amount', value: 11 } });
-
-        await userEvent.click(screen.getByTestId('dt_stepper_decrement'));
-        expect(mobile_store.modules.trade.onChange).toHaveBeenCalledWith({ target: { name: 'amount', value: 9 } });
-    });
-
-    it('disables the increment stepper at the max stake', () => {
-        mobile_store.modules.trade.amount = 100;
-        renderStakeMobile();
-
-        expect(screen.getByTestId('dt_stepper_increment')).toBeDisabled();
-        expect(screen.getByTestId('dt_stepper_decrement')).toBeEnabled();
-    });
-
-    it('keeps steppers usable when stake limits are unknown (e.g. Rise/Fall)', async () => {
-        mobile_store.modules.trade.validation_params = {};
-        renderStakeMobile();
-
-        expect(screen.getByTestId('dt_stepper_increment')).toBeEnabled();
-        expect(screen.getByTestId('dt_stepper_decrement')).toBeEnabled();
-
-        await userEvent.click(screen.getByTestId('dt_stepper_increment'));
-        expect(mobile_store.modules.trade.onChange).toHaveBeenCalledWith({ target: { name: 'amount', value: 11 } });
-    });
-
-    it('disables the decrement stepper when the next step would reach zero', () => {
-        mobile_store.modules.trade.validation_params = {};
-        mobile_store.modules.trade.amount = 1;
-        renderStakeMobile();
-
-        expect(screen.getByTestId('dt_stepper_decrement')).toBeDisabled();
-        expect(screen.getByTestId('dt_stepper_increment')).toBeEnabled();
     });
 });

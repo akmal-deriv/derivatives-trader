@@ -392,68 +392,6 @@ describe('Duration - Mobile', () => {
             expiry_type: 'duration',
         });
     });
-
-    it('should step the duration by one second and roll seconds into minutes (mobile)', async () => {
-        default_trade_store.modules.trade.duration_min_max.intraday = { min: 15, max: 86400 };
-        default_trade_store.modules.trade.duration_unit = 's';
-        default_trade_store.modules.trade.duration = 59;
-        mockDurationMobile();
-
-        // 59s + 1s = 60s → commits as 1 minute
-        await userEvent.click(screen.getByTestId('dt_stepper_increment'));
-        expect(mockOnChangeMultiple).toHaveBeenCalledWith({
-            duration_unit: 'm',
-            duration: 1,
-            expiry_type: 'duration',
-        });
-    });
-
-    it('should step one second past a whole minute into a seconds duration (mobile)', async () => {
-        default_trade_store.modules.trade.duration_min_max.intraday = { min: 15, max: 86400 };
-        // 1 minute (stored as minutes) + 1s = 61s → 1 min 1 sec, committed as seconds
-        default_trade_store.modules.trade.duration_unit = 'm';
-        default_trade_store.modules.trade.duration = 1;
-        mockDurationMobile();
-
-        await userEvent.click(screen.getByTestId('dt_stepper_increment'));
-        expect(mockOnChangeMultiple).toHaveBeenCalledWith({
-            duration_unit: 's',
-            duration: 61,
-            expiry_type: 'duration',
-        });
-    });
-
-    it('should step ticks by 1 tick (mobile)', async () => {
-        default_trade_store.modules.trade.duration_unit = 't';
-        default_trade_store.modules.trade.duration = 5;
-        mockDurationMobile();
-
-        await userEvent.click(screen.getByTestId('dt_stepper_increment'));
-        expect(mockOnChangeMultiple).toHaveBeenCalledWith({
-            duration_unit: 't',
-            duration: 6,
-            expiry_type: 'duration',
-        });
-    });
-
-    it('should disable the decrement stepper at the intraday minimum (mobile)', () => {
-        default_trade_store.modules.trade.duration_min_max.intraday = { min: 15, max: 86400 };
-        default_trade_store.modules.trade.duration_unit = 's';
-        default_trade_store.modules.trade.duration = 15;
-        mockDurationMobile();
-
-        expect(screen.getByTestId('dt_stepper_decrement')).toBeDisabled();
-        expect(screen.getByTestId('dt_stepper_increment')).toBeEnabled();
-    });
-
-    it('should not render the steppers in End time mode (mobile)', () => {
-        default_trade_store.modules.trade.expiry_type = 'endtime';
-        default_trade_store.modules.trade.expiry_time = '12:30';
-        mockDurationMobile();
-
-        expect(screen.queryByTestId('dt_stepper_increment')).not.toBeInTheDocument();
-        expect(screen.queryByTestId('dt_stepper_decrement')).not.toBeInTheDocument();
-    });
 });
 
 describe('Duration default on trade-type switch', () => {

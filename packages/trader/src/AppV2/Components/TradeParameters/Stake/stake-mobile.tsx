@@ -3,13 +3,7 @@ import clsx from 'clsx';
 import { observer } from 'mobx-react-lite';
 
 import { LabelPairedArrowLeftMdRegularIcon } from '@deriv/quill-icons';
-import {
-    CONTRACT_TYPES,
-    getCurrencyDisplayCode,
-    getDecimalPlaces,
-    getMinPayout,
-    isCryptocurrency,
-} from '@deriv/shared';
+import { CONTRACT_TYPES, getCurrencyDisplayCode } from '@deriv/shared';
 import { ActionSheet, TextField } from '@deriv-com/quill-ui';
 import { Localize } from '@deriv-com/translations';
 
@@ -22,7 +16,7 @@ import { AutomationStoreContext } from 'Stores/useAutomationStore';
 import { useTraderStore } from 'Stores/useTraderStores';
 
 import CommissionDescription from '../Multiplier/commission-description';
-import { AutomationLockOverlay, StepperButtons } from '../Shared';
+import { AutomationLockOverlay } from '../Shared';
 import { TTradeParametersProps } from '../trade-parameters';
 
 import StakeInput from './stake-input';
@@ -52,11 +46,9 @@ const Stake = observer(({ is_minimized, is_automation }: TTradeParametersProps) 
         is_market_closed,
         is_multiplier,
         multiplier,
-        onChange,
         trade_types,
         trade_type_tab,
         proposal_info,
-        validation_params,
         is_automation_tab,
     } = useTraderStore();
     const automation_store = React.useContext(AutomationStoreContext);
@@ -143,27 +135,7 @@ const Stake = observer(({ is_minimized, is_automation }: TTradeParametersProps) 
         );
     }
 
-    // Inline ±1 steppers (expanded view only). Step is 1 for fiat; for crypto the currency minimum
-    // is the smallest meaningful increment. validation_params.stake is only present for some contract
-    // types (e.g. multipliers), so limits are optional: clamp when known, otherwise let the proposal
-    // validate — never gate the whole stepper on limits being loaded.
-    const { stake } = (validation_params[contract_types[0]] || validation_params[contract_types[1]]) ?? {};
-    const min_stake = Number(stake?.min);
-    const max_stake = Number(stake?.max);
-    const has_min = min_stake > 0;
-    const has_max = max_stake > 0;
-    const current = Number(amount);
-    const step = Number(isCryptocurrency(currency) ? getMinPayout(currency) : 1) || 1;
-    const show_steppers = !is_minimized;
-    const stepStake = (direction: 1 | -1) => {
-        let next = Number((current + direction * step).toFixed(getDecimalPlaces(currency)));
-        if (has_min) next = Math.max(min_stake, next);
-        if (has_max) next = Math.min(max_stake, next);
-        if (next > 0 && next !== current) onChange({ target: { name: 'amount', value: next } });
-    };
-    const steppers_disabled = has_open_accu_contract || is_market_closed || is_automation_params_locked;
-    const decrement_disabled = steppers_disabled || current - step <= 0 || (has_min && current <= min_stake);
-    const increment_disabled = steppers_disabled || (has_max && current >= max_stake);
+    const is_field_disabled = has_open_accu_contract || is_market_closed || is_automation_params_locked;
 
     // Keep initial_stake in sync with the stake field in automation context.
     // `is_automation_tab` only flips on desktop (the panel-tab switcher); the
@@ -178,7 +150,7 @@ const Stake = observer(({ is_minimized, is_automation }: TTradeParametersProps) 
         <React.Fragment>
             <div className='trade-params__field-locked'>
                 <TextField
-                    disabled={steppers_disabled}
+                    disabled={is_field_disabled}
                     variant='fill'
                     readOnly
                     label={
@@ -192,16 +164,6 @@ const Stake = observer(({ is_minimized, is_automation }: TTradeParametersProps) 
                     value={`${amount} ${getCurrencyDisplayCode(currency)}`}
                     className={clsx('trade-params__option', is_minimized && 'trade-params__option--minimized')}
                     status={has_error && should_show_snackbar ? 'error' : 'neutral'}
-                    rightIcon={
-                        show_steppers ? (
-                            <StepperButtons
-                                onDecrement={() => stepStake(-1)}
-                                onIncrement={() => stepStake(1)}
-                                decrement_disabled={decrement_disabled}
-                                increment_disabled={increment_disabled}
-                            />
-                        ) : undefined
-                    }
                 />
                 {is_automation_params_locked && <AutomationLockOverlay />}
             </div>

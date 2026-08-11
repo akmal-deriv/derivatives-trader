@@ -80,21 +80,23 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            height: 2rem; // HEIGHT.TRADE_PARAM_HANDLER
+            height: 2.4rem;
             cursor: pointer;
             user-select: none;
             position: relative;
             z-index: 2;
             touch-action: manipulation; // Extra specificity for handle
 
-            // Static drag bar matching the quill ActionSheet handle
-            &-bar {
-                height: var(--component-handle-height);
-                width: var(--component-handle-width);
-                border-radius: var(--component-handle-border-radius);
-                background-color: var(--component-handle-bg);
+            // Chevron affordance: points up while collapsed, rotates 180° to point down when the sheet
+            // is expanded. Animated so the flip reads as a smooth rotation.
+            &-chevron {
                 pointer-events: none; // Make handle click-through
+                transition: transform 0.3s ease-in-out;
             }
+        }
+
+        &--expanded &-handle-chevron {
+            transform: rotate(180deg);
         }
 
         &-tabs {
@@ -117,12 +119,6 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-    }
-    // − / + steppers rendered inside the field's rightIcon slot
-    &__steppers {
-        display: flex;
-        align-items: center;
-        gap: var(--core-spacing-400);
     }
     &__options {
         &-wrapper {

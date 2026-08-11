@@ -2,6 +2,7 @@ import React from 'react';
 import clsx from 'clsx';
 import { observer } from 'mobx-react-lite';
 
+import { LabelPairedChevronUpLgFillIcon } from '@deriv/quill-icons';
 import { useStore } from '@deriv/stores';
 
 import ClosedMarketMessage from 'AppV2/Components/ClosedMarketMessage';
@@ -25,6 +26,7 @@ const TradeParametersContainer = ({ is_market_closed }: TTradeParametersContaine
         ui: { is_chart_maximized },
     } = useStore();
     const [is_sheet_expanded, setIsSheetExpanded] = React.useState(false);
+    const container_ref = React.useRef<HTMLDivElement>(null);
     const handle_touch_start_y = React.useRef<number>(0);
     const prev_contract_type_ref = React.useRef(contract_type);
     const is_swipe_ref = React.useRef(false);
@@ -54,8 +56,38 @@ const TradeParametersContainer = ({ is_market_closed }: TTradeParametersContaine
         prev_contract_type_ref.current = contract_type;
     }, [contract_type]);
 
+    // Collapse the expanded sheet when the user taps/clicks outside of it (e.g. on the chart above).
+    // Only active while expanded.
+    React.useEffect(() => {
+        if (!is_sheet_expanded) return undefined;
+
+        const handleOutsidePointer = (event: MouseEvent | TouchEvent) => {
+            const target = event.target as HTMLElement | null;
+            if (!target || container_ref.current?.contains(target)) return;
+            // A blocking overlay opened from within the params is showing — a parameter's action sheet
+            // (Duration/Stake/Risk) or the risk-disclosure modal from the Buy button. An outside tap
+            // (including on the overlay's own backdrop) is meant for that overlay, not to collapse the
+            // trade-params sheet behind it. Both quill portals mount their root only while open, so
+            // their mere presence is the signal.
+            if (document.querySelector('.quill-action-sheet--root, .quill-modal__background')) return;
+            // A tap directly on a transient in-place portal opened from within the params — a
+            // validation snackbar (Duration/Stake errors) or a parameter tooltip — shouldn't collapse
+            // the sheet either. These have no backdrop, so match the tapped element itself.
+            if (target.closest('.quill-snackbar, .react-tiny-popover-container')) return;
+            setIsSheetExpanded(false);
+        };
+
+        document.addEventListener('mousedown', handleOutsidePointer);
+        document.addEventListener('touchstart', handleOutsidePointer);
+        return () => {
+            document.removeEventListener('mousedown', handleOutsidePointer);
+            document.removeEventListener('touchstart', handleOutsidePointer);
+        };
+    }, [is_sheet_expanded]);
+
     return (
         <div
+            ref={container_ref}
             className={clsx('trade-params__container', {
                 'trade-params__container--expanded': is_sheet_expanded,
                 'trade-params__container--collapsed': !is_sheet_expanded,
@@ -89,7 +121,10 @@ const TradeParametersContainer = ({ is_market_closed }: TTradeParametersContaine
                 }}
                 data-testid='trade-params-handle'
             >
-                <div className='trade-params__container-handle-bar' />
+                <LabelPairedChevronUpLgFillIcon
+                    className='trade-params__container-handle-chevron'
+                    fill='var(--component-handle-bg)'
+                />
             </div>
             {isTradeParamVisible({ component_key: 'trade_type_tabs', contract_type, has_cancellation, symbol }) && (
                 <div className='trade-params__container-tabs'>

@@ -392,4 +392,111 @@ describe('TradeParametersContainer', () => {
             expect(screen.getByText('TradeParameters-minimized')).toBeInTheDocument();
         });
     });
+
+    describe('Click / touch outside', () => {
+        const expandSheet = () => {
+            const handle = screen.getByTestId('trade-params-handle');
+            const containerElement = screen.getByTestId('trade-params-container');
+            fireEvent.touchStart(containerElement, { touches: [{ clientY: 100 }] });
+            fireEvent.touchEnd(containerElement, { changedTouches: [{ clientY: 100 }] });
+            fireEvent.click(handle);
+            expect(containerElement).toHaveClass('trade-params__container--expanded');
+            return containerElement;
+        };
+
+        it('collapses the expanded sheet when clicking outside of it', () => {
+            render(<TradeParametersContainer />);
+            const containerElement = expandSheet();
+
+            fireEvent.mouseDown(document.body);
+
+            expect(containerElement).toHaveClass('trade-params__container--collapsed');
+            expect(screen.getByText('TradeParameters-minimized')).toBeInTheDocument();
+        });
+
+        it('collapses the expanded sheet when touching outside of it', () => {
+            render(<TradeParametersContainer />);
+            const containerElement = expandSheet();
+
+            fireEvent.touchStart(document.body);
+
+            expect(containerElement).toHaveClass('trade-params__container--collapsed');
+        });
+
+        it('keeps the sheet expanded when clicking inside of it', () => {
+            render(<TradeParametersContainer />);
+            const containerElement = expandSheet();
+
+            fireEvent.mouseDown(containerElement);
+
+            expect(containerElement).toHaveClass('trade-params__container--expanded');
+        });
+
+        it('keeps the sheet expanded when interacting with a portaled action sheet opened from within', () => {
+            render(<TradeParametersContainer />);
+            const containerElement = expandSheet();
+
+            // A quill action sheet portals to the body, outside the container — a tap there must not
+            // dismiss the sheet sitting behind it.
+            const action_sheet = document.createElement('div');
+            action_sheet.className = 'quill-action-sheet--root';
+            document.body.appendChild(action_sheet);
+            fireEvent.mouseDown(action_sheet);
+
+            expect(containerElement).toHaveClass('trade-params__container--expanded');
+            document.body.removeChild(action_sheet);
+        });
+
+        it('keeps the sheet expanded when the open action sheet backdrop is clicked', () => {
+            render(<TradeParametersContainer />);
+            const containerElement = expandSheet();
+
+            // An open param action sheet mounts `.quill-action-sheet--root`; its dismiss backdrop is a
+            // separate overlay element. Clicking the backdrop must dismiss only that sheet, not collapse
+            // the trade-params sheet behind it.
+            const sheet_root = document.createElement('div');
+            sheet_root.className = 'quill-action-sheet--root';
+            const backdrop = document.createElement('div');
+            backdrop.className = 'quill-action-sheet--portal__variant--modal';
+            document.body.append(sheet_root, backdrop);
+            fireEvent.mouseDown(backdrop);
+
+            expect(containerElement).toHaveClass('trade-params__container--expanded');
+            document.body.removeChild(sheet_root);
+            document.body.removeChild(backdrop);
+        });
+
+        it('keeps the sheet expanded when tapping a validation snackbar', () => {
+            render(<TradeParametersContainer />);
+            const containerElement = expandSheet();
+
+            // A Duration/Stake validation error portals a snackbar (only while the sheet is expanded);
+            // tapping it (e.g. its close button) must not collapse the sheet.
+            const snackbar = document.createElement('div');
+            snackbar.className = 'quill-snackbar';
+            document.body.appendChild(snackbar);
+            fireEvent.mouseDown(snackbar);
+
+            expect(containerElement).toHaveClass('trade-params__container--expanded');
+            document.body.removeChild(snackbar);
+        });
+
+        it('keeps the sheet expanded when the risk-disclosure modal is open', () => {
+            render(<TradeParametersContainer />);
+            const containerElement = expandSheet();
+
+            // The Buy button can open the risk-disclosure modal; while it's open (its backdrop mounts
+            // `.quill-modal__background`), tapping anywhere — incl. Accept — must not collapse the sheet.
+            const modal_background = document.createElement('div');
+            modal_background.className = 'quill-modal__background';
+            const accept_button = document.createElement('button');
+            accept_button.className = 'quill-modal__button';
+            modal_background.appendChild(accept_button);
+            document.body.appendChild(modal_background);
+            fireEvent.mouseDown(accept_button);
+
+            expect(containerElement).toHaveClass('trade-params__container--expanded');
+            document.body.removeChild(modal_background);
+        });
+    });
 });

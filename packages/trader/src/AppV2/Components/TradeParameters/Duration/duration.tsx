@@ -21,7 +21,7 @@ import {
 import { getDisplayedContractTypes } from 'AppV2/Utils/trade-types-utils';
 import { useTraderStore } from 'Stores/useTraderStores';
 
-import { AutomationLockOverlay, StepperButtons } from '../Shared';
+import { AutomationLockOverlay } from '../Shared';
 import { TTradeParametersProps } from '../trade-parameters';
 
 import DurationActionSheetContainer from './container';
@@ -191,6 +191,17 @@ const Duration = observer(({ is_minimized }: TTradeParametersProps) => {
         setSavedExpiryDate,
     ]);
 
+    // Tap-to-select: a tapped wheel item updates the selection (in the wheel) and flips this flag;
+    // once the updated selection has been applied, run the normal `onClose` commit + dismiss. Going
+    // through `onClose` reuses its clamping/conversion so a tap commits exactly like a drag-close.
+    const [pending_close, setPendingClose] = React.useState(false);
+    const requestClose = React.useCallback(() => setPendingClose(true), []);
+    useEffect(() => {
+        if (!pending_close) return;
+        setPendingClose(false);
+        onClose();
+    }, [pending_close, onClose]);
+
     const getInputValues = () => {
         const formatted_date = saved_expiry_date
             ? new Date(saved_expiry_date).toLocaleDateString('en-GB', {
@@ -301,49 +312,6 @@ const Duration = observer(({ is_minimized }: TTradeParametersProps) => {
         return <DurationDesktop is_minimized={is_minimized} />;
     }
 
-    // Inline steppers (expanded, non-endtime, non-days). Ticks step ±1 tick; time durations step by
-    // the finest available unit (usually 1s) and roll across units — 59s → 1min → 1min 1sec.
-    const is_tick_duration = duration_unit === DURATION_UNIT.TICKS;
-    const tick_range = getTickWheelRange(duration_min_max);
-    const intraday = duration_min_max?.intraday;
-    const time_step_seconds = (() => {
-        const visible = getTimeWheelVisibleUnits(duration_units_list);
-        if (visible.includes(DURATION_UNIT.SECONDS)) return 1;
-        if (visible.includes(DURATION_UNIT.MINUTES)) return 60;
-        return 3600;
-    })();
-    const [step_h, step_m, step_s] = getTimeWheelSelectionFromDuration(duration, duration_unit);
-    const total_seconds = step_h * 3600 + step_m * 60 + step_s;
-    const show_steppers = !is_minimized && expiry_type !== 'endtime' && duration_unit !== DURATION_UNIT.DAYS;
-
-    const stepDuration = (direction: 1 | -1) => {
-        if (is_tick_duration) {
-            const next = Math.min(tick_range.max, Math.max(tick_range.min, duration + direction));
-            if (next !== duration) onChangeMultiple({ duration_unit, duration: next, expiry_type: 'duration' });
-            return;
-        }
-        if (!intraday) return;
-        const next_total = Math.min(
-            intraday.max,
-            Math.max(intraday.min, total_seconds + direction * time_step_seconds)
-        );
-        if (next_total === total_seconds) return;
-        const next_hms = [Math.floor(next_total / 3600), Math.floor((next_total % 3600) / 60), next_total % 60];
-        onChangeMultiple({
-            ...getDurationFromTimeWheelSelection(next_hms, duration_units_list),
-            expiry_type: 'duration',
-        });
-    };
-
-    const decrement_disabled =
-        is_market_closed ||
-        is_automation_params_locked ||
-        (is_tick_duration ? duration <= tick_range.min : total_seconds <= (intraday?.min ?? 0));
-    const increment_disabled =
-        is_market_closed ||
-        is_automation_params_locked ||
-        (is_tick_duration ? duration >= tick_range.max : total_seconds >= (intraday?.max ?? Number.MAX_SAFE_INTEGER));
-
     // Render mobile version (ActionSheet) for mobile devices
     return (
         <>
@@ -360,16 +328,6 @@ const Duration = observer(({ is_minimized }: TTradeParametersProps) => {
                     className={clsx('trade-params__option', is_minimized && 'trade-params__option--minimized')}
                     onClick={() => setOpen(true)}
                     status={has_error ? 'error' : 'neutral'}
-                    rightIcon={
-                        show_steppers ? (
-                            <StepperButtons
-                                onDecrement={() => stepDuration(-1)}
-                                onIncrement={() => stepDuration(1)}
-                                decrement_disabled={decrement_disabled}
-                                increment_disabled={increment_disabled}
-                            />
-                        ) : undefined
-                    }
                 />
                 {is_automation_params_locked && <AutomationLockOverlay />}
             </div>
@@ -388,6 +346,7 @@ const Duration = observer(({ is_minimized }: TTradeParametersProps) => {
                         setSelectedTicks={setSelectedTicks}
                         selected_time={selected_time}
                         setSelectedTime={setSelectedTime}
+                        onRequestClose={requestClose}
                         selected_expiry_time={selected_expiry_time}
                         selected_expiry_date={selected_expiry_date}
                         setSelectedExpiryTime={setSelectedExpiryTime}

@@ -27,6 +27,7 @@ const DurationActionSheetContainer = observer(
         setSavedExpiryTime,
         setSelectedExpiryDate,
         setSavedExpiryDate,
+        onRequestClose,
     }: {
         tab: string;
         setTab: (arg: string) => void;
@@ -40,6 +41,7 @@ const DurationActionSheetContainer = observer(
         setSavedExpiryTime: (arg: string) => void;
         setSelectedExpiryDate: (arg: string) => void;
         setSavedExpiryDate: (arg: string) => void;
+        onRequestClose: () => void;
     }) => {
         const { duration_units_list, onChangeMultiple } = useTraderStore();
 
@@ -61,7 +63,14 @@ const DurationActionSheetContainer = observer(
         };
 
         return (
-            <div className='duration-container'>
+            <div
+                className='duration-container'
+                // The wheel is a vertical swipe; stop it bubbling (through the React portal tree) to the
+                // trade-params sheet's swipe handler, which would otherwise open/close it unintentionally.
+                onTouchStart={e => e.stopPropagation()}
+                onTouchMove={e => e.stopPropagation()}
+                onTouchEnd={e => e.stopPropagation()}
+            >
                 <ActionSheet.Header title={<Localize i18n_default_text='Duration' />} />
                 <DurationTabs duration_units_list={duration_units_list} onChangeTab={setTab} tab={tab} />
                 <div className='duration-container__tab-content'>
@@ -71,7 +80,11 @@ const DurationActionSheetContainer = observer(
                         })}
                         data-testid='dt_duration_ticks_wheel'
                     >
-                        <DurationTicksWheel selected_ticks={selected_ticks} setSelectedTicks={setSelectedTicks} />
+                        <DurationTicksWheel
+                            selected_ticks={selected_ticks}
+                            setSelectedTicks={setSelectedTicks}
+                            onRequestClose={onRequestClose}
+                        />
                     </div>
                     <div
                         className={clsx('duration-container__wheel', {
@@ -79,7 +92,11 @@ const DurationActionSheetContainer = observer(
                         })}
                         data-testid='dt_duration_time_wheel'
                     >
-                        <DurationTimeWheel selected_time={selected_time} setSelectedTime={setSelectedTime} />
+                        <DurationTimeWheel
+                            selected_time={selected_time}
+                            setSelectedTime={setSelectedTime}
+                            onRequestClose={onRequestClose}
+                        />
                     </div>
                     {tab === DURATION_TAB.END_TIME && (
                         <div className='duration-container__endtime-tab'>
