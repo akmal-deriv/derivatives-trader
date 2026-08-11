@@ -1,0 +1,29 @@
+name: Issue-to-Spec
+
+# Turn a GitHub issue into an OpenSpec change/spec by dispatching the Planner.
+# When an issue is labeled `create-spec`, this caller workflow invokes the shared
+# reusable workflow from deriv-core/core-automation, which first classifies whether
+# the issue warrants a formal OpenSpec change and, only when it qualifies, runs the
+# Planner to Propose the change and open a spec-delta PR referencing the issue.
+#
+# Setup guide:
+# https://github.com/deriv-core/core-automation/blob/qa/docs/core_automation/issue-to-spec-shared-workflow.md
+
+on:
+  issues:
+    types:
+      - labeled
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  issue-to-spec:
+    # Only run when the label that was just added is `create-spec`.
+    if: github.event.label.name == 'create-spec'
+    uses: deriv-core/core-automation/.github/workflows/issue-to-spec.yml@qa
+    secrets:
+      ICORE_GITHUB_APP_ID: ${{ secrets.ICORE_GITHUB_APP_ID }}
+      ICORE_GITHUB_APP_PRIVATE_KEY: ${{ secrets.ICORE_GITHUB_APP_PRIVATE_KEY }}

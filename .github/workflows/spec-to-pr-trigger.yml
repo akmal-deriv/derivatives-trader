@@ -1,0 +1,30 @@
+name: Spec-to-PR
+
+# Auto-implement a merged OpenSpec change by dispatching the Spec-based Coder.
+# When a PR that changed openspec/changes/** is merged, this caller workflow
+# invokes the shared reusable workflow from deriv-core/core-automation, which
+# runs the Spec-based Coder to implement the change and open an implementation PR.
+#
+# Setup guide:
+# https://github.com/deriv-core/core-automation/blob/qa/docs/core_automation/spec-to-pr-org-workflow.md
+
+on:
+  pull_request:
+    types:
+      - closed
+    paths:
+      - "openspec/changes/**"
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  spec-to-pr:
+    # Only run when the PR was actually merged (not just closed).
+    if: github.event.pull_request.merged == true
+    uses: deriv-core/core-automation/.github/workflows/spec-to-pr.yml@qa
+    secrets:
+      ICORE_GITHUB_APP_ID: ${{ secrets.ICORE_GITHUB_APP_ID }}
+      ICORE_GITHUB_APP_PRIVATE_KEY: ${{ secrets.ICORE_GITHUB_APP_PRIVATE_KEY }}
