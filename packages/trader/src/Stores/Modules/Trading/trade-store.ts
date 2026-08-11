@@ -2854,7 +2854,10 @@ export default class TradeStore extends BaseStore {
             if (isAvailable(url_symbol)) resolved_symbol = url_symbol;
             // The modal is deep-link-only: on a restore an "invalid" symbol usually just means the
             // actives list is half-loaded (e.g. pre-auth after a browser restart) — not user error.
-            else if (is_deep_link) this.root_store.ui.toggleUrlUnavailableModal(true);
+            // Name the value that actually failed: toggleUrlUnavailableModal defaults to
+            // 'trade_type', so omitting the reason here labelled a dead-end market as
+            // "Unsupported trade type" (GRWT-9320).
+            else if (is_deep_link) this.root_store.ui.toggleUrlUnavailableModal(true, 'symbol');
         }
         if (!isAvailable(resolved_symbol) && !is_deep_link) {
             // Restore with a stale/unavailable symbol: prefer a symbol the user explicitly has open
@@ -2895,7 +2898,7 @@ export default class TradeStore extends BaseStore {
                 }
             } else if (!Object.keys(getContractTypesConfig()).includes(url_trade_type)) {
                 // Unknown trade type in the URL (a genuine dead-end deep link) — show the modal.
-                this.root_store.ui.toggleUrlUnavailableModal(true);
+                this.root_store.ui.toggleUrlUnavailableModal(true, 'trade_type');
             } else {
                 // A real trade type the resolved market doesn't offer (e.g. arriving from Deriv
                 // Home with trade_type=rise_fall while the last-used market only offers
@@ -2976,7 +2979,7 @@ export default class TradeStore extends BaseStore {
             // — honour the user's choice and drop the URL intent silently (no modal, no writes).
             if (this.selection_seq !== epoch) return;
             if (!compatible_symbol) {
-                this.root_store.ui.toggleUrlUnavailableModal(true);
+                this.root_store.ui.toggleUrlUnavailableModal(true, 'trade_type');
                 return;
             }
             // Mark this as a URL landing so downstream fallbacks (e.g. automation) honour the intent.
@@ -2994,7 +2997,7 @@ export default class TradeStore extends BaseStore {
                 // expose the trade type (e.g. native-app/region filtering that the raw contracts_for the
                 // search relies on doesn't apply). Nothing will refetch to change that, so fail fast to the
                 // modal instead of waiting out the timeout — consistent with the "no available market" path.
-                this.root_store.ui.toggleUrlUnavailableModal(true);
+                this.root_store.ui.toggleUrlUnavailableModal(true, 'trade_type');
                 return;
             }
             // Same supersession check after the waits above: never overwrite a user selection that

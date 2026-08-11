@@ -160,6 +160,8 @@ export default class UIStore extends BaseStore {
     is_switch_to_deriv_account_modal_visible = false;
     is_mt5_migration_modal_enabled = false;
     isUrlUnavailableModalVisible = false;
+    // 'trade_type' | 'symbol' | 'both' — which URL value(s) were invalid
+    urlUnavailableModalReason = 'trade_type';
     is_logout_success_modal_visible = false;
     is_try_real_modal_visible = false;
     sub_section_index = 0;
@@ -260,6 +262,7 @@ export default class UIStore extends BaseStore {
             is_verification_submitted: observable,
             is_tnc_update_modal_open: observable,
             isUrlUnavailableModalVisible: observable,
+            urlUnavailableModalReason: observable,
             is_logout_success_modal_visible: observable,
             is_try_real_modal_visible: observable,
             is_switching_account: observable,
@@ -808,8 +811,21 @@ export default class UIStore extends BaseStore {
         this.should_trigger_tour_guide = value;
     }
 
-    toggleUrlUnavailableModal(value) {
+    toggleUrlUnavailableModal(value, reason = 'trade_type') {
+        if (value && this.isUrlUnavailableModalVisible && this.urlUnavailableModalReason !== reason) {
+            // A second validation reported a different invalid URL value while the popup was already
+            // on screen. Replacing the reason used to rewrite the title under the user's eyes (a link
+            // with an invalid trade type *and* market showed "Unsupported trade type" and then flipped
+            // to "Unsupported market" — GRWT-9320). Widen to 'both' instead, so the copy only ever
+            // becomes more complete, never contradictory. TradeStore.resolveInitialMarket validates
+            // the symbol and the trade type in separate sequential phases and reports each one as it
+            // fails, so a both-invalid deep link legitimately arrives here twice — this widening is
+            // what turns that into a single stable "Unsupported link".
+            this.urlUnavailableModalReason = 'both';
+            return;
+        }
         this.isUrlUnavailableModalVisible = value;
+        if (value) this.urlUnavailableModalReason = reason;
     }
 
     toggleTncUpdateModal(value) {

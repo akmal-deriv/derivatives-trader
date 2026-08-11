@@ -24,6 +24,13 @@ type Portfolio1 = NonNullable<NonNullable<TPortfolioResponse['portfolio']>['cont
 type ProposalOpenContract = TPriceProposalOpenContractsResponse['proposal_open_contract'];
 type Transaction = TTransactionsStreamResponse['transaction'];
 
+/**
+ * Which URL trade param(s) the URL-unavailable acknowledgement is reporting. `both` covers a link
+ * where the trade type *and* the market are dead ends, so the popup can name both instead of showing
+ * one reason and then flipping to the other as the second validation resolves (GRWT-9320).
+ */
+export type TUrlUnavailableModalReason = 'trade_type' | 'symbol' | 'both';
+
 type TRoutes =
     | '/404'
     | '/contract/:contract_id'
@@ -335,6 +342,7 @@ type TUiStore = {
     is_services_error_visible: boolean;
     is_trading_assessment_for_existing_user_enabled: boolean;
     isUrlUnavailableModalVisible: boolean;
+    urlUnavailableModalReason: TUrlUnavailableModalReason;
     is_logout_success_modal_visible: boolean;
     onChangeUiStore: ({ name, value }: { name: string; value: unknown }) => void;
     openPositionsDrawer: () => void;
@@ -382,7 +390,7 @@ type TUiStore = {
     toggleResetPasswordModal: (state_change: boolean) => void;
     toggleServicesErrorModal: (is_visible: boolean) => void;
     toggleShouldShowRealAccountsList: (value: boolean) => void;
-    toggleUrlUnavailableModal: (value: boolean) => void;
+    toggleUrlUnavailableModal: (value: boolean, reason?: TUrlUnavailableModalReason) => void;
     toggleLogoutSuccessModal: (value: boolean) => void;
     is_try_real_modal_visible: boolean;
     is_switching_account: boolean;

@@ -875,7 +875,7 @@ describe('TradeStore', () => {
 
             await flushPromises();
 
-            expect(mockRootStore.ui.toggleUrlUnavailableModal).toHaveBeenCalledWith(true);
+            expect(mockRootStore.ui.toggleUrlUnavailableModal).toHaveBeenCalledWith(true, 'symbol');
             expect(onChangeSpy).toHaveBeenCalledWith({ target: { name: 'symbol', value: '1HZ100V' } });
         });
 
@@ -887,7 +887,7 @@ describe('TradeStore', () => {
 
             await flushPromises();
 
-            expect(mockRootStore.ui.toggleUrlUnavailableModal).toHaveBeenCalledWith(true);
+            expect(mockRootStore.ui.toggleUrlUnavailableModal).toHaveBeenCalledWith(true, 'trade_type');
         });
 
         it('switches to a compatible symbol and applies the URL trade type once the new market offers it', async () => {
@@ -938,7 +938,7 @@ describe('TradeStore', () => {
 
             await flushPromises();
 
-            expect(mockRootStore.ui.toggleUrlUnavailableModal).toHaveBeenCalledWith(true);
+            expect(mockRootStore.ui.toggleUrlUnavailableModal).toHaveBeenCalledWith(true, 'trade_type');
         });
 
         it('fails fast to the modal when the compatible symbol is already current but its V2 list lacks the type', async () => {
@@ -954,7 +954,7 @@ describe('TradeStore', () => {
 
             await flushPromises();
 
-            expect(mockRootStore.ui.toggleUrlUnavailableModal).toHaveBeenCalledWith(true);
+            expect(mockRootStore.ui.toggleUrlUnavailableModal).toHaveBeenCalledWith(true, 'trade_type');
             expect(onChangeSpy).not.toHaveBeenCalled();
             // The loader flag is released rather than left blocking the page for the full timeout.
             expect(store.is_reconciling_url_trade_type).toBe(false);

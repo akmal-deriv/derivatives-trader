@@ -1,40 +1,59 @@
-.dc-modal__container_url-unavailable-modal {
-    .dc-modal {
-        &-header__title,
-        &-footer {
-            padding: 2.4rem;
+// Match the approved Figma exactly for the Invalid URL popup on both surfaces.
+// (Title 24/32/800, body 16/24/400, full-width 48px / 24px-radius coral button, 32px / 24px paddings.)
+.url-unavailable-modal {
+    // ---- shared typography (desktop Modal.Header h4 + mobile title, and the body) ----
+    .quill-typography__h4,
+    .url-unavailable-modal__title {
+        font-size: 2.4rem;
+        line-height: 3.2rem;
+        font-weight: 800;
+    }
+    .url-unavailable-modal__desc {
+        font-size: 1.6rem;
+        line-height: 2.4rem;
+        font-weight: 400;
+    }
+
+    // ---- full-width pill button + label (both surfaces) ----
+    .quill-button {
+        border-radius: 2.4rem;
+
+        .quill-typography {
+            font-size: 1.6rem;
+            line-height: 1.6rem;
+            font-weight: 800;
         }
-        &-body {
-            padding: 0 2.4rem;
+    }
 
-            ul {
-                margin: 1rem 0;
+    // ---- desktop modal paddings (Figma: title/content pt32 px32 gap32; footer pt24 px32 pb32) ----
+    .quill-modal__content-wrapper {
+        display: flex;
+        flex-direction: column;
+        gap: 3.2rem;
+        padding: 3.2rem 3.2rem 0;
+    }
+    // quill-ui's content title (margin 44 24 0) and body (margin 24) carry default margins that
+    // stack on top of the wrapper padding/gap above. Reset them so the wrapper padding + gap
+    // define the exact Figma spacing (!important to win over quill's nested selectors).
+    .quill-modal__content-title,
+    .quill-modal__content-body {
+        margin: 0 !important;
+    }
+    .quill-modal__button-wrapper {
+        padding: 2.4rem 3.2rem 3.2rem;
+    }
 
-                li:before {
-                    content: '•';
-                    padding: 0.8rem;
-                }
-            }
-            a {
-                font-weight: unset;
-            }
-        }
-
-        @include mobile {
-            &-header__title {
-                font-size: 1.4rem;
-                padding: 1.6rem;
-            }
-            &-body {
-                padding: 0 1.6rem;
-
-                ul li:before {
-                    padding: 0.6rem;
-                }
-            }
-            &-footer {
-                padding: 1.6rem;
-            }
-        }
+    // ---- mobile action sheet paddings ----
+    // Figma puts the title 44px from the sheet top with the handle-bar absolutely overlapping
+    // that space. quill-ui's handle-bar instead takes ~20px in-flow above the content, so the
+    // content top padding is 24px (20 handle + 24 = 44 to the title). Sides/bottom/gap = 24.
+    .action-sheet--content {
+        display: flex;
+        flex-direction: column;
+        gap: 2.4rem;
+        padding: 2.4rem;
+    }
+    .quill-action-sheet--footer {
+        padding: 2.4rem;
     }
 }

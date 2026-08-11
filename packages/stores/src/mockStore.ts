@@ -219,6 +219,7 @@ const mock = (): TStores & { is_mock: boolean } => {
             vanilla_trade_type: 'VANILLALONGCALL',
             is_additional_kyc_info_modal_open: false,
             isUrlUnavailableModalVisible: false,
+            urlUnavailableModalReason: 'trade_type',
             toggleUrlUnavailableModal: jest.fn(),
             field_ref_to_focus: null,
             setFieldRefToFocus: jest.fn(),
