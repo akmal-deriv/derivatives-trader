@@ -78,7 +78,121 @@ describe('useSmartChartsAdapter', () => {
                 expect(result.current.chartData.activeSymbols).not.toHaveLength(0);
             });
             expect(mockTransformations.toActiveSymbols).toHaveBeenCalledWith(symbols);
-            expect(result.current.chartData.tradingTimes).toEqual({});
+            // Fallback trading-times seed (never {}): one entry per active symbol so
+            // SmartCharts' unguarded per-symbol reads can't throw before the real data lands
+            expect(result.current.chartData.tradingTimes).toEqual({
+                R_100: { isOpen: false, openTime: '--', closeTime: '--' },
+            });
+        });
+    });
+
+    describe('trading-times fallback map', () => {
+        it('seeds one entry per active symbol on mount, keyed by underlying_symbol || symbol', () => {
+            const symbols = [
+                { underlying_symbol: 'R_100', display_name: 'Volatility 100 Index', exchange_is_open: 1 },
+                { symbol: 'frxEURUSD', display_name: 'EUR/USD', exchange_is_open: 0 },
+            ];
+
+            // Delay getChartData so the initial seed is observable
+            mockGetChartData.mockImplementation(() => new Promise(() => {}));
+
+            const { result } = renderHook(() => useSmartChartsAdapter({ activeSymbols: symbols }));
+
+            expect(result.current.chartData.tradingTimes).toEqual({
+                R_100: { isOpen: true, openTime: '--', closeTime: '--' },
+                frxEURUSD: { isOpen: false, openTime: '--', closeTime: '--' },
+            });
+        });
+
+        it('leaves tradingTimes undefined on mount for replay chart (empty activeSymbols)', () => {
+            mockGetChartData.mockImplementation(() => new Promise(() => {}));
+
+            const { result } = renderHook(() => useSmartChartsAdapter({ activeSymbols: [] }));
+
+            // Guard behavior: replay chart must stay blocked until real symbol data arrives
+            expect(result.current.chartData.tradingTimes).toBeUndefined();
+        });
+
+        it('backfills symbols missing from the trading_times response on success', async () => {
+            const symbols = [
+                { symbol: 'R_100', display_name: 'Volatility 100 Index', exchange_is_open: 1 },
+                { symbol: 'frxEURUSD', display_name: 'EUR/USD', exchange_is_open: 1 },
+            ];
+
+            mockGetChartData.mockResolvedValue({
+                rawData: { activeSymbols: symbols, tradingTimes: {} },
+                activeSymbols: symbols,
+                // Response is missing frxEURUSD
+                tradingTimes: { R_100: { isOpen: true, openTime: '00:00', closeTime: '23:59' } },
+            });
+
+            const { result } = renderHook(() => useSmartChartsAdapter({ activeSymbols: symbols }));
+
+            await waitFor(() => {
+                expect(result.current.isLoading).toBe(false);
+            });
+
+            expect(result.current.chartData.tradingTimes).toEqual({
+                // Real entry wins
+                R_100: { isOpen: true, openTime: '00:00', closeTime: '23:59' },
+                // Missing symbol keeps a fallback entry
+                frxEURUSD: { isOpen: true, openTime: '--', closeTime: '--' },
+            });
+        });
+
+        it('retains fallback entries when the trading_times fetch fails (adapter settles on {})', async () => {
+            const symbols = [{ symbol: 'R_100', display_name: 'Volatility 100 Index', exchange_is_open: 1 }];
+
+            // The adapter swallows WS errors and resolves with an empty map
+            mockGetChartData.mockResolvedValue({
+                rawData: { activeSymbols: symbols, tradingTimes: {} },
+                activeSymbols: symbols,
+                tradingTimes: {},
+            });
+
+            const { result } = renderHook(() => useSmartChartsAdapter({ activeSymbols: symbols }));
+
+            await waitFor(() => {
+                expect(result.current.isLoading).toBe(false);
+            });
+
+            expect(result.current.chartData.tradingTimes).toEqual({
+                R_100: { isOpen: true, openTime: '--', closeTime: '--' },
+            });
+        });
+
+        it('retries the fetch once when trading_times comes back empty', async () => {
+            jest.useFakeTimers();
+            try {
+                const symbols = [{ symbol: 'R_100', display_name: 'Volatility 100 Index', exchange_is_open: 1 }];
+
+                mockGetChartData.mockResolvedValue({
+                    rawData: { activeSymbols: symbols, tradingTimes: {} },
+                    activeSymbols: symbols,
+                    tradingTimes: {},
+                });
+
+                const { result } = renderHook(() => useSmartChartsAdapter({ activeSymbols: symbols }));
+
+                // Initial fetch completes (isLoading flips false only after the async
+                // continuation that schedules the retry has run)
+                await waitFor(() => expect(result.current.isLoading).toBe(false));
+                expect(mockGetChartData).toHaveBeenCalledTimes(1);
+
+                // Retry fires after the delay
+                await act(async () => {
+                    jest.advanceTimersByTime(10000);
+                });
+                await waitFor(() => expect(mockGetChartData).toHaveBeenCalledTimes(2));
+
+                // Only one retry — advancing further fires nothing new
+                await act(async () => {
+                    jest.advanceTimersByTime(60000);
+                });
+                expect(mockGetChartData).toHaveBeenCalledTimes(2);
+            } finally {
+                jest.useRealTimers();
+            }
         });
     });
 

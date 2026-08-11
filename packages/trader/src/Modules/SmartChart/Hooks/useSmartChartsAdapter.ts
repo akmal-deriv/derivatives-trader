@@ -45,6 +45,27 @@ interface ChartData {
     tradingTimes?: Record<string, { isOpen: boolean; openTime: string; closeTime: string }>;
 }
 
+/**
+ * Builds a fallback trading-times map from active symbols so every symbol the chart can
+ * select has an entry, keyed exactly like the real map from the adapter's
+ * toTradingTimesMap (underlying_symbol || symbol).
+ *
+ * SmartCharts reads per-symbol keys from this map without guarding (e.g.
+ * `_tradingTimesMap?.[symbol].delay_amount` in TradingTimes), so a symbol missing from
+ * the applied map throws an uncaught TypeError and leaves the chart stuck on its loader.
+ * The open/closed state comes from the symbol's `exchange_is_open`; open/close times are
+ * unknown ('--') until the real trading_times response backfills them.
+ */
+const buildFallbackTradingTimes = (symbols: any[]): NonNullable<ChartData['tradingTimes']> =>
+    Object.fromEntries(
+        (symbols || [])
+            .filter(s => s && (s.underlying_symbol || s.symbol))
+            .map(s => [
+                s.underlying_symbol || s.symbol,
+                { isOpen: !!s.exchange_is_open, openTime: '--', closeTime: '--' },
+            ])
+    );
+
 interface UseSmartChartsAdapterReturn {
     smartChartsAdapter: ReturnType<typeof createSmartChartsChampionAdapter>;
     chartData: ChartData;
@@ -91,12 +112,15 @@ export const useSmartChartsAdapter = (config: UseSmartChartsAdapterConfig = {}):
     }, [debug]);
 
     // Chart data state — transform symbols immediately so SmartChart always gets the right shape.
-    // When activeSymbols are pre-fetched (trade chart): set tradingTimes:{} so the chart renders immediately.
+    // When activeSymbols are pre-fetched (trade chart): seed tradingTimes with a fallback map
+    // (one entry per active symbol, never {}) so the chart renders immediately AND SmartCharts'
+    // unguarded per-symbol reads (e.g. delay_amount) can't throw if the user switches symbol
+    // before the real trading_times response arrives.
     // When activeSymbols are empty (replay chart): leave tradingTimes undefined so the guard blocks
     // until fetchChartData provides real symbol data (SmartChart needs symbolMap to render).
     const [chartData, setChartData] = React.useState<ChartData>(() => ({
         activeSymbols: activeSymbols?.length ? transformations.toActiveSymbols(toJS(activeSymbols)) : [],
-        ...(activeSymbols?.length ? { tradingTimes: {} } : {}),
+        ...(activeSymbols?.length ? { tradingTimes: buildFallbackTradingTimes(toJS(activeSymbols)) } : {}),
     }));
     const [isLoading, setIsLoading] = React.useState(true);
     const [error, setError] = React.useState<Error | null>(null);
@@ -106,6 +130,10 @@ export const useSmartChartsAdapter = (config: UseSmartChartsAdapterConfig = {}):
     const isValidGranularity = React.useCallback((g: number): g is TGranularity => {
         return [0, 60, 120, 180, 300, 600, 900, 1800, 3600, 7200, 14400, 28800, 86400].includes(g);
     }, []);
+
+    // One-shot retry guard + timer for a failed trading_times fetch (see fetchChartData).
+    const hasRetriedEmptyTradingTimesRef = React.useRef(false);
+    const retryTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
     // Fetch trading times and enrich active symbols.
     // active_symbols comes from React Query (via the activeSymbols prop) —
@@ -123,8 +151,23 @@ export const useSmartChartsAdapter = (config: UseSmartChartsAdapterConfig = {}):
 
             setChartData({
                 activeSymbols: enrichedSymbols,
-                tradingTimes,
+                // Backfill: any symbol missing from the trading_times response (or the whole
+                // map, if the WS call failed and the adapter settled on {}) keeps a fallback
+                // entry so SmartCharts' unguarded per-symbol reads can't throw.
+                tradingTimes: { ...buildFallbackTradingTimes(enrichedSymbols), ...tradingTimes },
             });
+
+            // The adapter swallows trading_times WS errors and resolves with an empty map,
+            // so an empty map alongside non-empty symbols means the fetch failed. Retry once
+            // so the session isn't stuck on fallback entries permanently.
+            if (
+                enrichedSymbols?.length &&
+                !Object.keys(tradingTimes || {}).length &&
+                !hasRetriedEmptyTradingTimesRef.current
+            ) {
+                hasRetriedEmptyTradingTimesRef.current = true;
+                retryTimeoutRef.current = setTimeout(() => fetchChartDataRef.current(), 10000);
+            }
         } catch (error) {
             // eslint-disable-next-line no-console
             console.error('Error fetching chart data:', error);
@@ -133,6 +176,19 @@ export const useSmartChartsAdapter = (config: UseSmartChartsAdapterConfig = {}):
             setIsLoading(false);
         }
     }, [smartChartsAdapter, activeSymbols]);
+
+    // Keep a ref to the latest fetchChartData so the delayed retry never runs a stale
+    // closure (activeSymbols may change during the retry window).
+    const fetchChartDataRef = React.useRef(fetchChartData);
+    React.useEffect(() => {
+        fetchChartDataRef.current = fetchChartData;
+    }, [fetchChartData]);
+
+    // Allow a fresh retry when the symbol universe changes (one retry per symbol set).
+    // No-op on initial mount: the guard starts out false.
+    React.useEffect(() => {
+        hasRetriedEmptyTradingTimesRef.current = false;
+    }, [activeSymbols]);
 
     // Retry function for error recovery
     const retryFetchChartData = React.useCallback(async () => {
@@ -359,6 +415,10 @@ export const useSmartChartsAdapter = (config: UseSmartChartsAdapterConfig = {}):
             // Cleanup all subscriptions on unmount or when adapter changes
             if (smartChartsAdapter?.transport) {
                 smartChartsAdapter.transport.unsubscribeAll('ticks');
+            }
+            // Cancel any pending trading_times retry
+            if (retryTimeoutRef.current) {
+                clearTimeout(retryTimeoutRef.current);
             }
         };
     }, [smartChartsAdapter]);
