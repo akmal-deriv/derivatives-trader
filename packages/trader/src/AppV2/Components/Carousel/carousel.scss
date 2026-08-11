@@ -8,6 +8,22 @@
         min-width: 100vw;
         transition: transform 0.24s ease-in-out;
     }
+
+    // Adaptive height: hug the active page instead of the tallest one, so a short page (e.g. the
+    // strategy options list) doesn't leave white space below. Inactive pages collapse to 0 height —
+    // their width is unchanged, so the horizontal slide still works.
+    &--adaptive {
+        align-items: flex-start;
+
+        .carousel__item {
+            height: 0;
+            overflow: hidden;
+
+            &--active {
+                height: auto;
+            }
+        }
+    }
 }
 
 .carousel-controls {

@@ -5,3 +5,10 @@ $HEADER_TITLE_HEIGHT: var(--core-size-3200);
     height: calc(400px - $HANDLEBAR_HEIGHT - $HEADER_TITLE_HEIGHT);
     padding-block-start: 0;
 }
+
+// Automation param sheets (threshold / max stake / stake multiplier): page 1 (input + Save) is the
+// taller page, so the sheet sizes to it and the info page stretches to match. Drop the fixed height so
+// it hugs its description then stretches, instead of reserving 400px (which left white space below).
+.automation-param-sheet .trade-param-definition {
+    height: auto;
+}

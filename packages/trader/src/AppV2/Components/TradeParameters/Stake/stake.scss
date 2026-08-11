@@ -41,10 +41,12 @@
             border: 1px solid var(--semantic-color-monochrome-border-normal-mid);
             border-radius: 10rem;
 
+            // Selected = bordered light surface (matching the market-selection category chips), not a
+            // solid fill. Base already has a 1px border, so only the colours change (no layout shift).
             &--selected {
-                background: var(--component-chip-bg-selected);
-                border-color: var(--component-chip-bg-selected);
-                color: var(--semantic-color-slate-solid-surface-frame-low);
+                background: var(--semantic-color-monochrome-surface-normal-lowest, rgba(0, 0, 0, 0.04));
+                border-color: var(--semantic-color-slate-solid-border-inverse-lowest, #000);
+                color: var(--component-textIcon-normal-prominent, #181c25);
             }
         }
     }

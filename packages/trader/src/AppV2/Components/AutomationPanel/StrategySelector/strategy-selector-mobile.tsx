@@ -59,6 +59,7 @@ const StrategySelectorMobile = ({ options, selectedValue, disabled, onSelect }: 
                 <ActionSheet.Portal shouldCloseOnDrag>
                     <Carousel
                         header={CarouselHeader}
+                        adaptive_height
                         current_index={carousel_index}
                         setCurrentIndex={setCarouselIndex}
                         title={<Localize i18n_default_text='Strategy' />}
