@@ -1,11 +1,16 @@
 import { Locator, expect } from '@playwright/test';
 import { TradeBasePage } from './TradeBasePage';
+import { MarketSelectionPage } from './MarketSelectionPage';
 
 /**
  * Page Object for trade parameters shared across all contract types on the trade page (/).
  *
- * Covers: contract type selector, market selector, stake input, duration input,
- * purchase button, and the mobile parameters container (bottom sheet + drag handle).
+ * Covers: contract type selector, stake input, duration input, purchase button, and the mobile
+ * parameters container (bottom sheet + drag handle). Composes {@link MarketSelectionPage} (not
+ * inherited — same pattern as `TradeRiseFallPage`'s `positionsPage`/`reportsPage` composition) for
+ * the market-selection picker and tab-strip — `selectMarketAndTradeType()` below is the one method
+ * that stays here despite reaching into the composed page, because it also asserts trade-parameter
+ * locators owned by this class.
  * All locators are viewport-aware — desktop (≥ 1024px) and mobile (< 1024px) use
  * different testids or selectors as rendered by AppV2.
  *
@@ -18,6 +23,13 @@ import { TradeBasePage } from './TradeBasePage';
  * ```
  */
 export class TradeParametersPage extends TradeBasePage {
+    readonly marketSelectionPage: MarketSelectionPage;
+
+    constructor(page: import('@playwright/test').Page) {
+        super(page);
+        this.marketSelectionPage = new MarketSelectionPage(page);
+    }
+
     // ============================================
     // LOCATORS
     // ============================================
@@ -190,316 +202,6 @@ export class TradeParametersPage extends TradeBasePage {
      */
     get fullscreenToggle(): Locator {
         return this.page.getByTestId('dt_fullscreen_toggle');
-    }
-
-    /**
-     * "Add market" button on the market-tabs strip — opens the market-selection picker to add a
-     * NEW tab (as opposed to clicking the active tab, which opens it to REPLACE that tab).
-     * Source: market-tabs.tsx aria-label='Add market'
-     */
-    get addMarketButton(): Locator {
-        return this.page.getByRole('button', { name: 'Add market' });
-    }
-
-    /**
-     * Root panel of the market-selection picker — present only while it's open. Both shells
-     * unmount entirely when closed (`return null`), so this also doubles as the "closed" check via
-     * `.not.toBeAttached()`.
-     * - Desktop: `.market-selection-desktop` (InputPopover's className, market-selection-desktop.tsx)
-     * - Mobile: the full-screen modal, `role="dialog"` `aria-label="Market selection"`
-     *   (market-selection-mobile.tsx)
-     */
-    get marketSelectionPanel(): Locator {
-        return this.isMobile
-            ? this.page.locator('[role="dialog"][aria-label="Market selection"]')
-            : this.page.locator('.market-selection-desktop');
-    }
-
-    /**
-     * Search-icon trigger that opens the dedicated mobile search page — desktop's search field is
-     * already inline, so this is mobile-only chrome.
-     * Source: market-selection-header.tsx aria-label='Search'
-     */
-    get marketSelectionSearchButton(): Locator {
-        return this.page.getByRole('button', { name: 'Search' });
-    }
-
-    /**
-     * Market-selection search input — viewport-aware. Searching by name reaches any market across
-     * every trade type in one step, rather than switching categories and scrolling a long list.
-     * - Desktop: always-inline field, placeholder "Search by market name" (market-selection-desktop.tsx)
-     * - Mobile: on the dedicated search page (opened via `marketSelectionSearchButton`), placeholder
-     *   "Search markets" (market-search-page.tsx)
-     */
-    get marketSearchInput(): Locator {
-        return this.isMobile
-            ? this.page.getByPlaceholder('Search markets')
-            : this.page.getByPlaceholder('Search by market name');
-    }
-
-    /**
-     * Search-results group for one trade type — results are grouped by trade type (a symbol can
-     * appear under several), and selecting a row commits it under whichever group it's in.
-     * Source: market-search-results.tsx `.market-search-results__group` / `__trade-type` header
-     *
-     * @param tradeType - Visible trade-type label (e.g. 'Rise/Fall', 'Multipliers')
-     */
-    marketSearchResultsGroup(tradeType: string): Locator {
-        return this.page
-            .locator('.market-search-results__group')
-            .filter({ has: this.page.locator('.market-search-results__trade-type', { hasText: tradeType }) })
-            .first();
-    }
-
-    /**
-     * Market row within a search-results trade-type group, filtered by display name —
-     * viewport-aware. Clicking it commits BOTH this symbol and the group's trade type.
-     * - Desktop: `.market-row-desktop` (market-selection-row-desktop.tsx)
-     * - Mobile: `.market-selection-row` (market-selection-row-mobile.tsx)
-     *
-     * @param market - Visible market name (e.g. 'Volatility 100 Index')
-     * @param tradeType - Visible trade-type label the row must be grouped under
-     */
-    marketSearchResultRow(market: string, tradeType: string): Locator {
-        const group = this.marketSearchResultsGroup(tradeType);
-        return this.isMobile
-            ? group
-                  .locator('.market-selection-row')
-                  .filter({ has: this.page.locator('.market-selection-row__name', { hasText: market }) })
-                  .locator('.market-selection-row__content')
-                  .first()
-            : group
-                  .locator('.market-row-desktop')
-                  .filter({ has: this.page.locator('.market-row-desktop__name', { hasText: market }) })
-                  .first();
-    }
-
-    /**
-     * Empty-state title inside the market-selection picker — shown for both "no search
-     * results" ("No result found") and "no favourites yet" ("No favourites yet").
-     * Source: market-empty-state.tsx `.market-empty-state__title`
-     */
-    get marketEmptyStateTitle(): Locator {
-        return this.page.locator('.market-empty-state__title');
-    }
-
-    /**
-     * A market row within the Favourite tab/section, filtered by display name. Distinct from
-     * {@link marketSearchResultRow} — the Favourites view groups rows under
-     * `.market-favourites__group`, not `.market-search-results__group`.
-     * Source: market-favourites-view.tsx
-     *
-     * @param market - Visible market name (e.g. 'Volatility 100 Index')
-     */
-    favouriteMarketRow(market: string): Locator {
-        return this.page
-            .locator('.market-favourites__group')
-            .locator(this.isMobile ? '.market-selection-row' : '.market-row-desktop', { hasText: market });
-    }
-
-    /**
-     * Empty-state description text under {@link marketEmptyStateTitle}.
-     * Source: market-empty-state.tsx `.market-empty-state__description`
-     */
-    get marketEmptyStateDescription(): Locator {
-        return this.page.locator('.market-empty-state__description');
-    }
-
-    /**
-     * Asset-class category chip (e.g. 'Derived', 'Forex', 'Stocks & indices', 'Commodities',
-     * 'Cryptocurrencies') in the market-selection picker. There is no 'Featured' chip — it was
-     * removed in master PR #974 (2026-08-06) along with the Trending/Gainers/Losers discovery
-     * view. Selected state is exposed as `data-state="selected"` (confirmed live — Quill's
-     * `Chip.Selectable`), not `aria-selected`.
-     * Source: market-category-chips.tsx `.market-selection__category-chips`
-     *
-     * @param label - Visible chip label (e.g. 'Forex')
-     */
-    marketCategoryChip(label: string): Locator {
-        return this.page.locator('.market-selection__category-chips button', { hasText: label });
-    }
-
-    /**
-     * Trade-type navigation item — viewport-aware. Mobile renders a `role="tablist"` strip
-     * (`market-selection__trade-type-tab`); desktop renders a grouped sidebar
-     * (`market-selection-sidebar__item`) under Directional/Growth based/Digit based headers.
-     * Source: trade-type-tabs.tsx (mobile) / market-selection-sidebar.tsx (desktop)
-     */
-    get tradeTypeNavItems(): Locator {
-        return this.isMobile
-            ? this.page.locator('.market-selection__trade-type-tab')
-            : this.page.locator('.market-selection-sidebar__item');
-    }
-
-    /**
-     * Trade-type navigation item filtered by visible label — same viewport split as
-     * {@link tradeTypeNavItems}.
-     *
-     * @param tradeType - Visible trade-type label (e.g. 'Accumulators')
-     */
-    tradeTypeNavItem(tradeType: string): Locator {
-        return this.tradeTypeNavItems.filter({ hasText: tradeType });
-    }
-
-    /**
-     * "Favourite ({{count}})" tab/sidebar-item — viewport-aware. Mobile: leading tab in the
-     * trade-type tablist. Desktop: pinned item at the bottom of the sidebar.
-     * Source: trade-type-tabs.tsx / market-selection-sidebar.tsx
-     */
-    get favouritesTab(): Locator {
-        return this.isMobile
-            ? this.page.locator('.market-selection__trade-type-tab').filter({ hasText: 'Favourite' })
-            : this.page.locator('.market-selection-sidebar__favourite');
-    }
-
-    /**
-     * "Changes ({window})" time-window dropdown trigger — appears in every category list view
-     * (the picker's default landing state, since the Featured/Discovery screen was removed in
-     * master PR #974) and on the Market Info screen's chart. NOT present on the Favourite tab —
-     * `MarketFavouritesView` never wires a window selector.
-     * Source: market-changes-dropdown.tsx `.market-changes-dropdown__trigger`
-     */
-    get marketChangesDropdownTrigger(): Locator {
-        return this.page.locator('.market-changes-dropdown__trigger');
-    }
-
-    /**
-     * An option inside the open {@link marketChangesDropdownTrigger} menu, filtered by label
-     * (e.g. '15 minutes'). Desktop renders a `role="listbox"` popover; mobile an ActionSheet
-     * titled "Change period" — both expose `role="option"` rows.
-     */
-    marketChangesDropdownOption(label: string): Locator {
-        return this.page.getByRole('option', { name: label });
-    }
-
-    /**
-     * Info button on a market row or discovery card — opens the Market Info screen for that
-     * symbol. Present on rows (list/search/favourites) and discovery cards alike.
-     * Source: market-card.tsx / market-selection-row-desktop.tsx / market-selection-row-mobile.tsx `aria-label="Info"`
-     *
-     * @param market - Visible market name whose row/card to target
-     */
-    marketInfoButton(market: string): Locator {
-        return this.page.locator('button, [role="button"]', { hasText: market }).getByRole('button', { name: 'Info' });
-    }
-
-    /**
-     * Favourite/Unfavourite toggle button on a market row or the Info screen. Label flips
-     * between "Favourite" and "Unfavourite" based on current state.
-     * Source: market-selection-row-desktop.tsx / market-selection-row-mobile.tsx / market-info-screen.tsx
-     *
-     * @param market - Visible market name whose row to target
-     */
-    favouriteButton(market: string): Locator {
-        return this.page
-            .locator('button, [role="button"]', { hasText: market })
-            .getByRole('button', { name: /^(Favourite|Unfavourite)$/ });
-    }
-
-    /**
-     * Root of the Market Info screen — replaces the browse panel/modal in place (same popover
-     * footprint on desktop, same full-screen dialog on mobile).
-     * Source: market-info-screen.tsx `.market-info`
-     */
-    get marketInfoScreen(): Locator {
-        return this.page.locator('.market-info');
-    }
-
-    /**
-     * Back button on the Market Info screen — returns to whichever browse view was active
-     * before Info opened.
-     * Source: market-info-screen.tsx `aria-label="Back"`
-     */
-    get marketInfoBackButton(): Locator {
-        return this.marketInfoScreen.getByRole('button', { name: 'Back' });
-    }
-
-    /**
-     * Favourite/Unfavourite toggle on the Market Info screen itself (distinct from the row
-     * button — scoped to the Info screen so it doesn't collide with a row of the same name).
-     * Source: market-info-screen.tsx `.market-info__favourite`
-     */
-    get marketInfoFavouriteButton(): Locator {
-        return this.marketInfoScreen.locator('.market-info__favourite');
-    }
-
-    /**
-     * "Trade on" section listing every trade type the Info screen's symbol supports as a
-     * direct CTA.
-     * Source: market-info-screen.tsx `.market-info__trade-types`
-     */
-    get marketInfoTradeOnSection(): Locator {
-        return this.marketInfoScreen.locator('.market-info__trade-types');
-    }
-
-    /**
-     * A "Trade on" CTA card, filtered by trade-type label. Clicking it commits the Info
-     * screen's symbol under that trade type and closes the whole picker.
-     * Source: market-info-screen.tsx `.market-info__trade-type-card`
-     *
-     * @param tradeType - Visible trade-type label (e.g. 'Multipliers')
-     */
-    marketInfoTradeOnCard(tradeType: string): Locator {
-        return this.marketInfoScreen.locator('.market-info__trade-type-card', { hasText: tradeType });
-    }
-
-    /**
-     * Guide trigger — opens the "how to trade" description modal for the currently-selected
-     * trade type. Rendered in the mobile header and the desktop sidebar header alike.
-     * Source: guide.tsx `aria-label="Guide"`
-     */
-    get guideButton(): Locator {
-        return this.page.getByRole('button', { name: 'Guide' });
-    }
-
-    /**
-     * Guide description modal — opened by {@link guideButton}.
-     * Source: guide-description-modal.tsx
-     */
-    get guideDescriptionModal(): Locator {
-        return this.page.getByRole('dialog').filter({ has: this.page.getByText('How to trade', { exact: false }) });
-    }
-
-    /**
-     * Close ("X") button on the mobile market-selection modal header. Desktop has no
-     * equivalent button — its popover closes via an outside click instead, see
-     * {@link closeMarketSelectionPicker}.
-     * Source: market-selection-header.tsx `aria-label="Close"`
-     */
-    get marketSelectionCloseButton(): Locator {
-        return this.page.getByRole('button', { name: 'Close' });
-    }
-
-    /**
-     * All currently-open market tabs on the trade-page strip.
-     * Source: market-tabs.tsx `[data-testid="dt_market_tabs_list"] [data-testid="dt_market_tab"]`
-     */
-    get marketTabs(): Locator {
-        return this.page.locator('[data-testid="dt_market_tabs_list"] [data-testid="dt_market_tab"]');
-    }
-
-    /**
-     * A specific market tab, filtered by its market name and trade-type subtitle.
-     * Source: market-tab.tsx `[data-testid="dt_market_tab"]`
-     *
-     * @param market - Visible market name (e.g. 'Volatility 100 Index')
-     * @param tradeType - Visible trade-type subtitle (e.g. 'Rise/Fall')
-     */
-    marketTab(market: string, tradeType: string): Locator {
-        return this.marketTabs.filter({ hasText: market }).filter({ hasText: tradeType });
-    }
-
-    /**
-     * Remove ("×") button for a specific market tab — only rendered/tappable when the tab is
-     * removable (more than one tab open, and not the last tradeable tab). On desktop it's
-     * hidden until the tab is hovered; on the active tab it is shown by default.
-     * Source: market-tab.tsx `aria-label="Remove market"`
-     *
-     * @param market - Visible market name of the tab to target
-     * @param tradeType - Visible trade-type subtitle of the tab to target
-     */
-    removeMarketTabButton(market: string, tradeType: string): Locator {
-        return this.marketTab(market, tradeType).getByRole('button', { name: 'Remove market' });
     }
 
     /**
@@ -917,23 +619,23 @@ export class TradeParametersPage extends TradeBasePage {
         const { openInNewTab = false } = options;
 
         if (openInNewTab) {
-            await this.addMarketButton.click();
+            await this.marketSelectionPage.addMarketButton.click();
         } else {
             await this.activeMarketTab.click();
         }
         await expect(
-            this.marketSelectionPanel,
+            this.marketSelectionPage.marketSelectionPanel,
             'Market-selection picker should be visible after opening'
         ).toBeVisible();
 
         if (this.isMobile) {
-            await this.marketSelectionSearchButton.click();
+            await this.marketSelectionPage.marketSelectionSearchButton.click();
         }
-        await this.marketSearchInput.fill(market);
-        await this.marketSearchResultRow(market, tradeType).click();
+        await this.marketSelectionPage.marketSearchInput.fill(market);
+        await this.marketSelectionPage.marketSearchResultRow(market, tradeType).click();
 
         await expect(
-            this.marketSelectionPanel,
+            this.marketSelectionPage.marketSelectionPanel,
             'Market-selection picker should close after selecting a market'
         ).not.toBeAttached();
         await expect(
@@ -946,109 +648,6 @@ export class TradeParametersPage extends TradeBasePage {
         ).toContainText(market);
 
         await this.verifyParamsForTradeType(tradeType);
-    }
-
-    /**
-     * Switch to an already-open market tab by market + trade type.
-     *
-     * @param market - Visible market name of the tab to activate
-     * @param tradeType - Visible trade-type subtitle of the tab to activate
-     */
-    async switchToMarketTab(market: string, tradeType: string): Promise<void> {
-        await this.marketTab(market, tradeType).click();
-    }
-
-    /**
-     * Remove an open market tab. Desktop reveals the close control on hover for non-active
-     * tabs, so this hovers first — a no-op on mobile (no hover state) and harmless on the
-     * active tab (its close control is always visible).
-     *
-     * @param market - Visible market name of the tab to remove
-     * @param tradeType - Visible trade-type subtitle of the tab to remove
-     */
-    async removeMarketTab(market: string, tradeType: string): Promise<void> {
-        const tab = this.marketTab(market, tradeType);
-        await tab.hover();
-        await this.removeMarketTabButton(market, tradeType).click();
-    }
-
-    /**
-     * Select an asset-class category chip in the market-selection picker (e.g. 'Forex',
-     * 'Derived'). The picker must already be open.
-     *
-     * @param label - Visible chip label
-     */
-    async selectMarketCategory(label: string): Promise<void> {
-        await this.marketCategoryChip(label).click();
-    }
-
-    /**
-     * Select a trade type inside the market-selection picker's navigation (mobile tab strip
-     * or desktop sidebar). The picker must already be open. Unlike
-     * {@link selectMarketAndTradeType}, this only switches which trade type is being browsed —
-     * it does not commit a market or close the picker.
-     *
-     * @param tradeType - Visible trade-type label (e.g. 'Accumulators')
-     */
-    async selectTradeTypeInPicker(tradeType: string): Promise<void> {
-        await this.tradeTypeNavItem(tradeType).click();
-    }
-
-    /**
-     * Toggle the Favourite state for a market row in the currently-browsed list/search/
-     * favourites view. The picker must already be open and the row visible.
-     *
-     * Desktop reveals Info/Favourite inline (hover suffices); mobile only reveals them via a
-     * swipe-left gesture on the row, which Playwright cannot simulate as a real touch swipe —
-     * the buttons are always present in the DOM (`tabIndex`/`aria-hidden` toggle, not
-     * `display: none`), so a forced click exercises the real handler without the gesture.
-     *
-     * @param market - Visible market name whose row to toggle
-     */
-    async toggleFavourite(market: string): Promise<void> {
-        if (this.isMobile) {
-            await this.favouriteButton(market).click({ force: true });
-        } else {
-            await this.favouriteButton(market).click();
-        }
-    }
-
-    /**
-     * Open the Market Info screen for a market row or discovery card.
-     *
-     * Mobile rows only reveal the Info button via a swipe-left gesture — see
-     * {@link toggleFavourite} for why a forced click is used instead. Discovery cards show
-     * Info inline on both viewports, so this is safe for both entry points.
-     *
-     * @param market - Visible market name whose Info button to click
-     */
-    async openMarketInfo(market: string): Promise<void> {
-        if (this.isMobile) {
-            await this.marketInfoButton(market).click({ force: true });
-        } else {
-            await this.marketInfoButton(market).click();
-        }
-    }
-
-    /**
-     * Open the Guide description modal for the currently-selected trade type.
-     */
-    async openGuide(): Promise<void> {
-        await this.guideButton.click();
-    }
-
-    /**
-     * Close the market-selection picker without selecting a market. Mobile taps the header's
-     * Close (X) button; desktop clicks the popover's outside-click overlay (`InputPopover`
-     * renders a full-viewport `.input-popover-overlay` whose own click handler closes it — a
-     * corner position is used so the click doesn't land on the popover panel itself).
-     */
-    async closeMarketSelectionPicker(): Promise<void> {
-        if (this.isMobile) {
-            await this.marketSelectionCloseButton.click();
-        } else {
-            await this.page.locator('.input-popover-overlay').click({ position: { x: 10, y: 10 } });
-        }
     }
 
     /**
@@ -1689,7 +1288,10 @@ export class TradeParametersPage extends TradeBasePage {
     async verifyDTraderLandingPageLoggedOut(): Promise<void> {
         await expect(this.loginButton, 'Login button should be visible when logged out').toBeVisible();
         await expect(this.accountInfo, 'Account info should not be visible when logged out').not.toBeVisible();
-        await expect(this.addMarketButton, '"Add market" button should be visible before login').toBeVisible();
+        await expect(
+            this.marketSelectionPage.addMarketButton,
+            '"Add market" button should be visible before login'
+        ).toBeVisible();
         await expect(this.activeMarketTab, 'Rise/Fall should be the active market tab by default').toBeVisible();
         await expect(this.purchaseButton, 'Purchase button should be visible before login').toBeVisible();
 
@@ -1732,7 +1334,10 @@ export class TradeParametersPage extends TradeBasePage {
      */
     async verifyDTraderLandingPage(): Promise<void> {
         await this.verifySuccessfulLogin();
-        await expect(this.addMarketButton, '"Add market" button should be visible on the trade form').toBeVisible();
+        await expect(
+            this.marketSelectionPage.addMarketButton,
+            '"Add market" button should be visible on the trade form'
+        ).toBeVisible();
         await expect(this.activeMarketTab, 'Active market tab should be visible on the trade form').toBeVisible();
         await expect(this.riseButton, 'Rise button should be visible as the default contract type').toBeVisible();
         await expect(this.fallButton, 'Fall button should be visible as the default contract type').toBeVisible();

@@ -10,7 +10,7 @@
 > `packages/trader/src/AppV2/Components/MarketTabs/` (tab strip)
 > **URL:** `https://staging-dtrader.deriv.com/`
 > **Authentication:** Not required anywhere in this module. Favourites (`favourite_markets_v2`) persist
-> via plain `localStorage`, independent of login state — confirmed in `markets-store.ts` — so Flow 12
+> via plain `localStorage`, independent of login state — confirmed in `markets-store.ts` — so Flow 11
 > (persistence across reload) does not need a logged-in session either, despite the original test plan
 > assuming otherwise.
 >
@@ -20,8 +20,29 @@
 > category list (`MarketSelectionList`), scoped to the first available category for the current trade
 > type (`categories[0]`, computed from `getMarketCategories()` — no longer includes a Featured entry).
 > `DiscoveryView`/`DiscoverySection`/`MarketCard` still exist in source but are permanently unreachable
-> dead code. Flow 6 below now documents and guards against this removal instead of testing the
-> (removed) discovery cards.
+> dead code. There is no longer a dedicated flow for this removal — it had a regression-guard test at
+> one point, but that test was removed on 2026-08-06 and the flow was removed from this doc along with
+> it (all flows below were renumbered to close the gap).
+>
+> **2026-08-06 consolidation:** `verify-market-browse-and-discovery.spec.ts` was reduced from 8 `test()`
+> blocks down to 2 to cut down on redundant picker open/close cycles. Flows 1 → 2 → 13 now run as
+> sequential parts of one test (each part continues from the previous part's end state — e.g. Flow 2's
+> "replace" check starts from the tab Flow 1 just opened). Flows 3 → 5 → 6 → 4 → 12 run as sequential
+> parts of a second test, in that non-numeric order — Flow 5's category-chip check assumes Rise/Fall's
+> default category, so it must run before Flow 4 switches the trade type away from Rise/Fall. If one
+> part fails, later parts in the same test are skipped, so check earlier parts first when debugging a
+> failure here.
+>
+> **2026-08-11 update:** `MarketSelectionPage` was extracted as its own composed Page Object (was
+> previously part of `TradeParametersPage`) — see `catalog.md` Section 4. `verify-trade-tabs.spec.ts`
+> was similarly consolidated from 8 `test()` blocks down to 3: Flows 14 → 15 → 16 share one test,
+> Flows 17 → 18 → 19 share another, and Flows 23 → 20 share a third. Two real bugs were found and
+> fixed during this pass: `switchToMarketTab()` was being called on an already-active tab (which has
+> special "replace" semantics — see Flow 2 — instead of being a no-op), and Flow 16's
+> independent-trade-type check used Bull Market Index for an Accumulators pairing that market doesn't
+> support (it's a "Daily reset index", limited to directional/digit trade types) — switched to
+> Volatility 100 Index, which supports all 10 trade types. `verify-trade-tabs-buy.spec.ts` (Flow 22)
+> is currently wrapped in `test.describe.skip(...)`, pending revisit.
 
 ---
 
@@ -29,7 +50,7 @@
 
 ### Open Market Selection Steps
 
-> Referenced by every flow below except the Tab-strip-only flows (Flows 16–26), which start from an
+> Referenced by every flow below except the Tab-strip-only flows (Flows 14–24), which start from an
 > already-open picker or an already-populated tab strip.
 
 **Prerequisites:** On the trade page, at least one tab open (always true — the app never has zero tabs).
@@ -92,21 +113,7 @@ Follows [Open Market Selection Steps](#open-market-selection-steps) step 1b.
 > as of master PR #974 (2026-08-06) — the redesign test plan's original list included it, and also
 > omitted `Cryptocurrencies`, which does exist as a chip when the trade type offers crypto symbols.
 
-### Flow 6 — Featured/Discovery view has been removed (regression guard)
-
-> **Repurposed 2026-08-06:** this flow previously tested the Trending/Gainers/Losers discovery cards.
-> Master PR #974 removed that surface entirely — `show_discovery` is hardcoded `false` in
-> `useMarketSelection.ts`, and `getMarketCategories()` no longer returns a Featured entry. This flow now
-> guards against regressing back to the old behavior.
-
-| #   | Step                                 | Action                                                                  | Expected Result                                                                                                                                        | Platform |
-| --- | ------------------------------------ | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | -------- |
-| 1   | Open the picker                      | Follow [Open Market Selection Steps](#open-market-selection-steps)      | Picker opens                                                                                                                                           | Both     |
-| 2   | Confirm no Featured chip             | Read the category chip labels                                           | No chip is labelled "Featured" — only real market categories (`Derived`, `Forex`, `Stocks & indices`, `Commodities`, `Cryptocurrencies` as applicable) | Both     |
-| 3   | Confirm no discovery sections        | Search the picker for "Trending", "Gainers", or "Losers" section titles | None of the three sections render, on any category or trade type                                                                                       | Both     |
-| 4   | Confirm the list view is the default | Observe what renders immediately on open, with no chip clicked yet      | The flat category list (grouped by submarket, e.g. "Baskets" / "Synthetics") renders immediately — never a discovery-card layout                       | Both     |
-
-### Flow 7 — Time-window dropdown is always present in the category list
+### Flow 6 — Time-window dropdown is always present in the category list
 
 > **Correction 2026-08-06:** since Featured/Discovery no longer exists, EVERY browse view (except the
 > Favourites tab) is now the category list — so the "Changes ({window})" dropdown is present as soon as
@@ -119,7 +126,7 @@ Follows [Open Market Selection Steps](#open-market-selection-steps) step 1b.
 | 3   | Select a longer window      | Select "15 minutes"                                                | Dropdown trigger label updates to "Changes (15 minutes)"; row % changes reload for the new window                  | Both     |
 | 4   | Switch to the Favourite tab | Click/tap the "Favourite ({{count}})" tab/sidebar item             | The dropdown is NOT present — `MarketFavouritesView` never wires a window selector, unlike every category list     | Both     |
 
-### Flow 8 — Market Info screen
+### Flow 7 — Market Info screen
 
 | #   | Step                       | Action                                                                                | Expected Result                                                                                                                                                                                                                                                                      | Platform |
 | --- | -------------------------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------- |
@@ -130,7 +137,7 @@ Follows [Open Market Selection Steps](#open-market-selection-steps) step 1b.
 | 5   | Select a "Trade on" CTA    | Click one of the trade-type cards under "Trade on"                                    | Commits the symbol under that trade type (same as picking it from the browse list) and closes the whole picker — trade page reflects the new market + trade type                                                                                                                     | Both     |
 | 6   | Back out of Info           | Click the Back button (`aria-label="Back"`) instead of a Trade-on CTA                 | Returns to the browse panel/modal (category list, favourites, or search — whichever was active before Info opened)                                                                                                                                                                   | Both     |
 
-### Flow 9 — Search by market name
+### Flow 8 — Search by market name
 
 | #   | Step               | Action                                                                                           | Expected Result                                                                                                                                                                            | Platform |
 | --- | ------------------ | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------- |
@@ -139,14 +146,14 @@ Follows [Open Market Selection Steps](#open-market-selection-steps) step 1b.
 | 3   | Type a market name | Type "Volatility" into the search field                                                          | Results render grouped by trade type — each trade type that has a tradeable match gets its own header, split into submarket sections; a symbol can appear under multiple trade-type groups | Both     |
 | 4   | Select a result    | Click a row under one of the trade-type groups                                                   | Commits BOTH the symbol and that group's trade type; picker closes                                                                                                                         | Both     |
 
-### Flow 10 — Search with no matches
+### Flow 9 — Search with no matches
 
 | #   | Step                  | Action                                               | Expected Result                                                                                                                                     | Platform |
 | --- | --------------------- | ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
-| 1   | Open search           | Follow Flow 9 steps 1–2                              | Search field is ready                                                                                                                               | Both     |
+| 1   | Open search           | Follow Flow 8 steps 1–2                              | Search field is ready                                                                                                                               | Both     |
 | 2   | Type a nonsense query | Type a string matching no market (e.g. "zzznotreal") | Empty-results illustration + "No result found" title + "Check your spelling or try searching for a different market." description — no error thrown | Both     |
 
-### Flow 11 — Favourite toggle from the browse list
+### Flow 10 — Favourite toggle from the browse list
 
 | #   | Step                         | Action                                                                       | Expected Result                                                                                                         | Platform |
 | --- | ---------------------------- | ---------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | -------- |
@@ -156,15 +163,15 @@ Follows [Open Market Selection Steps](#open-market-selection-steps) step 1b.
 | 4   | Open the Favourite tab       | Click "Favourite ({{count}})" (tab strip on mobile, sidebar item on desktop) | The just-favourited market appears, grouped under its trade type and submarket                                          | Both     |
 | 5   | Unfavourite                  | Click the star again (now `aria-label="Unfavourite"`)                        | Market disappears from the Favourite tab; count decrements by 1                                                         | Both     |
 
-### Flow 12 — Favourites persist across a page reload
+### Flow 11 — Favourites persist across a page reload
 
 | #   | Step                     | Action                                      | Expected Result                                     | Platform |
 | --- | ------------------------ | ------------------------------------------- | --------------------------------------------------- | -------- |
-| 1   | Favourite a market       | Follow Flow 11 steps 1–3                    | Market is favourited; count updates                 | Both     |
+| 1   | Favourite a market       | Follow Flow 10 steps 1–3                    | Market is favourited; count updates                 | Both     |
 | 2   | Reload the page          | Reload `https://staging-dtrader.deriv.com/` | Page reloads; API/WebSocket settles                 | Both     |
-| 3   | Reopen the Favourite tab | Follow Flow 11 step 4                       | The favourited market is still present after reload | Both     |
+| 3   | Reopen the Favourite tab | Follow Flow 10 step 4                       | The favourited market is still present after reload | Both     |
 
-### Flow 13 — Guide affordance opens the trade-type description modal
+### Flow 12 — Guide affordance opens the trade-type description modal
 
 | #   | Step                               | Action                                                                                        | Expected Result                                                                                                                             | Platform |
 | --- | ---------------------------------- | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
@@ -172,7 +179,7 @@ Follows [Open Market Selection Steps](#open-market-selection-steps) step 1b.
 | 2   | Tap/click the Guide icon           | Mobile: tap the Guide icon in the header. Desktop: click the Guide icon in the sidebar header | A description modal opens explaining "how to trade" the currently-selected trade type, with chips to switch between trade types             | Both     |
 | 3   | Switch trade type inside the Guide | Select a different trade-type chip inside the modal                                           | Modal content updates to that trade type's description — does not close the modal or affect the underlying picker's own selected trade type | Both     |
 
-### Flow 14 — Close without selecting
+### Flow 13 — Close without selecting
 
 | #   | Step                    | Action                                                                                      | Expected Result                                                                | Platform |
 | --- | ----------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ | -------- |
@@ -180,7 +187,7 @@ Follows [Open Market Selection Steps](#open-market-selection-steps) step 1b.
 | 2   | Open the picker         | Follow [Open Market Selection Steps](#open-market-selection-steps) step 1                   | Picker opens                                                                   | Both     |
 | 3   | Close without selecting | Click the Close (`aria-label="Close"`) icon (mobile) or click outside the popover (desktop) | Picker closes; the previously active tab/market is unchanged from the baseline | Both     |
 
-### Flow 15 — Switch between existing tabs
+### Flow 14 — Switch between existing tabs
 
 **Prerequisites:** At least two tabs already open (e.g. via Flow 1 twice with different markets).
 
@@ -190,7 +197,7 @@ Follows [Open Market Selection Steps](#open-market-selection-steps) step 1b.
 | 2   | Click the inactive tab | Click Tab B                         | Tab B becomes active (`aria-current="true"`); URL `symbol`/`trade_type` query params update to Tab B's pair; trade form/chart reload for Tab B's market | Both     |
 | 3   | Click back to Tab A    | Click Tab A                         | Tab A becomes active again; its (symbol, contract_type) pair is exactly as it was at step 1 — no drift from having visited Tab B                        | Both     |
 
-### Flow 16 — Re-selecting an already-open pair focuses the existing tab
+### Flow 15 — Re-selecting an already-open pair focuses the existing tab
 
 **Prerequisites:** A tab for (market, trade type) already open and NOT active.
 
@@ -200,7 +207,7 @@ Follows [Open Market Selection Steps](#open-market-selection-steps) step 1b.
 | 2   | Open picker via Add market   | Click "Add market"                                                              | Picker opens                                                                                   | Both     |
 | 3   | Select the already-open pair | Search for and select the exact (market, trade type) pair already open as a tab | Picker closes; that existing tab becomes active; tab count is UNCHANGED (no duplicate created) | Both     |
 
-### Flow 17 — Same market, different trade type are independent tabs
+### Flow 16 — Same market, different trade type are independent tabs
 
 | #   | Step                                              | Action                                                                | Expected Result                                                                                                                                   | Platform |
 | --- | ------------------------------------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
@@ -208,17 +215,16 @@ Follows [Open Market Selection Steps](#open-market-selection-steps) step 1b.
 | 2   | Open the SAME market under a different trade type | Follow Flow 1 (Add market) with the SAME market + e.g. 'Accumulators' | A SECOND, independent tab is created (not merged with step 1's tab) — both tabs show the same market icon/name but different trade-type subtitles | Both     |
 | 3   | Switch between both                               | Click each tab in turn                                                | Each activates independently; no cross-contamination of trade type between them                                                                   | Both     |
 
-### Flow 18 — Remove a non-active tab
+### Flow 17 — Remove a non-active tab
 
 **Prerequisites:** At least two tabs open.
 
-| #   | Step                            | Action                                                                                                  | Expected Result                                                                                  | Platform |
-| --- | ------------------------------- | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ | -------- |
-| 1   | Reveal the close control        | Desktop: hover the non-active tab. Mobile: the active tab always shows it, others need...               | Close (×) control (`aria-label="Remove market"`) becomes visible/tappable for the non-active tab | Desktop  |
-| 1   | N/A — mobile close affordance   | Mobile shows the × on the active tab by default; a non-active tab's × is reached by first activating it | (documented for completeness — mobile's primary close path is via the active tab)                | Mobile   |
-| 2   | Click the × on a non-active tab | Click the Remove button on a tab that is NOT active                                                     | That tab closes; the active tab and all other tabs are unaffected; tab count decreases by 1      | Desktop  |
+| #   | Step                            | Action                                                                                                                                                                    | Expected Result                                                                              | Platform |
+| --- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- | -------- |
+| 1   | Reveal the close control        | Desktop: hover the non-active tab. Mobile: has no hover state and the non-active tab's × sits behind its own content until activated, so tap the tab first to activate it | Close (×) control (`aria-label="Remove market"`) becomes visible/tappable for the target tab | Both     |
+| 2   | Click the × on a non-active tab | Click the Remove button on a tab that is NOT active                                                                                                                       | That tab closes; the active tab and all other tabs are unaffected; tab count decreases by 1  | Both     |
 
-### Flow 19 — Remove the active tab falls back to an adjacent tab
+### Flow 18 — Remove the active tab falls back to an adjacent tab
 
 **Prerequisites:** At least two tabs open, one of them active.
 
@@ -227,18 +233,18 @@ Follows [Open Market Selection Steps](#open-market-selection-steps) step 1b.
 | 1   | Note tab order        | Read the order of open tabs and which is active | Baseline captured                                                                                                                                                                                  | Both     |
 | 2   | Remove the active tab | Click the × on the currently active tab         | That tab closes; the tab immediately to its RIGHT becomes active (or, if the closed tab was last, the tab immediately to its LEFT becomes active) — never leaves the trade page with no active tab | Both     |
 
-### Flow 20 — Remove the last remaining tab is blocked
+### Flow 19 — Remove the last remaining tab is blocked
 
 **Prerequisites:** Exactly one tab open.
 
 | #   | Step                     | Action                                            | Expected Result                                                                           | Platform |
 | --- | ------------------------ | ------------------------------------------------- | ----------------------------------------------------------------------------------------- | -------- |
-| 1   | Reduce to a single tab   | Remove tabs (per Flow 18/19) until only 1 remains | One tab remains, active                                                                   | Both     |
+| 1   | Reduce to a single tab   | Remove tabs (per Flow 17/18) until only 1 remains | One tab remains, active                                                                   | Both     |
 | 2   | Look for a close control | Hover (desktop) or inspect (mobile) the sole tab  | NO close (×) control renders at all — removal is fully blocked, even via hover on desktop | Both     |
 
-### Flow 21 — Tab strip scroll and active/inactive tab sizing
+### Flow 20 — Tab strip scroll and active/inactive tab sizing
 
-**Prerequisites:** Enough tabs open to overflow the visible strip width (e.g. at the platform's max — see Flow 26).
+**Prerequisites:** Enough tabs open to overflow the visible strip width (e.g. at the platform's max — see Flow 24).
 
 | #   | Step                   | Action                                   | Expected Result                                                                                                                  | Platform |
 | --- | ---------------------- | ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | -------- |
@@ -246,7 +252,7 @@ Follows [Open Market Selection Steps](#open-market-selection-steps) step 1b.
 | 2   | Scroll the strip       | Scroll/swipe the tab list horizontally   | Strip scrolls; an edge-fade overlay appears on whichever side still has more tabs to reveal, and clears once that end is reached | Both     |
 | 3   | Activate an edge tab   | Click a tab near the scrolled-away edge  | Strip auto-scrolls to bring the newly-active tab fully into view as it expands                                                   | Both     |
 
-### Flow 22 — Tabs persist across page reload
+### Flow 21 — Tabs persist across page reload
 
 **Prerequisites:** At least two tabs open, e.g. 'Volatility 100 Index' (Rise/Fall) + 'Bull Market Index' (Rise/Fall).
 
@@ -256,7 +262,10 @@ Follows [Open Market Selection Steps](#open-market-selection-steps) step 1b.
 | 2   | Reload the page        | Reload `https://staging-dtrader.deriv.com/` | Page reloads; API/WebSocket settles                                                            | Both     |
 | 3   | Verify tabs restored   | Read the open tabs and active tab again     | Same tabs (same symbols + trade types, same order) and the same active tab are restored intact | Both     |
 
-### Flow 23 — Buy always targets the active tab's pair
+### Flow 22 — Buy always targets the active tab's pair — SKIPPED
+
+> The whole suite in `verify-trade-tabs-buy.spec.ts` is wrapped in `test.describe.skip(...)` as of
+> 2026-08-11 — pending revisit.
 
 **Prerequisites:** At least two tabs open with different markets, e.g. Tab A = 'Volatility 100 Index', Tab B = 'Bull Market Index'. Logged-in account with sufficient balance.
 
@@ -265,7 +274,7 @@ Follows [Open Market Selection Steps](#open-market-selection-steps) step 1b.
 | 1   | Set Tab B active, adjust stake | Activate Tab B, set a distinct Stake (e.g. 5.00) | Tab B is active with the new Stake; Tab A remains untouched at its own default                                                           | Both     |
 | 2   | Click Buy                      | Click the purchase button while Tab B is active  | The contract purchased matches Tab B's (symbol, contract_type) — balance change and the resulting position both reflect Tab B, not Tab A | Both     |
 
-### Flow 24 — Tab icon reflects its own market
+### Flow 23 — Tab icon reflects its own market
 
 **Prerequisites:** At least three tabs open across visibly different symbol categories (e.g. a Volatility index, a Jump index, and a forex pair like 'EUR/USD').
 
@@ -273,7 +282,7 @@ Follows [Open Market Selection Steps](#open-market-selection-steps) step 1b.
 | --- | ----------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
 | 1   | Compare tab icons | Read the icon rendered on each open tab | Each tab's icon matches its own symbol (e.g. the forex tab shows a flag icon distinct from the two index tabs' icons) — never a shared/generic icon across different symbols | Both     |
 
-### Flow 25 — Max tab limit enforced (4 on mobile, 7 on desktop)
+### Flow 24 — Max tab limit enforced (4 on mobile, 7 on desktop)
 
 **Prerequisites:** Open tabs up to the platform's cap (4 on mobile, 7 on desktop) via repeated Flow 1.
 

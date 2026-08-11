@@ -1,33 +1,38 @@
 # 🗺️ Market Selection & Trade Tabs Journey Catalog — Technical Reference
 
-> Source of truth: `playwright/pages/TradeParametersPage.ts` (extended — no new Page Object; see Section 4)
+> Source of truth: `playwright/pages/MarketSelectionPage.ts` (picker + tab strip; composed into
+> `playwright/pages/TradeParametersPage.ts` via `tradeParametersPage.marketSelectionPage` — see Section 4)
 > Source components: `packages/trader/src/AppV2/Components/MarketSelection/`, `packages/trader/src/AppV2/Components/MarketTabs/`
-> Created: 2026-08-05 | Last updated: 2026-08-06 (master PR #974 removed the Featured/Discovery view — see Flows 5–7 and Section 4)
+> Created: 2026-08-05 | Last updated: 2026-08-11 (`MarketSelectionPage` extracted as its own composed
+> Page Object; `verify-trade-tabs.spec.ts` consolidated and two bugs fixed — see Flows 14–20, 23 and
+> Section 4)
 
 ---
 
 ## Section 1 — Journey Index
 
-| Journey ID       | Spec File                                                     | Tags                                                             |
-| ---------------- | ------------------------------------------------------------- | ---------------------------------------------------------------- |
-| Flow 1–7, 13, 14 | `market-selection/verify-market-browse-and-discovery.spec.ts` | `@market-selection @regression @desktop @mobile`                 |
-| Flow 8           | `market-selection/verify-market-info-screen.spec.ts`          | `@market-selection @regression @desktop @mobile`                 |
-| Flow 9, 10       | `market-selection/verify-market-search.spec.ts`               | `@market-selection @smoke @desktop @mobile`                      |
-| Flow 11          | `market-selection/verify-market-favourites.spec.ts`           | `@market-selection @regression @desktop @mobile`                 |
-| Flow 12          | `market-selection/verify-market-favourites.spec.ts`           | `@market-selection @regression @desktop @mobile`                 |
-| Flow 15–21, 24   | `market-selection/verify-trade-tabs.spec.ts`                  | `@market-selection @smoke @desktop @mobile`                      |
-| Flow 22          | `market-selection/verify-trade-tabs-persistence.spec.ts`      | `@market-selection @regression @desktop @mobile`                 |
-| Flow 23          | `market-selection/verify-trade-tabs-buy.spec.ts`              | `@market-selection @trade @regression @desktop @mobile @staging` |
-| Flow 25          | `market-selection/verify-trade-tabs-max-limit.spec.ts`        | `@market-selection @regression @desktop @mobile`                 |
-| G1               | Not automated — see [`coverage.md`](./coverage.md)            | —                                                                |
-
-> None of these spec files exist yet — this catalog is written to guide the next step (`/flow-to-playwright-dtrader`), not implemented here.
+| Journey ID       | Spec File                                                      | Tags                                                             |
+| ---------------- | -------------------------------------------------------------- | ---------------------------------------------------------------- |
+| Flow 1–6, 12, 13 | `market-selection/verify-market-browse-and-discovery.spec.ts`  | `@market-selection @regression @desktop @mobile`                 |
+| Flow 7           | `market-selection/verify-market-info-screen.spec.ts`           | `@market-selection @regression @desktop @mobile`                 |
+| Flow 8, 9        | `market-selection/verify-market-search.spec.ts`                | `@market-selection @smoke @desktop @mobile`                      |
+| Flow 10          | `market-selection/verify-market-favourites.spec.ts`            | `@market-selection @regression @desktop @mobile`                 |
+| Flow 11          | `market-selection/verify-market-favourites.spec.ts`            | `@market-selection @regression @desktop @mobile`                 |
+| Flow 14–20, 23   | `market-selection/verify-trade-tabs.spec.ts`                   | `@market-selection @smoke @desktop @mobile`                      |
+| Flow 21          | `market-selection/verify-trade-tabs-persistence.spec.ts`       | `@market-selection @regression @desktop @mobile`                 |
+| Flow 22          | `market-selection/verify-trade-tabs-buy.spec.ts` — **skipped** | `@market-selection @trade @regression @desktop @mobile @staging` |
+| Flow 24          | `market-selection/verify-trade-tabs-max-limit.spec.ts`         | `@market-selection @regression @desktop @mobile`                 |
+| G1               | Not automated — see [`coverage.md`](./coverage.md)             | —                                                                |
 
 ---
 
 ## Section 2 — Flow Details
 
-### Flows 1–2 — Open picker (new tab vs. replace)
+### Flows 1, 2, 13 — Open picker (new tab vs. replace), close without selecting
+
+> **Combined 2026-08-06** into one `test()` block (`'VERIFY market commit mechanics — new tab, replace
+active tab, and close without selecting'`) as three sequential parts, each continuing from the
+> previous part's resulting tab state.
 
 **Test pattern:**
 
@@ -52,6 +57,12 @@ await expect(tradeParametersPage.marketTabs, 'Tab count should be unchanged (rep
 
 ### Flows 3–4 — Trade-type navigation and switching
 
+> **Combined 2026-08-06**, along with Flow 5, Flow 6, and Flow 12 below, into one `test()` block
+> (`'VERIFY picker browsing — trade types, category chips, time window, and Guide'`) as five sequential
+> parts, run in the non-numeric order 3 → 5 → 6 → 4 → 12 — Flow 5's category-chip check assumes
+> Rise/Fall's default category, so it must run before Flow 4 switches the trade type away from
+> Rise/Fall.
+
 ```typescript
 await tradeParametersPage.addMarketButton.click();
 await expect(tradeParametersPage.marketSelectionPanel, 'Picker should open').toBeVisible();
@@ -67,6 +78,8 @@ await expect(tradeParametersPage.marketSelectionResultsList, 'List should reload
 
 ### Flow 5 — Asset-class category filter
 
+> Combined 2026-08-06 into the same test as Flows 3, 6, 4, 12 — see the note above.
+
 ```typescript
 await tradeParametersPage.marketCategoryChip('Forex').click();
 // Confirmed live: Quill's Chip.Selectable exposes `data-state="selected"`, not `aria-selected`.
@@ -76,28 +89,9 @@ await expect(tradeParametersPage.marketCategoryChip('Forex'), 'Forex chip should
 );
 ```
 
-### Flow 6 — Featured/Discovery view removed (regression guard)
+### Flow 6 — Time-window dropdown is always present
 
-```typescript
-// No Featured chip exists anymore.
-await expect(tradeParametersPage.marketCategoryChip('Featured'), 'Featured chip should not exist').toHaveCount(0);
-// Discovery sections never render — DiscoveryView/DiscoverySection are unreachable dead code
-// (show_discovery is hardcoded false in useMarketSelection.ts).
-await expect(
-    tradeParametersPage.page.getByText('Trending', { exact: true }),
-    'Trending section should not render'
-).not.toBeVisible();
-await expect(
-    tradeParametersPage.page.getByText('Gainers', { exact: true }),
-    'Gainers section should not render'
-).not.toBeVisible();
-await expect(
-    tradeParametersPage.page.getByText('Losers', { exact: true }),
-    'Losers section should not render'
-).not.toBeVisible();
-```
-
-### Flow 7 — Time-window dropdown is always present
+> Combined 2026-08-06 into the same test as Flows 3, 5, 4, 12 — see the note above.
 
 ```typescript
 // No prior category click needed — the dropdown is present as soon as the picker opens, because
@@ -120,7 +114,7 @@ await expect(
 ).not.toBeVisible();
 ```
 
-### Flow 8 — Market Info screen
+### Flow 7 — Market Info screen
 
 ```typescript
 await tradeParametersPage.marketInfoButton('Volatility 100 Index').click();
@@ -135,25 +129,25 @@ await tradeParametersPage.marketInfoTradeOnCard('Multipliers').click();
 await expect(tradeParametersPage.marketSelectionPanel, 'Picker should close after Trade-on CTA').not.toBeAttached();
 ```
 
-### Flows 9–10 — Search and empty results
+### Flows 8–9 — Search and empty results
 
 ```typescript
-// Flow 9
+// Flow 8
 if (isMobileViewport) await tradeParametersPage.marketSelectionSearchButton.click();
 await tradeParametersPage.marketSearchInput.fill('Volatility');
 await tradeParametersPage.marketSearchResultRow('Volatility 100 Index', 'Rise/Fall').click();
 
-// Flow 10
+// Flow 9
 await tradeParametersPage.marketSearchInput.fill('zzznotreal');
 await expect(tradeParametersPage.marketEmptyStateTitle, 'Empty state should show "No result found"').toHaveText(
     'No result found'
 );
 ```
 
-### Flows 11–12 — Favourites and persistence
+### Flows 10–11 — Favourites and persistence
 
 ```typescript
-// Flow 11 — note: the Favourite tab renders rows under `.market-favourites__group`, NOT
+// Flow 10 — note: the Favourite tab renders rows under `.market-favourites__group`, NOT
 // `.market-search-results__group` — use favouriteMarketRow(), not marketSearchResultRow().
 await tradeParametersPage.favouriteButton('Volatility 100 Index').click();
 await expect(tradeParametersPage.favouriteButton('Volatility 100 Index'), 'Should flip to Unfavourite').toHaveAttribute(
@@ -166,7 +160,7 @@ await expect(
     'Favourited market should appear in the Favourite tab'
 ).toBeVisible();
 
-// Flow 12 — no login required, favourite_markets_v2 is plain localStorage
+// Flow 11 — no login required, favourite_markets_v2 is plain localStorage
 await page.reload();
 await NavigationUtils.waitForDerivApiSettled(page);
 await tradeParametersPage.addMarketButton.click();
@@ -177,46 +171,55 @@ await expect(
 ).toBeVisible();
 ```
 
-### Flows 15–21, 24 — Core tab mechanics
+### Flows 14–20, 23 — Core tab mechanics
 
-**Account setup:** none — all browsable without login. Flow 23 (Buy) is the only tab-strip flow needing an account.
+**Account setup:** none — all browsable without login. Flow 22 (Buy) is the only tab-strip flow needing an account.
+
+> **Combined 2026-08-11** into three `test()` blocks in `verify-trade-tabs.spec.ts`: Flow 14 (switch
+> tabs) + Flow 15 (reselect dedup) + Flow 16 (independent trade type) share
+> `'VERIFY selecting markets manages tabs correctly...'`; Flow 17 (remove non-active) + Flow 18
+> (remove active falls back) + Flow 19 (remove last blocked) share
+> `'VERIFY tab removal mechanics...'`; Flow 23 (icons) + Flow 20 (scroll/expand) share
+> `'VERIFY tab strip visuals...'`. Two real bugs were fixed during this pass — see the
+> 2026-08-11 note in `coverage.md` for details (an already-active-tab click side effect, and an
+> Accumulators-incompatible market swapped for Volatility 100 Index).
 
 ```typescript
-// Flow 15 — switch tabs
+// Flow 14 — switch tabs
 await tradeParametersPage.selectMarketAndTradeType('Bull Market Index', 'Rise/Fall', { openInNewTab: true });
 await tradeParametersPage.marketTab('Volatility 100 Index', 'Rise/Fall').click();
 await expect(tradeParametersPage.activeMarketTab, 'Should switch back to Volatility 100').toContainText(
     'Volatility 100 Index'
 );
 
-// Flow 16 — reselect an already-open pair (no duplicate)
+// Flow 15 — reselect an already-open pair (no duplicate)
 const tabCount = await tradeParametersPage.marketTabs.count();
 await tradeParametersPage.selectMarketAndTradeType('Bull Market Index', 'Rise/Fall', { openInNewTab: true });
 await expect(tradeParametersPage.marketTabs, 'No duplicate tab should be created').toHaveCount(tabCount);
 
-// Flow 17 — same market, different trade type = independent tabs
+// Flow 16 — same market, different trade type = independent tabs
 await tradeParametersPage.selectMarketAndTradeType('Volatility 100 Index', 'Accumulators', { openInNewTab: true });
 await expect(tradeParametersPage.marketTabs, 'A second, independent tab should exist').toHaveCount(tabCount + 1);
 
-// Flow 18 — remove a non-active tab (desktop hover)
+// Flow 17 — remove a non-active tab (desktop hover)
 await tradeParametersPage.marketTab('Bull Market Index', 'Rise/Fall').hover();
 await tradeParametersPage.removeMarketTabButton('Bull Market Index', 'Rise/Fall').click();
 
-// Flow 19 — remove the active tab, falls back to adjacent
+// Flow 18 — remove the active tab, falls back to adjacent
 await tradeParametersPage.activeMarketTab.locator('..').getByRole('button', { name: 'Remove market' }).click();
 // Assert fallback via activeMarketTab content — see flow.md for exact left/right rule
 
-// Flow 20 — remove the last tab is blocked
+// Flow 19 — remove the last tab is blocked
 await expect(
     tradeParametersPage.activeMarketTab.getByRole('button', { name: 'Remove market' }),
     'Close control should not render with only one tab'
 ).not.toBeVisible();
 
-// Flow 21 — scroll + active/inactive sizing — visual/behavioral, assert via bounding box or scrollLeft change
-// Flow 24 — tab icon — assert distinct <svg> presence per tab, or a stable data attribute if one is added
+// Flow 20 — scroll + active/inactive sizing — visual/behavioral, assert via bounding box or scrollLeft change
+// Flow 23 — tab icon — assert distinct <svg> presence per tab, or a stable data attribute if one is added
 ```
 
-### Flow 22 — Tabs persist across reload
+### Flow 21 — Tabs persist across reload
 
 ```typescript
 await tradeParametersPage.selectMarketAndTradeType('Bull Market Index', 'Rise/Fall', { openInNewTab: true });
@@ -225,7 +228,10 @@ await NavigationUtils.waitForDerivApiSettled(page);
 await expect(tradeParametersPage.marketTabs, 'Both tabs should be restored').toHaveCount(2);
 ```
 
-### Flow 23 — Buy targets the active tab
+### Flow 22 — Buy targets the active tab — SKIPPED
+
+> The whole suite in `verify-trade-tabs-buy.spec.ts` is wrapped in `test.describe.skip(...)` as of
+> 2026-08-11 — pending revisit.
 
 **Account setup:**
 
@@ -240,7 +246,7 @@ await tradeParametersPage.purchaseButton('Rise').click(); // reuse existing Rise
 // Assert balance delta is exactly -5.00 and the new position matches Bull Market Index, not the other open tab
 ```
 
-### Flow 25 — Max tab limit (4 mobile / 7 desktop)
+### Flow 24 — Max tab limit (4 mobile / 7 desktop)
 
 ```typescript
 const max = isMobileViewport ? 4 : 7;
@@ -268,20 +274,40 @@ if (!isMobileViewport) {
 | Tag                 | When to apply                                                                             |
 | ------------------- | ----------------------------------------------------------------------------------------- |
 | `@market-selection` | All tests in this feature area (picker + tab strip)                                       |
-| `@trade`            | Additionally applied when a flow also exercises Buy (Flow 23)                             |
-| `@smoke`            | Critical path — search-and-select (Flows 9–10) and core tab mechanics (Flows 15–21, 24)   |
+| `@trade`            | Additionally applied when a flow also exercises Buy (Flow 22)                             |
+| `@smoke`            | Critical path — search-and-select (Flows 8–9) and core tab mechanics (Flows 14–20, 23)    |
 | `@regression`       | Full-coverage flows not required on every run (discovery, favourites, persistence, limit) |
-| `@staging`          | Uses account creation (`createAccountV2`) — Flow 23 only (Flow 12 needs no login)         |
+| `@staging`          | Uses account creation (`createAccountV2`) — Flow 22 only (Flow 11 needs no login)         |
 | `@desktop`          | Desktop viewport (chromium project)                                                       |
 | `@mobile`           | Mobile viewport (chromium-mobile project)                                                 |
 
-> No `@production` tag anywhere in this module — Flow 23 mutates a real account's balance/positions, and several other flows depend on live market/discovery data that isn't safe to assert deterministically on production.
+> No `@production` tag anywhere in this module — Flow 22 mutates a real account's balance/positions (currently skipped via `test.describe.skip` — see Section 1), and several other flows depend on live market/discovery data that isn't safe to assert deterministically on production.
 
 ---
 
 ## Section 4 — Feature-Specific Decisions
 
-### No new Page Object — extend `TradeParametersPage`
+### `MarketSelectionPage` — composed into `TradeParametersPage`, not inherited
+
+**Updated 2026-08-11** — superseded the original "extend `TradeParametersPage`, no new Page Object"
+decision below. The market-selection picker and tab-strip locators/actions grew large enough (30
+locators, 8 actions) to warrant their own file, `playwright/pages/MarketSelectionPage.ts`, following
+the same composition pattern already used by `TradeRiseFallPage` (which composes `PositionsPage`,
+`ReportsPage`, `ContractDetailsPage` rather than inheriting from them). `TradeParametersPage` composes
+it via `this.marketSelectionPage = new MarketSelectionPage(page)` in its constructor, and a matching
+`marketSelectionPage` fixture is registered in `fixtures.ts`.
+
+`selectMarketAndTradeType()` stays on `TradeParametersPage` despite reaching into the composed page,
+because it also asserts trade-_parameter_ locators (`riseButton`, `verifyParamsForTradeType`, etc.)
+that belong to that class, not to market selection.
+
+**Impact on generated code:** market-selection/tab-strip interactions go through the
+`marketSelectionPage` fixture (e.g. `marketSelectionPage.addMarketButton`,
+`marketSelectionPage.removeMarketTab(...)`); trade-parameter interactions and
+`selectMarketAndTradeType()` stay on `tradeParametersPage`. Most existing specs destructure both
+fixtures side by side.
+
+### (Superseded) No new Page Object — extend `TradeParametersPage`
 
 The market-selection picker and tab strip are both sub-panels of the trade page, and `TradeParametersPage`
 (→ `TradeBasePage`) already owns `marketSelectionPanel`, `marketSearchInput`, `marketSearchResultRow`,
@@ -300,10 +326,10 @@ returns a Featured entry. The picker now ALWAYS opens directly into the flat cat
 `categories[0]` (the first available category for the current trade type — typically "Derived" for
 synthetic-heavy trade types like Rise/Fall). `DiscoveryView`/`DiscoverySection`/`MarketCard` still exist
 in source but are permanently unreachable. **Impact on generated code:** never assert a "Featured" chip
-or Trending/Gainers/Losers sections exist — Flow 6 now asserts the OPPOSITE (they must not exist) as a
-regression guard. The `discoverySection`/`discoveryCard`/`discoverySectionScrollEndButton` POM locators
-that previously targeted these were removed — do not re-add them without re-confirming the feature has
-actually come back.
+or Trending/Gainers/Losers sections exist — this was previously guarded by a dedicated regression test,
+which was removed on 2026-08-06 (see `flow.md`). The `discoverySection`/`discoveryCard`/
+`discoverySectionScrollEndButton` POM locators that previously targeted these were removed — do not
+re-add them without re-confirming the feature has actually come back.
 
 ### The "Changes ({window})" dropdown is now always present (except on Favourites)
 
@@ -311,7 +337,7 @@ Before the Featured removal, the dropdown only appeared once a non-Featured cate
 Since every browse view is now the category list, the dropdown is present as soon as the picker opens —
 no prior chip click needed. The one remaining exception is the Favourites tab: `MarketFavouritesView`
 never receives `window`/`onSelectWindow` props, so it still renders no dropdown. **Impact on generated
-code:** Flow 7's test asserts the dropdown is visible immediately, not after a category click.
+code:** Flow 6's test asserts the dropdown is visible immediately, not after a category click.
 
 ### Closed markets are shown, not hidden
 
@@ -344,7 +370,7 @@ Do not parametrize a single "expected max = 4" constant across both viewports. U
 assertions inside it (`verifyParamsForTradeType`) rather than re-asserting trade-form params from
 scratch.
 
-### `open_markets` persistence keys (for Flow 22)
+### `open_markets` persistence keys (for Flow 21)
 
 Tabs persist via `localStorage` keys `open_markets_v2` (manual trading) and
 `open_markets_automation_v2` (Automate) — confirmed in `open-markets-utils.ts`. No test should read

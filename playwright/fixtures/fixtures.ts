@@ -18,6 +18,7 @@ import { PositionsPage } from '../pages/PositionsPage';
 import { ReportsPage } from '../pages/ReportsPage';
 import { ContractDetailsPage } from '../pages/ContractDetailsPage';
 import { FeedPage } from '../pages/FeedPage';
+import { MarketSelectionPage } from '../pages/MarketSelectionPage';
 
 /**
  * Extended test fixtures with page object models for derivatives-trader.
@@ -82,6 +83,7 @@ export const test = base.extend<{
     reportsPage: ReportsPage;
     contractDetailsPage: ContractDetailsPage;
     feedPage: FeedPage;
+    marketSelectionPage: MarketSelectionPage;
     /** True when running under a mobile project (viewport width < 1024px). */
     isMobileViewport: boolean;
 }>({
@@ -220,6 +222,13 @@ export const test = base.extend<{
      */
     feedPage: async ({ page }, use) => {
         await use(new FeedPage(page));
+    },
+
+    /**
+     * Market selection page fixture — provides initialized MarketSelectionPage instance
+     */
+    marketSelectionPage: async ({ page }, use) => {
+        await use(new MarketSelectionPage(page));
     },
 
     /**
