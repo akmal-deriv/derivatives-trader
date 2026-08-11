@@ -105,10 +105,6 @@ jobs:
       - name: Setup Node
         uses: ./.github/actions/setup_node
 
-      - name: Install dependencies
-        # Same path as Test & Validate, so the agent sees the tree CI sees.
-        uses: ./.github/actions/npm_install_from_cache
-
       - name: Fetch the spec-to-pr engine
         # Fetched into RUNNER_TEMP, not the workspace, so the agent can never see
         # or commit the engine's own files.
@@ -137,11 +133,51 @@ jobs:
           ( cd "$DIR" && npm ci --omit=dev )
           echo "FORGE_CLI=$DIR/bin/cli.js" >> "$GITHUB_ENV"
 
+      - name: Preflight — can the agent reach the API?
+        # `dstp check` is NOT enough here: it only tests that ANTHROPIC_API_KEY is
+        # *present* and that the claude binary resolves (preflight.js) — it never
+        # calls the API, so an invalid key or an inaccessible model still passes.
+        #
+        # And the engine's own classify step runs claude with --output-format text
+        # then DISCARDS stdout on a non-zero exit, so the real error is lost and
+        # you only see "claude exited with code 1".
+        #
+        # So: invoke claude directly and print everything. Runs before the repo's
+        # dependency install so auth failures surface in ~1 min, not ~10.
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          set -uo pipefail
+          cd "$RUNNER_TEMP/forge-engine"
+          BIN=$(node -e "
+            const path = require('path');
+            const pkg = require('@anthropic-ai/claude-code/package.json');
+            const dir = path.dirname(require.resolve('@anthropic-ai/claude-code/package.json'));
+            console.log(path.join(dir, typeof pkg.bin === 'string' ? pkg.bin : pkg.bin.claude));
+          ")
+          echo "claude binary: $BIN"
+          echo "Reply with exactly: OK" | node "$BIN" -p --output-format text \
+            --dangerously-skip-permissions; STATUS=$?
+          echo "claude exit status: ${STATUS:-0}"
+          [ "${STATUS:-0}" -eq 0 ] || echo "::error::claude could not run — see the output above (usually an invalid ANTHROPIC_API_KEY or a model the key cannot access)."
+          exit "${STATUS:-0}"
+
+      - name: Install dependencies
+        # Same path as Test & Validate, so the agent sees the tree CI sees.
+        # After the preflight: this is the slowest step, and there's no point
+        # paying for it if the agent can't authenticate.
+        uses: ./.github/actions/npm_install_from_cache
+
       # ---- run ------------------------------------------------------------
       - name: Run Forge
         id: forge
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          # If Claude here is served by the deriv LiteLLM gateway rather than a
+          # direct Anthropic key, replace ANTHROPIC_API_KEY with:
+          #   ANTHROPIC_BASE_URL: ${{ secrets.LITELLM_API_URL }}   # host root, no /v1
+          #   ANTHROPIC_AUTH_TOKEN: ${{ secrets.LITELLM_API_KEY }}
+          # and set ANTHROPIC_MODEL to the gateway's model alias.
           GH_TOKEN: ${{ steps.repo-token.outputs.token }}
           GITHUB_TOKEN: ${{ steps.repo-token.outputs.token }}
           ISSUE_URL: ${{ github.event.issue.html_url }}
