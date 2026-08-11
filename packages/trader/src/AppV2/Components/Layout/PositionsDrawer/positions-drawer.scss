@@ -46,7 +46,8 @@
         height: auto;
         background-color: var(--semantic-color-monochrome-surface-normal-lowest);
 
-        &__sell-btn {
+        &__sell-btn,
+        &__cancel-btn {
             margin-top: var(--core-spacing-400);
         }
     }

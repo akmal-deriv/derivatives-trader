@@ -16,9 +16,10 @@ jest.mock('@deriv/shared', () => ({
     getStartTime: jest.fn(),
 }));
 
+let mockIsMobile = true;
 jest.mock('@deriv-com/ui', () => ({
     ...jest.requireActual('@deriv-com/ui'),
-    useDevice: jest.fn(() => ({ isMobile: true })),
+    useDevice: jest.fn(() => ({ isMobile: mockIsMobile })),
 }));
 
 let mockCurrentLang = 'EN';
@@ -320,7 +321,7 @@ const buttonLoaderId = 'dt_button_loader';
 const symbolName = 'Volatility 100 (1s) Index';
 
 describe('ContractCard', () => {
-    const { CANCEL, CLOSE, CLOSED } = getCardLabels();
+    const { CANCEL, CLOSE, CLOSED, RESALE_NOT_OFFERED } = getCardLabels();
     const history = createBrowserHistory();
     const mockProps: React.ComponentProps<typeof ContractCard> = {
         contractInfo: openPositions[0].contract_info,
@@ -337,6 +338,7 @@ describe('ContractCard', () => {
     beforeEach(() => {
         history.push('/');
         mockCurrentLang = 'EN';
+        mockIsMobile = true;
     });
     it('should not render component if contractInfo prop is empty/missing contract_type', () => {
         const { container } = render(mockedContractCard({ ...mockProps, contractInfo: {} }));
@@ -510,5 +512,113 @@ describe('ContractCard', () => {
         render(mockedContractCard());
         act(() => swipeableConfig.onSwipedLeft());
         expect(screen.getByTestId('dt_contract_card')).not.toHaveClass('show-buttons');
+    });
+
+    describe('desktop action buttons (positions drawer)', () => {
+        // The desktop buttons are identified by their dedicated classes, since the Cancel button's
+        // accessible name also contains the deal cancellation countdown.
+        const getDesktopCancelButton = () =>
+            screen.queryAllByRole('button').find(button => button.classList.contains('contract-card__cancel-btn'));
+        const getDesktopCloseButton = () =>
+            screen.queryAllByRole('button').find(button => button.classList.contains('contract-card__sell-btn'));
+        const multiplierWithActiveDC = {
+            ...openPositions[1].contract_info,
+            cancellation: {
+                ask_price: 0.39,
+                date_expiry: mockedNow + 1000,
+            },
+        } as TPortfolioPosition['contract_info'];
+
+        beforeEach(() => {
+            mockIsMobile = false;
+        });
+
+        it('should render an enabled Cancel button with DC countdown for a multiplier with active deal cancellation and negative profit, and should call onCancel on click', async () => {
+            const mockedOnCancel = jest.fn();
+            render(
+                mockedContractCard({
+                    ...mockProps,
+                    contractInfo: multiplierWithActiveDC,
+                    onCancel: mockedOnCancel,
+                })
+            );
+            const cancelButton = getDesktopCancelButton();
+            expect(cancelButton).toBeEnabled();
+            expect(cancelButton).toHaveTextContent(CANCEL);
+            expect(cancelButton).toHaveTextContent('16:40');
+            // Close is not usable while deal cancellation is active with negative profit (is_valid_to_sell: 0),
+            // so Cancel is the only available action:
+            expect(screen.getByRole('button', { name: RESALE_NOT_OFFERED })).toBeDisabled();
+
+            await userEvent.click(cancelButton as HTMLElement);
+            expect(mockedOnCancel).toHaveBeenCalledTimes(1);
+        });
+        it('should render the Cancel button without a countdown when cancellation date_expiry is missing', () => {
+            render(
+                mockedContractCard({
+                    ...mockProps,
+                    contractInfo: {
+                        ...multiplierWithActiveDC,
+                        cancellation: { ask_price: 0.39, date_expiry: undefined },
+                    },
+                })
+            );
+            const cancelButton = getDesktopCancelButton();
+            expect(cancelButton).toHaveTextContent(CANCEL);
+            expect(cancelButton?.textContent).not.toContain(':');
+        });
+        it('should not render the mobile swipe-reveal action block on desktop', () => {
+            render(
+                mockedContractCard({
+                    ...mockProps,
+                    contractInfo: multiplierWithActiveDC,
+                })
+            );
+            // Only the two quill buttons (Close + Cancel) should be in the DOM:
+            expect(screen.getAllByRole('button')).toHaveLength(2);
+        });
+        it('should disable the Cancel button when profit is >= 0', () => {
+            render(
+                mockedContractCard({
+                    ...mockProps,
+                    contractInfo: { ...multiplierWithActiveDC, profit: '0.5' },
+                })
+            );
+            expect(getDesktopCancelButton()).toBeDisabled();
+        });
+        it('should disable the Cancel button when a sell/cancel request is already in flight', () => {
+            render(
+                mockedContractCard({
+                    ...mockProps,
+                    contractInfo: multiplierWithActiveDC,
+                    isSellRequested: true,
+                })
+            );
+            expect(getDesktopCancelButton()).toBeDisabled();
+        });
+        it('should not render a Cancel button for a non-multiplier contract', () => {
+            render(mockedContractCard());
+            expect(getDesktopCancelButton()).toBeUndefined();
+            expect(getDesktopCloseButton()).toBeEnabled();
+        });
+        it('should not render a Cancel button for a multiplier when is_valid_to_cancel is falsy', () => {
+            render(
+                mockedContractCard({
+                    ...mockProps,
+                    contractInfo: { ...multiplierWithActiveDC, is_valid_to_cancel: 0, cancellation: undefined },
+                })
+            );
+            expect(getDesktopCancelButton()).toBeUndefined();
+        });
+        it('should not render any action buttons when hasActionButtons is false', () => {
+            render(
+                mockedContractCard({
+                    ...mockProps,
+                    contractInfo: multiplierWithActiveDC,
+                    hasActionButtons: false,
+                })
+            );
+            expect(screen.queryByRole('button')).not.toBeInTheDocument();
+        });
     });
 });

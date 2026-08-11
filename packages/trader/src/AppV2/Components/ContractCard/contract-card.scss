@@ -160,8 +160,8 @@
         .profit {
             color: var(--core-color-solid-red-700);
         }
-        button:not(:disabled):not(.contract-card__sell-btn),
-        button.loading:not(.contract-card__sell-btn) {
+        .buttons button:not(:disabled),
+        .buttons button.loading {
             background-color: var(--core-color-solid-cherry-700);
         }
         .status {
@@ -173,8 +173,8 @@
         .profit {
             color: var(--core-color-solid-green-700);
         }
-        button:not(:disabled):not(.contract-card__sell-btn),
-        button.loading:not(.contract-card__sell-btn) {
+        .buttons button:not(:disabled),
+        .buttons button.loading {
             background-color: var(--core-color-solid-emerald-700);
         }
         .status {

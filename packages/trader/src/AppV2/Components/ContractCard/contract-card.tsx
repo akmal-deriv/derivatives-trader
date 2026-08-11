@@ -146,7 +146,7 @@ const ContractCard = ({
     return (
         <div className={clsx(`${className}-wrapper`, { deleted: isDeleted })}>
             <Component
-                {...(hasActionButtons ? swipeHandlers : {})}
+                {...(hasActionButtons && isMobile ? swipeHandlers : {})}
                 className={clsx(className, {
                     'show-buttons': shouldShowButtons,
                     'has-cancel-button': validToCancel,
@@ -219,19 +219,50 @@ const ContractCard = ({
                     </div>
                 </div>
                 {!isMobile && hasActionButtons && (
-                    <Button
-                        className={`${className}__sell-btn`}
-                        color='black-white'
-                        size='md'
-                        variant='secondary'
-                        fullWidth
-                        disabled={!validToSell}
-                        isLoading={isCloseButtonPressed}
-                        onClick={handleClose}
-                        label={validToSell ? getCardLabels().CLOSE : getCardLabels().RESALE_NOT_OFFERED}
-                    />
+                    <React.Fragment>
+                        <Button
+                            className={`${className}__sell-btn`}
+                            color='black-white'
+                            size='md'
+                            variant='secondary'
+                            fullWidth
+                            disabled={!validToSell}
+                            isLoading={isCloseButtonPressed}
+                            onClick={handleClose}
+                            label={validToSell ? getCardLabels().CLOSE : getCardLabels().RESALE_NOT_OFFERED}
+                        />
+                        {validToCancel && (
+                            <Button
+                                className={`${className}__cancel-btn`}
+                                color='black-white'
+                                size='md'
+                                variant='secondary'
+                                fullWidth
+                                disabled={Number((contractInfo as TContractInfo).profit) >= 0 || isSellRequested}
+                                isLoading={isCancelButtonPressed}
+                                onClick={e => handleClose(e, true)}
+                                label={
+                                    <React.Fragment>
+                                        {getCardLabels().CANCEL}
+                                        {cancellation_date_expiry && (
+                                            <React.Fragment>
+                                                {' '}
+                                                <RemainingTime
+                                                    as='span'
+                                                    end_time={cancellation_date_expiry}
+                                                    format='mm:ss'
+                                                    getCardLabels={getCardLabels}
+                                                    start_time={serverTime as Dayjs}
+                                                />
+                                            </React.Fragment>
+                                        )}
+                                    </React.Fragment>
+                                }
+                            />
+                        )}
+                    </React.Fragment>
                 )}
-                {hasActionButtons && (
+                {hasActionButtons && isMobile && (
                     <div className='buttons'>
                         {validToCancel && (
                             <button
