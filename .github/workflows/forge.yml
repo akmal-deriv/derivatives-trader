@@ -7,8 +7,8 @@ name: Forge — issue to PR
 # the result, and opens the PR — all committed so the "why" travels with the
 # change.
 #
-# Auth is PAT-free: two GitHub App installation tokens minted from
-# CLIENT_ID_GHAPP — one write-scoped to this repo, one read-only for the engine.
+# Auth is PAT-free: two GitHub App installation tokens — the *_WRITE app for
+# this repo (labels, branch, PR) and the read-only app for the engine.
 #
 # Verify commands live in spec-to-pr.config.json (not auto-detected: the default
 # `npm test` runs stylelint + eslint + jest across every workspace, which does
@@ -46,8 +46,8 @@ jobs:
         id: repo-token
         uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1.12.0
         with:
-          app-id: ${{ secrets.CLIENT_ID_GHAPP }}
-          private-key: ${{ secrets.PRIVATE_KEY_GHAPP }}
+          app-id: ${{ secrets.CLIENT_ID_GHAPP_WRITE }}
+          private-key: ${{ secrets.PRIVATE_KEY_GHAPP_WRITE }}
           owner: ${{ github.repository_owner }}
           repositories: ${{ github.event.repository.name }}
           permission-contents: write
