@@ -152,7 +152,7 @@ jobs:
 
           # `|| STATUS=$?` keeps the default `bash -e` from aborting before we
           # can salvage the result line and surface the log.
-          node "$FORGE_CLI" auto "$ISSUE_URL" --cwd . --yes --json 2>&1 | tee /tmp/forge.log || STATUS=$?
+          node "$FORGE_CLI" auto "$ISSUE_URL" --cwd . --unattended --json 2>&1 | tee /tmp/forge.log || STATUS=$?
           STATUS=${STATUS:-0}
 
           # --json writes the result as a single JSON line on stdout.
