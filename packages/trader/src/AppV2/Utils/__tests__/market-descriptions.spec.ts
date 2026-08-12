@@ -12,4 +12,16 @@ describe('getMarketDescription', () => {
     it('returns an empty string for an empty symbol', () => {
         expect(getMarketDescription('')).toBe('');
     });
+
+    it('returns a description for the Bull Market Index', () => {
+        expect(getMarketDescription('RDBULL')).toBe(
+            'Positive drift and constant volatility with a tick every 2 seconds'
+        );
+    });
+
+    it('returns a description for the Bear Market Index', () => {
+        expect(getMarketDescription('RDBEAR')).toBe(
+            'Negative drift and constant volatility with a tick every 2 seconds'
+        );
+    });
 });

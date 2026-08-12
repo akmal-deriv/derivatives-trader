@@ -95,6 +95,10 @@ const MARKET_DESCRIPTIONS: Record<string, () => string> = {
     JD75: () => localize('An index with 75% volatility and 3 jumps per hour on average'),
     JD100: () => localize('An index with 100% volatility and 3 jumps per hour on average'),
 
+    // ---- Derived: Bull/Bear Market Index ----
+    RDBULL: () => localize('Positive drift and constant volatility with a tick every 2 seconds'),
+    RDBEAR: () => localize('Negative drift and constant volatility with a tick every 2 seconds'),
+
     // ---- Derived: Forex & Commodities Baskets ----
     WLDAUD: () => localize('AUD vs equally weighted basket of USD, EUR, GBP, JPY, CAD'),
     WLDEUR: () => localize('EUR vs equally weighted basket of USD, AUD, GBP, JPY, CAD'),
