@@ -129,8 +129,39 @@ jobs:
           git -C "$DIR" remote set-url origin "https://github.com/deriv-com/spec-to-pr.git"
           echo "Engine at $(git -C "$DIR" rev-parse HEAD)"
           # The engine has its own dependency tree; install it in its own dir so
-          # it never mixes with this repo's workspaces.
-          ( cd "$DIR" && npm ci --omit=dev )
+          # it never mixes with this repo's workspaces. Keep optional deps: the
+          # claude-code native binary ships as a platform-specific optional
+          # dependency (@anthropic-ai/claude-code-linux-x64 on this runner).
+          ( cd "$DIR" && npm ci --omit=dev --include=optional )
+
+          # @anthropic-ai/claude-code ships bin/claude.exe as a small JS placeholder;
+          # its postinstall (`node install.cjs`) copies the real native binary over
+          # it. If the runner disables install scripts (e.g. an org-wide
+          # `ignore-scripts` in .npmrc), that never runs — so the engine ends up
+          # exec'ing a JS stub named `.exe` and Node dies with "Unknown file
+          # extension .exe". Run the installer ourselves (invoking it directly
+          # bypasses ignore-scripts), then fail loudly if the result still isn't a
+          # native binary, instead of the cryptic error surfacing mid-run.
+          ( cd "$DIR" && node node_modules/@anthropic-ai/claude-code/install.cjs )
+          # Resolve the bin path the same way the engine (and the preflight below)
+          # do, so this check can't drift from a future change to the package's
+          # `bin` field/filename.
+          CLAUDE_BIN=$(cd "$DIR" && node -e "
+            const path = require('path');
+            const pkg = require('@anthropic-ai/claude-code/package.json');
+            const dir = path.dirname(require.resolve('@anthropic-ai/claude-code/package.json'));
+            console.log(path.join(dir, typeof pkg.bin === 'string' ? pkg.bin : pkg.bin.claude));
+          ")
+          CLAUDE_FILE=$(file -b "$CLAUDE_BIN")
+          # Match ELF specifically (the runner is ubuntu-latest). NOT 'executable':
+          # `file` labels a shebang'd script "... script text executable, ASCII text",
+          # which would false-pass the very JS placeholder this guard exists to catch.
+          if [[ "$CLAUDE_FILE" != *ELF* ]]; then
+            echo "::error::claude-code native binary was not materialized — $CLAUDE_BIN is not a native executable: $CLAUDE_FILE"
+            exit 1
+          fi
+          echo "claude binary ok: $CLAUDE_FILE"
+
           echo "FORGE_CLI=$DIR/bin/cli.js" >> "$GITHUB_ENV"
 
       - name: Preflight — can the agent reach the API?
@@ -156,7 +187,10 @@ jobs:
             console.log(path.join(dir, typeof pkg.bin === 'string' ? pkg.bin : pkg.bin.claude));
           ")
           echo "claude binary: $BIN"
-          echo "Reply with exactly: OK" | node "$BIN" -p --output-format text \
+          # claude.exe is a native executable — run it DIRECTLY (this is how the
+          # engine spawns it). `node "$BIN"` would fail with ERR_UNKNOWN_FILE_EXTENSION
+          # because Node can't load a native binary (or a .exe-named JS stub) as a module.
+          echo "Reply with exactly: OK" | "$BIN" -p --output-format text \
             --dangerously-skip-permissions; STATUS=$?
           echo "claude exit status: ${STATUS:-0}"
           [ "${STATUS:-0}" -eq 0 ] || echo "::error::claude could not run — see the output above (usually an invalid ANTHROPIC_API_KEY or a model the key cannot access)."
