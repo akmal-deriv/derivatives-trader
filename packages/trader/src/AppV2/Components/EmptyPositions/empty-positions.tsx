@@ -1,8 +1,8 @@
 import React from 'react';
 
 import { StandaloneBriefcaseFillIcon, StandaloneSearchFillIcon } from '@deriv/quill-icons';
-import { Localize } from '@deriv-com/translations';
 import { Text } from '@deriv-com/quill-ui';
+import { Localize } from '@deriv-com/translations';
 
 import { TAB_NAME } from 'AppV2/Utils/positions-utils';
 
@@ -19,7 +19,7 @@ const EmptyPositions = ({ isClosedTab, noMatchesFound }: TEmptyPositionsProps) =
             className={`empty-positions__${isClosedTab ? TAB_NAME.CLOSED.toLowerCase() : TAB_NAME.OPEN.toLowerCase()}`}
         >
             <div className='icon' data-testid='dt_empty_state_icon'>
-                <IconComponent iconSize='2xl' fill='var(--color-text-disabled)' />
+                <IconComponent iconSize='2xl' />
             </div>
             <div className='message'>
                 <Text bold size='lg' color='quill-typography__color--subtle'>

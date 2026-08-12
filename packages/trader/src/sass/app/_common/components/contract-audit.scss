@@ -177,12 +177,21 @@ $HEIGHT: calc(100vh - 34em);
         flex-direction: column;
         padding: 16px;
 
+        &-icon path {
+            fill: var(--component-textIcon-normal-disabled);
+            fill-opacity: 1;
+        }
+
         &-header {
             font-size: 1.4rem;
             font-weight: bold;
             text-align: center;
-            color: var(--color-text-secondary);
+            color: var(--component-textIcon-normal-subtle);
             padding: 8px;
+        }
+
+        &-text.dc-text {
+            color: var(--component-textIcon-normal-subtle);
         }
     }
     &__tabs {
