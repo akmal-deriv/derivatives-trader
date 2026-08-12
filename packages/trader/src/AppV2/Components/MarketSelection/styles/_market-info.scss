@@ -45,8 +45,7 @@
     // The "Favourite" label only shows in the desktop pill (see the desktop overrides below).
     &__favourite-label {
         display: none;
-        font-weight: 600;
-        color: var(--component-textIcon-normal-prominent, #181c25);
+        color: var(--component-textIcon-normal-default);
     }
 
     &__body {

@@ -31,4 +31,6 @@ export interface UsePopoverPositionProps {
 export interface PopoverPosition {
     top: number;
     left: number;
+    /** Space left between the popover's top and the viewport bottom (0 before the first measure). */
+    maxHeight: number;
 }

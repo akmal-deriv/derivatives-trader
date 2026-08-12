@@ -31,8 +31,10 @@ const InputPopover = React.memo(
                 top: `${position.top}px`,
                 left: `${position.left}px`,
                 width: `${popoverWidth}px`,
+                // Skipped until the first measure, so the panel is never briefly collapsed to 0.
+                ...(position.maxHeight ? { maxHeight: `${position.maxHeight}px` } : {}),
             }),
-            [position.top, position.left, popoverWidth]
+            [position.top, position.left, position.maxHeight, popoverWidth]
         );
 
         if (!isOpen || typeof document === 'undefined') return null;

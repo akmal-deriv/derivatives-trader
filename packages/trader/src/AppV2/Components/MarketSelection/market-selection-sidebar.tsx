@@ -112,7 +112,7 @@ const MarketSelectionSidebar = ({
                 aria-pressed={is_favourites_selected}
                 onClick={onSelectFavourites}
             >
-                <Text size='md'>
+                <Text size='md' bold={is_favourites_selected}>
                     <Localize i18n_default_text='Favourite ({{count}})' values={{ count: favourites_count }} />
                 </Text>
             </button>

@@ -9,7 +9,7 @@ const usePopoverPosition = ({
     spacing = 16,
     placement = 'left',
 }: UsePopoverPositionProps): PopoverPosition => {
-    const [position, setPosition] = React.useState<PopoverPosition>({ top: 0, left: 0 });
+    const [position, setPosition] = React.useState<PopoverPosition>({ top: 0, left: 0, maxHeight: 0 });
 
     React.useLayoutEffect(() => {
         if (!isOpen || !triggerRef.current) return;
@@ -20,6 +20,10 @@ const usePopoverPosition = ({
             const rect = triggerRef.current.getBoundingClientRect();
             const viewportWidth = window.innerWidth;
 
+            // Cap the popover at the space below its own top edge so a tall panel is never cut off by
+            // the viewport bottom on a short screen — it shrinks and scrolls internally instead.
+            const getMaxHeight = (top: number) => Math.max(0, window.innerHeight - top - spacing);
+
             if (placement === 'bottom') {
                 // Position below the trigger element
                 let left = rect.left;
@@ -29,15 +33,14 @@ const usePopoverPosition = ({
                     left = Math.max(spacing, viewportWidth - popoverWidth - spacing);
                 }
 
-                setPosition({
-                    top: rect.bottom + spacing,
-                    left,
-                });
+                const top = rect.bottom + spacing;
+                setPosition({ top, left, maxHeight: getMaxHeight(top) });
             } else {
                 // Default 'left' placement - position to the left of the trigger
                 setPosition({
                     top: rect.top,
                     left: rect.left - popoverWidth - spacing,
+                    maxHeight: getMaxHeight(rect.top),
                 });
             }
         };

@@ -62,6 +62,14 @@ describe('MarketSelectionSidebar', () => {
         expect(screen.getByRole('button', { name: /Rise\/Fall/ })).toHaveAttribute('aria-pressed', 'false');
     });
 
+    it('bolds the Favourite label only when favourites is selected', () => {
+        const { rerender } = render(<MarketSelectionSidebar {...baseProps} />);
+        expect(screen.getByText(/Favourite \(3\)/).className).not.toMatch(/weight--bold/);
+
+        rerender(<MarketSelectionSidebar {...baseProps} is_favourites_selected />);
+        expect(screen.getByText(/Favourite \(3\)/).className).toMatch(/weight--bold/);
+    });
+
     it('restricts the trade types to supported_trade_types when provided (e.g. Automate)', () => {
         render(<MarketSelectionSidebar {...baseProps} supported_trade_types={new Set(['rise_fall'])} />);
         expect(screen.getByRole('button', { name: /Rise\/Fall/ })).toBeInTheDocument();

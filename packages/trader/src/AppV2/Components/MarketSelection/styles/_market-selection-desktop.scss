@@ -8,13 +8,17 @@ $market-desktop-sidebar-width: 22rem;
     // Override the InputPopover default padding — the panel manages its own two-column spacing.
     padding: 0;
 
+    // The panel/info card ask for the design's 808px but shrink into the popover's viewport-fitted
+    // max-height on short screens (min-height: 0 lets the flex item go below its content size).
     &__panel {
         display: flex;
         height: $market-desktop-panel-height;
+        min-height: 0;
     }
 
     &__info {
         height: $market-desktop-panel-height;
+        min-height: 0;
 
         // Desktop upgrades the favourite from a circular icon to a labelled outline pill.
         .market-info__favourite {
@@ -22,8 +26,12 @@ $market-desktop-sidebar-width: 22rem;
             height: auto;
             padding: var(--core-spacing-200, 4px) var(--core-spacing-600, 12px);
             background: transparent;
-            border: 1.5px solid var(--color-text-primary);
-            border-radius: var(--core-borderRadius-800, 16px);
+            border: var(--component-chip-border-width) solid var(--component-textIcon-normal-default);
+            border-radius: var(--component-chip-border-radius);
+
+            &:hover {
+                background: var(--color-interactive-hover);
+            }
         }
 
         .market-info__favourite-label {
