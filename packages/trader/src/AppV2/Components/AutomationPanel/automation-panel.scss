@@ -29,22 +29,8 @@
         display: flex;
         flex-direction: column;
         gap: var(--core-spacing-400);
-
-        // Show the info ("i") icon only when the user hovers the field.
-        // Restricted to devices that actually support hover so the icon
-        // remains accessible on touch screens.
-        @media (hover: hover) {
-            .trade-params__info-icon-wrapper {
-                opacity: 0;
-                pointer-events: none;
-                transition: opacity 0.15s ease;
-            }
-
-            .trade-params__field-with-info:hover .trade-params__info-icon-wrapper {
-                opacity: 1;
-                pointer-events: auto;
-            }
-        }
+        // The info-icon hover reveal now lives in trade-parameters.scss (`&__field-with-info`), shared
+        // by manual + automate modes.
     }
 }
 

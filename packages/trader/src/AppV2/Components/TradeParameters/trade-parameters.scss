@@ -243,6 +243,22 @@
 
     &__field-with-info {
         position: relative;
+
+        // Reveal the info ("i") icon only when the field is hovered, restricted to hover-capable
+        // devices so it stays visible/accessible on touch. Applies in both manual and automate modes
+        // (both render these classes) so the two stay consistent.
+        @media (hover: hover) {
+            .trade-params__info-icon-wrapper {
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 0.15s ease;
+            }
+
+            &:hover .trade-params__info-icon-wrapper {
+                opacity: 1;
+                pointer-events: auto;
+            }
+        }
     }
 
     &__info-icon-wrapper {
