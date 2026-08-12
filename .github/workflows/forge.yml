@@ -164,6 +164,39 @@ jobs:
 
           echo "FORGE_CLI=$DIR/bin/cli.js" >> "$GITHUB_ENV"
 
+      - name: Resolve the LLM gateway
+        # Deriv serves Claude through a LiteLLM gateway, not a direct Anthropic
+        # key — a raw ANTHROPIC_API_KEY here fails with "Invalid API key".
+        #
+        # The trailing /v1 MUST be stripped: Claude Code appends /v1/messages
+        # itself, so passing .../v1 yields .../v1/v1/messages. deriv-com's
+        # shared ai_review_engine_anthropic action takes the same caller-facing
+        # ".../v1" value and strips it the same way before export.
+        env:
+          RAW_BASE_URL: ${{ secrets.LITELLM_API_URL || 'https://litellmsa.deriv.ai/v1' }}
+        run: |
+          set -euo pipefail
+          BASE="${RAW_BASE_URL%/}"
+          BASE="${BASE%/v1}"
+          echo "ANTHROPIC_BASE_URL=$BASE" >> "$GITHUB_ENV"
+          # Model is optional per the engine README, but must be an alias the
+          # gateway fronts. claude-sonnet-5 is the default the shared AI review
+          # workflow uses against this same proxy.
+          echo "ANTHROPIC_MODEL=claude-sonnet-5" >> "$GITHUB_ENV"
+
+          # Claude Code also makes background calls with a small/fast model. The
+          # engine only sets ANTHROPIC_SMALL_FAST_MODEL for the `glm` agent, so on
+          # the default `claude` agent it would ask the gateway for a model the
+          # proxy may not front. deriv-com's ai_review_engine_anthropic sets these
+          # same three flags against this same gateway for that reason.
+          {
+            echo "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1"
+            echo "CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS=1"
+            echo "DISABLE_NON_ESSENTIAL_MODEL_CALLS=1"
+          } >> "$GITHUB_ENV"
+
+          echo "gateway: $BASE | model: claude-sonnet-5"
+
       - name: Preflight — can the agent reach the API?
         # `dstp check` is NOT enough here: it only tests that ANTHROPIC_API_KEY is
         # *present* and that the claude binary resolves (preflight.js) — it never
@@ -176,9 +209,13 @@ jobs:
         # So: invoke claude directly and print everything. Runs before the repo's
         # dependency install so auth failures surface in ~1 min, not ~10.
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Gateway auth. ANTHROPIC_API_KEY is deliberately NOT set: it takes
+          # precedence over the gateway path, and the key in this repo is not a
+          # direct Anthropic key ("Invalid API key").
+          ANTHROPIC_AUTH_TOKEN: ${{ secrets.LITELLM_API_KEY }}
         run: |
           set -uo pipefail
+          echo "base_url: ${ANTHROPIC_BASE_URL:-<unset>} | model: ${ANTHROPIC_MODEL:-<unset>}"
           cd "$RUNNER_TEMP/forge-engine"
           BIN=$(node -e "
             const path = require('path');
@@ -206,12 +243,10 @@ jobs:
       - name: Run Forge
         id: forge
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          # If Claude here is served by the deriv LiteLLM gateway rather than a
-          # direct Anthropic key, replace ANTHROPIC_API_KEY with:
-          #   ANTHROPIC_BASE_URL: ${{ secrets.LITELLM_API_URL }}   # host root, no /v1
-          #   ANTHROPIC_AUTH_TOKEN: ${{ secrets.LITELLM_API_KEY }}
-          # and set ANTHROPIC_MODEL to the gateway's model alias.
+          # ANTHROPIC_BASE_URL and ANTHROPIC_MODEL come from the "Resolve the LLM
+          # gateway" step via $GITHUB_ENV. ANTHROPIC_API_KEY is deliberately unset
+          # so it can't take precedence over the gateway.
+          ANTHROPIC_AUTH_TOKEN: ${{ secrets.LITELLM_API_KEY }}
           GH_TOKEN: ${{ steps.repo-token.outputs.token }}
           GITHUB_TOKEN: ${{ steps.repo-token.outputs.token }}
           ISSUE_URL: ${{ github.event.issue.html_url }}
