@@ -12,6 +12,7 @@ describe('stake presets', () => {
         it('returns the curated override for a symbol that has one', () => {
             expect(getStakePresets('turbos', '1HZ25V')).toEqual([35, 40, 45, 50, 55, 60]);
             expect(getStakePresets('turbos', '1HZ50V')).toEqual([25, 30, 35, 40, 45, 50]);
+            expect(getStakePresets('turbos', 'R_75')).toEqual([10, 15, 20, 25, 30, 35]);
         });
 
         it('falls back to the shared presets for a symbol without an override', () => {

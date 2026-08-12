@@ -415,6 +415,7 @@ export const STAKE_PRESET_SYMBOL_OVERRIDES: Partial<Record<keyof StakePresets, R
     turbos: {
         '1HZ25V': [35, 40, 45, 50, 55, 60], // Volatility 25 (1s) Index — min ≈ 34.06
         '1HZ50V': [25, 30, 35, 40, 45, 50], // Volatility 50 (1s) Index
+        R_75: [10, 15, 20, 25, 30, 35], // Volatility 75 Index — min 6.5
     },
 };
 

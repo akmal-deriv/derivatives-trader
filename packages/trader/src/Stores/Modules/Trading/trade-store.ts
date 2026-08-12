@@ -61,6 +61,7 @@ import {
 import { safeParse } from '@deriv/utils';
 
 import { TRADE_PANEL_TABS, type TTradePanelTab } from 'AppV2/Components/AutomationPanel/automation-config';
+import { getStakePresetOverride } from 'AppV2/Config/trade-parameter-presets';
 import { checkContractTypePrefix } from 'AppV2/Utils/contract-type';
 import { isDigitContractType, isDigitTradeType } from 'AppV2/Utils/digits';
 import {
@@ -73,7 +74,10 @@ import {
     writeOpenMarkets,
 } from 'AppV2/Utils/open-markets-utils';
 import { isMultiplierOnlySymbol } from 'AppV2/Utils/symbol-categories-utils';
-import { mapContractTypeToDurationPresetKey } from 'AppV2/Utils/trade-params-preset-utils';
+import {
+    mapContractTypeToDurationPresetKey,
+    mapContractTypeToStakePresetKey,
+} from 'AppV2/Utils/trade-params-preset-utils';
 import { getDefaultDuration, isValidPersistedDuration } from 'AppV2/Utils/trade-params-utils';
 import { getMultiplierValidationRules, getValidationRules } from 'Stores/Modules/Trading/Constants/validation-rules';
 import { ContractType } from 'Stores/Modules/Trading/Helpers/contract-type';
@@ -1838,7 +1842,17 @@ export default class TradeStore extends BaseStore {
                 // default. On contract type switch (or crypto accounts) always reset.
                 const user_amount_is_default = this.amount === this.default_stake;
                 const should_reset_amount = has_contract_type_changed || is_crypto || user_amount_is_default;
-                if (should_reset_amount) {
+                // High-min Turbos symbols (curated overrides) start from their first preset whenever you
+                // switch to them — symbol or contract-type change — since the current stake is otherwise
+                // below their minimum. Non-crypto only (crypto stakes are a different scale).
+                const preset_key = mapContractTypeToStakePresetKey(obj_new_values.contract_type ?? this.contract_type);
+                const stake_override =
+                    !is_crypto && preset_key
+                        ? getStakePresetOverride(preset_key, obj_new_values.symbol ?? this.symbol)
+                        : undefined;
+                if (stake_override) {
+                    obj_new_values.amount = stake_override[0];
+                } else if (should_reset_amount) {
                     obj_new_values.amount = is_crypto ? default_crypto_value : this.default_stake;
                 }
             }
