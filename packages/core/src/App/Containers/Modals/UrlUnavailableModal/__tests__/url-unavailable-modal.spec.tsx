@@ -1,5 +1,3 @@
-import React from 'react';
-
 import { mockStore, StoreProvider } from '@deriv/stores';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -65,6 +63,8 @@ describe('<UrlUnavailableModal />', () => {
 
         it('renders no close (X) icon, since the design has no close button (GRWT-9325)', () => {
             renderComponent(makeStore({ is_mobile: false, urlUnavailableModalReason: 'trade_type' }));
+            // Close-X is a portaled, non-semantic quill element — assert absence by class.
+            // eslint-disable-next-line testing-library/no-node-access
             expect(document.querySelector('.quill-modal__close-icon')).not.toBeInTheDocument();
             // "Got it" must be the only control left, as it is now the only dismissal affordance.
             expect(screen.getAllByRole('button')).toHaveLength(1);
@@ -90,6 +90,8 @@ describe('<UrlUnavailableModal />', () => {
                     'The market in this link is unavailable. You can continue with the default market instead.'
                 )
             ).toBeInTheDocument();
+            // Close-X is a portaled, non-semantic quill element — assert absence by class.
+            // eslint-disable-next-line testing-library/no-node-access
             expect(document.querySelector('.quill-modal__close-icon')).not.toBeInTheDocument();
             expect(screen.getAllByRole('button')).toHaveLength(1);
             expect(screen.getByRole('button', { name: gotItButtonName })).toBeInTheDocument();

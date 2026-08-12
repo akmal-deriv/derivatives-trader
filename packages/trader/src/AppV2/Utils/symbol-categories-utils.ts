@@ -5,11 +5,10 @@ import sortSymbols from './sort-symbols-utils';
 
 type ActiveSymbols = NonNullable<TActiveSymbolsResponse['active_symbols']>;
 
-// Markets/submarkets offered only on Multipliers, which automation can't
-// trade. Used to hide them from the mobile market list and to revert a desktop
-// chart selection back to a supported market.
+// Markets automation can't trade, hidden from the automate market list.
+// Crypto and Range Break are Multipliers-only; Boom/Crash stay (they do Accumulators).
 const MULTIPLIER_ONLY_MARKETS = new Set(['cryptocurrency']);
-const MULTIPLIER_ONLY_SUBMARKETS = new Set(['crash_index', 'crash_boom']);
+const MULTIPLIER_ONLY_SUBMARKETS = new Set(['range_index']);
 
 export const isMultiplierOnlySymbol = (symbol: ActiveSymbols[0]) =>
     MULTIPLIER_ONLY_MARKETS.has(symbol.market) || MULTIPLIER_ONLY_SUBMARKETS.has(symbol.submarket);
