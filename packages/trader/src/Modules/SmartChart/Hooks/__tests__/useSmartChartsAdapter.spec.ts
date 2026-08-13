@@ -196,6 +196,44 @@ describe('useSmartChartsAdapter', () => {
         });
     });
 
+    describe('is_connection_opened gate', () => {
+        it('should NOT fetch chart data and should keep isLoading true while the connection is closed', async () => {
+            const { result } = renderHook(() =>
+                useSmartChartsAdapter({ activeSymbols: [], is_connection_opened: false })
+            );
+
+            // Give any effects a chance to run — the gate must keep the fetch from firing.
+            await act(async () => {
+                await Promise.resolve();
+            });
+
+            expect(mockGetChartData).not.toHaveBeenCalled();
+            expect(result.current.isLoading).toBe(true);
+        });
+
+        it('should fire the initial fetch exactly once after the connection transitions from closed to open', async () => {
+            const { result, rerender } = renderHook(
+                ({ is_connection_opened }) => useSmartChartsAdapter({ activeSymbols: [], is_connection_opened }),
+                { initialProps: { is_connection_opened: false } }
+            );
+
+            // Closed: no fetch yet.
+            await act(async () => {
+                await Promise.resolve();
+            });
+            expect(mockGetChartData).not.toHaveBeenCalled();
+
+            // Transition to open: the one-time fetch fires.
+            rerender({ is_connection_opened: true });
+
+            await waitFor(() => {
+                expect(result.current.isLoading).toBe(false);
+            });
+
+            expect(mockGetChartData).toHaveBeenCalledTimes(1);
+        });
+    });
+
     describe('shouldUseCandlesOverride', () => {
         it('should return shouldUseCandlesOverride as false by default', async () => {
             const { result } = renderHook(() => useSmartChartsAdapter({ activeSymbols: mockActiveSymbols }));

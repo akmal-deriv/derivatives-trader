@@ -5,9 +5,9 @@ import {
     createSmartChartsChampionAdapter,
     TGetQuotes,
     TGranularity,
+    transformations,
     TSubscribeQuotes,
     TUnsubscribeQuotes,
-    transformations,
 } from '../Adapters';
 import { enrichActiveSymbols } from '../Adapters/transformers';
 
@@ -38,6 +38,7 @@ interface UseSmartChartsAdapterConfig {
     setTickData?: (data: TickData) => void;
     current_language?: string;
     minStartEpoch?: number; // If tick data doesn't cover this epoch, switch to candles
+    is_connection_opened?: boolean; // Gate the mount fetch until the WebSocket is open (undefined = open)
 }
 
 interface ChartData {
@@ -93,6 +94,7 @@ export const useSmartChartsAdapter = (config: UseSmartChartsAdapterConfig = {}):
         setTickData,
         current_language,
         minStartEpoch,
+        is_connection_opened,
     } = config;
 
     // Store raw data for re-enrichment on language change
@@ -218,6 +220,10 @@ export const useSmartChartsAdapter = (config: UseSmartChartsAdapterConfig = {}):
         // Fetch once on mount. For trade chart, uses pre-fetched activeSymbols.
         // For replay chart (activeSymbols: []), getChartData falls back to fetching from API.
         if (!hasFetchedRef.current) {
+            // Defer the reference-data fetch until the socket is open; only explicit `false` defers (isLoading stays true).
+            if (is_connection_opened === false) {
+                return;
+            }
             hasFetchedRef.current = true;
             fetchChartData();
             return;
@@ -251,7 +257,7 @@ export const useSmartChartsAdapter = (config: UseSmartChartsAdapterConfig = {}):
                 clearTimeout(languageChangeTimeoutRef.current);
             }
         };
-    }, [fetchChartData, current_language]);
+    }, [fetchChartData, current_language, is_connection_opened]);
 
     // Memoized getQuotes function
     const getQuotes = React.useCallback<TGetQuotes>(

@@ -2,14 +2,19 @@ import { mockStore } from '@deriv/stores';
 import { render, screen } from '@testing-library/react';
 
 import useActiveSymbols from 'AppV2/Hooks/useActiveSymbols';
+import { useSmartChartsAdapter } from 'Modules/SmartChart/Hooks/useSmartChartsAdapter';
 
 import TraderProviders from '../../../../trader-providers';
 import TradeChart from '../trade-chart';
 
 const mock_chart = 'Mocked Chart';
 
+let mockSmartChartProps: Record<string, any> = {};
 jest.mock('Modules/SmartChart', () => ({
-    SmartChart: () => 'Mocked Chart',
+    SmartChart: (props: Record<string, any>) => {
+        mockSmartChartProps = props;
+        return 'Mocked Chart';
+    },
 }));
 
 jest.mock('Modules/SmartChart/Hooks/useSmartChartsAdapter', () => ({
@@ -80,5 +85,16 @@ describe('TradeChart', () => {
         mockedTradeChart(store);
         // Wait for async chartData effect
         expect(await screen.findByText(mock_chart)).toBeInTheDocument();
+    });
+
+    it('wires is_socket_opened to the chart data adapter and SmartChart connection props', async () => {
+        const store = mockStore({});
+        store.modules.trade.symbol = 'EURUSD';
+        store.common.is_socket_opened = true;
+        mockedTradeChart(store);
+
+        expect(await screen.findByText(mock_chart)).toBeInTheDocument();
+        expect(useSmartChartsAdapter).toHaveBeenCalledWith(expect.objectContaining({ is_connection_opened: true }));
+        expect(mockSmartChartProps.isConnectionOpened).toBe(true);
     });
 });

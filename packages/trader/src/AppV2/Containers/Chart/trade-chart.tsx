@@ -128,6 +128,7 @@ const TradeChart = observer(() => {
             updateAccumulatorBarriersData,
             setTickData,
             current_language,
+            is_connection_opened: is_socket_opened, // Defer the reference-data fetch until the socket is open
         });
 
     React.useEffect(() => {

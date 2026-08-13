@@ -75,6 +75,7 @@ const ReplayChart = observer(
             setTickData: () => {}, // No-op for replay chart
             current_language,
             minStartEpoch: start_epoch, // Switch to candles if tick data doesn't cover this
+            is_connection_opened: is_socket_opened, // Defer the reference-data fetch until the socket is open
         });
 
         // Override chart type and granularity if tick data doesn't cover start_epoch
