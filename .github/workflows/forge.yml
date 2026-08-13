@@ -181,15 +181,21 @@ jobs:
         # ".../v1" value and strips it the same way before export.
         env:
           RAW_BASE_URL: ${{ secrets.LITELLM_API_URL || 'https://litellmsa.deriv.ai/v1' }}
+          # Repository variable (Settings → Secrets and variables → Actions →
+          # Variables). Change the model without touching this workflow. The
+          # fallback keeps Forge working if the variable is never created — an
+          # undefined `vars.X` is an empty string, so `||` supplies the default.
+          FORGE_MODEL: ${{ vars.FORGE_MODEL || 'claude-haiku-4-5' }}
         run: |
           set -euo pipefail
           BASE="${RAW_BASE_URL%/}"
           BASE="${BASE%/v1}"
           echo "ANTHROPIC_BASE_URL=$BASE" >> "$GITHUB_ENV"
-          # Model is optional per the engine README, but must be an alias the
-          # gateway fronts. claude-sonnet-5 is the default the shared AI review
-          # workflow uses against this same proxy.
-          echo "ANTHROPIC_MODEL=claude-sonnet-5" >> "$GITHUB_ENV"
+          # Must be an alias this gateway actually fronts — an unavailable alias
+          # surfaces as a LiteLLM 500, not a clear "unknown model". Exported once
+          # so the preflight and the real run can never disagree.
+          MODEL="$FORGE_MODEL"
+          echo "ANTHROPIC_MODEL=$MODEL" >> "$GITHUB_ENV"
 
           # Claude Code also makes background calls with a small/fast model. The
           # engine only sets ANTHROPIC_SMALL_FAST_MODEL for the `glm` agent, so on
@@ -202,7 +208,7 @@ jobs:
             echo "DISABLE_NON_ESSENTIAL_MODEL_CALLS=1"
           } >> "$GITHUB_ENV"
 
-          echo "gateway: $BASE | model: claude-sonnet-5"
+          echo "gateway: $BASE | model: $MODEL"
 
       - name: Preflight — can the agent reach the API?
         # `dstp check` is NOT enough here: it only tests that ANTHROPIC_API_KEY is
