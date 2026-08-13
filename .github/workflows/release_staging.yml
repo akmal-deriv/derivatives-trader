@@ -43,6 +43,11 @@ jobs:
       uses: "./.github/actions/versioning"
       with:
         release_type: staging
+    - name: Generate app-info.json
+      uses: "deriv-com/shared-actions/.github/actions/generate_app_info@master"
+      with:
+        version: ${{ github.ref_name }} # the production_* tag that triggered the workflow
+        output_dir: packages/core/dist
     - name: Publish to Cloudflare Pages Staging
       uses: "./.github/actions/publish_to_pages_staging"
       with:
