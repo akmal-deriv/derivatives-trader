@@ -1,8 +1,11 @@
 # market-descriptions Specification
 
 ## Purpose
+
 TBD - created by archiving change market-descriptions-are-missing-for-bull-and-bear-markets. Update Purpose after archive.
+
 ## Requirements
+
 ### Requirement: Bull and Bear Market indices have descriptions
 
 The market description lookup (`getMarketDescription`) SHALL return a non-empty, translatable description for the Bull Market Index (`RDBULL`) and Bear Market Index (`RDBEAR`) underlying symbols, so the market info screen displays their description block instead of rendering empty.
@@ -37,4 +40,3 @@ Each description MUST be wrapped in `localize()` so it is picked up for translat
 
 - **WHEN** `getMarketDescription` is called with a symbol that has no map entry (e.g. `frxNZDCHF`)
 - **THEN** it returns an empty string and the description block is not rendered
-
