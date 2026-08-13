@@ -37,7 +37,6 @@ type TStakeState = {
     fe_stake_error: string;
     max_length: number;
     details: {
-        commission?: string | number;
         error_1: string;
         error_2: string;
         first_contract_payout: number;
@@ -48,6 +47,7 @@ type TStakeState = {
         max_stake: string | number;
         min_stake: string | number;
         stop_out?: string | number;
+        stop_out_level?: string;
     };
 };
 type TStakeAction =
@@ -105,13 +105,13 @@ const reducer = (state: TStakeState, action: TStakeAction): TStakeState => {
 const createInitialState = (trade_store: ReturnType<typeof useTraderStore>, decimals: number) => {
     const {
         amount,
-        commission,
         contract_type,
         trade_type_tab,
         trade_types,
         proposal_info,
         validation_params,
         stop_out,
+        stop_out_level,
     } = trade_store;
 
     const contract_types = getDisplayedContractTypes(trade_types, contract_type, trade_type_tab);
@@ -133,7 +133,6 @@ const createInitialState = (trade_store: ReturnType<typeof useTraderStore>, deci
         fe_stake_error: '',
         max_length: getDecimalInputMaxLength(amount, decimals),
         details: {
-            commission,
             error_1: first_payout_error,
             error_2: second_payout_error,
             first_contract_payout,
@@ -144,6 +143,7 @@ const createInitialState = (trade_store: ReturnType<typeof useTraderStore>, deci
             max_stake,
             min_stake,
             stop_out,
+            stop_out_level,
         },
     };
 };
@@ -306,21 +306,23 @@ const StakeInput = observer(({ onClose, is_open }: TStakeInput) => {
 
             // Update proposal details after a successful API call
             if (proposal) {
-                const { commission, limit_order, validation_params } = proposal as ExpandedProposal;
+                const { limit_order, validation_params } = proposal as ExpandedProposal;
                 const { max, min } = validation_params?.stake ?? {};
-                const { order_amount } = limit_order?.stop_out ?? {};
+                const { order_amount, value: stop_out_value } = limit_order?.stop_out ?? {};
 
                 dispatch({
                     type: 'UPDATE_DETAILS',
                     payload: {
-                        ...(is_multiplier && commission && order_amount ? { commission, stop_out: order_amount } : {}),
+                        ...(is_multiplier && order_amount
+                            ? { stop_out: order_amount, stop_out_level: stop_out_value }
+                            : {}),
                         ...(details.max_stake || details.min_stake ? {} : { max_stake: max, min_stake: min }),
                     },
                 });
             } else if (!proposal && is_multiplier) {
                 dispatch({
                     type: 'UPDATE_DETAILS',
-                    payload: { commission: 0, stop_out: 0 },
+                    payload: { stop_out: 0, stop_out_level: undefined },
                 });
             }
         }

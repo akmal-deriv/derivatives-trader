@@ -15,7 +15,6 @@ import { getDisplayedContractTypes } from 'AppV2/Utils/trade-types-utils';
 import { AutomationStoreContext } from 'Stores/useAutomationStore';
 import { useTraderStore } from 'Stores/useTraderStores';
 
-import CommissionDescription from '../Multiplier/commission-description';
 import { AutomationLockOverlay } from '../Shared';
 import { TTradeParametersProps } from '../trade-parameters';
 
@@ -24,7 +23,7 @@ import StakeInput from './stake-input';
 // Page order within the stake sheet carousel.
 const STAKE_PAGE = 0;
 const STOP_OUT_PAGE = 1;
-const COMMISSION_PAGE = 2;
+const STOP_OUT_LEVEL_PAGE = 2;
 
 // Carousel header for the stake sheet: a back arrow on the definition pages, no icon on the stake
 // input page (unlike the default CarouselHeader, which shows a general info icon on the first page).
@@ -45,7 +44,6 @@ const Stake = observer(({ is_minimized, is_automation }: TTradeParametersProps) 
         is_automation_params_locked,
         is_market_closed,
         is_multiplier,
-        multiplier,
         trade_types,
         trade_type_tab,
         proposal_info,
@@ -68,7 +66,7 @@ const Stake = observer(({ is_minimized, is_automation }: TTradeParametersProps) 
         setIsOpen(false);
     }, []);
 
-    // The Stop out / Commission explanation pages shown within the stake sheet (multipliers only).
+    // The Stop out / Stop out level explanation pages shown within the stake sheet (multipliers only).
     // Stop out is derived as a % of the stake (both from the same proposal) so it reflects the real
     // level (e.g. 90% for CRASH1000) — mirrors MultipliersInformation.
     const stop_out_amount =
@@ -90,13 +88,12 @@ const Stake = observer(({ is_minimized, is_automation }: TTradeParametersProps) 
         ) : (
             <Localize i18n_default_text='Your contract will be closed automatically when your loss reaches a certain percentage of your stake.' />
         );
-    const commission =
-        proposal_info?.[CONTRACT_TYPES.MULTIPLIER.UP]?.commission ??
-        proposal_info?.[CONTRACT_TYPES.MULTIPLIER.DOWN]?.commission;
-
+    const stop_out_level_description = (
+        <Localize i18n_default_text='The price at which your position closes automatically, capping your loss at your stake.' />
+    );
     const getSheetTitle = () => {
         if (carousel_index === STOP_OUT_PAGE) return <Localize i18n_default_text='Stop out' />;
-        if (carousel_index === COMMISSION_PAGE) return <Localize i18n_default_text='Commission' />;
+        if (carousel_index === STOP_OUT_LEVEL_PAGE) return <Localize i18n_default_text='Stop out level' />;
         return <Localize i18n_default_text='Stake' />;
     };
 
@@ -108,7 +105,7 @@ const Stake = observer(({ is_minimized, is_automation }: TTradeParametersProps) 
                     onClose={onClose}
                     is_open={is_open}
                     onOpenStopOut={() => setCarouselIndex(STOP_OUT_PAGE)}
-                    onOpenCommission={() => setCarouselIndex(COMMISSION_PAGE)}
+                    onOpenStopOutLevel={() => setCarouselIndex(STOP_OUT_LEVEL_PAGE)}
                 />
             ),
         },
@@ -116,22 +113,7 @@ const Stake = observer(({ is_minimized, is_automation }: TTradeParametersProps) 
     if (is_multiplier) {
         pages.push(
             { id: STOP_OUT_PAGE, component: <TradeParamDefinition description={stop_out_description} /> },
-            {
-                id: COMMISSION_PAGE,
-                component: (
-                    <TradeParamDefinition
-                        is_custom_description
-                        description={
-                            <CommissionDescription
-                                commission={commission}
-                                multiplier={multiplier}
-                                amount={amount}
-                                currency={currency}
-                            />
-                        }
-                    />
-                ),
-            }
+            { id: STOP_OUT_LEVEL_PAGE, component: <TradeParamDefinition description={stop_out_level_description} /> }
         );
     }
 

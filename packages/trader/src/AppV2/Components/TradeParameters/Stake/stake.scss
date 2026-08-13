@@ -3,9 +3,9 @@
     border-radius: 10rem !important;
 }
 
-// The stake sheet is a carousel: the stake input on page 0, and the Stop out / Commission
-// explanations as pages navigated to by tapping their labels (mirrors the Turbos Payout-per-point
-// sheet). Each page fills the sheet so switching between them doesn't resize it.
+// The stake sheet is a carousel: the stake input on page 0, and the Stop out explanation as a page
+// navigated to by tapping its label (mirrors the Turbos Payout-per-point sheet). Each page fills the
+// sheet so switching between them doesn't resize it.
 .stake__carousel {
     flex: 1;
     min-height: 0;
@@ -64,8 +64,8 @@
         }
     }
 
-    // Interactive breakdown label (Stop out, Commission): dotted underline hints it opens an
-    // explanation page within the stake sheet (tap) / a hover tooltip on desktop.
+    // Interactive breakdown label (Stop out): dotted underline hints it opens an explanation page
+    // within the stake sheet (tap).
     &__info-label {
         color: var(--component-textIcon-normal-subtle);
         text-decoration: underline;

@@ -408,9 +408,9 @@ export default class TradeStore extends BaseStore {
     has_take_profit = false;
     has_cancellation = false;
     open_payout_wheelpicker = false;
-    commission?: string | number;
     cancellation_price?: number;
     stop_out?: number;
+    stop_out_level?: string;
     expiration?: number;
     hovered_contract_type?: string | null;
     cancellation_duration = '60m';
@@ -521,7 +521,6 @@ export default class TradeStore extends BaseStore {
             cancellation_price: observable,
             cancellation_range_list: observable.ref, // Array of objects - use ref
             cached_multiplier_cancellation_list: observable.ref, // Array of objects - use ref
-            commission: observable,
             contract_expiry_type: observable,
             contract_type: observable,
             contract_types_list: observable.ref, // Object - use ref
@@ -600,6 +599,7 @@ export default class TradeStore extends BaseStore {
             strike_price_choices: observable.ref, // Object - use ref
             stop_loss: observable,
             stop_out: observable,
+            stop_out_level: observable,
             symbol: observable,
             open_markets_manual: observable,
             open_markets_automation: observable,
@@ -2106,15 +2106,14 @@ export default class TradeStore extends BaseStore {
         };
 
         if (this.is_multiplier && this.proposal_info && this.proposal_info.MULTUP) {
-            const { commission, cancellation, limit_order } = this.proposal_info.MULTUP;
-            // commission and cancellation.ask_price is the same for MULTUP/MULTDOWN
-            if (commission) {
-                this.commission = commission;
-            }
+            const { cancellation, limit_order } = this.proposal_info.MULTUP;
+            // cancellation.ask_price and the stop out loss amount are the same for MULTUP/MULTDOWN
             if (cancellation) {
                 this.cancellation_price = cancellation.ask_price;
             }
             this.stop_out = limit_order?.stop_out?.order_amount;
+            const selected_type = this.trade_type_tab || CONTRACT_TYPES.MULTIPLIER.UP;
+            this.stop_out_level = this.proposal_info[selected_type]?.limit_order?.stop_out?.value;
         }
 
         if (this.is_accumulator && this.proposal_info?.ACCU) {
@@ -2176,16 +2175,6 @@ export default class TradeStore extends BaseStore {
             const error_id = getProposalErrorField(response);
             if (error_id) {
                 this.setValidationErrorMessages(error_id, [mapErrorMessage(response.error)]);
-            }
-            // Commission for multipliers is normally set from proposal response.
-            // But when we change the multiplier and if it is invalid, we don't get the proposal response to set the commission. We only get error message.
-            // This is a work around to set the commission from error message.
-            if (this.is_multiplier) {
-                const { message, details } = response.error;
-                const commission_match = (message || '').match(/\((\d+\.*\d*)\)/);
-                if (details?.field === 'stop_loss' && commission_match?.[1]) {
-                    this.commission = commission_match[1];
-                }
             }
             if (this.is_accumulator) this.resetAccumulatorData();
 

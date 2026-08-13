@@ -14,13 +14,9 @@ import { Localize } from '@deriv-com/translations';
 import { useTraderStore } from 'Stores/useTraderStores';
 import { TTradeStore } from 'Types';
 
-import { getCommissionPercentage } from '../Multiplier/commission-formula';
-import CommissionTooltip from '../Multiplier/commission-tooltip';
-
 type TStakeDetailsProps = Pick<TTradeStore, 'contract_type' | 'currency' | 'has_stop_loss' | 'is_multiplier'> & {
     contract_types: string[];
     details: {
-        commission?: string | number;
         error_1?: string;
         error_2?: string;
         first_contract_payout: number;
@@ -31,14 +27,15 @@ type TStakeDetailsProps = Pick<TTradeStore, 'contract_type' | 'currency' | 'has_
         min_stake: string | number;
         second_contract_payout: number;
         stop_out?: number | string;
+        stop_out_level?: string;
     };
     is_loading_proposal: boolean;
     is_empty?: boolean;
     should_show_payout_details: boolean;
-    /** Mobile only: open the Stop out / Commission explanation as a page within the stake sheet. When
-     * omitted (desktop), Commission falls back to a hover tooltip and Stop out to a plain label. */
+    /** Mobile only: open the Stop out / Stop out level explanation as a page within the stake sheet.
+     * When omitted (desktop), both are plain labels. */
     onOpenStopOut?: () => void;
-    onOpenCommission?: () => void;
+    onOpenStopOutLevel?: () => void;
 };
 
 const StakeDetails = ({
@@ -52,18 +49,14 @@ const StakeDetails = ({
     is_empty,
     should_show_payout_details,
     onOpenStopOut,
-    onOpenCommission,
+    onOpenStopOutLevel,
 }: TStakeDetailsProps) => {
-    const { amount, multiplier, root_store } = useTraderStore();
+    const { root_store } = useTraderStore();
     const is_mobile = root_store?.ui?.is_mobile;
-
-    // Commission is interactive only when its formula can be derived (matches the trade-params row).
-    const commission_percentage = getCommissionPercentage(details.commission, multiplier, amount);
 
     const [displayed_values, setDisplayedValues] = React.useState({
         is_first_payout_exceeded: false,
         is_second_payout_exceeded: false,
-        commission: '',
         first_contract_payout: '',
         max_payout: '',
         second_contract_payout: '',
@@ -78,7 +71,6 @@ const StakeDetails = ({
         };
 
         const {
-            commission: commission_value,
             first_contract_payout,
             is_first_payout_exceeded,
             is_second_payout_exceeded,
@@ -86,14 +78,12 @@ const StakeDetails = ({
             stop_out: stop_out_value,
             max_payout,
         } = displayed_values;
-        const new_commission = getDisplayedValue(Math.abs(Number(details.commission)), commission_value);
         const new_payout_1 = getDisplayedValue(details.first_contract_payout, first_contract_payout);
         const new_payout_2 = getDisplayedValue(details.second_contract_payout, second_contract_payout);
         const new_stop_out = getDisplayedValue(Math.abs(Number(details.stop_out)), stop_out_value);
         const new_max_payout = getDisplayedValue(details.max_payout, max_payout);
 
         if (
-            commission_value !== new_commission ||
             first_contract_payout !== new_payout_1 ||
             displayed_values.is_first_payout_exceeded !== is_first_payout_exceeded ||
             displayed_values.is_second_payout_exceeded !== is_second_payout_exceeded ||
@@ -102,7 +92,6 @@ const StakeDetails = ({
             max_payout !== new_max_payout
         ) {
             setDisplayedValues({
-                commission: new_commission,
                 first_contract_payout: new_payout_1,
                 is_first_payout_exceeded,
                 is_second_payout_exceeded,
@@ -123,9 +112,11 @@ const StakeDetails = ({
         },
         {
             is_displayed: is_multiplier && !should_show_payout_details,
-            is_commission: true,
-            label: <Localize i18n_default_text='Commission' />,
-            value: displayed_values.commission,
+            is_stop_out_level: true,
+            // A price, not an amount — rendered without a currency code.
+            has_no_currency: true,
+            label: <Localize i18n_default_text='Stop out level' />,
+            value: is_empty ? '-' : (details.stop_out_level ?? '-'),
         },
         {
             is_displayed: !!details.max_payout && should_show_payout_details,
@@ -166,32 +157,16 @@ const StakeDetails = ({
         </Text>
     );
 
-    // Stop out / Commission open an explanation page within the stake sheet on mobile; on desktop
-    // Commission keeps its hover tooltip and Stop out is a plain label. Kept as if/else (no nested
-    // ternaries).
+    // Stop out and Stop out level open their explanation as a page within the stake sheet on mobile;
+    // on desktop they are plain labels.
     const renderLabel = ({
         contract_type: row_contract_type,
-        is_commission,
         is_stop_out,
+        is_stop_out_level,
         label,
     }: (typeof content)[number]) => {
         if (is_stop_out && onOpenStopOut) return renderClickableLabel(label, onOpenStopOut);
-        if (is_commission && onOpenCommission && commission_percentage !== null)
-            return renderClickableLabel(label, onOpenCommission);
-        if (is_commission)
-            return (
-                <Text size='sm'>
-                    <CommissionTooltip
-                        commission={details.commission}
-                        multiplier={multiplier}
-                        amount={amount}
-                        currency={currency}
-                        align='start'
-                    >
-                        {label}
-                    </CommissionTooltip>
-                </Text>
-            );
+        if (is_stop_out_level && onOpenStopOutLevel) return renderClickableLabel(label, onOpenStopOutLevel);
         return (
             <Text size='sm'>
                 {label}
@@ -211,7 +186,7 @@ const StakeDetails = ({
                         >
                             {renderLabel(row)}
                             <Text size='sm'>
-                                {row.value} {getCurrencyDisplayCode(currency)}
+                                {row.has_no_currency ? row.value : `${row.value} ${getCurrencyDisplayCode(currency)}`}
                             </Text>
                         </div>
                     )

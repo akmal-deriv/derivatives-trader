@@ -1,51 +1,27 @@
-$HANDLEBAR_HEIGHT: var(--core-size-1000);
-$HEADER_TITLE_HEIGHT: var(--core-size-3200);
 $FOOTER_BUTTON_HEIGHT: var(--core-size-4000);
+// Keep in sync with WHEEL_PICKER_HEIGHT in multiplier-wheel-picker.tsx
+$WHEEL_PICKER_HEIGHT: 230px;
 
 .multiplier {
     &__carousel {
         & > .carousel__item {
             height: 100%;
         }
+        // The definition page has no footer button, so it takes that space instead — both carousel
+        // pages end up the same height and the sheet doesn't resize when switching between them.
         .trade-param-definition {
-            height: calc(480px - $HANDLEBAR_HEIGHT - $HEADER_TITLE_HEIGHT);
-        }
-        &--small {
-            .multiplier__picker {
-                height: calc(90dvh - $HANDLEBAR_HEIGHT - $HEADER_TITLE_HEIGHT - $FOOTER_BUTTON_HEIGHT);
-                max-height: calc(480px - $HANDLEBAR_HEIGHT - $HEADER_TITLE_HEIGHT - $FOOTER_BUTTON_HEIGHT);
-            }
-            .trade-param-definition {
-                height: calc(90dvh - $HANDLEBAR_HEIGHT - $HEADER_TITLE_HEIGHT);
-                max-height: calc(480px - $HANDLEBAR_HEIGHT - $HEADER_TITLE_HEIGHT);
-            }
+            height: calc($WHEEL_PICKER_HEIGHT + $FOOTER_BUTTON_HEIGHT);
         }
     }
+    // Sized to the wheel itself: anything taller just adds dead space above and below it.
     &__picker {
         display: flex;
         flex-direction: column;
-        height: calc(480px - $HANDLEBAR_HEIGHT - $HEADER_TITLE_HEIGHT - $FOOTER_BUTTON_HEIGHT);
-        gap: var(--core-spacing-400);
+        height: $WHEEL_PICKER_HEIGHT;
         padding: 0 var(--component-actionSheet-spacing-padding-md);
     }
     &__wheel-picker {
-        flex-grow: 1;
         min-height: 0;
         overflow: hidden;
-    }
-    // Label-left / value-right row (matches the Stop out, DC fee and payout-per-point info rows)
-    // instead of a centered block. The label opens the commission explanation page when tappable.
-    &__commission {
-        min-height: var(--core-size-1000);
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-
-        &-label {
-            text-decoration: underline;
-            text-decoration-style: dotted;
-            text-underline-offset: 0.4rem;
-            cursor: pointer;
-        }
     }
 }

@@ -22,13 +22,13 @@ const base_props = {
     is_empty: false,
     should_show_payout_details: false,
     details: {
-        commission: 0.5,
         first_contract_payout: 0,
         max_payout: '',
         max_stake: '',
         min_stake: '',
         second_contract_payout: 0,
         stop_out: -10,
+        stop_out_level: '8160.12',
     },
 };
 
@@ -48,28 +48,66 @@ describe('StakeDetails multiplier info', () => {
 
     it('opens the Stop out explanation (in-sheet page) when the Stop out label is tapped', async () => {
         const onOpenStopOut = jest.fn();
-        renderStakeDetails({ onOpenStopOut, onOpenCommission: jest.fn() });
+        renderStakeDetails({ onOpenStopOut });
 
         await userEvent.click(screen.getByText('Stop out'));
 
         expect(onOpenStopOut).toHaveBeenCalledTimes(1);
     });
 
-    it('opens the Commission explanation (in-sheet page) when the Commission label is tapped', async () => {
-        const onOpenCommission = jest.fn();
-        renderStakeDetails({ onOpenStopOut: jest.fn(), onOpenCommission });
+    it('opens the Stop out level explanation (in-sheet page) when the label is tapped', async () => {
+        const onOpenStopOutLevel = jest.fn();
+        renderStakeDetails({ onOpenStopOut: jest.fn(), onOpenStopOutLevel });
 
-        await userEvent.click(screen.getByText('Commission'));
+        await userEvent.click(screen.getByText('Stop out level'));
 
-        expect(onOpenCommission).toHaveBeenCalledTimes(1);
+        expect(onOpenStopOutLevel).toHaveBeenCalledTimes(1);
     });
 
-    it('does not make Commission navigable when its formula cannot be derived', async () => {
-        const onOpenCommission = jest.fn();
-        renderStakeDetails({ onOpenStopOut: jest.fn(), onOpenCommission }, { amount: 0, multiplier: 0 });
+    it('leaves the Stop out level label plain on desktop (no in-sheet page)', () => {
+        renderStakeDetails();
 
-        await userEvent.click(screen.getByText('Commission'));
+        expect(screen.getByText('Stop out level')).not.toHaveClass('stake-content__info-label');
+    });
 
-        expect(onOpenCommission).not.toHaveBeenCalled();
+    it('renders the stop out level without a currency code', () => {
+        renderStakeDetails();
+
+        expect(screen.getByText('Stop out level')).toBeInTheDocument();
+        expect(screen.getByText('8160.12')).toBeInTheDocument();
+        expect(screen.queryByText('8160.12 USD')).not.toBeInTheDocument();
+    });
+
+    it('renders the stop out amount with a currency code', () => {
+        renderStakeDetails();
+
+        expect(screen.getByText('10.00 USD')).toBeInTheDocument();
+    });
+
+    it('does not render a commission row', () => {
+        renderStakeDetails();
+
+        expect(screen.queryByText('Commission')).not.toBeInTheDocument();
+    });
+
+    it('falls back to a placeholder when the proposal has no stop out level yet', () => {
+        renderStakeDetails({ details: { ...base_props.details, stop_out_level: undefined } });
+
+        expect(screen.getByText('Stop out level')).toBeInTheDocument();
+        expect(screen.getAllByText('-').length).toBeGreaterThan(0);
+    });
+
+    it('shows a placeholder for the stop out level while the stake input is empty', () => {
+        renderStakeDetails({ is_empty: true });
+
+        expect(screen.queryByText('8160.12')).not.toBeInTheDocument();
+        expect(screen.getAllByText('-').length).toBeGreaterThan(0);
+    });
+
+    it('does not render the multiplier rows for non-multiplier contracts', () => {
+        renderStakeDetails({ is_multiplier: false, should_show_payout_details: true });
+
+        expect(screen.queryByText('Stop out')).not.toBeInTheDocument();
+        expect(screen.queryByText('Stop out level')).not.toBeInTheDocument();
     });
 });

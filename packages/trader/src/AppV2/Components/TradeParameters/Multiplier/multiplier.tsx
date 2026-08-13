@@ -9,23 +9,19 @@ import { Localize } from '@deriv-com/translations';
 import Carousel from 'AppV2/Components/Carousel';
 import CarouselHeader from 'AppV2/Components/Carousel/carousel-header';
 import TradeParamDefinition from 'AppV2/Components/TradeParamDefinition';
-import { isSmallScreen } from 'AppV2/Utils/trade-params-utils';
 import { useTraderStore } from 'Stores/useTraderStores';
 
 import { TTradeParametersProps } from '../trade-parameters';
 
-import CommissionDescription from './commission-description';
 import MultiplierDesktop from './multiplier-desktop';
 import MultiplierWheelPicker from './multiplier-wheel-picker';
 
 const Multiplier = observer(({ is_minimized }: TTradeParametersProps) => {
-    const { amount, multiplier, multiplier_range_list, commission, is_market_closed, onChange, currency } =
-        useTraderStore();
+    const { multiplier, multiplier_range_list, is_market_closed, onChange } = useTraderStore();
 
     const [isOpen, setIsOpen] = useState(false);
     const [carousel_index, setCarouselIndex] = useState(0);
     const is_mobile = isMobile();
-    const is_small_screen_device = isSmallScreen();
     const classname = clsx('trade-params__option', is_minimized && 'trade-params__option--minimized');
 
     const handleMultiplierChange = (multiplier: number) => {
@@ -42,13 +38,9 @@ const Multiplier = observer(({ is_minimized }: TTradeParametersProps) => {
             id: 1,
             component: (
                 <MultiplierWheelPicker
-                    amount={amount}
                     multiplier={multiplier}
                     multiplier_range_list={multiplier_range_list}
-                    currency={currency}
-                    commission={commission}
                     setMultiplier={handleMultiplierChange}
-                    onDetailClick={setCarouselIndex}
                 />
             ),
         },
@@ -58,22 +50,6 @@ const Multiplier = observer(({ is_minimized }: TTradeParametersProps) => {
                 <TradeParamDefinition
                     description={
                         <Localize i18n_default_text='Multipliers amplify your potential profit if the market moves in your favour, with losses limited to your initial capital.' />
-                    }
-                />
-            ),
-        },
-        {
-            id: 3,
-            component: (
-                <TradeParamDefinition
-                    is_custom_description
-                    description={
-                        <CommissionDescription
-                            commission={commission}
-                            multiplier={multiplier}
-                            amount={amount}
-                            currency={currency}
-                        />
                     }
                 />
             ),
@@ -115,23 +91,13 @@ const Multiplier = observer(({ is_minimized }: TTradeParametersProps) => {
             >
                 <ActionSheet.Portal shouldCloseOnDrag>
                     <Carousel
-                        classname={clsx(
-                            'multiplier__carousel',
-                            is_small_screen_device && 'multiplier__carousel--small'
-                        )}
+                        classname='multiplier__carousel'
                         header={CarouselHeader}
                         current_index={carousel_index}
                         setCurrentIndex={setCarouselIndex}
                         onPreviousButtonClick={() => setCarouselIndex(0)}
                         pages={action_sheet_content}
-                        title={
-                            // The commission explanation is the 3rd page (index 2); title it accordingly.
-                            carousel_index === 2 ? (
-                                <Localize i18n_default_text='Commission' />
-                            ) : (
-                                <Localize i18n_default_text='Multiplier' />
-                            )
-                        }
+                        title={<Localize i18n_default_text='Multiplier' />}
                     />
                 </ActionSheet.Portal>
             </ActionSheet.Root>

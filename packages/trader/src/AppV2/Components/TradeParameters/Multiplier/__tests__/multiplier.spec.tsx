@@ -59,7 +59,6 @@ describe('<Multiplier />', () => {
                         ],
                         multiplier: 1,
                         is_purchase_enabled: true,
-                        commission: 0.01,
                     },
                 },
                 ui: {
@@ -108,10 +107,7 @@ describe('<Multiplier />', () => {
         expect(screen.getByTestId('dt-actionsheet-overlay')).toBeInTheDocument();
         expect(screen.getByText('WheelPicker')).toBeInTheDocument();
         expect(screen.getByText('Save')).toBeInTheDocument();
-        // Two definition pages now: the multiplier explanation and the commission explanation.
         expect(screen.getAllByText(mocked_definition).length).toBeGreaterThan(0);
-        expect(screen.getByText('Commission')).toBeInTheDocument();
-        expect(screen.getByText('0.01')).toBeInTheDocument();
     });
     it('renders skeleton instead of WheelPicker if multiplier_range_list is empty', async () => {
         const user = userEvent.setup();
@@ -124,16 +120,16 @@ describe('<Multiplier />', () => {
         expect(screen.queryByText('WheelPicker')).not.toBeInTheDocument();
         expect(screen.getByTestId(skeleton_testid)).toBeInTheDocument();
     });
-    it('renders skeleton instead of detail if commission not available', async () => {
+    it('does not render a stop out level row in the multiplier sheet', async () => {
         const user = userEvent.setup();
-        default_mock_store.modules.trade.commission = null;
         mockMultiplier();
 
         await user.click(screen.getByText(multiplier_param_label));
 
-        expect(screen.getByTestId(skeleton_testid)).toBeInTheDocument();
+        expect(screen.queryByText('Stop out level')).not.toBeInTheDocument();
     });
-    it('applies specific className if innerHeight is <= 640px', async () => {
+    // The sheet is now sized to the wheel itself, so it fits small screens without an override.
+    it('keeps the same carousel sizing on small screens', async () => {
         const user = userEvent.setup();
         const original_height = window.innerHeight;
         window.innerHeight = 640;
@@ -141,7 +137,8 @@ describe('<Multiplier />', () => {
 
         await user.click(screen.getByText(multiplier_param_label));
 
-        expect(screen.getByTestId(multiplier_carousel_testid)).toHaveClass('multiplier__carousel--small');
+        expect(screen.getByTestId(multiplier_carousel_testid)).toHaveClass('multiplier__carousel');
+        expect(screen.getByTestId(multiplier_carousel_testid)).not.toHaveClass('multiplier__carousel--small');
         window.innerHeight = original_height;
     });
     it('calls onChange function if user changes selected value', async () => {
@@ -156,36 +153,13 @@ describe('<Multiplier />', () => {
             expect(default_mock_store.modules.trade.onChange).toBeCalled();
         });
     });
-    it('makes the Commission label open its explanation page when a formula can be derived', async () => {
-        const user = userEvent.setup();
-        default_mock_store.modules.trade.amount = 10; // multiplier 1, commission 0.01 -> 0.1000%
-        mockMultiplier();
-
-        await user.click(screen.getByText(multiplier_param_label));
-
-        // The commission row is interactive (navigates to the commission page in the sheet).
-        expect(screen.getByRole('button', { name: /commission/i })).toBeInTheDocument();
-    });
-    it('sets the sheet title to Commission when the commission explanation is opened', async () => {
+    it('does not render a commission row or explanation page', async () => {
         const user = userEvent.setup();
         default_mock_store.modules.trade.amount = 10;
         mockMultiplier();
 
         await user.click(screen.getByText(multiplier_param_label));
-        // Only the commission row label before navigating to its page.
-        expect(screen.getAllByText('Commission')).toHaveLength(1);
 
-        await user.click(screen.getByRole('button', { name: /commission/i }));
-        // The carousel title now reads Commission too (row label + title).
-        expect(screen.getAllByText('Commission')).toHaveLength(2);
-    });
-    it('does not make the Commission label interactive when stake is unavailable', async () => {
-        const user = userEvent.setup();
-        // amount defaults to 0 in mockStore, so the percentage cannot be derived
-        mockMultiplier();
-
-        await user.click(screen.getByText(multiplier_param_label));
-
-        expect(screen.queryByRole('button', { name: /commission/i })).not.toBeInTheDocument();
+        expect(screen.queryByText('Commission')).not.toBeInTheDocument();
     });
 });

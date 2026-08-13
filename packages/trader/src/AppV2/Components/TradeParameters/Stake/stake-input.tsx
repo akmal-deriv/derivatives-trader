@@ -31,9 +31,9 @@ const DEFAULT_PRESET_VALUES = [1, 5, 10, 20, 50, 100];
 type TStakeInput = {
     onClose: () => void;
     is_open?: boolean;
-    /** Mobile only: open the Stop out / Commission explanation as a page within the stake sheet. */
+    /** Mobile only: open the Stop out / Stop out level explanation as a page within the stake sheet. */
     onOpenStopOut?: () => void;
-    onOpenCommission?: () => void;
+    onOpenStopOutLevel?: () => void;
 };
 type TNewValues = {
     amount?: string | number;
@@ -46,7 +46,6 @@ type TStakeState = {
     fe_stake_error: string;
     max_length: number;
     details: {
-        commission?: string | number;
         error_1: string;
         error_2: string;
         first_contract_payout: number;
@@ -57,6 +56,7 @@ type TStakeState = {
         max_stake: string | number;
         min_stake: string | number;
         stop_out?: string | number;
+        stop_out_level?: string;
     };
 };
 type TStakeAction =
@@ -114,13 +114,13 @@ const reducer = (state: TStakeState, action: TStakeAction): TStakeState => {
 const createInitialState = (trade_store: ReturnType<typeof useTraderStore>, decimals: number) => {
     const {
         amount,
-        commission,
         contract_type,
         trade_type_tab,
         trade_types,
         proposal_info,
         validation_params,
         stop_out,
+        stop_out_level,
     } = trade_store;
 
     const contract_types = getDisplayedContractTypes(trade_types, contract_type, trade_type_tab);
@@ -142,7 +142,6 @@ const createInitialState = (trade_store: ReturnType<typeof useTraderStore>, deci
         fe_stake_error: '',
         max_length: getDecimalInputMaxLength(amount, decimals),
         details: {
-            commission,
             error_1: first_payout_error,
             error_2: second_payout_error,
             first_contract_payout,
@@ -153,11 +152,12 @@ const createInitialState = (trade_store: ReturnType<typeof useTraderStore>, deci
             max_stake,
             min_stake,
             stop_out,
+            stop_out_level,
         },
     };
 };
 
-const StakeInput = observer(({ onClose, is_open, onOpenStopOut, onOpenCommission }: TStakeInput) => {
+const StakeInput = observer(({ onClose, is_open, onOpenStopOut, onOpenStopOutLevel }: TStakeInput) => {
     const { localize } = useTranslations();
     const trade_store = useTraderStore();
     const {
@@ -316,21 +316,23 @@ const StakeInput = observer(({ onClose, is_open, onOpenStopOut, onOpenCommission
 
             // Update proposal details after a successful API call
             if (proposal) {
-                const { commission, limit_order, validation_params } = proposal as ExpandedProposal;
+                const { limit_order, validation_params } = proposal as ExpandedProposal;
                 const { max, min } = validation_params?.stake ?? {};
-                const { order_amount } = limit_order?.stop_out ?? {};
+                const { order_amount, value: stop_out_value } = limit_order?.stop_out ?? {};
 
                 dispatch({
                     type: 'UPDATE_DETAILS',
                     payload: {
-                        ...(is_multiplier && commission && order_amount ? { commission, stop_out: order_amount } : {}),
+                        ...(is_multiplier && order_amount
+                            ? { stop_out: order_amount, stop_out_level: stop_out_value }
+                            : {}),
                         ...(details.max_stake || details.min_stake ? {} : { max_stake: max, min_stake: min }),
                     },
                 });
             } else if (!proposal && is_multiplier) {
                 dispatch({
                     type: 'UPDATE_DETAILS',
-                    payload: { commission: 0, stop_out: 0 },
+                    payload: { stop_out: 0, stop_out_level: undefined },
                 });
             }
         }
@@ -554,7 +556,7 @@ const StakeInput = observer(({ onClose, is_open, onOpenStopOut, onOpenCommission
                     is_empty={!displayAmount}
                     should_show_payout_details={should_show_payout_details}
                     onOpenStopOut={onOpenStopOut}
-                    onOpenCommission={onOpenCommission}
+                    onOpenStopOutLevel={onOpenStopOutLevel}
                 />
             </ActionSheet.Content>
             <ActionSheet.Footer
