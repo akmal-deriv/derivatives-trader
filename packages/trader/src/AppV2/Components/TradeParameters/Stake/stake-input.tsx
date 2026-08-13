@@ -537,6 +537,7 @@ const StakeInput = observer(({ onClose, is_open, onOpenStopOut, onOpenCommission
                     variant='fill'
                 />
                 <ValueChips
+                    className='value-chips--pills'
                     values={preset_values}
                     selectedValue={Number(displayAmount)}
                     onSelect={onPresetSelect}

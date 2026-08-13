@@ -1,16 +1,22 @@
 import React from 'react';
 
-import { ActionSheet, Button, TextField } from '@deriv-com/quill-ui';
+import { ActionSheet, TextField } from '@deriv-com/quill-ui';
 import { Localize, useTranslations } from '@deriv-com/translations';
 
 import Carousel from 'AppV2/Components/Carousel';
 import CarouselHeader from 'AppV2/Components/Carousel/carousel-header';
-import { TabSelector } from 'AppV2/Components/InputPopover';
+import { ValueChips } from 'AppV2/Components/InputPopover';
 import TradeParamDefinition from 'AppV2/Components/TradeParamDefinition';
-import { AutomationLockOverlay, ChipsWithInputToggle } from 'AppV2/Components/TradeParameters/Shared';
+import { AutomationLockOverlay } from 'AppV2/Components/TradeParameters/Shared';
 import { createDecimalInputGuard, getDecimalInputMaxLength } from 'AppV2/Utils/decimal-input';
 
-import { MULTIPLIER_DECIMALS, MULTIPLIER_MAX, MULTIPLIER_PRESETS, TAutomationConfig } from '../automation-config';
+import {
+    MULTIPLIER_DECIMALS,
+    MULTIPLIER_MAX,
+    MULTIPLIER_MIN,
+    MULTIPLIER_PRESETS,
+    TAutomationConfig,
+} from '../automation-config';
 
 type TStakeMultiplierMobileProps = {
     strategy: TAutomationConfig['strategy'];
@@ -31,26 +37,28 @@ const StakeMultiplierMobile = ({
     const { localize } = useTranslations();
     const [is_open, setIsOpen] = React.useState(false);
     const [carousel_index, setCarouselIndex] = React.useState(0);
-    const [activeTab, setActiveTab] = React.useState<'chips' | 'input'>('chips');
     const [inputValue, setInputValue] = React.useState(String(selectedValue));
     const [error, setError] = React.useState('');
     const onBeforeInput = createDecimalInputGuard(MULTIPLIER_DECIMALS);
 
+    const range_message = is_martingale ? (
+        <Localize i18n_default_text='Range {{min}} - {{max}}' values={{ min: MULTIPLIER_MIN, max: MULTIPLIER_MAX }} />
+    ) : (
+        <Localize i18n_default_text='Minimum 1' />
+    );
+
     const onClose = React.useCallback(() => {
         setIsOpen(false);
         setCarouselIndex(0);
-        setActiveTab('chips');
         setInputValue(String(selectedValue));
         setError('');
     }, [selectedValue]);
 
-    const handleChipSelect = React.useCallback(
-        (value: number) => {
-            onSelect(value);
-            onClose();
-        },
-        [onSelect, onClose]
-    );
+    // Presets fill the input rather than committing, matching the mobile Stake sheet — Save commits.
+    const handlePresetSelect = React.useCallback((value: number) => {
+        setInputValue(String(value));
+        setError('');
+    }, []);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setInputValue(e.target.value);
@@ -59,9 +67,11 @@ const StakeMultiplierMobile = ({
 
     const handleInputSave = () => {
         const num = Number(inputValue);
-        if (!inputValue || isNaN(num) || num < 1) {
+        if (!inputValue || isNaN(num) || (is_martingale ? num < MULTIPLIER_MIN : num < 1)) {
             setError(
-                is_martingale ? localize('Multiplier must be at least 1') : localize('Increment must be at least 1')
+                is_martingale
+                    ? localize('Multiplier must be at least {{min}}', { min: MULTIPLIER_MIN })
+                    : localize('Increment must be at least 1')
             );
             return;
         }
@@ -73,36 +83,47 @@ const StakeMultiplierMobile = ({
         setIsOpen(false);
     };
 
-    const inputComponent = (
-        <div className='automation-popover__input-wrapper'>
-            <TextField
-                label={is_martingale ? localize('Stake multiplier') : localize('Stake increment')}
-                value={inputValue}
-                onChange={handleInputChange}
-                onBeforeInput={onBeforeInput}
-                variant='fill'
-                inputMode='decimal'
-                customType='commaRemoval'
-                allowDecimals
-                decimals={MULTIPLIER_DECIMALS}
-                regex={/[^0-9.,]/g}
-                maxLength={getDecimalInputMaxLength(inputValue, MULTIPLIER_DECIMALS)}
-                message={error || undefined}
-                status={error ? 'error' : 'neutral'}
-                noStatusIcon
-                autoFocus
+    // Single view (no Quick picks / Custom tabs): the input sits above the presets, mirroring the
+    // mobile Stake sheet.
+    const paramPage = (
+        <React.Fragment>
+            <ActionSheet.Content>
+                <div className='automation-popover__input-wrapper'>
+                    <TextField
+                        label={is_martingale ? localize('Stake multiplier') : localize('Stake increment')}
+                        value={inputValue}
+                        onChange={handleInputChange}
+                        onBeforeInput={onBeforeInput}
+                        variant='fill'
+                        inputMode='decimal'
+                        customType='commaRemoval'
+                        allowDecimals
+                        decimals={MULTIPLIER_DECIMALS}
+                        regex={/[^0-9.,]/g}
+                        maxLength={getDecimalInputMaxLength(inputValue, MULTIPLIER_DECIMALS)}
+                        message={error || range_message}
+                        status={error ? 'error' : 'neutral'}
+                        textAlignment='left'
+                        noStatusIcon
+                    />
+                    <ValueChips
+                        className='value-chips--pills'
+                        values={MULTIPLIER_PRESETS}
+                        selectedValue={Number(inputValue)}
+                        onSelect={handlePresetSelect}
+                    />
+                </div>
+            </ActionSheet.Content>
+            <ActionSheet.Footer
+                alignment='vertical'
+                shouldCloseOnPrimaryButtonClick={false}
+                primaryAction={{
+                    content: <Localize i18n_default_text='Save' />,
+                    onAction: handleInputSave,
+                }}
+                isPrimaryButtonDisabled={!inputValue || !!error}
             />
-            <Button
-                fullWidth
-                size='lg'
-                variant='primary'
-                color='black-white'
-                onClick={handleInputSave}
-                disabled={!!error || !inputValue}
-                className='automation-popover__save-button'
-                label={localize('Save')}
-            />
-        </div>
+        </React.Fragment>
     );
 
     return (
@@ -143,20 +164,7 @@ const StakeMultiplierMobile = ({
                         pages={[
                             {
                                 id: 1,
-                                component: (
-                                    <ActionSheet.Content>
-                                        <div className='automation-popover__input-wrapper'>
-                                            <TabSelector activeTab={activeTab} onTabChange={setActiveTab} />
-                                            <ChipsWithInputToggle
-                                                activeTab={activeTab}
-                                                chipValues={MULTIPLIER_PRESETS}
-                                                selectedValue={selectedValue}
-                                                onSelect={handleChipSelect}
-                                                inputComponent={inputComponent}
-                                            />
-                                        </div>
-                                    </ActionSheet.Content>
-                                ),
+                                component: paramPage,
                             },
                             {
                                 id: 2,

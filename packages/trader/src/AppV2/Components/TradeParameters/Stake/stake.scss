@@ -30,27 +30,6 @@
     display: flex;
     flex-direction: column;
 
-    .value-chips {
-        &__grid {
-            grid-template-columns: repeat(3, 1fr);
-        }
-
-        &__chip {
-            height: 4.8rem;
-            background: transparent;
-            border: 1px solid var(--semantic-color-monochrome-border-normal-mid);
-            border-radius: 10rem;
-
-            // Selected = bordered light surface (matching the market-selection category chips), not a
-            // solid fill. Base already has a 1px border, so only the colours change (no layout shift).
-            &--selected {
-                background: var(--semantic-color-monochrome-surface-normal-lowest, rgba(0, 0, 0, 0.04));
-                border-color: var(--semantic-color-slate-solid-border-inverse-lowest, #000);
-                color: var(--component-textIcon-normal-prominent, #181c25);
-            }
-        }
-    }
-
     // Mobile sheet only: pin the payout details above the footer (desktop shares the class)
     .stake-content__details {
         margin-top: auto;

@@ -29,6 +29,8 @@ export const MULTIPLIER_PRESETS = [2, 3, 4, 5, 6, 7];
 
 export const MULTIPLIER_DECIMALS = 2;
 
+export const MULTIPLIER_MIN = 2;
+
 export const MULTIPLIER_MAX = 10;
 
 /**

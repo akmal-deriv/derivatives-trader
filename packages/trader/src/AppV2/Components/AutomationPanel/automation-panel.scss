@@ -158,3 +158,9 @@
         display: block;
     }
 }
+
+// Stake multiplier moved its Save from an inline button into the ActionSheet footer, so the footer
+// button needs the pill radius the inline one had — mirrors what .stake-container does for Stake.
+.automation-param-sheet .quill-action-sheet--footer button {
+    border-radius: 10rem !important;
+}
