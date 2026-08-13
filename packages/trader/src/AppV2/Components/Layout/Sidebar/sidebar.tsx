@@ -7,14 +7,14 @@ import { Button, Flyout, Text } from '@deriv/components';
 import {
     DerivProductBrandLightDerivTraderLogoIcon,
     LabelPairedLifeRingSmRegularIcon,
-    StandaloneHouseBlankRegularIcon,
-    StandaloneRightFromBracketRegularIcon,
     StandaloneClockThreeFillIcon,
     StandaloneClockThreeRegularIcon,
     StandaloneFileRegularIcon,
     StandaloneGlobeFillIcon,
     StandaloneGlobeRegularIcon,
+    StandaloneHouseBlankRegularIcon,
     StandaloneMoonRegularIcon,
+    StandaloneRightFromBracketRegularIcon,
     StandaloneSunBrightRegularIcon,
 } from '@deriv/quill-icons';
 import { getBrandUrl, getHelpCentreUrl, routes } from '@deriv/shared';

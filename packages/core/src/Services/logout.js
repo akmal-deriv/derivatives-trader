@@ -64,7 +64,6 @@ const doLogout = response => {
     localStorage.removeItem('verification_code.request_email');
     localStorage.removeItem('new_email.system_email_change');
     localStorage.removeItem('account_id');
-    localStorage.removeItem('account_type');
     SocketCache.clear();
     Object.keys(sessionStorage)
         .filter(key => key !== 'trade_store')

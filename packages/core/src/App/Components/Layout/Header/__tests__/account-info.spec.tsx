@@ -1,14 +1,14 @@
 import { APIProvider } from '@deriv/api';
-import { formatMoney, getAccountType } from '@deriv/shared';
+import { formatMoney } from '@deriv/shared';
 import { mockStore, StoreProvider } from '@deriv/stores';
 import { render, screen } from '@testing-library/react';
 
 import AccountInfo from '../account-info';
 
-// Mock the required functions from @deriv/shared
+// Mock the required functions from @deriv/shared. isDemoAccountId keeps its real
+// prefix-based implementation (via requireActual) so demo/real is driven by loginid.
 jest.mock('@deriv/shared', () => ({
     ...jest.requireActual('@deriv/shared'),
-    getAccountType: jest.fn(),
     addComma: jest.fn(value => value),
     getCurrencyDisplayCode: jest.fn(currency => currency),
     formatMoney: jest.fn((_currency, balance) => String(balance)),
@@ -33,12 +33,15 @@ jest.mock('../account-switcher', () => {
     return jest.fn(() => <div data-testid='account-switcher'>Account Switcher</div>);
 });
 
-const mockGetAccountType = getAccountType as jest.MockedFunction<typeof getAccountType>;
 const mockFormatMoney = formatMoney as jest.MockedFunction<typeof formatMoney>;
+
+// DOT* → demo, ROT* → real (server/type derived purely from the account_id prefix).
+const REAL_ACCOUNT_ID = 'ROT90070611';
+const DEMO_ACCOUNT_ID = 'DOT90096855';
 
 const defaultAccounts = [
     {
-        account_id: 'CR123',
+        account_id: REAL_ACCOUNT_ID,
         account_type: 'real' as const,
         balance: '10000.00',
         currency: 'USD',
@@ -46,7 +49,7 @@ const defaultAccounts = [
         status: 'active' as const,
     },
     {
-        account_id: 'VRTC456',
+        account_id: DEMO_ACCOUNT_ID,
         account_type: 'demo' as const,
         balance: '5000.00',
         currency: 'USD',
@@ -58,7 +61,7 @@ const defaultAccounts = [
 const renderWithProviders = (client_config = {}, props_override = {}, ui_config = {}) => {
     const default_mock_store = mockStore({
         client: {
-            loginid: 'CR123',
+            loginid: REAL_ACCOUNT_ID,
             is_logged_in: true,
             ...client_config,
         },
@@ -87,19 +90,16 @@ const renderWithProviders = (client_config = {}, props_override = {}, ui_config 
 describe('AccountInfo component', () => {
     beforeEach(() => {
         jest.clearAllMocks();
-        mockGetAccountType.mockReset();
         mockFormatMoney.mockImplementation((_currency, balance) => String(balance));
     });
 
-    it('should have "acc-info--is-demo" class when account_type is "demo"', () => {
-        mockGetAccountType.mockReturnValue('demo');
-        renderWithProviders();
+    it('should have "acc-info--is-demo" class when the active account is a DOT (demo) account', () => {
+        renderWithProviders({ loginid: DEMO_ACCOUNT_ID });
         const div_element = screen.getByTestId('dt_acc_info');
         expect(div_element).toHaveClass('acc-info--is-demo');
     });
 
     it('should have "acc-info__balance--no-currency" class when account is real and we don\'t have currency', () => {
-        mockGetAccountType.mockReturnValue('real');
         renderWithProviders({
             currency: undefined,
             balance: undefined,
@@ -109,7 +109,6 @@ describe('AccountInfo component', () => {
     });
 
     it('should have "No currency assigned" text when we don\'t have currency', () => {
-        mockGetAccountType.mockReturnValue('real');
         renderWithProviders({
             currency: undefined,
             balance: undefined,
@@ -119,7 +118,6 @@ describe('AccountInfo component', () => {
     });
 
     it('should display balance and currency when both are provided', () => {
-        mockGetAccountType.mockReturnValue('real');
         mockFormatMoney.mockReturnValue('123456789');
         renderWithProviders({
             currency: 'USD',
@@ -131,7 +129,6 @@ describe('AccountInfo component', () => {
     });
 
     it('should display "Real account" type label for real accounts', () => {
-        mockGetAccountType.mockReturnValue('real');
         renderWithProviders({
             currency: 'USD',
             balance: 1000,
@@ -141,8 +138,8 @@ describe('AccountInfo component', () => {
     });
 
     it('should display "Demo account" type label for demo accounts', () => {
-        mockGetAccountType.mockReturnValue('demo');
         renderWithProviders({
+            loginid: DEMO_ACCOUNT_ID,
             currency: 'USD',
             balance: 1000,
         });
@@ -152,15 +149,17 @@ describe('AccountInfo component', () => {
 
     describe('Demo-only account behavior', () => {
         it('should hide chevron icon for demo-only accounts', () => {
-            mockGetAccountType.mockReturnValue('demo');
             renderWithProviders(
                 {
+                    loginid: DEMO_ACCOUNT_ID,
                     currency: 'USD',
                     balance: 1000,
                 },
                 {
                     // Pass only demo accounts as props
-                    accounts: [{ account_id: 'VRTC456', account_type: 'demo', balance: '5000.00', currency: 'USD' }],
+                    accounts: [
+                        { account_id: DEMO_ACCOUNT_ID, account_type: 'demo', balance: '5000.00', currency: 'USD' },
+                    ],
                 }
             );
 
@@ -168,7 +167,6 @@ describe('AccountInfo component', () => {
         });
 
         it('should show chevron icon when user has multiple account types', () => {
-            mockGetAccountType.mockReturnValue('real');
             renderWithProviders({
                 currency: 'USD',
                 balance: 1000,
@@ -178,15 +176,17 @@ describe('AccountInfo component', () => {
         });
 
         it('should not render AccountSwitcher for demo-only accounts', () => {
-            mockGetAccountType.mockReturnValue('demo');
             renderWithProviders(
                 {
+                    loginid: DEMO_ACCOUNT_ID,
                     currency: 'USD',
                     balance: 1000,
                 },
                 {
                     // Pass only demo accounts as props
-                    accounts: [{ account_id: 'VRTC456', account_type: 'demo', balance: '5000.00', currency: 'USD' }],
+                    accounts: [
+                        { account_id: DEMO_ACCOUNT_ID, account_type: 'demo', balance: '5000.00', currency: 'USD' },
+                    ],
                 }
             );
 
@@ -194,7 +194,6 @@ describe('AccountInfo component', () => {
         });
 
         it('should render AccountSwitcher when user has multiple account types', () => {
-            mockGetAccountType.mockReturnValue('real');
             renderWithProviders({
                 currency: 'USD',
                 balance: 1000,
@@ -204,15 +203,17 @@ describe('AccountInfo component', () => {
         });
 
         it('should apply acc-info--no-switcher class for demo-only accounts', () => {
-            mockGetAccountType.mockReturnValue('demo');
             renderWithProviders(
                 {
+                    loginid: DEMO_ACCOUNT_ID,
                     currency: 'USD',
                     balance: 1000,
                 },
                 {
                     // Pass only demo accounts as props
-                    accounts: [{ account_id: 'VRTC456', account_type: 'demo', balance: '5000.00', currency: 'USD' }],
+                    accounts: [
+                        { account_id: DEMO_ACCOUNT_ID, account_type: 'demo', balance: '5000.00', currency: 'USD' },
+                    ],
                 }
             );
 
@@ -221,7 +222,6 @@ describe('AccountInfo component', () => {
         });
 
         it('should not apply acc-info--no-switcher class when user has multiple account types', () => {
-            mockGetAccountType.mockReturnValue('real');
             renderWithProviders({
                 currency: 'USD',
                 balance: 1000,
@@ -234,7 +234,6 @@ describe('AccountInfo component', () => {
 
     describe('Chart loading behavior', () => {
         it('should show account info regardless of chart loading state', () => {
-            mockGetAccountType.mockReturnValue('real');
             renderWithProviders({ currency: 'USD', balance: 1000 }, {}, { is_chart_loading: true });
 
             expect(screen.queryByTestId('dt_skeleton')).not.toBeInTheDocument();

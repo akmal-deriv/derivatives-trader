@@ -6,7 +6,14 @@ import { useDerivativesAccount, useMobileBridge } from '@deriv/api';
 import { Button, Skeleton, Text } from '@deriv/components';
 import AccountSwitcher from '@deriv/core/src/App/Components/Layout/Header/account-switcher';
 import { LegacyChevronDown1pxIcon } from '@deriv/quill-icons';
-import { addComma, getBrandUrl, getCurrencyDisplayCode, redirectToLogin, trackAnalyticsEvent } from '@deriv/shared';
+import {
+    addComma,
+    getBrandUrl,
+    getCurrencyDisplayCode,
+    isDemoAccountId,
+    redirectToLogin,
+    trackAnalyticsEvent,
+} from '@deriv/shared';
 import { useStore } from '@deriv/stores';
 import { Localize, useTranslations } from '@deriv-com/translations';
 import { useDevice } from '@deriv-com/ui';
@@ -87,7 +94,7 @@ const AccountHeader = observer(
         const accountTypeHeader = is_virtual ? localize('Demo account') : localize('Real account');
 
         // Determine account types available
-        const hasOnlyDemoAccounts = accounts.length > 0 && accounts.every(acc => acc.account_type === 'demo');
+        const hasOnlyDemoAccounts = accounts.length > 0 && accounts.every(acc => isDemoAccountId(acc.account_id));
 
         // Button logic:
         // - If only demo accounts exist -> show "Try real"

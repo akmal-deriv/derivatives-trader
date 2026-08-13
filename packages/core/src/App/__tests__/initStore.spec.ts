@@ -8,10 +8,11 @@ jest.mock('@deriv/shared', () => ({
     clearAccountId: jest.fn(),
     fetchLegacyHistoryMigrationStatus: jest.fn().mockResolvedValue({}),
     getAccountId: jest.fn(),
-    getAccountType: jest.fn(),
     getApiCoreBaseUrl: jest.fn(() => 'https://api-core.deriv.com'),
     getBrandDomains: jest.fn(() => []),
+    isDemoAccountId: jest.fn((id?: string | null) => !!id?.startsWith('DOT')),
     removeCookies: jest.fn(),
+    clearAccountTypeParam: jest.fn(),
 }));
 
 jest.mock('Services', () => ({
@@ -63,7 +64,7 @@ describe('initStore - stale session cleanup', () => {
     it('clears the stale session (cookie + account_id) on a 401 and does not enter logging-in', async () => {
         // Model the real clearAccountId → getAccountId contract: once cleared, account_id is gone.
         let session_cleared = false;
-        mockGetAccountId.mockImplementation(() => (session_cleared ? null : 'CR123'));
+        mockGetAccountId.mockImplementation(() => (session_cleared ? null : 'ROT90070611'));
         mockClearAccountId.mockImplementation(() => {
             session_cleared = true;
         });
@@ -79,7 +80,7 @@ describe('initStore - stale session cleanup', () => {
     });
 
     it('keeps the cookie and enters logging-in when whoami succeeds', async () => {
-        mockGetAccountId.mockReturnValue('CR123');
+        mockGetAccountId.mockReturnValue('ROT90070611');
         mockCheckWhoAmI.mockResolvedValue({ success: true, data: { identity: { external_id: 'abc' } } });
 
         await initStore({});

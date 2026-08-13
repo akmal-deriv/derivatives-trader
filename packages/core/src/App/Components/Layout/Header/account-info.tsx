@@ -4,7 +4,7 @@ import classNames from 'classnames';
 import { TDerivativesAccount } from '@deriv/api';
 import { Text } from '@deriv/components';
 import { LegacyChevronDown1pxIcon } from '@deriv/quill-icons';
-import { addComma, formatMoney, getAccountType, getCurrencyDisplayCode } from '@deriv/shared';
+import { addComma, formatMoney, getCurrencyDisplayCode, isDemoAccountId } from '@deriv/shared';
 import { observer, useStore } from '@deriv/stores';
 import { Localize, useTranslations } from '@deriv-com/translations';
 import { useDevice } from '@deriv-com/ui';
@@ -34,14 +34,13 @@ const AccountInfo = observer(
         const [is_dropdown_open, setIsDropdownOpen] = React.useState(false);
         const dropdown_ref = React.useRef<HTMLDivElement>(null);
 
-        const accountType = getAccountType();
-        const accountTypeHeader = accountType === 'real' ? localize('Real account') : localize('Demo account');
-        const isDemoAccount = accountType === 'demo';
+        const isDemoAccount = isDemoAccountId(loginid);
+        const accountTypeHeader = isDemoAccount ? localize('Demo account') : localize('Real account');
 
         const formattedBalance = balance != null ? formatMoney(currency, balance, true) : undefined;
 
         // Determine if user has only demo accounts (to disable dropdown)
-        const hasOnlyDemoAccounts = accounts.length > 0 && accounts.every(acc => acc.account_type === 'demo');
+        const hasOnlyDemoAccounts = accounts.length > 0 && accounts.every(acc => isDemoAccountId(acc.account_id));
 
         // Close dropdown when clicking outside
         React.useEffect(() => {

@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
-import { getAccountType } from '@deriv/shared';
+import { isDemoAccountId } from '@deriv/shared';
 import { getAccountsFromLocalStorage, getActiveLoginIDFromLocalStorage, getToken } from '@deriv/utils';
 import { AppIDConstants } from '@deriv-com/utils';
 
@@ -155,7 +155,7 @@ const AuthProvider = ({ loginIDKey, children, cookieTimeout, selectDefaultAccoun
             localStorage.setItem(loginIDKey ?? 'active_loginid', activeLoginID);
             sessionStorage.setItem(loginIDKey ?? 'active_loginid', activeLoginID);
 
-            const isDemo = getAccountType() === 'demo';
+            const isDemo = isDemoAccountId(activeLoginID);
 
             const shouldCreateNewWSConnection =
                 (isDemo && wsClient?.endpoint === AppIDConstants.environments.real) ||

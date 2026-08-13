@@ -1,7 +1,15 @@
 import Cookies from 'js-cookie';
 
 import * as brandUtils from '../../brand';
-import { getAccountId, getAccountType, getCompleteWebSocketURL, getSocketURL } from '../config';
+import {
+    clearAccountTypeParam,
+    getAccountId,
+    getAccountServer,
+    getCompleteWebSocketURL,
+    getSocketURL,
+    isDemoAccountId,
+    isRealAccountId,
+} from '../config';
 
 // Mock the brand utils module
 jest.mock('../../brand', () => ({
@@ -52,7 +60,26 @@ const mockLocation = (originalLocation: Location, overrides: Partial<Location>) 
     } as Location;
 };
 
-describe('getAccountType', () => {
+describe('isDemoAccountId / isRealAccountId', () => {
+    it('treats only a DOT-prefixed id as demo', () => {
+        expect(isDemoAccountId('DOT90096855')).toBe(true);
+        expect(isDemoAccountId('ROT90070611')).toBe(false);
+        expect(isDemoAccountId('XYZ123')).toBe(false);
+        expect(isDemoAccountId('')).toBe(false);
+        expect(isDemoAccountId(null)).toBe(false);
+        expect(isDemoAccountId(undefined)).toBe(false);
+    });
+
+    it('treats only a ROT-prefixed id as real', () => {
+        expect(isRealAccountId('ROT90070611')).toBe(true);
+        expect(isRealAccountId('DOT90096855')).toBe(false);
+        expect(isRealAccountId('XYZ123')).toBe(false);
+        expect(isRealAccountId(null)).toBe(false);
+        expect(isRealAccountId(undefined)).toBe(false);
+    });
+});
+
+describe('getAccountServer', () => {
     let originalLocation: Location, originalLocalStorage: Storage;
 
     beforeEach(() => {
@@ -81,144 +108,77 @@ describe('getAccountType', () => {
         jest.clearAllMocks();
     });
 
-    it('should return "demo" from URL parameter and store it in localStorage', () => {
-        mockLocation(originalLocation, {
-            search: '?account_type=demo',
-            href: 'https://staging-dtrader.deriv.com?account_type=demo',
-            pathname: '/',
-        });
-
-        const result = getAccountType();
-
-        expect(result).toBe('demo');
-        expect(window.localStorage.getItem('account_type')).toBe('demo');
-        expect(window.history.replaceState).toHaveBeenCalledWith({}, document.title, '/');
+    it('returns "demo" for a DOT account_id argument', () => {
+        expect(getAccountServer('DOT90096855')).toBe('demo');
     });
 
-    it('should return "real" from URL parameter and store it in localStorage', () => {
-        mockLocation(originalLocation, {
-            search: '?account_type=real',
-            href: 'https://staging-dtrader.deriv.com?account_type=real',
-            pathname: '/',
-        });
-
-        const result = getAccountType();
-
-        expect(result).toBe('real');
-        expect(window.localStorage.getItem('account_type')).toBe('real');
-        expect(window.history.replaceState).toHaveBeenCalledWith({}, document.title, '/');
+    it('returns "real" for a ROT account_id argument', () => {
+        expect(getAccountServer('ROT90070611')).toBe('real');
     });
 
-    it('should return "real" from URL parameter and override demo in localStorage', () => {
-        window.localStorage.setItem('account_type', 'demo');
-        mockLocation(originalLocation, {
-            search: '?account_type=real',
-            href: 'https://staging-dtrader.deriv.com?account_type=real',
-            pathname: '/',
-        });
-
-        const result = getAccountType();
-
-        expect(result).toBe('real');
-        expect(window.localStorage.getItem('account_type')).toBe('real');
-        expect(window.history.replaceState).toHaveBeenCalledWith({}, document.title, '/');
+    it('returns "public" for an unrecognised account_id argument', () => {
+        expect(getAccountServer('XYZ123')).toBe('public');
+        expect(getAccountServer('')).toBe('public');
+        expect(getAccountServer(null)).toBe('public');
     });
 
-    it('should return value from localStorage when URL parameter is missing', () => {
-        window.localStorage.setItem('account_type', 'real');
-        mockLocation(originalLocation, {
-            search: '',
-            href: 'https://staging-dtrader.deriv.com',
-        });
+    it('derives "demo" from a DOT account_id resolved via getAccountId()', () => {
+        window.localStorage.setItem('account_id', 'DOT90096855');
+        mockLocation(originalLocation, { search: '', href: 'https://dtrader.deriv.com' });
 
-        const result = getAccountType();
-
-        expect(result).toBe('real');
+        expect(getAccountServer()).toBe('demo');
     });
 
-    it('should return "public" as default when no URL parameter or localStorage value exists', () => {
-        mockLocation(originalLocation, {
-            search: '',
-            href: 'https://staging-dtrader.deriv.com',
-        });
+    it('derives "real" from a ROT account_id resolved via getAccountId()', () => {
+        window.localStorage.setItem('account_id', 'ROT90070611');
+        mockLocation(originalLocation, { search: '', href: 'https://dtrader.deriv.com' });
 
-        const result = getAccountType();
-
-        expect(result).toBe('public');
+        expect(getAccountServer()).toBe('real');
     });
 
-    it('should return "public" as default when URL parameter is invalid', () => {
-        mockLocation(originalLocation, {
-            search: '?account_type=invalid',
-            href: 'https://staging-dtrader.deriv.com?account_type=invalid',
-            pathname: '/',
-        });
-
-        const result = getAccountType();
-
-        expect(result).toBe('public');
-        // replaceState should NOT be called for invalid account_type values
-        expect(window.history.replaceState).not.toHaveBeenCalled();
-    });
-
-    it('should derive "demo" from a virtual (VR*) session cookie account_id and persist it', () => {
-        setOptionsAccountIdCookie('VRTC1234');
-        mockLocation(originalLocation, {
-            search: '',
-            href: 'https://dtrader.deriv.com',
-        });
-
-        const result = getAccountType();
-
-        expect(result).toBe('demo');
-        expect(window.localStorage.getItem('account_type')).toBe('demo');
-    });
-
-    it('should derive "real" from a non-virtual (CR*) session cookie account_id and persist it', () => {
-        setOptionsAccountIdCookie('CR901234');
-        mockLocation(originalLocation, {
-            search: '',
-            href: 'https://dtrader.deriv.com',
-        });
-
-        const result = getAccountType();
-
-        expect(result).toBe('real');
-        expect(window.localStorage.getItem('account_type')).toBe('real');
-    });
-
-    it('should prefer localStorage over the session cookie', () => {
-        window.localStorage.setItem('account_type', 'real');
-        setOptionsAccountIdCookie('VRTC1234');
-        mockLocation(originalLocation, {
-            search: '',
-            href: 'https://dtrader.deriv.com',
-        });
-
-        expect(getAccountType()).toBe('real');
-    });
-
-    it('should return "public" when there is no URL param, localStorage value, or cookie', () => {
+    it('returns "public" when no account_id is resolvable', () => {
         setOptionsAccountIdCookie(null);
-        mockLocation(originalLocation, {
-            search: '',
-            href: 'https://dtrader.deriv.com',
-        });
+        mockLocation(originalLocation, { search: '', href: 'https://dtrader.deriv.com' });
 
-        expect(getAccountType()).toBe('public');
+        expect(getAccountServer()).toBe('public');
+    });
+});
+
+describe('clearAccountTypeParam', () => {
+    let originalLocation: Location;
+
+    beforeEach(() => {
+        originalLocation = window.location;
+        window.history.replaceState = jest.fn();
     });
 
-    it('should derive account_type from the account_id, not the cookie, when they belong to different accounts', () => {
-        // Cookie belongs to a demo (VR*) account, but the URL pins a real (CR*) account_id.
-        // account_type must follow the account_id actually in use, not the unrelated cookie.
-        setOptionsAccountIdCookie('VRTC456');
+    afterEach(() => {
+        Object.defineProperty(window, 'location', { value: originalLocation, writable: true });
+        jest.clearAllMocks();
+    });
+
+    it('removes a lingering account_type param and preserves the rest of the URL', () => {
         mockLocation(originalLocation, {
-            search: '?account_id=CR123',
-            href: 'https://dtrader.deriv.com?account_id=CR123',
+            search: '?account_type=real&account_id=ROT90070611',
+            href: 'https://dtrader.deriv.com/?account_type=real&account_id=ROT90070611',
             pathname: '/',
         });
 
-        expect(getAccountType()).toBe('real');
+        clearAccountTypeParam();
+
+        expect(window.history.replaceState).toHaveBeenCalledWith({}, document.title, '/?account_id=ROT90070611');
+    });
+
+    it('does nothing when there is no account_type param', () => {
+        mockLocation(originalLocation, {
+            search: '?account_id=ROT90070611',
+            href: 'https://dtrader.deriv.com/?account_id=ROT90070611',
+            pathname: '/',
+        });
+
+        clearAccountTypeParam();
+
+        expect(window.history.replaceState).not.toHaveBeenCalled();
     });
 });
 
@@ -252,43 +212,43 @@ describe('getAccountId', () => {
 
     it('should return account_id from the URL param, persist it, and strip it from the URL', () => {
         mockLocation(originalLocation, {
-            search: '?account_id=CR111',
-            href: 'https://dtrader.deriv.com?account_id=CR111',
+            search: '?account_id=ROT90070611',
+            href: 'https://dtrader.deriv.com?account_id=ROT90070611',
             pathname: '/',
         });
 
         const result = getAccountId();
 
-        expect(result).toBe('CR111');
-        expect(window.localStorage.getItem('account_id')).toBe('CR111');
+        expect(result).toBe('ROT90070611');
+        expect(window.localStorage.getItem('account_id')).toBe('ROT90070611');
         expect(window.history.replaceState).toHaveBeenCalledWith({}, document.title, '/');
     });
 
     it('should prefer the URL param over both localStorage and the session cookie', () => {
-        window.localStorage.setItem('account_id', 'CR222');
-        setOptionsAccountIdCookie('CR333');
+        window.localStorage.setItem('account_id', 'ROT90070622');
+        setOptionsAccountIdCookie('ROT90070633');
         mockLocation(originalLocation, {
-            search: '?account_id=CR111',
-            href: 'https://dtrader.deriv.com?account_id=CR111',
+            search: '?account_id=ROT90070611',
+            href: 'https://dtrader.deriv.com?account_id=ROT90070611',
             pathname: '/',
         });
 
-        expect(getAccountId()).toBe('CR111');
+        expect(getAccountId()).toBe('ROT90070611');
     });
 
     it('should prefer localStorage over the session cookie', () => {
-        window.localStorage.setItem('account_id', 'CR222');
-        setOptionsAccountIdCookie('CR333');
+        window.localStorage.setItem('account_id', 'ROT90070622');
+        setOptionsAccountIdCookie('ROT90070633');
         mockLocation(originalLocation, {
             search: '',
             href: 'https://dtrader.deriv.com',
         });
 
-        expect(getAccountId()).toBe('CR222');
+        expect(getAccountId()).toBe('ROT90070622');
     });
 
     it('should fall back to the session cookie account_id and persist it to localStorage', () => {
-        setOptionsAccountIdCookie('CR333');
+        setOptionsAccountIdCookie('ROT90070633');
         mockLocation(originalLocation, {
             search: '',
             href: 'https://dtrader.deriv.com',
@@ -296,8 +256,8 @@ describe('getAccountId', () => {
 
         const result = getAccountId();
 
-        expect(result).toBe('CR333');
-        expect(window.localStorage.getItem('account_id')).toBe('CR333');
+        expect(result).toBe('ROT90070633');
+        expect(window.localStorage.getItem('account_id')).toBe('ROT90070633');
     });
 
     it('should return null when there is no URL param, localStorage value, or cookie', () => {
@@ -354,9 +314,8 @@ describe('getCompleteWebSocketURL', () => {
         expect(result).toBe('wss://core.api.deriv.com/options/v1/ws/public');
     });
 
-    it('should return /real URL with account_id param when a real account is active', () => {
-        window.localStorage.setItem('account_id', 'CR123456');
-        window.localStorage.setItem('account_type', 'real');
+    it('should return /real URL with account_id param when a ROT (real) account is active', () => {
+        window.localStorage.setItem('account_id', 'ROT90070611');
         setOptionsAccountIdCookie(null);
         mockLocation(originalLocation, {
             search: '',
@@ -366,12 +325,11 @@ describe('getCompleteWebSocketURL', () => {
 
         const result = getCompleteWebSocketURL();
 
-        expect(result).toBe('wss://core.api.deriv.com/options/v1/ws/real?account_id=CR123456');
+        expect(result).toBe('wss://core.api.deriv.com/options/v1/ws/real?account_id=ROT90070611');
     });
 
-    it('should return /demo URL with account_id param when a demo account is active', () => {
-        window.localStorage.setItem('account_id', 'VRTC1234');
-        window.localStorage.setItem('account_type', 'demo');
+    it('should return /demo URL with account_id param when a DOT (demo) account is active', () => {
+        window.localStorage.setItem('account_id', 'DOT90096855');
         setOptionsAccountIdCookie(null);
         mockLocation(originalLocation, {
             search: '',
@@ -381,7 +339,21 @@ describe('getCompleteWebSocketURL', () => {
 
         const result = getCompleteWebSocketURL();
 
-        expect(result).toBe('wss://core.api.deriv.com/options/v1/ws/demo?account_id=VRTC1234');
+        expect(result).toBe('wss://core.api.deriv.com/options/v1/ws/demo?account_id=DOT90096855');
+    });
+
+    it('should return /public with NO account_id query for an unrecognised account_id (never guessed as real)', () => {
+        window.localStorage.setItem('account_id', 'XYZ123456');
+        setOptionsAccountIdCookie(null);
+        mockLocation(originalLocation, {
+            search: '',
+            href: 'https://dtrader.deriv.com',
+            pathname: '/',
+        });
+
+        const result = getCompleteWebSocketURL();
+
+        expect(result).toBe('wss://core.api.deriv.com/options/v1/ws/public');
     });
 });
 
@@ -412,35 +384,7 @@ describe('getSocketURL', () => {
         jest.clearAllMocks();
     });
 
-    it('should return server URL for staging environment', () => {
-        mockGetWebSocketURL.mockReturnValue('staging-core.api.deriv.com/options/v1/ws');
-        mockLocation(originalLocation, {
-            hostname: 'staging-dtrader.deriv.com',
-            search: '?account_type=demo',
-            href: 'https://staging-dtrader.deriv.com?account_type=demo',
-        });
-
-        const result = getSocketURL();
-
-        expect(result).toBe('staging-core.api.deriv.com/options/v1/ws');
-        expect(mockGetWebSocketURL).toHaveBeenCalled();
-    });
-
-    it('should return server URL for staging with real account', () => {
-        mockGetWebSocketURL.mockReturnValue('staging-core.api.deriv.com/options/v1/ws');
-        mockLocation(originalLocation, {
-            hostname: 'staging-dtrader.deriv.com',
-            search: '?account_type=real',
-            href: 'https://staging-dtrader.deriv.com?account_type=real',
-        });
-
-        const result = getSocketURL();
-
-        expect(result).toBe('staging-core.api.deriv.com/options/v1/ws');
-        expect(mockGetWebSocketURL).toHaveBeenCalled();
-    });
-
-    it('should return server URL for staging with missing account_type', () => {
+    it('should return the brand WebSocket URL for the current environment', () => {
         mockGetWebSocketURL.mockReturnValue('staging-core.api.deriv.com/options/v1/ws');
         mockLocation(originalLocation, {
             hostname: 'staging-dtrader.deriv.com',
@@ -454,54 +398,12 @@ describe('getSocketURL', () => {
         expect(mockGetWebSocketURL).toHaveBeenCalled();
     });
 
-    it('should return server URL for staging with invalid account_type', () => {
-        mockGetWebSocketURL.mockReturnValue('staging-core.api.deriv.com/options/v1/ws');
-        mockLocation(originalLocation, {
-            hostname: 'staging-dtrader.deriv.com',
-            search: '?account_type=invalid',
-            href: 'https://staging-dtrader.deriv.com?account_type=invalid',
-        });
-
-        const result = getSocketURL();
-
-        expect(result).toBe('staging-core.api.deriv.com/options/v1/ws');
-        expect(mockGetWebSocketURL).toHaveBeenCalled();
-    });
-
-    it('should return server URL for production with demo account', () => {
-        mockGetWebSocketURL.mockReturnValue('core.api.deriv.com/options/v1/ws');
-        mockLocation(originalLocation, {
-            hostname: 'dtrader.deriv.com',
-            search: '?account_type=demo',
-            href: 'https://dtrader.deriv.com?account_type=demo',
-        });
-
-        const result = getSocketURL();
-
-        expect(result).toBe('core.api.deriv.com/options/v1/ws');
-        expect(mockGetWebSocketURL).toHaveBeenCalled();
-    });
-
-    it('should return server URL for production with real account', () => {
-        mockGetWebSocketURL.mockReturnValue('core.api.deriv.com/options/v1/ws');
-        mockLocation(originalLocation, {
-            hostname: 'dtrader.deriv.com',
-            search: '?account_type=real',
-            href: 'https://dtrader.deriv.com?account_type=real',
-        });
-
-        const result = getSocketURL();
-
-        expect(result).toBe('core.api.deriv.com/options/v1/ws');
-        expect(mockGetWebSocketURL).toHaveBeenCalled();
-    });
-
     it('should return localStorage value when config.server_url is set', () => {
         window.localStorage.setItem('config.server_url', 'custom.server.com');
         mockLocation(originalLocation, {
             hostname: 'staging-dtrader.deriv.com',
-            search: '?account_type=real',
-            href: 'https://staging-dtrader.deriv.com?account_type=real',
+            search: '',
+            href: 'https://staging-dtrader.deriv.com',
         });
 
         const result = getSocketURL();
@@ -514,8 +416,8 @@ describe('getSocketURL', () => {
         window.localStorage.setItem('config.server_url', 'https://malicious.com');
         mockLocation(originalLocation, {
             hostname: 'staging-dtrader.deriv.com',
-            search: '?account_type=demo',
-            href: 'https://staging-dtrader.deriv.com?account_type=demo',
+            search: '',
+            href: 'https://staging-dtrader.deriv.com',
         });
 
         const result = getSocketURL();
@@ -530,8 +432,8 @@ describe('getSocketURL', () => {
         window.localStorage.setItem('config.server_url', 'localhost');
         mockLocation(originalLocation, {
             hostname: 'staging-dtrader.deriv.com',
-            search: '?account_type=real',
-            href: 'https://staging-dtrader.deriv.com?account_type=real',
+            search: '',
+            href: 'https://staging-dtrader.deriv.com',
         });
 
         const result = getSocketURL();

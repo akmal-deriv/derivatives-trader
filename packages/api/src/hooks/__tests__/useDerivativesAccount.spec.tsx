@@ -42,7 +42,7 @@ describe('useDerivativesAccount', () => {
     );
 
     it('should not fetch when enabled is false', () => {
-        renderHook(() => useDerivativesAccount('CR123', false), { wrapper });
+        renderHook(() => useDerivativesAccount('ROT90070611', false), { wrapper });
 
         // Should not call fetchREST when disabled
         expect(mockFetchREST).not.toHaveBeenCalled();
@@ -51,14 +51,14 @@ describe('useDerivativesAccount', () => {
     it('should fetch derivatives accounts when enabled is true', async () => {
         const mockData = {
             data: [
-                { account_id: 'CR123', account_type: 'real' as const, balance: '10000.00', currency: 'USD' },
-                { account_id: 'VRTC456', account_type: 'demo' as const, balance: '5000.00', currency: 'USD' },
+                { account_id: 'ROT90070611', account_type: 'real' as const, balance: '10000.00', currency: 'USD' },
+                { account_id: 'DOT90096855', account_type: 'demo' as const, balance: '5000.00', currency: 'USD' },
             ],
         };
 
         mockFetchREST.mockResolvedValueOnce(mockData);
 
-        const { result } = renderHook(() => useDerivativesAccount('CR123', true), { wrapper });
+        const { result } = renderHook(() => useDerivativesAccount('ROT90070611', true), { wrapper });
 
         expect(result.current.isLoading).toBe(true);
 
@@ -72,28 +72,28 @@ describe('useDerivativesAccount', () => {
 
     it('should use correct query key with loginid for cache invalidation', async () => {
         const mockData = {
-            data: [{ account_id: 'CR123', account_type: 'real' as const, balance: '10000.00', currency: 'USD' }],
+            data: [{ account_id: 'ROT90070611', account_type: 'real' as const, balance: '10000.00', currency: 'USD' }],
         };
 
         mockFetchREST.mockResolvedValueOnce(mockData);
 
-        const { result } = renderHook(() => useDerivativesAccount('CR123', true), { wrapper });
+        const { result } = renderHook(() => useDerivativesAccount('ROT90070611', true), { wrapper });
 
         await waitFor(() => {
             expect(result.current.isSuccess).toBe(true);
         });
 
         // Check that query cache has the correct key
-        const cachedData = queryClient.getQueryData(['derivatives', 'account', 'CR123']);
+        const cachedData = queryClient.getQueryData(['derivatives', 'account', 'ROT90070611']);
         expect(cachedData).toEqual(mockData);
     });
 
     it('should invalidate cache when loginid changes', async () => {
         const mockData1 = {
-            data: [{ account_id: 'CR123', account_type: 'real' as const, balance: '10000.00', currency: 'USD' }],
+            data: [{ account_id: 'ROT90070611', account_type: 'real' as const, balance: '10000.00', currency: 'USD' }],
         };
         const mockData2 = {
-            data: [{ account_id: 'CR456', account_type: 'real' as const, balance: '20000.00', currency: 'EUR' }],
+            data: [{ account_id: 'ROT90070622', account_type: 'real' as const, balance: '20000.00', currency: 'EUR' }],
         };
 
         mockFetchREST.mockResolvedValueOnce(mockData1);
@@ -102,7 +102,7 @@ describe('useDerivativesAccount', () => {
             (props: { loginid: string }) => useDerivativesAccount(props.loginid, true),
             {
                 wrapper,
-                initialProps: { loginid: 'CR123' },
+                initialProps: { loginid: 'ROT90070611' },
             }
         );
 
@@ -114,7 +114,7 @@ describe('useDerivativesAccount', () => {
 
         // Change loginid
         mockFetchREST.mockResolvedValueOnce(mockData2);
-        rerender({ loginid: 'CR456' });
+        rerender({ loginid: 'ROT90070622' });
 
         await waitFor(() => {
             expect(result.current.data).toEqual(mockData2);
@@ -127,7 +127,7 @@ describe('useDerivativesAccount', () => {
         const errorMessage = 'Failed to fetch accounts';
         mockFetchREST.mockRejectedValueOnce(new Error(errorMessage));
 
-        const { result } = renderHook(() => useDerivativesAccount('CR123', true), { wrapper });
+        const { result } = renderHook(() => useDerivativesAccount('ROT90070611', true), { wrapper });
 
         await waitFor(
             () => {
@@ -143,26 +143,26 @@ describe('useDerivativesAccount', () => {
 
     it('should have correct staleTime configuration (5 minutes)', async () => {
         const mockData = {
-            data: [{ account_id: 'CR123', account_type: 'real' as const, balance: '10000.00', currency: 'USD' }],
+            data: [{ account_id: 'ROT90070611', account_type: 'real' as const, balance: '10000.00', currency: 'USD' }],
         };
 
         mockFetchREST.mockResolvedValueOnce(mockData);
 
-        const { result } = renderHook(() => useDerivativesAccount('CR123', true), { wrapper });
+        const { result } = renderHook(() => useDerivativesAccount('ROT90070611', true), { wrapper });
 
         await waitFor(() => {
             expect(result.current.isSuccess).toBe(true);
         });
 
         // Check that the query state has correct configuration
-        const queryState = queryClient.getQueryState(['derivatives', 'account', 'CR123']);
+        const queryState = queryClient.getQueryState(['derivatives', 'account', 'ROT90070611']);
         expect(queryState?.dataUpdatedAt).toBeDefined();
     });
 
     it('should return loading state initially', () => {
         mockFetchREST.mockImplementation(() => new Promise(() => {})); // Never resolves
 
-        const { result } = renderHook(() => useDerivativesAccount('CR123', true), { wrapper });
+        const { result } = renderHook(() => useDerivativesAccount('ROT90070611', true), { wrapper });
 
         expect(result.current.isLoading).toBe(true);
         expect(result.current.data).toBeUndefined();
@@ -176,7 +176,7 @@ describe('useDerivativesAccount', () => {
 
         mockFetchREST.mockResolvedValueOnce(mockData);
 
-        const { result } = renderHook(() => useDerivativesAccount('CR123', true), { wrapper });
+        const { result } = renderHook(() => useDerivativesAccount('ROT90070611', true), { wrapper });
 
         await waitFor(() => {
             expect(result.current.isSuccess).toBe(true);
@@ -205,15 +205,15 @@ describe('useDerivativesAccount', () => {
 
     it('should support refetch functionality', async () => {
         const mockData1 = {
-            data: [{ account_id: 'CR123', account_type: 'real' as const, balance: '10000.00', currency: 'USD' }],
+            data: [{ account_id: 'ROT90070611', account_type: 'real' as const, balance: '10000.00', currency: 'USD' }],
         };
         const mockData2 = {
-            data: [{ account_id: 'CR123', account_type: 'real' as const, balance: '15000.00', currency: 'USD' }],
+            data: [{ account_id: 'ROT90070611', account_type: 'real' as const, balance: '15000.00', currency: 'USD' }],
         };
 
         mockFetchREST.mockResolvedValueOnce(mockData1);
 
-        const { result } = renderHook(() => useDerivativesAccount('CR123', true), { wrapper });
+        const { result } = renderHook(() => useDerivativesAccount('ROT90070611', true), { wrapper });
 
         await waitFor(() => {
             expect(result.current.isSuccess).toBe(true);
@@ -243,7 +243,7 @@ describe('useDerivativesAccount', () => {
 
             mockFetchREST.mockRejectedValue(authError);
 
-            const { result } = renderHook(() => useDerivativesAccount('CR123', true), { wrapper });
+            const { result } = renderHook(() => useDerivativesAccount('ROT90070611', true), { wrapper });
 
             await waitFor(
                 () => {
@@ -263,7 +263,7 @@ describe('useDerivativesAccount', () => {
 
             mockFetchREST.mockRejectedValue(forbiddenError);
 
-            const { result } = renderHook(() => useDerivativesAccount('CR123', true), { wrapper });
+            const { result } = renderHook(() => useDerivativesAccount('ROT90070611', true), { wrapper });
 
             await waitFor(
                 () => {
@@ -283,7 +283,7 @@ describe('useDerivativesAccount', () => {
 
             mockFetchREST.mockRejectedValue(notFoundError);
 
-            const { result } = renderHook(() => useDerivativesAccount('CR123', true), { wrapper });
+            const { result } = renderHook(() => useDerivativesAccount('ROT90070611', true), { wrapper });
 
             await waitFor(
                 () => {
@@ -303,7 +303,7 @@ describe('useDerivativesAccount', () => {
 
             mockFetchREST.mockRejectedValue(serverError);
 
-            const { result } = renderHook(() => useDerivativesAccount('CR123', true), { wrapper });
+            const { result } = renderHook(() => useDerivativesAccount('ROT90070611', true), { wrapper });
 
             // Wait for the query to complete all retries
             await waitFor(
@@ -324,7 +324,7 @@ describe('useDerivativesAccount', () => {
 
             mockFetchREST.mockRejectedValue(rateLimitError);
 
-            const { result } = renderHook(() => useDerivativesAccount('CR123', true), { wrapper });
+            const { result } = renderHook(() => useDerivativesAccount('ROT90070611', true), { wrapper });
 
             // Wait for the query to complete all retries
             await waitFor(

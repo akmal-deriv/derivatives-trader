@@ -1,8 +1,8 @@
 import { useStore } from '@deriv/stores';
 
 // Account groups identifying EU (DIEL) clients. EU detection in derivatives-trader is group-based:
-// `client.is_eu` (landing_company === 'maltainvest') and `traders_hub.is_eu_user` (MF-prefix /
-// residence) are NOT reliably populated for these accounts — the account `group` is the source of truth.
+// `client.is_eu` (landing_company === 'maltainvest') is NOT reliably populated for these accounts —
+// the account `group` is the source of truth.
 export const EU_ACCOUNT_GROUPS: string[] = ['DIEL Default Group'];
 
 type TDerivativesAccount = { account_id?: string; group?: string };

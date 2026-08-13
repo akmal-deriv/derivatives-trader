@@ -2,11 +2,12 @@ import { configure } from 'mobx';
 
 import {
     clearAccountId,
+    clearAccountTypeParam,
     fetchLegacyHistoryMigrationStatus,
     getAccountId,
-    getAccountType,
     getApiCoreBaseUrl,
     getBrandDomains,
+    isDemoAccountId,
     removeCookies,
 } from '@deriv/shared';
 
@@ -69,7 +70,9 @@ export const initStore = async notification_messages => {
     // before any WebSocket connection attempts. This is a critical safety property.
     let external_id;
     const account_id = getAccountId();
-    getAccountType();
+
+    // Clear any stale account_type param left by a deep link (deprecated; unused by the app).
+    clearAccountTypeParam();
 
     if (account_id) {
         const whoami_result = await checkWhoAmI();
@@ -77,7 +80,6 @@ export const initStore = async notification_messages => {
         if (whoami_result.error?.code === 401) {
             // Clear credentials before any WebSocket connection
             clearAccountId();
-            localStorage.removeItem('account_type');
             localStorage.removeItem('active_loginid');
             sessionStorage.removeItem('active_loginid');
             localStorage.removeItem('current_account');
@@ -129,14 +131,12 @@ export const connectClient = async (root_store, external_id, account_id) => {
 
                 if (target_account?.status === 'trading_disabled') {
                     const demo_account = accounts?.find(
-                        acc => acc.account_type === 'demo' && acc.status !== 'trading_disabled'
+                        acc => isDemoAccountId(acc.account_id) && acc.status !== 'trading_disabled'
                     );
                     if (demo_account) {
                         localStorage.setItem('account_id', demo_account.account_id);
-                        localStorage.setItem('account_type', 'demo');
                     } else {
                         clearAccountId();
-                        localStorage.removeItem('account_type');
                     }
                 }
             }

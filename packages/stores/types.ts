@@ -207,10 +207,8 @@ export type TClientStore = {
     currency: string;
     currencies_list: { text: string; value: string; has_tool_tip?: boolean }[];
     email_address: string;
-    has_any_real_account: boolean;
     should_redirect_user_to_login: boolean;
     setShouldRedirectToLogin: (value: boolean) => void;
-    has_active_real_account: boolean;
     has_cookie_account: boolean;
     has_logged_out: boolean;
     initialized_broadcast: boolean;
@@ -226,11 +224,6 @@ export type TClientStore = {
     loginid?: string;
     residence: string;
     email: string;
-    is_cr_account: boolean;
-    is_mf_account: boolean;
-    is_options_blocked: boolean;
-    is_multipliers_only: boolean;
-    is_single_currency: boolean;
     default_currency: string;
 
     // Essential actions
@@ -249,7 +242,7 @@ export type TClientStore = {
     responseAuthorize: (response: any) => void;
     responsePayoutCurrencies: (response: any) => void;
     init: () => Promise<boolean>;
-    switchAccount: (account_id: string, account_type: 'real' | 'demo') => Promise<void>;
+    switchAccount: (account_id: string) => Promise<void>;
 };
 
 type TCommonStoreError = {

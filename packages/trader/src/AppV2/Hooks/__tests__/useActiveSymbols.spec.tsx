@@ -104,7 +104,7 @@ describe('useActiveSymbols', () => {
     });
     it('should fetch active symbols when logged in', async () => {
         mocked_store.client.is_logged_in = true;
-        mocked_store.client.loginid = 'CR123456';
+        mocked_store.client.loginid = 'ROT123456';
         mocked_store.modules.trade.active_symbols = logged_in_active_symbols;
         mocked_store.modules.trade.has_symbols_for_v2 = true;
 

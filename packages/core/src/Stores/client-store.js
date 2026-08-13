@@ -6,9 +6,9 @@ import {
     dayjs,
     filterUrlQuery,
     getAccountId,
-    getAccountType,
     getTrustedDomainName,
     isCryptocurrency,
+    isDemoAccountId,
     isMobile,
     LocalStore,
     removeCookies,
@@ -22,12 +22,11 @@ import { CountryUtils } from '@deriv-com/utils';
 
 import { checkWhoAmI, requestRestLogout, WS } from 'Services';
 
-import { getClientAccountType } from './Helpers/client';
 import { buildCurrenciesList } from './Modules/Trading/Helpers/currency';
 import BaseStore from './base-store';
 
 import BinarySocket from '_common/base/socket_base';
-import { getRegion, isMultipliersOnly, isOptionsBlocked } from '_common/utility';
+import { getRegion } from '_common/utility';
 
 const LANGUAGE_KEY = 'i18n_language';
 const storage_key = 'current_account';
@@ -87,15 +86,6 @@ export default class ClientStore extends BaseStore {
             email_address: computed,
             landing_company_shortcode: computed,
 
-            is_cr_account: computed,
-            is_mf_account: computed,
-            is_options_blocked: computed,
-            is_multipliers_only: computed,
-
-            has_active_real_account: computed,
-            has_any_real_account: computed,
-            is_single_currency: computed,
-
             setPreferredLanguage: action.bound,
             setCookieAccount: action.bound,
             responsePayoutCurrencies: action.bound,
@@ -139,14 +129,6 @@ export default class ClientStore extends BaseStore {
         return undefined;
     }
 
-    get has_active_real_account() {
-        return !this.is_virtual;
-    }
-
-    get has_any_real_account() {
-        return !this.is_virtual;
-    }
-
     get currency() {
         if (this.selected_currency.length) {
             return this.selected_currency;
@@ -175,9 +157,9 @@ export default class ClientStore extends BaseStore {
     }
 
     get is_virtual() {
-        // Reference loginid to make this computed reactive to account switches
-        this.loginid;
-        return getAccountType() === 'demo';
+        // Demo if the account_id/loginid carries the DOT prefix. Referencing this.loginid
+        // keeps the computed reactive to account switches.
+        return isDemoAccountId(this.loginid);
     }
 
     get is_eu() {
@@ -185,7 +167,8 @@ export default class ClientStore extends BaseStore {
     }
 
     get account_type() {
-        return getClientAccountType(this.loginid);
+        // Only consumed by GTM analytics (bom_account_type); demo → 'virtual', otherwise undefined.
+        return this.is_virtual ? 'virtual' : undefined;
     }
 
     get residence() {
@@ -199,26 +182,6 @@ export default class ClientStore extends BaseStore {
     get landing_company_shortcode() {
         // Default to 'svg' for ROW behavior (maximum permissiveness)
         return this.current_account?.landing_company_shortcode || 'svg';
-    }
-
-    get is_cr_account() {
-        return this.loginid?.startsWith('CR');
-    }
-
-    get is_mf_account() {
-        return this.loginid?.startsWith('MF');
-    }
-
-    get is_options_blocked() {
-        return isOptionsBlocked(this.residence);
-    }
-
-    get is_multipliers_only() {
-        return isMultipliersOnly(this.residence);
-    }
-
-    get is_single_currency() {
-        return true; // Simplified for single account
     }
 
     setIsAuthorize(value) {
@@ -334,7 +297,6 @@ export default class ClientStore extends BaseStore {
                 console.error('[Auth] Balance timeout:', error);
                 // Clear invalid credentials and retry as public
                 clearAccountId();
-                localStorage.removeItem('account_type');
             }
         }
 
@@ -591,9 +553,8 @@ export default class ClientStore extends BaseStore {
         localStorage.setItem('active_user_id', this.user_id);
         localStorage.setItem(storage_key, JSON.stringify(this.current_account));
 
-        // Clear account_id and account_type from localStorage
+        // Clear account_id from localStorage
         clearAccountId();
-        localStorage.removeItem('account_type');
 
         // Remove the shared `options_account_id` cookie before reconnecting.
         removeCookies('options_account_id');
@@ -644,16 +605,15 @@ export default class ClientStore extends BaseStore {
 
     /**
      * Switch to a different account
-     * Handles notification clearing, localStorage updates, and WebSocket reconnection
+     * Handles notification clearing, localStorage updates, and WebSocket reconnection.
+     * The server (demo/real) is derived from the account_id prefix on reconnect.
      * @param {string} account_id - The account ID to switch to
-     * @param {'real' | 'demo'} account_type - The account type
      */
-    async switchAccount(account_id, account_type) {
+    async switchAccount(account_id) {
         if (!account_id || this.loginid === account_id) return;
 
         // Update localStorage with new account
         localStorage.setItem('account_id', account_id);
-        localStorage.setItem('account_type', account_type);
         localStorage.setItem('active_loginid', account_id);
         sessionStorage.setItem('active_loginid', account_id);
 

@@ -22,49 +22,24 @@ import { getWebSocketURL } from '../brand';
 const getAccountIdFromCookie = (): string | null => Cookies.get('options_account_id') || null;
 
 /**
- * Gets account_type with priority: URL parameter > localStorage > derived from the
- * resolved account_id (which may itself come from the session cookie) > default 'public'
- * @returns 'real', 'demo', or 'public'
+ * Strictly demo: the account_id begins with the `DOT` prefix.
  */
-export const getAccountType = (): 'real' | 'demo' | 'public' => {
-    const search = window.location.search;
-    const search_params = new URLSearchParams(search);
-    const accountTypeFromUrl = search_params.get('account_type');
+export const isDemoAccountId = (account_id?: string | null): boolean => !!account_id?.startsWith('DOT');
 
-    // First priority: URL parameter
-    if (accountTypeFromUrl === 'real' || accountTypeFromUrl === 'demo') {
-        window.localStorage.setItem('account_type', accountTypeFromUrl);
+/**
+ * Strictly real: the account_id begins with the `ROT` prefix.
+ */
+export const isRealAccountId = (account_id?: string | null): boolean => !!account_id?.startsWith('ROT');
 
-        // Remove account_type from URL after processing
-        const url = new URL(window.location.href);
-        if (url.searchParams.has('account_type')) {
-            url.searchParams.delete('account_type');
-            window.history.replaceState({}, document.title, url.pathname + url.search);
-        }
-
-        return accountTypeFromUrl;
-    }
-
-    // Second priority: localStorage
-    const storedAccountType = window.localStorage.getItem('account_type');
-    if (storedAccountType === 'real' || storedAccountType === 'demo') {
-        return storedAccountType;
-    }
-
-    // Third priority: derive from the resolved account_id. Since account_id === loginid,
-    // its prefix gives the type (virtual `VR*` → demo, otherwise real), mirroring
-    // getClientAccountType's `/^VR/` check. Deriving from getAccountId() — rather than
-    // reading the cookie independently here — guarantees the type matches whichever
-    // account_id the app actually uses, even when account_id comes from the URL/localStorage
-    // while the shared session cookie belongs to a different account.
-    const account_id = getAccountId();
-    if (account_id) {
-        const account_type = /^VR/.test(account_id) ? 'demo' : 'real';
-        window.localStorage.setItem('account_type', account_type);
-        return account_type;
-    }
-
-    // Default to public when no account_type parameter or invalid value
+/**
+ * Resolves the WebSocket server segment purely from the account_id prefix. There is no
+ * `account_type` URL param, localStorage value or fallback: `DOT…` → demo, `ROT…` → real,
+ * and anything else (missing or unrecognised id) → public. We never guess `real`.
+ * @returns 'demo', 'real', or 'public'
+ */
+export const getAccountServer = (account_id: string | null = getAccountId()): 'demo' | 'real' | 'public' => {
+    if (isDemoAccountId(account_id)) return 'demo';
+    if (isRealAccountId(account_id)) return 'real';
     return 'public';
 };
 
@@ -111,6 +86,15 @@ export const clearAccountId = (): void => {
     localStorage.removeItem('account_id');
 };
 
+/** Removes a stale `account_type` query param from the URL (deprecated; server follows the account_id prefix). */
+export const clearAccountTypeParam = (): void => {
+    const url = new URL(window.location.href);
+    if (url.searchParams.has('account_type')) {
+        url.searchParams.delete('account_type');
+        window.history.replaceState({}, document.title, url.pathname + url.search);
+    }
+};
+
 /**
  * Gets migrated status from localStorage (set during app init via migration-status API)
  * @returns true if user is a fully migrated user
@@ -126,16 +110,13 @@ export const getIsMigratedUser = (): boolean => {
 export const getCompleteWebSocketURL = (): string => {
     const server = getSocketURL();
     const account_id = getAccountId();
-    const account_type = getAccountType();
+    const server_type = getAccountServer(account_id); // 'demo' | 'real' | 'public'
 
-    // Only connect to demo/real if BOTH account_type and account_id are present
-    // Otherwise, connect to public endpoint
-    const shouldUseAuthenticatedEndpoint = account_id && (account_type === 'real' || account_type === 'demo');
+    // Authenticated endpoints (demo/real) carry the account_id; public never does.
+    const is_authenticated = server_type !== 'public';
 
-    let url = `wss://${server}/${shouldUseAuthenticatedEndpoint ? account_type : 'public'}`;
-
-    // Add account_id query param for authenticated endpoints (real/demo)
-    if (shouldUseAuthenticatedEndpoint) {
+    let url = `wss://${server}/${server_type}`;
+    if (is_authenticated) {
         url += `?account_id=${account_id}`;
     }
 

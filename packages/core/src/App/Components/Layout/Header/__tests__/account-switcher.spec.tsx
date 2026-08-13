@@ -38,6 +38,7 @@ jest.mock('@deriv/shared', () => ({
         return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }),
     getCurrencyDisplayCode: jest.fn((currency: string) => currency),
+    isDemoAccountId: jest.fn((id?: string | null) => !!id?.startsWith('DOT')),
 }));
 
 const mockClientStore = {
@@ -82,7 +83,7 @@ const mockUseDevice = useDevice as jest.MockedFunction<typeof useDevice>;
 
 const mockAccounts: TDerivativesAccount[] = [
     {
-        account_id: 'CR123',
+        account_id: 'ROT90070611',
         account_type: 'real',
         balance: '10000.00',
         currency: 'USD',
@@ -90,7 +91,7 @@ const mockAccounts: TDerivativesAccount[] = [
         group: 'real',
     },
     {
-        account_id: 'VRTC456',
+        account_id: 'DOT90096855',
         account_type: 'demo',
         balance: '5000.00',
         currency: 'USD',
@@ -98,7 +99,7 @@ const mockAccounts: TDerivativesAccount[] = [
         group: 'demo',
     },
     {
-        account_id: 'CR789',
+        account_id: 'ROT90070789',
         account_type: 'real',
         balance: '2500.50',
         currency: 'EUR',
@@ -133,7 +134,13 @@ describe('AccountSwitcher', () => {
 
         it('should render loading state with skeletons', () => {
             render(
-                <AccountSwitcher accounts={[]} current_loginid='CR123' is_loading={true} error={null} is_open={true} />
+                <AccountSwitcher
+                    accounts={[]}
+                    current_loginid='ROT90070611'
+                    is_loading={true}
+                    error={null}
+                    is_open={true}
+                />
             );
 
             const skeletons = screen.getAllByTestId('skeleton');
@@ -145,7 +152,7 @@ describe('AccountSwitcher', () => {
             render(
                 <AccountSwitcher
                     accounts={[]}
-                    current_loginid='CR123'
+                    current_loginid='ROT90070611'
                     is_loading={false}
                     error={new Error('Network error')}
                     is_open={true}
@@ -159,7 +166,13 @@ describe('AccountSwitcher', () => {
 
         it('should render error state when accounts array is empty', () => {
             render(
-                <AccountSwitcher accounts={[]} current_loginid='CR123' is_loading={false} error={null} is_open={true} />
+                <AccountSwitcher
+                    accounts={[]}
+                    current_loginid='ROT90070611'
+                    is_loading={false}
+                    error={null}
+                    is_open={true}
+                />
             );
 
             expect(screen.getByTestId('warning-icon')).toBeInTheDocument();
@@ -173,7 +186,7 @@ describe('AccountSwitcher', () => {
             render(
                 <AccountSwitcher
                     accounts={[]}
-                    current_loginid='CR123'
+                    current_loginid='ROT90070611'
                     is_loading={false}
                     error={new Error('Network error')}
                     is_open={true}
@@ -191,7 +204,7 @@ describe('AccountSwitcher', () => {
             render(
                 <AccountSwitcher
                     accounts={[]}
-                    current_loginid='CR123'
+                    current_loginid='ROT90070611'
                     is_loading={false}
                     error={new Error('Network error')}
                     is_open={true}
@@ -206,7 +219,7 @@ describe('AccountSwitcher', () => {
             render(
                 <AccountSwitcher
                     accounts={mockAccounts}
-                    current_loginid='CR123'
+                    current_loginid='ROT90070611'
                     is_loading={false}
                     error={null}
                     is_open={true}
@@ -224,14 +237,14 @@ describe('AccountSwitcher', () => {
             render(
                 <AccountSwitcher
                     accounts={mockAccounts}
-                    current_loginid='CR123'
+                    current_loginid='ROT90070611'
                     is_loading={false}
                     error={null}
                     is_open={true}
                 />
             );
 
-            const selectedButton = screen.getByTestId('dt_account_item_CR123');
+            const selectedButton = screen.getByTestId('dt_account_item_ROT90070611');
             expect(selectedButton).toHaveClass('acc-switcher__account--selected');
             expect(selectedButton).toBeDisabled();
         });
@@ -240,14 +253,14 @@ describe('AccountSwitcher', () => {
             render(
                 <AccountSwitcher
                     accounts={mockAccounts}
-                    current_loginid='CR123'
+                    current_loginid='ROT90070611'
                     is_loading={false}
                     error={null}
                     is_open={true}
                 />
             );
 
-            const nonSelectedButton = screen.getByTestId('dt_account_item_VRTC456');
+            const nonSelectedButton = screen.getByTestId('dt_account_item_DOT90096855');
             expect(nonSelectedButton).not.toHaveClass('acc-switcher__account--selected');
             expect(nonSelectedButton).toBeEnabled();
         });
@@ -258,7 +271,7 @@ describe('AccountSwitcher', () => {
             render(
                 <AccountSwitcher
                     accounts={mockAccounts}
-                    current_loginid='CR123'
+                    current_loginid='ROT90070611'
                     is_loading={false}
                     error={null}
                     is_open={true}
@@ -266,7 +279,7 @@ describe('AccountSwitcher', () => {
                 />
             );
 
-            const accountButton = screen.getByTestId('dt_account_item_VRTC456');
+            const accountButton = screen.getByTestId('dt_account_item_DOT90096855');
             fireEvent.click(accountButton);
 
             expect(onCloseMock).toHaveBeenCalledTimes(1);
@@ -278,7 +291,7 @@ describe('AccountSwitcher', () => {
             render(
                 <AccountSwitcher
                     accounts={mockAccounts}
-                    current_loginid='CR123'
+                    current_loginid='ROT90070611'
                     is_loading={false}
                     error={null}
                     is_open={true}
@@ -286,7 +299,7 @@ describe('AccountSwitcher', () => {
                 />
             );
 
-            const selectedButton = screen.getByTestId('dt_account_item_CR123');
+            const selectedButton = screen.getByTestId('dt_account_item_ROT90070611');
             fireEvent.click(selectedButton);
 
             // onClick should still be called, but we verify the button is disabled
@@ -297,7 +310,7 @@ describe('AccountSwitcher', () => {
             const { container } = render(
                 <AccountSwitcher
                     accounts={mockAccounts}
-                    current_loginid='CR123'
+                    current_loginid='ROT90070611'
                     is_loading={false}
                     error={null}
                     is_open={false}
@@ -311,7 +324,7 @@ describe('AccountSwitcher', () => {
             render(
                 <AccountSwitcher
                     accounts={mockAccounts}
-                    current_loginid='CR123'
+                    current_loginid='ROT90070611'
                     is_loading={false}
                     error={null}
                     is_open={true}
@@ -326,15 +339,18 @@ describe('AccountSwitcher', () => {
             render(
                 <AccountSwitcher
                     accounts={mockAccounts}
-                    current_loginid='CR123'
+                    current_loginid='ROT90070611'
                     is_loading={false}
                     error={null}
                     is_open={true}
                 />
             );
 
-            const realAccountButton = screen.getByTestId('dt_account_item_CR123');
-            expect(realAccountButton).toHaveAttribute('aria-label', 'Real account CR123 with balance 10,000.00 USD');
+            const realAccountButton = screen.getByTestId('dt_account_item_ROT90070611');
+            expect(realAccountButton).toHaveAttribute(
+                'aria-label',
+                'Real account ROT90070611 with balance 10,000.00 USD'
+            );
             expect(realAccountButton).toHaveAttribute('aria-current', 'true');
         });
     });
@@ -354,7 +370,7 @@ describe('AccountSwitcher', () => {
             render(
                 <AccountSwitcher
                     accounts={mockAccounts}
-                    current_loginid='CR123'
+                    current_loginid='ROT90070611'
                     is_loading={false}
                     error={null}
                     is_open={true}
@@ -368,7 +384,12 @@ describe('AccountSwitcher', () => {
 
         it('should not render ActionSheet when onClose is not provided', () => {
             const { container } = render(
-                <AccountSwitcher accounts={mockAccounts} current_loginid='CR123' is_loading={false} error={null} />
+                <AccountSwitcher
+                    accounts={mockAccounts}
+                    current_loginid='ROT90070611'
+                    is_loading={false}
+                    error={null}
+                />
             );
 
             expect(container).toBeEmptyDOMElement();
@@ -378,7 +399,7 @@ describe('AccountSwitcher', () => {
             render(
                 <AccountSwitcher
                     accounts={mockAccounts}
-                    current_loginid='CR123'
+                    current_loginid='ROT90070611'
                     is_loading={false}
                     error={null}
                     is_open={true}
@@ -394,7 +415,7 @@ describe('AccountSwitcher', () => {
             const { container } = render(
                 <AccountSwitcher
                     accounts={mockAccounts}
-                    current_loginid='CR123'
+                    current_loginid='ROT90070611'
                     is_loading={false}
                     error={null}
                     is_open={false}
@@ -421,7 +442,7 @@ describe('AccountSwitcher', () => {
             mockClientStore.balance = '0.00';
             const accountsWithZeroBalance: TDerivativesAccount[] = [
                 {
-                    account_id: 'CR000',
+                    account_id: 'ROT00000000',
                     account_type: 'real',
                     balance: '0.00',
                     currency: 'USD',
@@ -433,7 +454,7 @@ describe('AccountSwitcher', () => {
             render(
                 <AccountSwitcher
                     accounts={accountsWithZeroBalance}
-                    current_loginid='CR000'
+                    current_loginid='ROT00000000'
                     is_loading={false}
                     error={null}
                     is_open={true}
@@ -447,7 +468,7 @@ describe('AccountSwitcher', () => {
             mockClientStore.balance = '999999999.99';
             const accountsWithLargeBalance: TDerivativesAccount[] = [
                 {
-                    account_id: 'CR999',
+                    account_id: 'ROT99999999',
                     account_type: 'real',
                     balance: '999999999.99',
                     currency: 'USD',
@@ -459,7 +480,7 @@ describe('AccountSwitcher', () => {
             render(
                 <AccountSwitcher
                     accounts={accountsWithLargeBalance}
-                    current_loginid='CR999'
+                    current_loginid='ROT99999999'
                     is_loading={false}
                     error={null}
                     is_open={true}

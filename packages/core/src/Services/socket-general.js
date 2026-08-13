@@ -21,7 +21,6 @@ const BinarySocketGeneral = (() => {
     const onConnectionError = () => {
         localStorage.removeItem('active_loginid');
         localStorage.removeItem('account_id');
-        localStorage.removeItem('account_type');
 
         common_store.setError(true, {
             message: localize('Connection failed. Please refresh this page to continue.'),

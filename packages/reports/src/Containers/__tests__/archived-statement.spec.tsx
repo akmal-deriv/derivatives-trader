@@ -49,7 +49,7 @@ const mockStatementData = {
         {
             transaction_id: 123456712004,
             account_id: 1,
-            loginid: 'CR12345678',
+            loginid: 'ROT12345678',
             action_type: 'sell',
             amount: '-10.00',
             balance_after: '990.00',
@@ -68,7 +68,7 @@ const mockStatementData = {
 
 const mockAccountsData = {
     loginids: {
-        CR12345678: [{ account_id: 1, currency: 'USD' }],
+        ROT12345678: [{ account_id: 1, currency: 'USD' }],
     },
 };
 
@@ -155,7 +155,9 @@ describe('ArchivedStatement', () => {
         mockFetchArchivedStatement.mockResolvedValue({ transactions: [], count: 0 });
         await renderArchivedStatement();
         await waitFor(() => {
-            expect(mockFetchArchivedStatement).toHaveBeenCalledWith(expect.objectContaining({ loginid: 'CR12345678' }));
+            expect(mockFetchArchivedStatement).toHaveBeenCalledWith(
+                expect.objectContaining({ loginid: 'ROT12345678' })
+            );
         });
     });
 });

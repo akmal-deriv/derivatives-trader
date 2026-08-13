@@ -4,7 +4,7 @@ import { observer } from 'mobx-react-lite';
 
 import { useDerivativesAccount, useMobileBridge } from '@deriv/api';
 import { Button, Skeleton, Text } from '@deriv/components';
-import { getBrandUrl, trackAnalyticsEvent } from '@deriv/shared';
+import { getBrandUrl, isDemoAccountId, trackAnalyticsEvent } from '@deriv/shared';
 import { useStore } from '@deriv/stores';
 import { useTranslations } from '@deriv-com/translations';
 
@@ -42,7 +42,7 @@ const AccountActionsComponent = observer(() => {
     }, [isLoading, accounts, error, setIsSwitchingAccount]);
 
     // Determine account types available
-    const hasOnlyDemoAccounts = accounts.length > 0 && accounts.every(acc => acc.account_type === 'demo');
+    const hasOnlyDemoAccounts = accounts.length > 0 && accounts.every(acc => isDemoAccountId(acc.account_id));
 
     // Button logic:
     // - If only demo accounts exist -> show "Try real"

@@ -4,7 +4,7 @@ import classNames from 'classnames';
 import type { TDerivativesAccount } from '@deriv/api';
 import { Skeleton, Text } from '@deriv/components';
 import { StandaloneArrowsRotateRegularIcon, StandaloneCircleExclamationRegularIcon } from '@deriv/quill-icons';
-import { addComma, getCurrencyDisplayCode } from '@deriv/shared';
+import { addComma, getCurrencyDisplayCode, isDemoAccountId } from '@deriv/shared';
 import { observer, useStore } from '@deriv/stores';
 import { ActionSheet, Button } from '@deriv-com/quill-ui';
 import { Localize } from '@deriv-com/translations';
@@ -47,7 +47,7 @@ const AccountSwitcher = observer(
 
                 // Note: switchAccount is fire-and-forget - it updates localStorage and reconnects WebSocket
                 // The parent component's loading state will be reset when new data arrives via useDerivativesAccount
-                client.switchAccount(account.account_id, account.account_type);
+                client.switchAccount(account.account_id);
             }
 
             // Close dropdown/sheet after switching
@@ -106,30 +106,28 @@ const AccountSwitcher = observer(
                 <div className='acc-switcher__wrapper'>
                     <div className='acc-switcher__accounts'>
                         {[...accounts]
-                            .sort((a, b) => {
-                                // Sort real accounts first, then demo accounts
-                                if (a.account_type === 'real' && b.account_type === 'demo') return -1;
-                                if (a.account_type === 'demo' && b.account_type === 'real') return 1;
-                                return 0;
-                            })
+                            // Sort real accounts first, then demo
+                            .sort(
+                                (a, b) => Number(isDemoAccountId(a.account_id)) - Number(isDemoAccountId(b.account_id))
+                            )
                             .map(account => {
                                 const is_selected = account.account_id === current_loginid;
                                 const is_disabled = account.status === 'trading_disabled';
+                                const is_demo = isDemoAccountId(account.account_id);
                                 const balance = is_selected ? client.balance : account.balance;
                                 const formatted_balance = addComma(balance, 2);
                                 const currency_display = getCurrencyDisplayCode(account.currency);
-                                const account_type_label =
-                                    account.account_type === 'real' ? (
-                                        <Localize i18n_default_text='Real account' />
-                                    ) : (
-                                        <Localize i18n_default_text='Demo account' />
-                                    );
-                                let account_type_color: 'disabled' | 'tertiary' | 'secondary-alternate' =
+                                const account_label = is_demo ? (
+                                    <Localize i18n_default_text='Demo account' />
+                                ) : (
+                                    <Localize i18n_default_text='Real account' />
+                                );
+                                let account_color: 'disabled' | 'tertiary' | 'secondary-alternate' =
                                     'secondary-alternate';
                                 if (is_disabled) {
-                                    account_type_color = 'disabled';
-                                } else if (account.account_type === 'demo') {
-                                    account_type_color = 'tertiary';
+                                    account_color = 'disabled';
+                                } else if (is_demo) {
+                                    account_color = 'tertiary';
                                 }
 
                                 return (
@@ -141,7 +139,7 @@ const AccountSwitcher = observer(
                                         })}
                                         onClick={() => handleAccountClick(account)}
                                         disabled={is_selected || is_disabled}
-                                        aria-label={`${account.account_type === 'real' ? 'Real' : 'Demo'} account ${
+                                        aria-label={`${is_demo ? 'Demo' : 'Real'} account ${
                                             account.account_id
                                         } with balance ${formatted_balance} ${currency_display}${is_disabled ? ' - Trading disabled' : ''}`}
                                         aria-current={is_selected ? 'true' : undefined}
@@ -149,8 +147,8 @@ const AccountSwitcher = observer(
                                         type='button'
                                     >
                                         <div className='acc-switcher__account-details'>
-                                            <Text size='xs' color={account_type_color}>
-                                                {account_type_label}
+                                            <Text size='xs' color={account_color}>
+                                                {account_label}
                                             </Text>
                                             <Text size='s' color={is_disabled ? 'disabled' : 'primary'} weight='bold'>
                                                 {formatted_balance} {currency_display}

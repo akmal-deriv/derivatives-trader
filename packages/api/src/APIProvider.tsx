@@ -2,7 +2,7 @@ import React, { createContext, PropsWithChildren, useCallback, useContext, useEf
 
 // @ts-expect-error `@deriv/deriv-api` is not in TypeScript, Hence we ignore the TS error.
 import DerivAPIBasic from '@deriv/deriv-api/dist/DerivAPIBasic';
-import { getAccountType, getApiCoreBaseUrl, getBrandName, getSocketURL, useWS } from '@deriv/shared';
+import { getAccountServer, getApiCoreBaseUrl, getBrandName, getSocketURL, useWS } from '@deriv/shared';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 import {
@@ -73,7 +73,7 @@ const getSharedQueryClientContext = (): QueryClient => {
 };
 
 /**
- * Retrieves the WebSocket URL based on the account_type URL parameter.
+ * Builds the standalone WebSocket URL from the resolved socket endpoint and brand.
  * @returns {string} The WebSocket URL.
  */
 const getWebSocketURL = () => {
@@ -143,15 +143,15 @@ const initializeDerivAPI = (onWSClose: () => void): DerivAPIBasic => {
 const queryClient = getSharedQueryClientContext();
 
 /**
- * Determines the WS environment based on the account_type URL parameter and custom server URL.
- * @returns {string} Returns the WS environment: 'custom', 'real', or 'demo'.
+ * Determines the WS environment based on the account_id prefix and custom server URL.
+ * @returns {string} Returns the WS environment: 'custom', 'real', 'demo', or 'public'.
  */
 const getEnvironment = () => {
     const customServerURL = window.localStorage.getItem('config.server_url');
     if (customServerURL) return 'custom';
 
-    // Use the new shared account type function
-    return getAccountType();
+    // Server is derived purely from the account_id prefix (DOT → demo, ROT → real).
+    return getAccountServer();
 };
 
 type TAPIProviderProps = {

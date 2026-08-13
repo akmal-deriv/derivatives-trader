@@ -53,7 +53,7 @@ describe('useContractsFor', () => {
             client: {
                 ...mockStore({}).client,
                 landing_company_shortcode: 'maltainvest',
-                loginid: 'CR1234',
+                loginid: 'ROT1234',
             },
             modules: {
                 trade: {

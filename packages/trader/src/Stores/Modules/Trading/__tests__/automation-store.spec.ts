@@ -25,7 +25,7 @@ describe('AutomationStore run-status transitions', () => {
     let store: AutomationStore;
 
     beforeEach(() => {
-        const root = mockStore({ client: { loginid: 'CR1' } }) as unknown as TRootStore;
+        const root = mockStore({ client: { loginid: 'ROT1' } }) as unknown as TRootStore;
         store = new AutomationStore({ root_store: root });
     });
 
@@ -92,7 +92,7 @@ describe('AutomationStore run-status transitions', () => {
 
         it('restores contracts from the per-account cache (account switch)', () => {
             (store as unknown as { run_by_loginid: Map<string, TAutoRun> }).run_by_loginid.set(
-                'CR1',
+                'ROT1',
                 makeRun({ contracts: CONTRACTS })
             );
             store.adoptRun(makeRun({ contracts: [] }));
@@ -101,7 +101,7 @@ describe('AutomationStore run-status transitions', () => {
 
         it('does not carry stale contracts across to a different run', () => {
             (store as unknown as { run_by_loginid: Map<string, TAutoRun> }).run_by_loginid.set(
-                'CR1',
+                'ROT1',
                 makeRun({ run_id: 'run-old', contracts: CONTRACTS })
             );
             store.adoptRun(makeRun({ run_id: 'run-new', contracts: [] }));

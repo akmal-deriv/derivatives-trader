@@ -1,14 +1,14 @@
 import { ChartBarrierStore } from '@deriv/shared';
+
 import ClientStore from './client-store';
 import CommonStore from './common-store';
+import ContractReplayStore from './contract-replay-store';
+import ContractTradeStore from './contract-trade-store';
 import GTMStore from './gtm-store';
 import ModulesStore from './Modules';
 import NotificationStore from './notification-store';
-import UIStore from './ui-store';
 import PortfolioStore from './portfolio-store';
-import ContractReplayStore from './contract-replay-store';
-import ContractTradeStore from './contract-trade-store';
-import TradersHubStore from './traders-hub-store';
+import UIStore from './ui-store';
 
 export default class RootStore {
     constructor() {
@@ -22,6 +22,5 @@ export default class RootStore {
         this.contract_replay = new ContractReplayStore(this);
         this.contract_trade = new ContractTradeStore(this);
         this.chart_barrier_store = new ChartBarrierStore(this);
-        this.traders_hub = new TradersHubStore(this);
     }
 }

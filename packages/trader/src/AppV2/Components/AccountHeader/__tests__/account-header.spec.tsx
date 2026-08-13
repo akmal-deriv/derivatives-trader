@@ -26,8 +26,8 @@ jest.mock('@deriv/shared', () => ({
 const mockUseDerivativesAccount = jest.fn(() => ({
     data: {
         data: [
-            { account_id: 'CR123', account_type: 'real', balance: '10000.00', currency: 'USD' },
-            { account_id: 'VRTC456', account_type: 'demo', balance: '5000.00', currency: 'USD' },
+            { account_id: 'ROT90070611', account_type: 'real', balance: '10000.00', currency: 'USD' },
+            { account_id: 'DOT90096855', account_type: 'demo', balance: '5000.00', currency: 'USD' },
         ],
     },
     isLoading: false,
@@ -122,8 +122,8 @@ describe('AccountHeader', () => {
         mockUseDerivativesAccount.mockReturnValue({
             data: {
                 data: [
-                    { account_id: 'CR123', account_type: 'real', balance: '10000.00', currency: 'USD' },
-                    { account_id: 'VRTC456', account_type: 'demo', balance: '5000.00', currency: 'USD' },
+                    { account_id: 'ROT90070611', account_type: 'real', balance: '10000.00', currency: 'USD' },
+                    { account_id: 'DOT90096855', account_type: 'demo', balance: '5000.00', currency: 'USD' },
                 ],
             },
             isLoading: false,
@@ -209,7 +209,7 @@ describe('AccountHeader', () => {
             // Mock useDerivativesAccount to return only demo accounts
             mockUseDerivativesAccount.mockReturnValue({
                 data: {
-                    data: [{ account_id: 'VRTC456', account_type: 'demo', balance: '5000.00', currency: 'USD' }],
+                    data: [{ account_id: 'DOT90096855', account_type: 'demo', balance: '5000.00', currency: 'USD' }],
                 },
                 isLoading: false,
                 error: null,
@@ -506,7 +506,7 @@ describe('AccountHeader', () => {
             // Mock useDerivativesAccount to return only demo accounts
             mockUseDerivativesAccount.mockReturnValue({
                 data: {
-                    data: [{ account_id: 'VRTC456', account_type: 'demo', balance: '5000.00', currency: 'USD' }],
+                    data: [{ account_id: 'DOT90096855', account_type: 'demo', balance: '5000.00', currency: 'USD' }],
                 },
                 isLoading: false,
                 error: null,
@@ -586,7 +586,9 @@ describe('AccountHeader', () => {
                 // Mock useDerivativesAccount to return only demo accounts
                 mockUseDerivativesAccount.mockReturnValue({
                     data: {
-                        data: [{ account_id: 'VRTC456', account_type: 'demo', balance: '5000.00', currency: 'USD' }],
+                        data: [
+                            { account_id: 'DOT90096855', account_type: 'demo', balance: '5000.00', currency: 'USD' },
+                        ],
                     },
                     isLoading: false,
                     error: null,
@@ -646,7 +648,9 @@ describe('AccountHeader', () => {
                 // Mock useDerivativesAccount to return only demo accounts
                 mockUseDerivativesAccount.mockReturnValue({
                     data: {
-                        data: [{ account_id: 'VRTC456', account_type: 'demo', balance: '5000.00', currency: 'USD' }],
+                        data: [
+                            { account_id: 'DOT90096855', account_type: 'demo', balance: '5000.00', currency: 'USD' },
+                        ],
                     },
                     isLoading: false,
                     error: null,
@@ -690,7 +694,9 @@ describe('AccountHeader', () => {
                 // Mock useDerivativesAccount to return only demo accounts
                 mockUseDerivativesAccount.mockReturnValue({
                     data: {
-                        data: [{ account_id: 'VRTC456', account_type: 'demo', balance: '5000.00', currency: 'USD' }],
+                        data: [
+                            { account_id: 'DOT90096855', account_type: 'demo', balance: '5000.00', currency: 'USD' },
+                        ],
                     },
                     isLoading: false,
                     error: null,
@@ -722,7 +728,9 @@ describe('AccountHeader', () => {
                 // Mock useDerivativesAccount to return only demo accounts
                 mockUseDerivativesAccount.mockReturnValue({
                     data: {
-                        data: [{ account_id: 'VRTC456', account_type: 'demo', balance: '5000.00', currency: 'USD' }],
+                        data: [
+                            { account_id: 'DOT90096855', account_type: 'demo', balance: '5000.00', currency: 'USD' },
+                        ],
                     },
                     isLoading: false,
                     error: null,
@@ -784,7 +792,9 @@ describe('AccountHeader', () => {
                 // Mock useDerivativesAccount to return only demo accounts
                 mockUseDerivativesAccount.mockReturnValue({
                     data: {
-                        data: [{ account_id: 'VRTC456', account_type: 'demo', balance: '5000.00', currency: 'USD' }],
+                        data: [
+                            { account_id: 'DOT90096855', account_type: 'demo', balance: '5000.00', currency: 'USD' },
+                        ],
                     },
                     isLoading: false,
                     error: null,
@@ -856,8 +866,8 @@ describe('AccountHeader', () => {
                 mockUseDerivativesAccount.mockReturnValue({
                     data: {
                         data: [
-                            { account_id: 'CR123', account_type: 'real', balance: '10000.00', currency: 'USD' },
-                            { account_id: 'VRTC456', account_type: 'demo', balance: '5000.00', currency: 'USD' },
+                            { account_id: 'ROT90070611', account_type: 'real', balance: '10000.00', currency: 'USD' },
+                            { account_id: 'DOT90096855', account_type: 'demo', balance: '5000.00', currency: 'USD' },
                         ],
                     },
                     isLoading: false,
