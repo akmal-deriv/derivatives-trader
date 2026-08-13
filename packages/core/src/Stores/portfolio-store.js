@@ -76,7 +76,7 @@ export default class PortfolioStore extends BaseStore {
             barriers: observable,
             main_barrier: observable,
             contract_type: observable,
-            active_positions: observable.struct,
+            active_positions: observable.shallow,
             initializePortfolio: action.bound,
             clearTable: action.bound,
             portfolioHandler: action.bound,

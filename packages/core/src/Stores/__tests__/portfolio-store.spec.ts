@@ -1,5 +1,6 @@
+import { autorun, configure } from 'mobx';
+
 import PortfolioStore from '../portfolio-store';
-import { configure } from 'mobx';
 
 configure({ safeDescriptors: false });
 
@@ -123,5 +124,44 @@ describe('PortfolioStore', () => {
         expect(position.entry_spot).toBe('975.40');
         expect(typeof position.barrier).toBe('number');
         expect(position.barrier).toBe(980);
+    });
+
+    it('active_positions notifies observers when a position profit is updated in place', () => {
+        // Regression: `active_positions` was annotated `observable.struct`. Because
+        // proposalOpenContractHandler mutates position objects in place, the re-filtered
+        // array held identical references, deepEqual reported no change, and consumers
+        // (e.g. the positions drawer Total P/L) stayed frozen until a position was
+        // added or removed.
+        const totalProfit = () =>
+            mockedPortfolioStore.active_positions.reduce(
+                (total, position) => total + (Number(position.profit_loss) || 0),
+                0
+            );
+
+        const observed: number[] = [];
+        const dispose = autorun(() => observed.push(totalProfit()));
+
+        expect(observed).toEqual([0]);
+
+        const emitProfit = (contract_id: number, profit: string) => {
+            mockedPortfolioStore.proposalOpenContractHandler({
+                proposal_open_contract: {
+                    contract_id,
+                    contract_type: 'MULTUP',
+                    shortcode: contracts[0].shortcode,
+                    bid_price: '10.00',
+                    profit,
+                },
+            });
+            mockedPortfolioStore.updatePositions();
+        };
+
+        emitProfit(contracts[0].contract_id, '5.00');
+        emitProfit(contracts[1].contract_id, '2.50');
+
+        dispose();
+
+        expect(totalProfit()).toBe(7.5);
+        expect(observed).toEqual([0, 5, 7.5]);
     });
 });

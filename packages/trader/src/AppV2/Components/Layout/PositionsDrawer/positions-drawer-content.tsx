@@ -43,7 +43,7 @@ export const PositionsDrawerContent = observer(() => {
 export const PositionsDrawerFooter = observer(() => {
     const { client, portfolio, ui } = useStore();
     const { currency } = client;
-    const { all_positions, active_positions } = portfolio;
+    const { active_positions } = portfolio;
     const { is_switching_account } = ui;
 
     const getTotalProfit = (positions: TPortfolioPosition[]) =>
@@ -52,7 +52,7 @@ export const PositionsDrawerFooter = observer(() => {
             return total + profitValue;
         }, 0);
 
-    if (all_positions.length === 0 || is_switching_account) return null;
+    if (active_positions.length === 0 || is_switching_account) return null;
 
     return (
         <div className='positions-drawer-footer--summary'>
@@ -64,9 +64,9 @@ export const PositionsDrawerFooter = observer(() => {
                 <Text size='xs' weight='bold'>
                     <Localize i18n_default_text='Total P/L:' />
                 </Text>
-                <Text size='xs' weight='bold' color={getTotalProfit(all_positions) > 0 ? 'success' : 'danger'}>
+                <Text size='xs' weight='bold' color={getTotalProfit(active_positions) > 0 ? 'success' : 'danger'}>
                     <React.Fragment>
-                        <Money amount={getTotalProfit(all_positions)} currency={currency} has_sign /> {currency}
+                        <Money amount={getTotalProfit(active_positions)} currency={currency} has_sign /> {currency}
                     </React.Fragment>
                 </Text>
             </div>
