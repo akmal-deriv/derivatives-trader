@@ -243,7 +243,10 @@ export class MarketSelectionPage extends TradeBasePage {
                   .locator('.market-selection-row', { hasText: market })
                   .locator('.market-selection-row__action--info')
                   .first()
-            : this.page.locator('button, [role="button"]', { hasText: market }).getByRole('button', { name: 'Info' });
+            : this.page
+                  .locator('button, [role="button"]', { hasText: market })
+                  .getByRole('button', { name: 'Info' })
+                  .first();
     }
 
     /**
@@ -263,7 +266,8 @@ export class MarketSelectionPage extends TradeBasePage {
                   .first()
             : this.page
                   .locator('button, [role="button"]', { hasText: market })
-                  .getByRole('button', { name: /^(Favourite|Unfavourite)$/ });
+                  .getByRole('button', { name: /^(Favourite|Unfavourite)$/ })
+                  .first();
     }
 
     /**

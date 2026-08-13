@@ -224,43 +224,26 @@ export class PositionsPage extends TradeBasePage {
     // ============================================
 
     /**
-     * Close the first open contract.
-     *
-     * - Desktop: clicks the inline "Close" button on the contract card, retrying on PriceMoved
-     *   (transient sell rejection where the API rejects and re-enables the button).
-     * - Mobile: there is no inline close button — callers must open the contract details
-     *   and call `contractDetailsPage.closeContractDetails()` from there. This method is a
-     *   no-op on mobile; use `openFirstContract()` + `ContractDetailsPage.closeContractDetails()`.
+     * Close the first open contract and verify the Open tab reaches the empty state.
+     * Desktop clicks the inline Close button; mobile force-clicks the hidden close button.
      */
     async closeFirstContract(): Promise<void> {
         if (this.isMobile) {
-            // The Close button is always in the DOM (hidden via CSS until swipe reveals it).
-            // Use force:true to click it directly without needing the swipe gesture.
-            // Give it a generous wait: the card can take a while to render under staging load.
             await expect(this.mobileContractCardCloseButton, 'Mobile close button should be attached').toBeAttached({
                 timeout: 60_000,
             });
             await this.mobileContractCardCloseButton.click({ force: true });
             await this.pollUntilContractClosed(this.mobileContractCardCloseButton);
         } else {
-            // The inline Close (Sell) button depends on the sell-proposal stream, so under load it can
-            // take longer than the default 45s to render/enable — wait patiently before the poll retries.
-            await expect(
-                this.contractCardCloseButton,
-                'Close button should be visible on the contract card'
-            ).toBeVisible({ timeout: 60_000 });
-            await expect(this.contractCardCloseButton, 'Close button should be enabled before closing').toBeEnabled({
+            // The close button can be slow to enable under staging load; pollUntilContractClosed retries the click.
+            await expect(this.contractCardCloseButton, 'Close button should be visible').toBeVisible({
                 timeout: 60_000,
             });
-            // Swallow the click error: the card re-renders on every tick, so the button can detach
-            // mid-click ("element not stable / detached"). pollUntilContractClosed retries the click
-            // on each interval, so a failed first click here just falls through to that retry loop.
             await this.contractCardCloseButton.click().catch(() => {});
             await this.pollUntilContractClosed(this.contractCardCloseButton);
-            await expect(
-                this.footerPositionCount,
-                'Footer position count should show "0 open positions" after closing all positions'
-            ).toHaveText('0 open positions');
+            // The footer is hidden at 0 positions — assert the empty state instead.
+            await expect(this.noOpenPositionsText, 'Open tab should show the empty state').toBeVisible();
+            await expect(this.footerTotalPL, 'Footer should be hidden at 0 positions').toBeHidden();
         }
     }
 

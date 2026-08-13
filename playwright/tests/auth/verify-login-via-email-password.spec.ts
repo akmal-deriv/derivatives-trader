@@ -5,6 +5,7 @@
  * @coverage playwright/flows/auth/coverage.md
  */
 import { test } from '../../fixtures/fixtures';
+import { TradeBasePage } from '../../pages/TradeBasePage';
 
 test.describe('Login - Email and Password', { tag: ['@auth', '@smoke', '@desktop', '@mobile', '@production'] }, () => {
     test.beforeAll(async () => {
@@ -14,10 +15,14 @@ test.describe('Login - Email and Password', { tag: ['@auth', '@smoke', '@desktop
     });
 
     test('VERIFY email and password login redirects back to DTrader successfully', async ({
+        page,
         loginPage,
         passwordPage,
         tradeBasePage,
     }) => {
+        // Suppress onboarding guides that can intercept clicks during login.
+        await TradeBasePage.seedLocalStorageOnOrigin(page);
+
         // Step 1: Navigate to app and click Login button
         await tradeBasePage.gotoTradePage();
         await tradeBasePage.loginButton.click();
