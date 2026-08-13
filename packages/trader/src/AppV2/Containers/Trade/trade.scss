@@ -218,27 +218,6 @@
     }
 }
 
-// Pre-automation layout for when automation is unavailable (EU/DIEL). The
-// `automation-enabled` class is toggled by `useIsAutomationEnabled` once the
-// account status is known; the base rules above are the automation-on state.
-body:not(.automation-enabled) {
-    .trade {
-        background-color: transparent;
-    }
-
-    .trade__header {
-        background-color: var(--semantic-color-slate-solid-surface-frame-low);
-        border-bottom: 1px solid var(--semantic-color-monochrome-border-normal-mid);
-    }
-
-    .trade__grid {
-        grid-template-columns: 1fr minmax(0, 28rem);
-        grid-template-rows: unset;
-        gap: unset;
-        padding: unset;
-    }
-}
-
 .quill-action-sheet--portal--wrapper:has(.trade-types-dialog--is_editing) {
     overflow-y: hidden;
 }

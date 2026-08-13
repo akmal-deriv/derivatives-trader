@@ -1,5 +1,3 @@
-import { useEffect } from 'react';
-
 import useIsEuAccount from './useIsEuAccount';
 
 type TUseIsAutomationEnabled = {
@@ -9,19 +7,11 @@ type TUseIsAutomationEnabled = {
     is_ready: boolean;
 };
 
-/**
- * Automation availability. Wraps `useIsEuAccount` and toggles the
- * `automation-enabled` root class (for SCSS) once the status is known.
- */
+/** Automation availability. Thin wrapper over `useIsEuAccount`. */
 const useIsAutomationEnabled = (): TUseIsAutomationEnabled => {
     const { is_eu, is_ready } = useIsEuAccount();
-    const is_enabled = is_ready && !is_eu;
 
-    useEffect(() => {
-        if (is_ready) document.body.classList.toggle('automation-enabled', is_enabled);
-    }, [is_enabled, is_ready]);
-
-    return { is_enabled, is_ready };
+    return { is_enabled: is_ready && !is_eu, is_ready };
 };
 
 export default useIsAutomationEnabled;

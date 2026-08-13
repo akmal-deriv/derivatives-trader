@@ -45,6 +45,12 @@ jest.mock('AppV2/Utils/positions-utils', () => ({
 
 // The URL trade-type resolver runs on mount; stub its symbol fetch so it stays a no-op here (no URL
 // params in jsdom → nothing to resolve).
+// Called by MarketTabs purely to warm the trade-type availability lookup.
+jest.mock('AppV2/Hooks/useAvailableContracts', () => ({
+    __esModule: true,
+    default: jest.fn(() => []),
+}));
+
 jest.mock('AppV2/Hooks/useTradeTypeSymbols', () => ({
     __esModule: true,
     default: () => ({ symbols: [], underlying_symbols: [], isSymbolAvailable: () => false, isLoading: false }),

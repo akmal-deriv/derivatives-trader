@@ -19,6 +19,7 @@ import { localize } from '@deriv-com/translations';
 import { useDevice } from '@deriv-com/ui';
 
 import useAutomationLockedSnackbar from 'AppV2/Hooks/useAutomationLockedSnackbar';
+import useAvailableContracts from 'AppV2/Hooks/useAvailableContracts';
 import { getMaxOpenMarkets, TOpenMarket } from 'AppV2/Utils/open-markets-utils';
 import { filterPositionsBySymbolAndTradeType, getTotalPositionsProfit } from 'AppV2/Utils/positions-utils';
 import { isSameTradeTypeCategory } from 'AppV2/Utils/trade-types-utils';
@@ -49,6 +50,7 @@ const MarketTabs = observer(({ supported_trade_types, onSelectorOpenChange }: TM
     const { isMobile } = useDevice();
     // Device-dependent tab cap: 4 on mobile, 7 on web.
     const max_open_markets = getMaxOpenMarkets(isMobile);
+    useAvailableContracts();
     const {
         active_symbols,
         symbol,

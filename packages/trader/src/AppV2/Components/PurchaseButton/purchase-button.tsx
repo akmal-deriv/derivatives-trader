@@ -24,7 +24,7 @@ import { useDevice } from '@deriv-com/ui';
 import RiskDisclosureModal from 'AppV2/Components/RiskDisclosureModal';
 import useContractsFor from 'AppV2/Hooks/useContractsFor';
 import { useRiskDisclosure } from 'AppV2/Hooks/useRiskDisclosure';
-import { checkIsServiceModalError, SERVICE_ERROR } from 'AppV2/Utils/layout-utils';
+import { SERVICE_ERROR } from 'AppV2/Utils/layout-utils';
 import { getTradeTypeTabsList } from 'AppV2/Utils/trade-params-utils';
 import { getDisplayedContractTypes } from 'AppV2/Utils/trade-types-utils';
 import { useTraderStore } from 'Stores/useTraderStores';
@@ -40,7 +40,6 @@ type TPurchaseButtonProps = {
 };
 
 const PurchaseButton = observer(({ onPurchaseSuccess }: TPurchaseButtonProps = {}) => {
-    const [is_purchasing, setIsPurchasing] = React.useState(false);
     const purchaseButtonRef = React.useRef(null);
     const { localize } = useTranslations();
     const { isMobile } = useDevice();
@@ -70,14 +69,13 @@ const PurchaseButton = observer(({ onPurchaseSuccess }: TPurchaseButtonProps = {
         is_accumulator,
         is_chart_loading,
         is_multiplier,
-        is_purchase_enabled,
+        is_purchase_pending,
         is_trade_enabled_v2,
         is_turbos,
         is_vanilla_fx,
         is_vanilla,
         maximum_payout,
         proposal_info,
-        purchase_info,
         onHoverPurchase,
         onPurchaseV2,
         onChange,
@@ -147,7 +145,6 @@ const PurchaseButton = observer(({ onPurchaseSuccess }: TPurchaseButtonProps = {
     const current_stake =
         (is_valid_to_sell && active_accu_contract && getIndicativePrice(active_accu_contract.contract_info)) || null;
     const cardLabels = getCardLabelsV2();
-    const is_modal_error = checkIsServiceModalError({ services_error });
     const is_accu_sell_disabled = !is_valid_to_sell || active_accu_contract?.is_sell_requested;
 
     React.useEffect(
@@ -194,10 +191,6 @@ const PurchaseButton = observer(({ onPurchaseSuccess }: TPurchaseButtonProps = {
             ...params,
         });
     };
-
-    React.useEffect(() => {
-        if (is_purchase_enabled) setIsPurchasing(false);
-    }, [is_purchase_enabled]);
 
     React.useEffect(() => {
         const is_rise_fall = /^rise_fall/.test(contract_type.toLowerCase());
@@ -325,14 +318,17 @@ const PurchaseButton = observer(({ onPurchaseSuccess }: TPurchaseButtonProps = {
                         const info = proposal_info?.[trade_type] || {};
                         const is_insufficient_balance =
                             (info.has_error && info.error_code === SERVICE_ERROR.INSUFFICIENT_BALANCE) ||
-                            (purchase_info as Record<string, any>)?.error?.code === SERVICE_ERROR.INSUFFICIENT_BALANCE;
+                            services_error?.code === SERVICE_ERROR.INSUFFICIENT_BALANCE;
                         const is_disabled =
                             !is_trade_enabled_v2 ||
                             (info.has_error && !is_insufficient_balance) ||
-                            (!!purchase_info.error && !is_modal_error && !is_insufficient_balance) ||
                             is_switching_account;
-                        const is_button_disabled = is_disabled && !is_purchasing && !is_accu_settling;
-                        const is_button_loading = is_purchasing || is_accu_settling;
+                        // Driven straight off the store flag, which the store sets for the whole
+                        // attempt and clears on every exit. Mirroring it into local state and
+                        // resetting on an is_purchase_enabled transition left the spinner stuck
+                        // whenever an attempt ended without that observable changing.
+                        const is_button_disabled = is_disabled && !is_purchase_pending && !is_accu_settling;
+                        const is_button_loading = is_purchase_pending || is_accu_settling;
 
                         return (
                             <Button
@@ -373,18 +369,17 @@ const PurchaseButton = observer(({ onPurchaseSuccess }: TPurchaseButtonProps = {
                                     }
                                     if (is_insufficient_balance) {
                                         const error =
-                                            (purchase_info as Record<string, any>)?.error ||
                                             (info.has_error && {
                                                 code: SERVICE_ERROR.INSUFFICIENT_BALANCE,
                                                 message: info.message,
                                                 type: 'buy',
-                                            });
+                                            }) ||
+                                            services_error;
                                         if (error) {
                                             setServicesError(error, true);
                                             return;
                                         }
                                     }
-                                    setIsPurchasing(true);
                                     onPurchaseV2(trade_type, isMobile, (params, contract_id) => {
                                         addNotificationBannerCallback(params, contract_id, trade_type);
                                         onPurchaseSuccess?.();

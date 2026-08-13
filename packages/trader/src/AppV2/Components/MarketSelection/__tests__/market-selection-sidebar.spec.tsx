@@ -5,6 +5,12 @@ import { CONTRACT_LIST } from 'AppV2/Utils/trade-types-utils';
 
 import MarketSelectionSidebar from '../market-selection-sidebar';
 
+// The sidebar's trade-type list now comes from this hook, which fetches availability.
+jest.mock('AppV2/Hooks/useAvailableContracts', () => ({
+    __esModule: true,
+    default: () => jest.requireActual('AppV2/Utils/trade-types-utils').AVAILABLE_CONTRACTS,
+}));
+
 jest.mock('../../Guide', () => {
     const Guide = () => <div data-testid='guide' />;
     return Guide;

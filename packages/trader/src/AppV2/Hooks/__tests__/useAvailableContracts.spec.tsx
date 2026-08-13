@@ -3,6 +3,7 @@ import { renderHook } from '@testing-library/react-hooks';
 
 import { CONTRACT_LIST } from 'AppV2/Utils/trade-types-utils';
 
+import useAllTradeTypeSymbols from '../useAllTradeTypeSymbols';
 import useAvailableContracts from '../useAvailableContracts';
 import useNativeAppAllowedTradeTypes from '../useNativeAppAllowedTradeTypes';
 
@@ -11,12 +12,40 @@ jest.mock('../useNativeAppAllowedTradeTypes', () => ({
     default: jest.fn(() => undefined),
 }));
 
+jest.mock('../useAllTradeTypeSymbols', () => ({
+    __esModule: true,
+    default: jest.fn(),
+}));
+
+/**
+ * Server availability: a trade type is offered iff its symbol list is non-empty. The result is
+ * cached so repeated renders get the same reference, matching the real hook — which memoizes its
+ * map — so callers' own memoization can be asserted.
+ */
+const mockAvailability = ({ available_ids, isLoading = false }: { available_ids?: string[]; isLoading?: boolean }) => {
+    let cached: { symbols_by_trade_type: Map<string, unknown[]>; isLoading: boolean } | undefined;
+
+    (useAllTradeTypeSymbols as jest.Mock).mockImplementation((trade_types: { id: string }[]) => {
+        cached ??= {
+            symbols_by_trade_type: new Map(
+                trade_types.map(({ id }) => [
+                    id,
+                    !available_ids || available_ids.includes(id) ? [{ symbol: 'R_100' }] : [],
+                ])
+            ),
+            isLoading,
+        };
+        return cached;
+    });
+};
+
 describe('useAvailableContracts', () => {
     beforeEach(() => {
         jest.clearAllMocks();
 
-        // Reset to default mock
+        // Reset to default mocks: nothing restricted, everything tradeable.
         (useNativeAppAllowedTradeTypes as jest.Mock).mockReturnValue(undefined);
+        mockAvailability({});
     });
 
     afterEach(() => {
@@ -236,6 +265,57 @@ describe('useAvailableContracts', () => {
 
             // When array provided, should filter
             expect(result.current).toHaveLength(2);
+        });
+    });
+
+    describe('Server availability', () => {
+        it('drops trade types the server returns no symbols for (e.g. EU: Multipliers only)', () => {
+            mockAvailability({ available_ids: [CONTRACT_LIST.MULTIPLIERS] });
+
+            const { result } = renderHook(() => useAvailableContracts());
+
+            expect(result.current).toHaveLength(1);
+            expect(result.current[0].id).toBe(CONTRACT_LIST.MULTIPLIERS);
+        });
+
+        it('keeps every trade type the server returns symbols for', () => {
+            mockAvailability({ available_ids: [CONTRACT_LIST.MULTIPLIERS, CONTRACT_LIST.RISE_FALL] });
+
+            const { result } = renderHook(() => useAvailableContracts());
+
+            expect(result.current.map(contract => contract.id)).toEqual([
+                CONTRACT_LIST.RISE_FALL,
+                CONTRACT_LIST.MULTIPLIERS,
+            ]);
+        });
+
+        it('fails open while the availability lookup is still loading', () => {
+            mockAvailability({ available_ids: [], isLoading: true });
+
+            const { result } = renderHook(() => useAvailableContracts());
+
+            expect(result.current).toHaveLength(10);
+        });
+
+        it('fails open when the lookup returns nothing at all, rather than showing an empty list', () => {
+            mockAvailability({ available_ids: [] });
+
+            const { result } = renderHook(() => useAvailableContracts());
+
+            expect(result.current).toHaveLength(10);
+        });
+
+        it('applies the native-app restriction and server availability together', () => {
+            (useNativeAppAllowedTradeTypes as jest.Mock).mockReturnValue([
+                CONTRACT_LIST.ACCUMULATORS,
+                CONTRACT_LIST.MULTIPLIERS,
+            ]);
+            mockAvailability({ available_ids: [CONTRACT_LIST.MULTIPLIERS, CONTRACT_LIST.RISE_FALL] });
+
+            const { result } = renderHook(() => useAvailableContracts());
+
+            expect(result.current).toHaveLength(1);
+            expect(result.current[0].id).toBe(CONTRACT_LIST.MULTIPLIERS);
         });
     });
 });

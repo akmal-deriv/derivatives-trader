@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 
 import useActiveSymbols from 'AppV2/Hooks/useActiveSymbols';
 import useAllTradeTypeSymbols from 'AppV2/Hooks/useAllTradeTypeSymbols';
+import useAvailableContracts from 'AppV2/Hooks/useAvailableContracts';
 import useFavouriteMarkets from 'AppV2/Hooks/useFavouriteMarkets';
 import useMarketDiscovery from 'AppV2/Hooks/useMarketDiscovery';
 import useTradeTypeSymbols from 'AppV2/Hooks/useTradeTypeSymbols';
@@ -45,9 +46,15 @@ const useMarketSelection = ({ onClose }: TUseMarketSelection) => {
     const [list_window, setListWindow] = useState<TDiscoveryWindow>(DEFAULT_DISCOVERY_WINDOW);
 
     const { symbols, isLoading } = useTradeTypeSymbols(selected_trade_type);
-    const { favourites } = useFavouriteMarkets();
+    const { favourites: all_favourites } = useFavouriteMarkets();
     const { activeSymbols } = useActiveSymbols();
+    const available_contracts = useAvailableContracts();
     const current_trade_type = selected_trade_type?.id ?? '';
+
+    const favourites = useMemo(() => {
+        const available_trade_types = new Set(available_contracts.map(contract => contract.id));
+        return all_favourites.filter(favourite => available_trade_types.has(favourite.trade_type));
+    }, [all_favourites, available_contracts]);
 
     const categories = useMemo(() => getMarketCategories(symbols), [symbols]);
     const favourite_groups = useMemo(() => groupFavourites(favourites, activeSymbols), [favourites, activeSymbols]);
@@ -90,15 +97,11 @@ const useMarketSelection = ({ onClose }: TUseMarketSelection) => {
         enabled_symbols: list_enabled_symbols,
     });
 
-    // Symbols available for every trade type — powers the search view's per-trade-type grouping, the
-    // ONLY view that needs the full set. Deferred until the user actually starts searching (not on
-    // open) so opening the selector fires just one active_symbols call for the selected trade type;
-    // the results still share React Query's cache with per-tab browsing (identical query keys).
+    // Symbols for every trade type, powering the search view's per-trade-type grouping. Identical
+    // query keys to the availability lookup in `useAvailableContracts`, which the market strip warms
+    // on page load — so React Query serves this from cache instead of fetching on first keystroke.
     const all_trade_types = useMemo(() => getOrderedAvailableContracts(), []);
-    const { symbols_by_trade_type, isLoading: is_all_symbols_loading } = useAllTradeTypeSymbols(
-        all_trade_types,
-        is_searching
-    );
+    const { symbols_by_trade_type, isLoading: is_all_symbols_loading } = useAllTradeTypeSymbols(all_trade_types, true);
 
     // Open the info screen for a symbol, remembering the trade type it was opened from (the browsed
     // tab, favourite group, or search group) so the info screen's Favourite button can default to it.

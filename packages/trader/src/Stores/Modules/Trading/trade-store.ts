@@ -440,7 +440,15 @@ export default class TradeStore extends BaseStore {
     }); // no time is needed here, the only goal is to put the call into macrotasks queue
     debouncedProposal = debounce(this.requestProposal, 500);
     proposal_requests: Record<string, Partial<TPriceProposalRequest>> = {};
+    /** A buy request is in flight. Suppresses the proposal-driven re-enable of the Buy button. */
     is_purchasing_contract = false;
+    /**
+     * A purchase attempt is underway, from the click until it either reaches the server and
+     * settles or is abandoned. Wider than `is_purchasing_contract`, which starts only once a buy
+     * is actually sent — the wait for a usable proposal happens before that. Drives the Buy
+     * button's loading state, so every exit path must clear it.
+     */
+    is_purchase_pending = false;
     // V2: hold proposals until the current symbol's contracts_for values are applied —
     // an earlier proposal carries the previous symbol's params and errors. Armed on load
     // and on every symbol change; released by processContractsForV2 or on fetch failure.
@@ -556,6 +564,7 @@ export default class TradeStore extends BaseStore {
             is_market_closed: observable,
             is_mobile_digit_view_selected: observable,
             is_purchase_enabled: observable,
+            is_purchase_pending: observable,
             is_synthetics_trading_market_available: computed,
             is_trade_component_mounted: observable,
             is_trade_enabled: observable,
@@ -632,6 +641,7 @@ export default class TradeStore extends BaseStore {
             clearV2ParamsInitialValues: action.bound,
             processContractsForV2: action.bound,
             enablePurchase: action.bound,
+            endPurchaseAttempt: action.bound,
             exportLayout: action.bound,
             forgetAllProposal: action.bound,
             getFirstOpenMarket: action.bound,
@@ -1422,6 +1432,14 @@ export default class TradeStore extends BaseStore {
         isMobile: boolean,
         callback?: (params: { message: string; redirectTo: string; title: string }, contract_id: number) => void
     ) {
+        // The attempt starts here, not when the buy is sent: the wait for a usable proposal
+        // below plus the debounce on onPurchase can take a while, and the Buy button's loading
+        // state reads this flag. Deliberately not `is_purchasing_contract` — that one gates the
+        // proposal-driven re-enable of purchasing, and holding it across this wait would stop
+        // `is_purchase_enabled` from ever being restored.
+        runInAction(() => {
+            this.is_purchase_pending = true;
+        });
         try {
             await when(() => {
                 const proposal_info_keys = Object.keys(this.proposal_info);
@@ -1473,17 +1491,22 @@ export default class TradeStore extends BaseStore {
 
             const info = this.proposal_info?.[proposalKey];
 
-            if (info) {
+            // An errored proposal is still stored under its contract type, but carries no id.
+            // Dispatching on it sends a buy the server cannot match, so treat it as no proposal.
+            if (info?.id && !info.has_error) {
                 this.onPurchase(info.id, info.stake, trade_type, isMobile, callback, true);
             } else {
-                // Reset purchase state if no info found
-                this.enablePurchase();
+                this.endPurchaseAttempt();
             }
         } catch (error) {
-            // Reset purchase state on error
-            this.enablePurchase();
+            this.endPurchaseAttempt();
             throw error;
         }
+    }
+
+    /** Ends an attempt that never reached the server, releasing the button's loading state. */
+    endPurchaseAttempt() {
+        this.is_purchase_pending = false;
     }
 
     onPurchase = debounce(this.processPurchase, 300);
@@ -1496,7 +1519,13 @@ export default class TradeStore extends BaseStore {
         callback?: (params: { message: string; redirectTo: string; title: string }, contract_id: number) => void,
         is_dtrader_v2?: boolean
     ) {
-        if (!this.is_purchase_enabled) return;
+        // Purchasing is disabled while a buy is already in flight, and briefly whenever trade
+        // params change until the next proposal re-enables it. Either way this attempt cannot
+        // proceed, so end it rather than leaving the button spinning.
+        if (!this.is_purchase_enabled) {
+            this.endPurchaseAttempt();
+            return;
+        }
         if (proposal_id) {
             runInAction(() => {
                 this.is_purchase_enabled = false;
@@ -1508,13 +1537,12 @@ export default class TradeStore extends BaseStore {
                     if (!this.is_trade_component_mounted) {
                         this.enablePurchase();
                         this.is_purchasing_contract = false;
+                        this.endPurchaseAttempt();
                         return;
                     }
 
                     const last_digit = +this.last_digit;
                     if (response.error) {
-                        // using javascript to disable purchase-buttons manually to compensate for mobx lag
-                        this.disablePurchaseButtons();
                         // invalidToken error will handle in socket-general.js
                         if (response.error.code !== 'InvalidToken') {
                             this.root_store.common.setServicesError(
@@ -1524,14 +1552,6 @@ export default class TradeStore extends BaseStore {
                                 },
                                 this.is_dtrader_v2
                             );
-
-                            // Clear purchase info on mobile after toast box error disappears (mobile_toast_timeout = 3500)
-                            if (isMobile && this.root_store.common?.services_error?.type === 'buy') {
-                                setTimeout(() => {
-                                    this.clearPurchaseInfo();
-                                    this.requestProposal();
-                                }, 3500);
-                            }
                         }
                     } else if (response.buy) {
                         if (this.proposal_info[type] && this.proposal_info[type].id !== proposal_id) {
@@ -1670,32 +1690,35 @@ export default class TradeStore extends BaseStore {
                             }, 100);
 
                             this.is_purchasing_contract = false;
+                            this.endPurchaseAttempt();
                             return;
                         }
                     }
+                    this.proposal_info = {};
+                    // Order matters: forgetAllProposal() no-ops when proposal_requests is already
+                    // empty, so the requests must still be there when it runs. Clearing first
+                    // leaves the consumed subscription alive server-side, and the re-subscribe
+                    // below is deduplicated onto that dead stream — no proposal ever arrives.
                     this.forgetAllProposal();
+                    this.proposal_requests = {};
                     this.purchase_info = response;
                     this.enablePurchase();
                     this.is_purchasing_contract = false;
+                    this.endPurchaseAttempt();
+                    this.debouncedProposal();
                 })
             );
+        } else {
+            // The proposal can error out or be dropped between the click and this call — an
+            // errored proposal is stored without an id. Returning silently would strand the
+            // button's loading state, so end the attempt explicitly.
+            this.endPurchaseAttempt();
         }
     }
 
     enablePurchase() {
         this.is_purchase_enabled = true;
     }
-
-    disablePurchaseButtons = () => {
-        const el_purchase_value = document.getElementsByClassName('trade-container__price-info');
-        const el_purchase_buttons = document.getElementsByClassName('btn-purchase');
-        [].forEach.bind(el_purchase_buttons, el => {
-            (el as HTMLButtonElement).classList.add('btn-purchase--disabled');
-        })();
-        [].forEach.bind(el_purchase_value, el => {
-            (el as HTMLDivElement).classList.add('trade-container__price-info--fade');
-        })();
-    };
 
     /**
      * Updates the store with new values
@@ -1713,6 +1736,9 @@ export default class TradeStore extends BaseStore {
                 if (key === 'symbol') {
                     this.is_purchase_enabled = false;
                     this.is_trade_enabled = false;
+                    // A symbol switch invalidates any attempt still waiting on a proposal, which
+                    // would otherwise keep the Buy button in its loading state.
+                    this.is_purchase_pending = false;
                 }
 
                 if (new_state.start_date && typeof new_state.start_date === 'string') {

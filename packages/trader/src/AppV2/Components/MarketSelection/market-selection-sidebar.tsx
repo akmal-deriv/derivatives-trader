@@ -3,12 +3,8 @@ import clsx from 'clsx';
 import { Text, Tooltip } from '@deriv-com/quill-ui';
 import { Localize } from '@deriv-com/translations';
 
-import {
-    AVAILABLE_CONTRACTS,
-    getCategoryLabel,
-    groupTradeTypesByCategory,
-    TAvailableContract,
-} from 'AppV2/Utils/trade-types-utils';
+import useAvailableContracts from 'AppV2/Hooks/useAvailableContracts';
+import { getCategoryLabel, groupTradeTypesByCategory, TAvailableContract } from 'AppV2/Utils/trade-types-utils';
 
 import FireIcon from '../FireIcon';
 import Guide from '../Guide';
@@ -40,11 +36,12 @@ const MarketSelectionSidebar = ({
     onSelectFavourites,
     supported_trade_types,
 }: TMarketSelectionSidebar) => {
+    const all_contracts = useAvailableContracts();
     // An empty set means "not loaded yet" (e.g. automation strategies still fetching) — show all
     // rather than nothing until the supported set arrives.
     const contracts = supported_trade_types?.size
-        ? AVAILABLE_CONTRACTS.filter(contract => contract.for.some(type => supported_trade_types.has(type)))
-        : AVAILABLE_CONTRACTS;
+        ? all_contracts.filter(contract => contract.for.some(type => supported_trade_types.has(type)))
+        : all_contracts;
     const grouped_contracts = groupTradeTypesByCategory(contracts);
 
     return (

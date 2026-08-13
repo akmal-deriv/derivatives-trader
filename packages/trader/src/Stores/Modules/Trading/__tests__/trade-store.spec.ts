@@ -8,6 +8,7 @@ import { TRADE_PANEL_TABS } from 'AppV2/Components/AutomationPanel/automation-co
 import { OPEN_MARKETS_STORAGE_KEYS, TOpenMarket } from 'AppV2/Utils/open-markets-utils';
 import { TRootStore } from 'Types';
 
+import { processPurchase as buyContract } from '../Actions/purchase';
 import { ContractType } from '../Helpers/contract-type';
 import TradeStore from '../trade-store';
 
@@ -81,6 +82,11 @@ jest.mock('../Actions/contract-type', () => ({
     ContractType: {
         getContractType: jest.fn(() => ({ categories: [], contract_types: [] })),
     },
+}));
+
+// Mock the buy request so processPurchase never hits the real WebSocket
+jest.mock('../Actions/purchase', () => ({
+    processPurchase: jest.fn(() => new Promise(() => {})), // never settles unless a test overrides it
 }));
 
 // Mock process helpers
@@ -403,6 +409,127 @@ describe('TradeStore', () => {
                 expect(tradeStore.proposal_info).toEqual({});
                 expect(tradeStore.purchase_info).toEqual({});
                 expect(tradeStore.proposal_requests).toEqual({});
+            });
+        });
+    });
+
+    describe('Purchase button recovery (is_purchase_pending lifecycle)', () => {
+        // The Buy button's loading state reads is_purchase_pending. The recovery fix requires every
+        // exit path — a valid dispatch, an errored/dropped proposal, a disabled store, a failed buy,
+        // an unmounted component, or a symbol switch — to leave the flag in the right state so the
+        // button can never get stranded spinning.
+        const flushMicrotasks = async () => {
+            await Promise.resolve();
+            await Promise.resolve();
+        };
+
+        beforeEach(() => {
+            (buyContract as jest.Mock).mockReset();
+            (buyContract as jest.Mock).mockImplementation(() => new Promise(() => {}));
+        });
+
+        it('starts disabled with no pending purchase', () => {
+            expect(tradeStore.is_purchase_pending).toBe(false);
+        });
+
+        describe('endPurchaseAttempt', () => {
+            it('clears the pending flag', () => {
+                tradeStore.is_purchase_pending = true;
+                tradeStore.endPurchaseAttempt();
+                expect(tradeStore.is_purchase_pending).toBe(false);
+            });
+        });
+
+        describe('processPurchase', () => {
+            it('ends the attempt without sending a buy when purchasing is disabled', () => {
+                tradeStore.is_purchase_enabled = false;
+                tradeStore.is_purchase_pending = true;
+
+                tradeStore.processPurchase('proposal-1', 10, 'CALL', false, undefined, true);
+
+                expect(tradeStore.is_purchase_pending).toBe(false);
+                expect(buyContract).not.toHaveBeenCalled();
+            });
+
+            it('ends the attempt without sending a buy when there is no proposal id', () => {
+                tradeStore.is_purchase_enabled = true;
+                tradeStore.is_purchase_pending = true;
+
+                tradeStore.processPurchase('', 10, 'CALL', false, undefined, true);
+
+                expect(tradeStore.is_purchase_pending).toBe(false);
+                expect(buyContract).not.toHaveBeenCalled();
+            });
+
+            it('recovers the button after a failed buy: re-enables purchasing and clears pending', async () => {
+                tradeStore.is_trade_component_mounted = true;
+                tradeStore.is_purchase_enabled = true;
+                tradeStore.is_purchase_pending = true;
+                (buyContract as jest.Mock).mockResolvedValueOnce({
+                    msg_type: 'buy',
+                    error: { code: 'InsufficientBalance', message: 'Insufficient balance' },
+                });
+
+                tradeStore.processPurchase('proposal-1', 10, 'CALL', false, undefined, true);
+                await flushMicrotasks();
+
+                expect(tradeStore.is_purchase_pending).toBe(false);
+                expect(tradeStore.is_purchase_enabled).toBe(true);
+                expect(tradeStore.is_purchasing_contract).toBe(false);
+                expect(mockRootStore.common.setServicesError).toHaveBeenCalled();
+            });
+
+            it('clears pending when the trade component has unmounted before the response arrives', async () => {
+                tradeStore.is_trade_component_mounted = false;
+                tradeStore.is_purchase_enabled = true;
+                tradeStore.is_purchase_pending = true;
+                (buyContract as jest.Mock).mockResolvedValueOnce({ msg_type: 'buy', buy: { contract_id: 1 } });
+
+                tradeStore.processPurchase('proposal-1', 10, 'CALL', false, undefined, true);
+                await flushMicrotasks();
+
+                expect(tradeStore.is_purchase_pending).toBe(false);
+                expect(tradeStore.is_purchase_enabled).toBe(true);
+                expect(tradeStore.is_purchasing_contract).toBe(false);
+            });
+        });
+
+        describe('onPurchaseV2', () => {
+            it('marks the attempt pending and dispatches the buy for a usable proposal', async () => {
+                tradeStore.proposal_info = { CALL: { id: 'abc', stake: '10', has_error: false } as any };
+                tradeStore.proposal_requests = { CALL: {} };
+                const onPurchaseSpy = jest.spyOn(tradeStore, 'onPurchase').mockImplementation(() => undefined);
+
+                await tradeStore.onPurchaseV2('CALL', false);
+
+                // Pending stays set — the real buy is now in flight and will clear it on settle.
+                expect(tradeStore.is_purchase_pending).toBe(true);
+                expect(onPurchaseSpy).toHaveBeenCalledWith('abc', '10', 'CALL', false, undefined, true);
+
+                onPurchaseSpy.mockRestore();
+            });
+
+            it('ends the attempt for an errored proposal that carries no id', async () => {
+                tradeStore.proposal_info = { CALL: { has_error: true } as any };
+                tradeStore.proposal_requests = { CALL: {} };
+                const onPurchaseSpy = jest.spyOn(tradeStore, 'onPurchase').mockImplementation(() => undefined);
+
+                await tradeStore.onPurchaseV2('CALL', false);
+
+                expect(onPurchaseSpy).not.toHaveBeenCalled();
+                expect(tradeStore.is_purchase_pending).toBe(false);
+
+                onPurchaseSpy.mockRestore();
+            });
+        });
+
+        describe('symbol switch', () => {
+            it('invalidates a pending attempt still waiting on a proposal', () => {
+                tradeStore.is_purchase_pending = true;
+
+                tradeStore.updateStore({ symbol: 'R_100' });
+
+                expect(tradeStore.is_purchase_pending).toBe(false);
             });
         });
     });
