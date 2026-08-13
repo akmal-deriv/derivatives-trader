@@ -121,7 +121,7 @@ jobs:
         # push to that repo execute here. Bump this deliberately.
         env:
           ENGINE_TOKEN: ${{ steps.engine-token.outputs.token }}
-          ENGINE_REF: 6223a741f025066119e16029a50390f468d7d459 # deriv-com/spec-to-pr master, 2026-08-07
+          ENGINE_REF: a20b48e13b1eab31e2e4a07683d31a4d11ee91fe # deriv-com/spec-to-pr master, 2026-08-12
         run: |
           set -euo pipefail
           DIR="$RUNNER_TEMP/forge-engine"
