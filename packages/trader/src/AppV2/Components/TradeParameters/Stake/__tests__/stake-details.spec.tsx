@@ -28,14 +28,13 @@ const base_props = {
         min_stake: '',
         second_contract_payout: 0,
         stop_out: -10,
-        stop_out_level: '8160.12',
     },
 };
 
 describe('StakeDetails multiplier info', () => {
     const renderStakeDetails = (props = {}, trade_overrides = {}) => {
         const store = mockStore({
-            modules: { trade: { amount: 10, multiplier: 100, ...trade_overrides } },
+            modules: { trade: { amount: 10, multiplier: 100, stop_out_level: '8160.12', ...trade_overrides } },
         });
         return render(
             <TraderProviders store={store}>
@@ -78,6 +77,31 @@ describe('StakeDetails multiplier info', () => {
         expect(screen.queryByText('8160.12 USD')).not.toBeInTheDocument();
     });
 
+    it('re-reads the stop out level from the store rather than freezing the first value', () => {
+        // The popover's own proposal is a one-shot request, so a stop out level derived from it
+        // froze at whatever the spot was when the popover opened. Reading the store means each
+        // render reflects the current value. (mockStore is a plain object, so this covers the
+        // re-read, not the MobX subscription that drives it in the app.)
+        const renderWithLevel = (stop_out_level: string) => {
+            const store = mockStore({ modules: { trade: { amount: 10, multiplier: 100, stop_out_level } } });
+            return (
+                <TraderProviders store={store}>
+                    <ModulesProvider store={store}>
+                        <StakeDetails {...base_props} />
+                    </ModulesProvider>
+                </TraderProviders>
+            );
+        };
+
+        const { rerender } = render(renderWithLevel('8160.12'));
+        expect(screen.getByText('8160.12')).toBeInTheDocument();
+
+        rerender(renderWithLevel('8175.40'));
+
+        expect(screen.getByText('8175.40')).toBeInTheDocument();
+        expect(screen.queryByText('8160.12')).not.toBeInTheDocument();
+    });
+
     it('renders the stop out amount with a currency code', () => {
         renderStakeDetails();
 
@@ -91,7 +115,7 @@ describe('StakeDetails multiplier info', () => {
     });
 
     it('falls back to a placeholder when the proposal has no stop out level yet', () => {
-        renderStakeDetails({ details: { ...base_props.details, stop_out_level: undefined } });
+        renderStakeDetails({}, { stop_out_level: undefined });
 
         expect(screen.getByText('Stop out level')).toBeInTheDocument();
         expect(screen.getAllByText('-').length).toBeGreaterThan(0);

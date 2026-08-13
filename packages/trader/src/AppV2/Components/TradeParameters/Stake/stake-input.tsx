@@ -56,7 +56,6 @@ type TStakeState = {
         max_stake: string | number;
         min_stake: string | number;
         stop_out?: string | number;
-        stop_out_level?: string;
     };
 };
 type TStakeAction =
@@ -112,16 +111,8 @@ const reducer = (state: TStakeState, action: TStakeAction): TStakeState => {
 };
 
 const createInitialState = (trade_store: ReturnType<typeof useTraderStore>, decimals: number) => {
-    const {
-        amount,
-        contract_type,
-        trade_type_tab,
-        trade_types,
-        proposal_info,
-        validation_params,
-        stop_out,
-        stop_out_level,
-    } = trade_store;
+    const { amount, contract_type, trade_type_tab, trade_types, proposal_info, validation_params, stop_out } =
+        trade_store;
 
     const contract_types = getDisplayedContractTypes(trade_types, contract_type, trade_type_tab);
     const {
@@ -152,7 +143,6 @@ const createInitialState = (trade_store: ReturnType<typeof useTraderStore>, deci
             max_stake,
             min_stake,
             stop_out,
-            stop_out_level,
         },
     };
 };
@@ -318,21 +308,19 @@ const StakeInput = observer(({ onClose, is_open, onOpenStopOut, onOpenStopOutLev
             if (proposal) {
                 const { limit_order, validation_params } = proposal as ExpandedProposal;
                 const { max, min } = validation_params?.stake ?? {};
-                const { order_amount, value: stop_out_value } = limit_order?.stop_out ?? {};
+                const { order_amount } = limit_order?.stop_out ?? {};
 
                 dispatch({
                     type: 'UPDATE_DETAILS',
                     payload: {
-                        ...(is_multiplier && order_amount
-                            ? { stop_out: order_amount, stop_out_level: stop_out_value }
-                            : {}),
+                        ...(is_multiplier && order_amount ? { stop_out: order_amount } : {}),
                         ...(details.max_stake || details.min_stake ? {} : { max_stake: max, min_stake: min }),
                     },
                 });
             } else if (!proposal && is_multiplier) {
                 dispatch({
                     type: 'UPDATE_DETAILS',
-                    payload: { stop_out: 0, stop_out_level: undefined },
+                    payload: { stop_out: 0 },
                 });
             }
         }
