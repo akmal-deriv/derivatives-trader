@@ -1,11 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 
 import { useInvalidateQuery } from '@deriv/api';
-import {
-    LabelPairedCalendarSmRegularIcon,
-    LabelPairedChevronDownMdRegularIcon,
-    LabelPairedClockThreeSmRegularIcon,
-} from '@deriv/quill-icons';
+import { LabelPairedCalendarSmRegularIcon, LabelPairedClockThreeSmRegularIcon } from '@deriv/quill-icons';
 import { hasIntradayDurationUnit, mapErrorMessage, setTime, toMoment } from '@deriv/shared';
 import { useStore } from '@deriv/stores';
 import { ActionSheet, Text, TextField, useSnackbar } from '@deriv-com/quill-ui';
@@ -248,7 +244,6 @@ const DayInput = ({
                     setOpen(true);
                 }}
                 leftIcon={<LabelPairedCalendarSmRegularIcon width={24} height={24} fill='var(--color-text-primary)' />}
-                rightIcon={<LabelPairedChevronDownMdRegularIcon fill='var(--color-text-primary)' />}
             />
 
             <TextField
@@ -264,7 +259,6 @@ const DayInput = ({
                 leftIcon={
                     <LabelPairedClockThreeSmRegularIcon width={24} height={24} fill='var(--color-text-primary)' />
                 }
-                rightIcon={<LabelPairedChevronDownMdRegularIcon fill='var(--color-text-primary)' />}
             />
 
             <div className='duration-container__days-input__expiry'>
