@@ -16,8 +16,8 @@
     border: none;
     border-radius: 50%;
     background-color: var(--semantic-color-monochrome-surface-normal-lowest);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(1px);
+    -webkit-backdrop-filter: blur(1px);
     cursor: pointer;
     // Drives the stroke colour of the expand/compress glyph (stroke='currentColor').
     color: var(--component-textIcon-normal-prominent);
