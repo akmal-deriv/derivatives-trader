@@ -1524,8 +1524,8 @@ export class ContractDetailsPage extends TradeBasePage {
      * @param stake       - Stake as displayed, e.g. "20.00"
      * @param multiplier  - Multiplier as displayed, e.g. "x200"
      * @param buyDate     - UTC date captured before buy, e.g. "2026-07-07"
-     * @param commission  - Commission captured pre-buy from the info panel, e.g. "0.15 USD"
-     * @returns Object containing the extracted `buyId` (reference ID) and `entrySpot` (entry price).
+     * @returns Object containing the extracted `buyId` (reference ID), `entrySpot` (entry price),
+     *          and `commission` (captured here so the closed details page can assert the same value).
      */
     async verifyMultipliersContractDetailsPage(
         market: string,
@@ -1534,10 +1534,9 @@ export class ContractDetailsPage extends TradeBasePage {
         stake: string,
         multiplier: string,
         buyDate: string,
-        commission: string,
         takeProfit?: string | null,
         stopLoss?: string | null
-    ): Promise<{ buyId: string; entrySpot: string }> {
+    ): Promise<{ buyId: string; entrySpot: string; commission: string }> {
         return this.isMobile
             ? this.verifyMultipliersContractDetailsMobile(
                   market,
@@ -1545,7 +1544,6 @@ export class ContractDetailsPage extends TradeBasePage {
                   stake,
                   multiplier,
                   buyDate,
-                  commission,
                   takeProfit,
                   stopLoss
               )
@@ -1556,7 +1554,6 @@ export class ContractDetailsPage extends TradeBasePage {
                   stake,
                   multiplier,
                   buyDate,
-                  commission,
                   takeProfit,
                   stopLoss
               );
@@ -1574,7 +1571,9 @@ export class ContractDetailsPage extends TradeBasePage {
      * @param buyId            - Buy reference ID
      * @param buyDate          - UTC date captured before buy, e.g. "2026-07-07"
      * @param profitLossAmount - P&L from the closed positions card, e.g. "+1.26 USD"
-     * @param commission       - Commission captured before buy, e.g. "0.15 USD"
+     * @param entrySpot        - Entry spot captured from the open contract details page
+     * @param stopOut          - Stop out amount captured before buy, e.g. "5.40 USD"
+     * @param commission       - Commission captured from the open contract details page, e.g. "0.15 USD"
      * @returns Sell reference ID string
      */
     async verifyClosedMultipliersContractDetailsPage(
@@ -1586,9 +1585,9 @@ export class ContractDetailsPage extends TradeBasePage {
         buyId: string,
         buyDate: string,
         profitLossAmount: string,
-        commission: string,
         entrySpot: string,
         stopOut: string,
+        commission: string,
         takeProfit?: string | null,
         stopLoss?: string | null
     ): Promise<string> {
@@ -1601,9 +1600,9 @@ export class ContractDetailsPage extends TradeBasePage {
                   buyId,
                   buyDate,
                   profitLossAmount,
-                  commission,
                   entrySpot,
                   stopOut,
+                  commission,
                   takeProfit,
                   stopLoss
               )
@@ -1616,8 +1615,8 @@ export class ContractDetailsPage extends TradeBasePage {
                   buyId,
                   buyDate,
                   profitLossAmount,
-                  commission,
                   entrySpot,
+                  commission,
                   takeProfit,
                   stopLoss
               );
@@ -1630,10 +1629,9 @@ export class ContractDetailsPage extends TradeBasePage {
         stake: string,
         multiplier: string,
         buyDate: string,
-        commission: string,
         takeProfit?: string | null,
         stopLoss?: string | null
-    ): Promise<{ buyId: string; entrySpot: string }> {
+    ): Promise<{ buyId: string; entrySpot: string; commission: string }> {
         // Header
         await expect(
             this.contractDetailsHeaderTitle,
@@ -1693,11 +1691,10 @@ export class ContractDetailsPage extends TradeBasePage {
         const buyIdText = (await this.contractDetailsReferenceID.innerText()).trim();
         const buyId = buyIdText.replace(' (Buy)', '');
 
-        // Audit grid — Commission (Multipliers-specific, no Duration/Barrier)
-        await expect(
-            this.multContractDetailsCommission,
-            `Commission should match pre-buy value "${commission}"`
-        ).toHaveText(commission);
+        // Audit grid — Commission (Multipliers-specific). Rendered here from the API — capture it now
+        // to assert the same value on the closed contract details page later.
+        await expect(this.multContractDetailsCommission, 'Commission should have a value from the API').not.toBeEmpty();
+        const commission = (await this.multContractDetailsCommission.innerText()).trim();
 
         // Audit grid — Start time
         await expect(this.contractDetailsStartTimeLabel, 'Start time label should be "Start time"').toHaveText(
@@ -1765,7 +1762,7 @@ export class ContractDetailsPage extends TradeBasePage {
             ).toHaveText('You have yet to update either take profit or stop loss');
         }
 
-        return { buyId, entrySpot };
+        return { buyId, entrySpot, commission };
     }
 
     private async verifyMultipliersContractDetailsMobile(
@@ -1774,10 +1771,9 @@ export class ContractDetailsPage extends TradeBasePage {
         stake: string,
         multiplier: string,
         buyDate: string,
-        commission: string,
         takeProfit?: string | null,
         stopLoss?: string | null
-    ): Promise<{ buyId: string; entrySpot: string }> {
+    ): Promise<{ buyId: string; entrySpot: string; commission: string }> {
         // Header
         await expect(
             this.contractDetailsHeaderTitle,
@@ -1856,11 +1852,13 @@ export class ContractDetailsPage extends TradeBasePage {
         // Order Details — Stake
         await expect(this.mobileOrderDetailsValue('Stake'), `Stake should contain "${stake}"`).toContainText(stake);
 
-        // Order Details — Commission
+        // Order Details — Commission. Rendered here from the API — capture it now to assert the same
+        // value on the closed page later.
         await expect(
             this.mobileOrderDetailsValue('Commission'),
-            `Commission should match pre-buy value "${commission}"`
-        ).toContainText(commission);
+            'Commission should have a value from the API'
+        ).not.toBeEmpty();
+        const commission = (await this.mobileOrderDetailsValue('Commission').innerText()).trim();
 
         // Order Details — Take profit (when set)
         if (takeProfit) {
@@ -1939,7 +1937,7 @@ export class ContractDetailsPage extends TradeBasePage {
             'Close button should be visible on the open Multipliers contract'
         ).toBeVisible();
 
-        return { buyId, entrySpot };
+        return { buyId, entrySpot, commission };
     }
 
     // Note: stopOut is not asserted here — the desktop closed contract page does not render
@@ -1953,8 +1951,8 @@ export class ContractDetailsPage extends TradeBasePage {
         buyId: string,
         buyDate: string,
         profitLossAmount: string,
-        commission: string,
         entrySpot: string,
+        commission: string,
         takeProfit?: string | null,
         stopLoss?: string | null
     ): Promise<string> {
@@ -2019,10 +2017,10 @@ export class ContractDetailsPage extends TradeBasePage {
         const sellIdText = (await this.contractDetailsReferenceIDSell.innerText()).trim();
         const sellId = sellIdText.replace(' (Sell)', '');
 
-        // Audit grid — Commission
+        // Audit grid — Commission should match the value captured from the open contract details page
         await expect(
             this.multContractDetailsCommission,
-            `Commission should match pre-buy value "${commission}"`
+            `Commission should match open-contract value "${commission}"`
         ).toHaveText(commission);
 
         // Audit grid — Start time
@@ -2060,9 +2058,9 @@ export class ContractDetailsPage extends TradeBasePage {
         buyId: string,
         buyDate: string,
         profitLossAmount: string,
-        commission: string,
         entrySpot: string,
         stopOut: string,
+        commission: string,
         takeProfit?: string | null,
         stopLoss?: string | null
     ): Promise<string> {
@@ -2115,10 +2113,10 @@ export class ContractDetailsPage extends TradeBasePage {
         ).toContainText(multiplier);
         await expect(this.mobileOrderDetailsValue('Stake'), `Stake should contain "${stake}"`).toContainText(stake);
 
-        // Order Details — Commission
+        // Order Details — Commission should match the value captured from the open contract details page
         await expect(
             this.mobileOrderDetailsValue('Commission'),
-            `Commission should match pre-buy value "${commission}"`
+            `Commission should match open-contract value "${commission}"`
         ).toContainText(commission);
 
         // Order Details — Take profit / Stop loss

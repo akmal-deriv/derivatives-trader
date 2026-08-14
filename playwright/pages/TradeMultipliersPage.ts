@@ -68,27 +68,45 @@ export class TradeMultipliersPage extends TradeParametersPage {
     }
 
     /**
-     * Stop out value — viewport-aware.
-     * - Desktop: always visible on the landing page, `.multipliers-information__row` > `dt_span`.
+     * Stop out value (the loss amount) — viewport-aware.
+     * - Desktop: always visible on the landing page, `.multipliers-information__row` > `dt_span`
+     *   (the amount is rendered via <Money>, which wraps it in `data-testid="dt_span"`).
      * - Mobile: no landing-page equivalent — only rendered inside the Stake action sheet's details
      *   rows (stake-details.tsx) while it's open; value is the row's last text node.
+     * The label is matched exactly so this row is not confused with the "Stop out level" row.
      */
     get stopOutValue(): Locator {
         return this.isMobile
-            ? this.page.locator('.stake-content__details-row', { hasText: 'Stop out' }).locator('p').last()
-            : this.page.locator('.multipliers-information__row', { hasText: 'Stop out' }).getByTestId('dt_span');
+            ? this.page
+                  .locator('.stake-content__details-row')
+                  .filter({ has: this.page.getByText('Stop out', { exact: true }) })
+                  .locator('p')
+                  .last()
+            : this.page
+                  .locator('.multipliers-information__row')
+                  .filter({ has: this.page.getByText('Stop out', { exact: true }) })
+                  .getByTestId('dt_span');
     }
 
     /**
-     * Commission value — viewport-aware.
-     * - Desktop: always visible on the landing page, `.multipliers-information__row` > `dt_span`.
-     * - Mobile: no landing-page equivalent — only rendered inside the Stake action sheet's details
-     *   rows (stake-details.tsx) while it's open.
+     * Stop out level value (the stop-out price) — viewport-aware.
+     * - Desktop: always visible on the landing page, `.multipliers-information__row` (plain text,
+     *   not <Money>, so no `dt_span` — the value is the row's last text node).
+     * - Mobile: only rendered inside the Stake action sheet's details rows while it's open.
+     * The label is matched exactly so this row is not confused with the "Stop out" row.
      */
-    get commissionValue(): Locator {
+    get stopOutLevelValue(): Locator {
         return this.isMobile
-            ? this.page.locator('.stake-content__details-row', { hasText: 'Commission' }).locator('p').last()
-            : this.page.locator('.multipliers-information__row', { hasText: 'Commission' }).getByTestId('dt_span');
+            ? this.page
+                  .locator('.stake-content__details-row')
+                  .filter({ has: this.page.getByText('Stop out level', { exact: true }) })
+                  .locator('p')
+                  .last()
+            : this.page
+                  .locator('.multipliers-information__row')
+                  .filter({ has: this.page.getByText('Stop out level', { exact: true }) })
+                  .locator('p')
+                  .last();
     }
 
     /**
@@ -571,12 +589,17 @@ export class TradeMultipliersPage extends TradeParametersPage {
     }
 
     /**
-     * Read commission and stop out values from the Stake action sheet's details rows
-     * (stake-details.tsx) — no longer shown on the trade-page landing container, so this opens
-     * the sheet to read them, then closes it via Save (re-saving the already-committed amount is
-     * a no-op). Same rows on both desktop and mobile.
+     * Read the Stop out amount pre-buy, from the MultipliersInformation rows (desktop: trade-page
+     * landing panel; mobile: Stake action sheet details rows — stake-details.tsx — so the sheet is
+     * opened and re-saved, a no-op for the already-committed amount). The value is populated from the
+     * proposal response, which can lag under load; `not.toBeEmpty()` auto-retries, so a generous
+     * budget is used instead of the default window.
+     *
+     * The "Stop out level" row is asserted to be present here but its value is not captured — it is
+     * not asserted on the closed contract details page. Commission is not present on the trade panel;
+     * the contract details page renders it from the API, so it is read there instead.
      */
-    private async readCommissionAndStopOut(): Promise<{ commission: string; stopOut: string }> {
+    private async readStopOut(): Promise<{ stopOut: string }> {
         if (this.isMobile) {
             await this.stakeField.click();
             await expect(
@@ -585,22 +608,21 @@ export class TradeMultipliersPage extends TradeParametersPage {
             ).toBeEnabled({ timeout: 15_000 });
         }
 
-        // Commission and stop out are populated from the proposal response, which can lag under load.
-        // not.toBeEmpty() auto-retries, so give it a generous budget instead of the default window.
-        await expect(this.commissionValue, 'Commission value should be visible and non-empty').not.toBeEmpty({
-            timeout: 15_000,
-        });
+        // Stop out and Stop out level are populated from the proposal response, which can lag under
+        // load. not.toBeEmpty() auto-retries, so give it a generous budget instead of the default window.
         await expect(this.stopOutValue, 'Stop out value should be visible and non-empty').not.toBeEmpty({
             timeout: 15_000,
         });
-        const commission = (await this.commissionValue.innerText()).trim();
+        await expect(this.stopOutLevelValue, 'Stop out level should be visible and non-empty').not.toBeEmpty({
+            timeout: 15_000,
+        });
         const stopOut = (await this.stopOutValue.innerText()).trim();
 
         if (this.isMobile) {
             await this.stakeSaveButton.click();
             await expect(this.stakeContainer, 'Stake action sheet should dismiss after closing').not.toBeVisible();
         }
-        return { commission, stopOut };
+        return { stopOut };
     }
 
     // ============================================
@@ -650,7 +672,7 @@ export class TradeMultipliersPage extends TradeParametersPage {
         if (riskManagement) {
             await this.setRiskManagement(riskManagement);
         }
-        const { commission, stopOut } = await this.readCommissionAndStopOut();
+        const { stopOut } = await this.readStopOut();
         const balanceBefore = await this.getBalance();
         const buyDate = this.getCurrentDate();
         await this.clickMultipliersBuy();
@@ -679,17 +701,16 @@ export class TradeMultipliersPage extends TradeParametersPage {
         );
         await this.reportsPage.closeReports();
 
-        // 4. Open contract details — verify and extract buyId from the audit grid
+        // 4. Open contract details — verify and extract buyId + commission from the audit grid
         await this.goToPositions();
         await this.positionsPage.openFirstContract();
-        const { buyId, entrySpot } = await this.contractDetailsPage.verifyMultipliersContractDetailsPage(
+        const { buyId, entrySpot, commission } = await this.contractDetailsPage.verifyMultipliersContractDetailsPage(
             market,
             'Up',
             currency,
             stake,
             multiplier,
             buyDate,
-            commission,
             riskManagement?.takeProfit,
             riskManagement?.stopLoss
         );
@@ -715,9 +736,9 @@ export class TradeMultipliersPage extends TradeParametersPage {
             buyId,
             buyDate,
             contractProfitLossAmount,
-            commission,
             entrySpot,
             stopOut,
+            commission,
             riskManagement?.takeProfit,
             riskManagement?.stopLoss
         );
@@ -789,7 +810,7 @@ export class TradeMultipliersPage extends TradeParametersPage {
         if (riskManagement) {
             await this.setRiskManagement(riskManagement);
         }
-        const { commission, stopOut } = await this.readCommissionAndStopOut();
+        const { stopOut } = await this.readStopOut();
         const balanceBefore = await this.getBalance();
         const buyDate = this.getCurrentDate();
         await this.clickMultipliersBuy();
@@ -818,17 +839,16 @@ export class TradeMultipliersPage extends TradeParametersPage {
         );
         await this.reportsPage.closeReports();
 
-        // 4. Open contract details — verify and extract buyId from the audit grid
+        // 4. Open contract details — verify and extract buyId + commission from the audit grid
         await this.goToPositions();
         await this.positionsPage.openFirstContract();
-        const { buyId, entrySpot } = await this.contractDetailsPage.verifyMultipliersContractDetailsPage(
+        const { buyId, entrySpot, commission } = await this.contractDetailsPage.verifyMultipliersContractDetailsPage(
             market,
             'Down',
             currency,
             stake,
             multiplier,
             buyDate,
-            commission,
             riskManagement?.takeProfit,
             riskManagement?.stopLoss
         );
@@ -854,9 +874,9 @@ export class TradeMultipliersPage extends TradeParametersPage {
             buyId,
             buyDate,
             contractProfitLossAmount,
-            commission,
             entrySpot,
             stopOut,
+            commission,
             riskManagement?.takeProfit,
             riskManagement?.stopLoss
         );

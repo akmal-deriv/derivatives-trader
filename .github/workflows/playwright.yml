@@ -1,12 +1,12 @@
 name: Playwright Tests
 
-run-name: "Playwright | ${{ (github.event.schedule == '45 1 * * *' && 'production') || github.event.inputs.test_env || 'staging' }} | ${{ (github.event.schedule == '30 1 * * *' && 'smoke') || (github.event.schedule == '45 1 * * *' && 'smoke') || github.event.inputs.test_suite || (github.event_name == 'schedule' && 'regression') || 'smoke' }} | ${{ github.event.inputs.platform || 'all' }}"
+run-name: "Playwright | ${{ (github.event.schedule == '45 1 * * *' && 'production') || github.event.inputs.test_env || 'staging' }} | ${{ (github.event.schedule == '30 1 * * *' && 'smoke') || (github.event.schedule == '45 1 * * *' && 'smoke') || github.event.inputs.test_suite || (github.event_name == 'schedule' && 'regression') || 'smoke' }} | ${{ ((github.event.schedule == '30 1 * * *' || github.event.schedule == '45 1 * * *') && 'chromium-mobile') || github.event.inputs.platform || 'all' }}"
 
 on:
   schedule:
     - cron: '0 22 * * 0-4'   # 06:00AM MYT Mon–Fri — staging regression (all)
-    - cron: '30 1 * * *'     # 09:30AM MYT — staging smoke (all)
-    - cron: '45 1 * * *'     # 09:45AM MYT — production smoke (all)
+    - cron: '30 1 * * *'     # 09:30AM MYT — staging smoke (chromium-mobile)
+    - cron: '45 1 * * *'     # 09:45AM MYT — production smoke (chromium-mobile)
   workflow_call:
     inputs:
       test_env:
@@ -145,7 +145,9 @@ jobs:
           ALL='[{"platform":"chromium","name":"Chromium","browser":"chromium","grep_tag":"desktop"},{"platform":"chromium-mobile","name":"Chromium Mobile","browser":"chromium","grep_tag":"mobile"},{"platform":"firefox","name":"Firefox","browser":"firefox","grep_tag":"desktop"},{"platform":"webkit","name":"WebKit","browser":"webkit","grep_tag":"desktop"},{"platform":"webkit-mobile","name":"WebKit Mobile","browser":"webkit","grep_tag":"mobile"}]'
           SELECTED="${{ inputs.platform || github.event.inputs.platform || 'all' }}"
           SCHEDULE="${{ github.event.schedule }}"
-          if [ "$SCHEDULE" = "45 1 * * *" ]; then
+          # Staging smoke (30 1) and production smoke (45 1) run chromium-mobile only.
+          # Staging regression (0 22) and manual "all" still fan out to every platform.
+          if [ "$SCHEDULE" = "30 1 * * *" ] || [ "$SCHEDULE" = "45 1 * * *" ]; then
             MATRIX=$(echo "$ALL" | jq -c '[.[] | select(.platform == "chromium-mobile")]')
           elif [ "${{ github.event_name }}" = "schedule" ] || [ "$SELECTED" = "all" ]; then
             MATRIX="$ALL"
