@@ -4,6 +4,8 @@ import { StandaloneCopyRegularIcon } from '@deriv/quill-icons';
 import { Text, useSnackbar } from '@deriv-com/quill-ui';
 import { Localize, useTranslations } from '@deriv-com/translations';
 
+import { ERROR_SNACKBAR_DURATION } from 'AppV2/Utils/layout-utils';
+
 type TDisclosureQuoteProps = {
     disclaimer_text: string;
 };
@@ -25,6 +27,7 @@ const DisclosureQuote = ({ disclaimer_text }: TDisclosureQuoteProps) => {
                 message: <Localize i18n_default_text="Couldn't copy to clipboard" />,
                 status: 'fail',
                 hasCloseButton: true,
+                delay: ERROR_SNACKBAR_DURATION,
             });
         }
     };

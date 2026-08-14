@@ -6,10 +6,17 @@ import { mockStore } from '@deriv/stores';
 import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
+import { ERROR_SNACKBAR_DURATION } from 'AppV2/Utils/layout-utils';
 import ModulesProvider from 'Stores/Providers/modules-providers';
 
 import TraderProviders from '../../../../trader-providers';
 import PurchaseButton from '../purchase-button';
+
+const mockAddSnackbar = jest.fn();
+jest.mock('@deriv-com/quill-ui', () => ({
+    ...jest.requireActual('@deriv-com/quill-ui'),
+    useSnackbar: jest.fn(() => ({ addSnackbar: mockAddSnackbar })),
+}));
 
 // Mock WebSocket from @deriv/shared
 const mockWS = {
@@ -43,6 +50,7 @@ describe('PositionsContent', () => {
     });
 
     beforeEach(() => {
+        mockAddSnackbar.mockClear();
         default_mock_store = mockStore({
             portfolio: {
                 all_positions: [
@@ -362,6 +370,31 @@ describe('PositionsContent', () => {
 
         await userEvent.click(sell_button);
         expect(default_mock_store.portfolio.onClickSell).toBeCalled();
+    });
+
+    it('should show an error snackbar with an auto-dismiss delay when the proposal contains an error', () => {
+        default_mock_store.modules.trade.proposal_info = {
+            CALL: {
+                ...default_mock_store.modules.trade.proposal_info.CALL,
+                has_error: true,
+                error_code: 'ContractBuyValidationError',
+                message: 'This trade is temporarily unavailable.',
+            },
+            PUT: {
+                ...default_mock_store.modules.trade.proposal_info.PUT,
+                has_error: true,
+                error_code: 'ContractBuyValidationError',
+                message: 'This trade is temporarily unavailable.',
+            },
+        };
+        mockPurchaseButton();
+
+        expect(mockAddSnackbar).toHaveBeenCalledWith(
+            expect.objectContaining({
+                status: 'fail',
+                delay: ERROR_SNACKBAR_DURATION,
+            })
+        );
     });
 
     const setAccuTradeType = () => {

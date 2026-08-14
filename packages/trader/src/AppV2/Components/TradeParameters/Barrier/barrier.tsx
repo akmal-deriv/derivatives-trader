@@ -9,6 +9,7 @@ import { useDevice } from '@deriv-com/ui';
 
 import Carousel from 'AppV2/Components/Carousel';
 import CarouselHeader from 'AppV2/Components/Carousel/carousel-header';
+import { ERROR_SNACKBAR_DURATION } from 'AppV2/Utils/layout-utils';
 import { useTraderStore } from 'Stores/useTraderStores';
 
 import { TTradeParametersProps } from '../trade-parameters';
@@ -56,6 +57,7 @@ const Barrier = observer(({ is_minimized }: TTradeParametersProps) => {
                 message: mapErrorMessage(proposal_error),
                 hasCloseButton: true,
                 status: 'fail',
+                delay: ERROR_SNACKBAR_DURATION,
                 style: { marginBottom: '48px' },
             });
             setBarrierErrorShown(true);

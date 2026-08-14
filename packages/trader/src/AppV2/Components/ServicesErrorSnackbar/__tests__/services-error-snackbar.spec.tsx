@@ -6,7 +6,7 @@ import { mockStore } from '@deriv/stores';
 import { useSnackbar } from '@deriv-com/quill-ui';
 import { render } from '@testing-library/react';
 
-import { SERVICE_ERROR } from 'AppV2/Utils/layout-utils';
+import { ERROR_SNACKBAR_DURATION, SERVICE_ERROR } from 'AppV2/Utils/layout-utils';
 
 import TraderProviders from '../../../../trader-providers';
 import ServicesErrorSnackbar from '../services-error-snackbar';
@@ -54,6 +54,20 @@ describe('ServicesErrorSnackbar', () => {
         render(mockServicesErrorSnackbar());
 
         expect(mockAddSnackbar).toHaveBeenCalled();
+    });
+
+    it('passes an auto-dismiss delay to addSnackbar so the error toast does not persist forever', () => {
+        (useLocation as jest.Mock).mockReturnValue({
+            pathname: '/',
+        });
+        render(mockServicesErrorSnackbar());
+
+        expect(mockAddSnackbar).toHaveBeenCalledWith(
+            expect.objectContaining({
+                status: 'fail',
+                delay: ERROR_SNACKBAR_DURATION,
+            })
+        );
     });
 
     it('calls useSnackbar if it is a company wide limit error', () => {

@@ -82,6 +82,7 @@ export default class AutomationStore extends BaseStore {
             setStrategies: action.bound,
             setError: action.bound,
             resetError: action.bound,
+            acknowledgeStopEvent: action.bound,
             resetRunState: action.bound,
             reset: action.bound,
         });
@@ -175,6 +176,8 @@ export default class AutomationStore extends BaseStore {
         // Only for runs we start here — adopted runs use `adoptRun`.
         this.run_status = (run.contracts?.length ?? 0) > 0 ? 'running' : 'starting';
         this.last_error = null;
+        // A new run supersedes the previous run's stop announcement.
+        this.last_stop_event = null;
     }
 
     /**
@@ -288,6 +291,19 @@ export default class AutomationStore extends BaseStore {
 
     resetError() {
         this.last_error = null;
+    }
+
+    /**
+     * Marks `last_stop_event` as delivered so it is announced exactly once.
+     *
+     * The consumer (`AutomationStopSnackbar`) unmounts whenever the trader module
+     * does — e.g. a round trip to Reports — while this store is a module-level
+     * singleton that outlives it. A component-local "already shown" ref therefore
+     * cannot dedupe across remounts, and the same stop was re-announced on every
+     * return. Exactly-once delivery has to be owned here.
+     */
+    acknowledgeStopEvent() {
+        this.last_stop_event = null;
     }
 
     /**

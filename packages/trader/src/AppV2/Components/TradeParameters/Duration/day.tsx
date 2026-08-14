@@ -12,6 +12,7 @@ import { ActionSheet, Text, TextField, useSnackbar } from '@deriv-com/quill-ui';
 import { Localize } from '@deriv-com/translations';
 
 import { useProposal } from 'AppV2/Hooks/useProposal';
+import { ERROR_SNACKBAR_DURATION } from 'AppV2/Utils/layout-utils';
 import { getClosestTimeToCurrentGMT, getDatePickerStartDate } from 'AppV2/Utils/trade-params-utils';
 import { ContractType } from 'Stores/Modules/Trading/Helpers/contract-type';
 import { getBoundaries } from 'Stores/Modules/Trading/Helpers/end-time';
@@ -126,6 +127,7 @@ const DayInput = ({
                     message: <Localize i18n_default_text={mappedMessage} />,
                     status: 'fail',
                     hasCloseButton: true,
+                    delay: ERROR_SNACKBAR_DURATION,
                     style: { marginBottom: '48px' },
                 });
                 setIsDisabled(true);

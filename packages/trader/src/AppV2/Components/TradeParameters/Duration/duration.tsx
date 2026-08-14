@@ -7,6 +7,7 @@ import { useStore } from '@deriv/stores';
 import { ActionSheet, TextField, useSnackbar } from '@deriv-com/quill-ui';
 import { Localize, useTranslations } from '@deriv-com/translations';
 
+import { ERROR_SNACKBAR_DURATION } from 'AppV2/Utils/layout-utils';
 import {
     clampTimeWheelSelection,
     DURATION_TAB,
@@ -270,6 +271,7 @@ const Duration = observer(({ is_minimized }: TTradeParametersProps) => {
                     status: 'fail',
                     hasCloseButton: true,
                     hasFixedHeight: false,
+                    delay: ERROR_SNACKBAR_DURATION,
                     style: {
                         marginBottom: is_logged_in ? '48px' : '-8px',
                         width: 'calc(100% - var(--core-spacing-800)',

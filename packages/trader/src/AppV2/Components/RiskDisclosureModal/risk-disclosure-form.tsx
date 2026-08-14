@@ -3,6 +3,7 @@ import React from 'react';
 import { Button, Text, TextArea, useSnackbar } from '@deriv-com/quill-ui';
 import { Localize, useTranslations } from '@deriv-com/translations';
 
+import { ERROR_SNACKBAR_DURATION } from 'AppV2/Utils/layout-utils';
 import { normaliseDisclaimerText } from 'AppV2/Utils/risk-disclosure-constants';
 
 type TDisclosureFormProps = {
@@ -27,6 +28,7 @@ const DisclosureForm = ({ disclaimer_text, is_loading, error, onAccept, onClose 
                 message: <Localize i18n_default_text='Something went wrong. Please try again.' />,
                 status: 'fail',
                 hasCloseButton: true,
+                delay: ERROR_SNACKBAR_DURATION,
             });
         }
     }, [error]);

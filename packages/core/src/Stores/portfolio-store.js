@@ -466,6 +466,12 @@ export default class PortfolioStore extends BaseStore {
 
         this.positions[i].is_loading = false;
 
+        // Clear any stale services error (e.g. a failed sell attempt) once the contract has closed,
+        // so error toasts don't get re-triggered on the trade/contract details pages after closure.
+        if (this.root_store.common.services_error && !isEmptyObject(this.root_store.common.services_error)) {
+            this.root_store.common.resetServicesError();
+        }
+
         if (this.root_store.ui.is_mobile && getEndTime(contract_response)) {
             const contract_info = this.positions[i].contract_info;
 

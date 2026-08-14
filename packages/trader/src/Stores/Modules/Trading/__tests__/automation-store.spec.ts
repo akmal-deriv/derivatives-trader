@@ -109,3 +109,65 @@ describe('AutomationStore run-status transitions', () => {
         });
     });
 });
+
+describe('AutomationStore stop-event delivery', () => {
+    let store: AutomationStore;
+
+    const stopRun = (overrides: Partial<TAutoRun> = {}) =>
+        makeRun({
+            status: 'stopped',
+            stop_reason: 'condition_triggered',
+            stop_reason_code: 'StopLoss',
+            ...overrides,
+        } as Partial<TAutoRun>);
+
+    beforeEach(() => {
+        const root = mockStore({ client: { loginid: 'CR1' } }) as unknown as TRootStore;
+        store = new AutomationStore({ root_store: root });
+    });
+
+    it('records a stop event when a run stops on a triggered condition', () => {
+        store.onRunStarted(makeRun());
+        store.onRunUpdate(stopRun());
+
+        expect(store.last_stop_event).toEqual({
+            run_id: 'run-1',
+            stop_reason: 'condition_triggered',
+            code: 'StopLoss',
+        });
+    });
+
+    it('acknowledgeStopEvent clears the event without touching the rest of the run state', () => {
+        store.onRunStarted(makeRun());
+        store.onRunUpdate(stopRun());
+        const { run_status, active_run_id } = store;
+
+        store.acknowledgeStopEvent();
+
+        expect(store.last_stop_event).toBeNull();
+        expect(store.run_status).toBe(run_status);
+        expect(store.active_run_id).toBe(active_run_id);
+    });
+
+    it('does not re-raise an acknowledged stop event', () => {
+        // Regression (#893): the snackbar consumer unmounts with the trader module
+        // on a Reports round trip while this store survives, so an unacknowledged
+        // event was re-announced on every return.
+        store.onRunStarted(makeRun());
+        store.onRunUpdate(stopRun());
+        store.acknowledgeStopEvent();
+
+        store.onRunUpdate(stopRun());
+
+        expect(store.last_stop_event).toBeNull();
+    });
+
+    it('clears a pending stop event when a new run starts', () => {
+        store.onRunStarted(makeRun());
+        store.onRunUpdate(stopRun());
+
+        store.onRunStarted(makeRun({ run_id: 'run-2' }));
+
+        expect(store.last_stop_event).toBeNull();
+    });
+});

@@ -24,7 +24,7 @@ import { useDevice } from '@deriv-com/ui';
 import RiskDisclosureModal from 'AppV2/Components/RiskDisclosureModal';
 import useContractsFor from 'AppV2/Hooks/useContractsFor';
 import { useRiskDisclosure } from 'AppV2/Hooks/useRiskDisclosure';
-import { SERVICE_ERROR } from 'AppV2/Utils/layout-utils';
+import { ERROR_SNACKBAR_DURATION, SERVICE_ERROR } from 'AppV2/Utils/layout-utils';
 import { getTradeTypeTabsList } from 'AppV2/Utils/trade-params-utils';
 import { getDisplayedContractTypes } from 'AppV2/Utils/trade-types-utils';
 import { useTraderStore } from 'Stores/useTraderStores';
@@ -226,6 +226,7 @@ const PurchaseButton = observer(({ onPurchaseSuccess }: TPurchaseButtonProps = {
                     status: 'fail',
                     hasCloseButton: true,
                     hasFixedHeight: false,
+                    delay: ERROR_SNACKBAR_DURATION,
                     style: {
                         marginBottom: is_logged_in ? '48px' : '-8px',
                         width: 'calc(100% - var(--core-spacing-800))',

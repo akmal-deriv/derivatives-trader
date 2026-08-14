@@ -78,6 +78,11 @@ export const getChartHeight = ({
     return height;
 };
 
+// quill-ui's Snackbar arms its auto-dismiss timer only when status is 'neutral', there is no
+// close button, or an explicit delay is passed. Error snackbars ('fail' + close button) must
+// therefore always pass this delay, otherwise they persist until manually dismissed.
+export const ERROR_SNACKBAR_DURATION = 4000;
+
 export const SERVICE_ERROR = {
     INSUFFICIENT_BALANCE: 'InsufficientBalance',
     INVALID_CONTRACT_PROPOSAL: 'InvalidContractProposal',

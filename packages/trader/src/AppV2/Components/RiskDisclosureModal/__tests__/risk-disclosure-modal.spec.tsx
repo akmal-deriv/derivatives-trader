@@ -1,7 +1,9 @@
 import React from 'react';
 
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+
+import { ERROR_SNACKBAR_DURATION } from 'AppV2/Utils/layout-utils';
 
 import RiskDisclosureModal from '../risk-disclosure-modal';
 
@@ -112,7 +114,7 @@ describe('RiskDisclosureModal', () => {
         expect(screen.getByRole('button', { name: 'Continue' })).toBeEnabled();
     });
 
-    it('fires an error snackbar when the error prop becomes truthy', () => {
+    it('fires an auto-dismissing error snackbar when the error prop becomes truthy', () => {
         const { rerender } = renderModal();
         expect(mockAddSnackbar).not.toHaveBeenCalled();
 
@@ -127,5 +129,28 @@ describe('RiskDisclosureModal', () => {
             />
         );
         expect(mockAddSnackbar).toHaveBeenCalledTimes(1);
+        expect(mockAddSnackbar).toHaveBeenCalledWith(
+            expect.objectContaining({
+                status: 'fail',
+                delay: ERROR_SNACKBAR_DURATION,
+            })
+        );
+    });
+
+    it('fires an auto-dismissing error snackbar when copying the disclaimer fails', async () => {
+        const writeText = jest.fn().mockRejectedValue(new Error('clipboard unavailable'));
+        Object.assign(navigator, { clipboard: { writeText } });
+
+        renderModal();
+        await userEvent.click(screen.getByLabelText('Copy disclaimer'));
+
+        await waitFor(() =>
+            expect(mockAddSnackbar).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    status: 'fail',
+                    delay: ERROR_SNACKBAR_DURATION,
+                })
+            )
+        );
     });
 });

@@ -7,7 +7,7 @@ import { SnackbarController, useSnackbar } from '@deriv-com/quill-ui';
 import { useTranslations } from '@deriv-com/translations';
 
 import useContractDetails from 'AppV2/Hooks/useContractDetails';
-import { checkIsServiceModalError, SERVICE_ERROR } from 'AppV2/Utils/layout-utils';
+import { checkIsServiceModalError, ERROR_SNACKBAR_DURATION, SERVICE_ERROR } from 'AppV2/Utils/layout-utils';
 import { getDisplayedContractTypes } from 'AppV2/Utils/trade-types-utils';
 import { useTraderStore } from 'Stores/useTraderStores';
 
@@ -101,6 +101,7 @@ const ServicesErrorSnackbar = observer(() => {
                 status: 'fail',
                 hasCloseButton: true,
                 hasFixedHeight: false,
+                delay: ERROR_SNACKBAR_DURATION,
                 onSnackbarRemove: resetServicesError,
                 style: {
                     marginBottom: is_logged_in ? bottom_position : '-8px',

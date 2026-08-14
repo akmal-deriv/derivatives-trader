@@ -70,6 +70,13 @@ beforeEach(() => {
             contract_id: null,
             populateConfig: jest.fn(),
         },
+        common: {
+            services_error: {},
+            resetServicesError: jest.fn(),
+        },
+        ui: {
+            is_mobile: false,
+        },
     });
     mockedPortfolioStore.portfolioHandler({
         echo_req: {
@@ -124,6 +131,51 @@ describe('PortfolioStore', () => {
         expect(position.entry_spot).toBe('975.40');
         expect(typeof position.barrier).toBe('number');
         expect(position.barrier).toBe(980);
+    });
+
+    describe('populateResultDetails()', () => {
+        const getClosedContractResponse = () => ({
+            proposal_open_contract: {
+                contract_id: contracts[0].contract_id,
+                contract_type: 'MULTUP',
+                shortcode: contracts[0].shortcode,
+                bid_price: '10.50',
+                buy_price: 10,
+                profit: '0.50',
+                entry_spot: '975.40',
+                barrier: '980.00',
+                currency: 'USD',
+                date_start: contracts[0].date_start,
+                date_expiry: contracts[0].expiry_time,
+                exit_tick_time: contracts[0].date_start + 60,
+                sell_time: contracts[0].date_start + 60,
+                sell_price: '10.50',
+                is_expired: 1,
+                is_sold: 1,
+                is_valid_to_sell: 0,
+                status: 'sold',
+            },
+        });
+
+        it('should clear stale services_error when a contract closes', () => {
+            mockedPortfolioStore.root_store.common.services_error = {
+                code: 'ContractSellFailure',
+                message: 'Mock sell error',
+                type: 'sell',
+            };
+
+            mockedPortfolioStore.populateResultDetails(getClosedContractResponse());
+
+            expect(mockedPortfolioStore.root_store.common.resetServicesError).toHaveBeenCalled();
+        });
+
+        it('should not call resetServicesError when there is no services_error', () => {
+            mockedPortfolioStore.root_store.common.services_error = {};
+
+            mockedPortfolioStore.populateResultDetails(getClosedContractResponse());
+
+            expect(mockedPortfolioStore.root_store.common.resetServicesError).not.toHaveBeenCalled();
+        });
     });
 
     it('active_positions notifies observers when a position profit is updated in place', () => {

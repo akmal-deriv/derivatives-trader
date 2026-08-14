@@ -6,6 +6,7 @@ import { CONTRACT_TYPES } from '@deriv/shared';
 import { ActionSheet, CaptionText, TextField, useSnackbar } from '@deriv-com/quill-ui';
 import { Localize, localize } from '@deriv-com/translations';
 
+import { ERROR_SNACKBAR_DURATION } from 'AppV2/Utils/layout-utils';
 import { useTraderStore } from 'Stores/useTraderStores';
 
 import { AutomationLockOverlay } from '../Shared';
@@ -68,6 +69,7 @@ const LastDigitPrediction = observer(({ is_minimized, is_automation }: TTradePar
                     ),
                     status: 'fail',
                     hasCloseButton: true,
+                    delay: ERROR_SNACKBAR_DURATION,
                 });
             }
 

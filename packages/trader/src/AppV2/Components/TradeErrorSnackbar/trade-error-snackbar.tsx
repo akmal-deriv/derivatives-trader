@@ -3,14 +3,22 @@ import React from 'react';
 import { observer, useStore } from '@deriv/stores';
 import { useSnackbar } from '@deriv-com/quill-ui';
 
+import { ERROR_SNACKBAR_DURATION } from 'AppV2/Utils/layout-utils';
+
 import useTradeError, { TErrorFields } from '../../Hooks/useTradeError';
 
-// Bridges proposal errors to a snackbar. Renders nothing on purpose: every
-// `SnackbarController` portals the *same* provider queue into `document.body`, so a
-// second one stacks an identical fixed snackbar on top of the first. The lower copy
-// then swallows taps (its buttons stop receiving pointer events), which is why the
-// services-error snackbar action could look dead. AppV2's root already mounts the
-// single controller (see `ServicesErrorSnackbar`).
+/**
+ * Enqueues an auto-dismissing error snackbar whenever a BE error matching one of the passed
+ * `error_fields` is present in the proposal.
+ *
+ * Architectural note: this component only ENQUEUES snackbars via `useSnackbar` — it renders
+ * nothing on purpose. Displaying the queue requires a `SnackbarController` mounted in the same
+ * `SnackbarProvider` tree; AppV2's root already mounts the single controller (see
+ * `ServicesErrorSnackbar`, mounted in AppV2/app.tsx on every route). Do not render another
+ * `SnackbarController` here: every controller portals the *same* provider queue into
+ * `document.body`, so a second one stacks an identical fixed snackbar on top of the first,
+ * and the lower copy swallows taps (its buttons stop receiving pointer events).
+ */
 const TradeErrorSnackbar = observer(
     ({ error_fields, should_show_snackbar }: { error_fields: TErrorFields[]; should_show_snackbar?: boolean }) => {
         const {
@@ -28,6 +36,7 @@ const TradeErrorSnackbar = observer(
                     status: 'fail',
                     hasCloseButton: true,
                     hasFixedHeight: false,
+                    delay: ERROR_SNACKBAR_DURATION,
                     style: {
                         marginBottom: is_logged_in ? '48px' : '-8px',
                         width: 'calc(100% - var(--core-spacing-800)',
