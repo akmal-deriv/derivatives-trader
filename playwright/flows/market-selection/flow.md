@@ -1,48 +1,6 @@
 # 📋 Market Selection & Trade Tabs Journey Spec — What to Test
 
-> **Purpose:** Describes the Market Selection & Discovery picker and the Multiple Trade Tabs strip on
-> `staging-dtrader.deriv.com`. Defines _what_ to verify at each step. Covers redesign test plans
-> `playwright/test-plans/879-web-responsive-redesign/05-market-selection-discovery.md` (Suite 5) and
-> `06-multiple-trade-tabs.md` (Suite 6) — combined into one module because selecting a market from the
-> picker directly drives the tab strip (they are one continuous journey).
->
-> **Feature location:** `packages/trader/src/AppV2/Components/MarketSelection/` (picker) ·
-> `packages/trader/src/AppV2/Components/MarketTabs/` (tab strip)
-> **URL:** `https://staging-dtrader.deriv.com/`
-> **Authentication:** Not required anywhere in this module. Favourites (`favourite_markets_v2`) persist
-> via plain `localStorage`, independent of login state — confirmed in `markets-store.ts` — so Flow 11
-> (persistence across reload) does not need a logged-in session either, despite the original test plan
-> assuming otherwise.
->
-> **2026-08-06 update:** master PR #974 ("remove featured list in market selection modal") removed the
-> "Featured" category chip and the Trending/Gainers/Losers discovery view entirely — `show_discovery` is
-> now hardcoded `false` in `useMarketSelection.ts`. The picker now ALWAYS opens directly into the flat
-> category list (`MarketSelectionList`), scoped to the first available category for the current trade
-> type (`categories[0]`, computed from `getMarketCategories()` — no longer includes a Featured entry).
-> `DiscoveryView`/`DiscoverySection`/`MarketCard` still exist in source but are permanently unreachable
-> dead code. There is no longer a dedicated flow for this removal — it had a regression-guard test at
-> one point, but that test was removed on 2026-08-06 and the flow was removed from this doc along with
-> it (all flows below were renumbered to close the gap).
->
-> **2026-08-06 consolidation:** `verify-market-browse-and-discovery.spec.ts` was reduced from 8 `test()`
-> blocks down to 2 to cut down on redundant picker open/close cycles. Flows 1 → 2 → 13 now run as
-> sequential parts of one test (each part continues from the previous part's end state — e.g. Flow 2's
-> "replace" check starts from the tab Flow 1 just opened). Flows 3 → 5 → 6 → 4 → 12 run as sequential
-> parts of a second test, in that non-numeric order — Flow 5's category-chip check assumes Rise/Fall's
-> default category, so it must run before Flow 4 switches the trade type away from Rise/Fall. If one
-> part fails, later parts in the same test are skipped, so check earlier parts first when debugging a
-> failure here.
->
-> **2026-08-11 update:** `MarketSelectionPage` was extracted as its own composed Page Object (was
-> previously part of `TradeParametersPage`) — see `catalog.md` Section 4. `verify-trade-tabs.spec.ts`
-> was similarly consolidated from 8 `test()` blocks down to 3: Flows 14 → 15 → 16 share one test,
-> Flows 17 → 18 → 19 share another, and Flows 23 → 20 share a third. Two real bugs were found and
-> fixed during this pass: `switchToMarketTab()` was being called on an already-active tab (which has
-> special "replace" semantics — see Flow 2 — instead of being a no-op), and Flow 16's
-> independent-trade-type check used Bull Market Index for an Accumulators pairing that market doesn't
-> support (it's a "Daily reset index", limited to directional/digit trade types) — switched to
-> Volatility 100 Index, which supports all 10 trade types. `verify-trade-tabs-buy.spec.ts` (Flow 22)
-> is currently wrapped in `test.describe.skip(...)`, pending revisit.
+**Analysis date:** 2026-08-06
 
 ---
 
@@ -246,11 +204,15 @@ Follows [Open Market Selection Steps](#open-market-selection-steps) step 1b.
 
 **Prerequisites:** Enough tabs open to overflow the visible strip width (e.g. at the platform's max — see Flow 24).
 
+> Viewport split: mobile scrolls the strip horizontally (`overflow-x: auto`); desktop is
+> Chrome-style — tabs shrink to fit (`overflow: visible`), no scroll. Steps 2–3 are therefore
+> mobile-only; desktop achieves the same "everything visible" goal by shrinking/ellipsising tabs.
+
 | #   | Step                   | Action                                   | Expected Result                                                                                                                  | Platform |
 | --- | ---------------------- | ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | -------- |
 | 1   | Observe collapsed tabs | Look at inactive tabs when many are open | Inactive tabs render compact (icon-first); the ACTIVE tab alone expands to show its full market name + trade-type subtitle       | Both     |
-| 2   | Scroll the strip       | Scroll/swipe the tab list horizontally   | Strip scrolls; an edge-fade overlay appears on whichever side still has more tabs to reveal, and clears once that end is reached | Both     |
-| 3   | Activate an edge tab   | Click a tab near the scrolled-away edge  | Strip auto-scrolls to bring the newly-active tab fully into view as it expands                                                   | Both     |
+| 2   | Scroll the strip       | Scroll/swipe the tab list horizontally   | Strip scrolls; at the platform's cap it overflows the visible width (`scrollWidth > clientWidth`)                                | Mobile   |
+| 3   | Activate an edge tab   | Click a tab near the scrolled-away edge  | Strip auto-scrolls (a tweened `scrollIntoView` driven on activation) to bring the newly-active tab fully into view as it expands | Mobile   |
 
 ### Flow 21 — Tabs persist across page reload
 
@@ -262,17 +224,19 @@ Follows [Open Market Selection Steps](#open-market-selection-steps) step 1b.
 | 2   | Reload the page        | Reload `https://staging-dtrader.deriv.com/` | Page reloads; API/WebSocket settles                                                            | Both     |
 | 3   | Verify tabs restored   | Read the open tabs and active tab again     | Same tabs (same symbols + trade types, same order) and the same active tab are restored intact | Both     |
 
-### Flow 22 — Buy always targets the active tab's pair — SKIPPED
+### Flow 22 — Buy always targets the active tab's pair
 
-> The whole suite in `verify-trade-tabs-buy.spec.ts` is wrapped in `test.describe.skip(...)` as of
-> 2026-08-11 — pending revisit.
+**Prerequisites:** Logged-in account (`TEST_EMAIL_TRADE_TABS` / `TEST_EMAIL_TRADE_TABS_MOBILE` in `playwright/.env.staging`) with sufficient balance.
 
-**Prerequisites:** At least two tabs open with different markets, e.g. Tab A = 'Volatility 100 Index', Tab B = 'Bull Market Index'. Logged-in account with sufficient balance.
+> The contract type is **Accumulators** (not Rise/Fall) so the contract auto-closes once the
+> barrier is hit — no manual close step is needed. `settleAccumulatorContract({ waitForAutoSettle: true })`
+> waits for the barrier to close it, falling back to a manual close if it hasn't triggered in time.
 
-| #   | Step                           | Action                                           | Expected Result                                                                                                                          | Platform |
-| --- | ------------------------------ | ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- | -------- |
-| 1   | Set Tab B active, adjust stake | Activate Tab B, set a distinct Stake (e.g. 5.00) | Tab B is active with the new Stake; Tab A remains untouched at its own default                                                           | Both     |
-| 2   | Click Buy                      | Click the purchase button while Tab B is active  | The contract purchased matches Tab B's (symbol, contract_type) — balance change and the resulting position both reflect Tab B, not Tab A | Both     |
+| #   | Step                                 | Action                                                                                                         | Expected Result                                                                                                                          | Platform |
+| --- | ------------------------------------ | -------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| 1   | Open a distractor tab                | `selectMarketAndTradeType('Bull Market Index', 'Rise/Fall', { openInNewTab: true })`                           | A second tab opens and becomes active; its balance/positions must NOT change                                                             | Both     |
+| 2   | Buy an Accumulator on the active tab | `buyAccumulatorOnActiveTabAndVerify({ market: 'Volatility 100 Index', growthRate: '5%', stake: '5.00', ... })` | The active tab's stake is deducted exactly — proving the ACTIVE tab's (symbol, contract_type) pair was purchased, not the distractor tab | Both     |
+| 3   | Settle the accumulator               | `settleAccumulatorContract({ waitForAutoSettle: true })`                                                       | The contract closes (barrier auto-close, with manual-close fallback); no open contract is left behind                                    | Both     |
 
 ### Flow 23 — Tab icon reflects its own market
 

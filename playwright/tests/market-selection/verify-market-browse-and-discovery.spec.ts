@@ -1,6 +1,6 @@
 /**
  * @name     Market selection — browse, discovery, and picker entry mechanics
- * @id       flow-1
+ * @id       flow-1, flow-2, flow-3, flow-4, flow-5, flow-6, flow-12, flow-13
  * @flow     playwright/flows/market-selection/flow.md#flow-1--add-market-opens-the-picker-as-a-new-tab-flow
  * @coverage playwright/flows/market-selection/coverage.md
  */

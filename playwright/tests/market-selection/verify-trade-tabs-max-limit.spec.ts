@@ -19,49 +19,53 @@ const MARKET_POOL = [
     'Jump 25 Index',
 ];
 
-test.describe('Market Selection ', { tag: ['@desktop', '@mobile', '@market-selection'] }, () => {
-    test.beforeAll(async () => {
-        if (!process.env.BASE_URL) throw new Error('BASE_URL is not set in playwright/.env');
-    });
+test.describe(
+    'Market Selection',
+    { tag: ['@desktop', '@mobile', '@market-selection', '@smoke', '@production'] },
+    () => {
+        test.beforeAll(async () => {
+            if (!process.env.BASE_URL) throw new Error('BASE_URL is not set in playwright/.env');
+        });
 
-    test.beforeEach(async ({ page, tradeParametersPage }) => {
-        await TradeBasePage.seedLocalStorageOnOrigin(page);
-        await tradeParametersPage.gotoTradePage();
-    });
+        test.beforeEach(async ({ page, tradeParametersPage }) => {
+            await TradeBasePage.seedLocalStorageOnOrigin(page);
+            await tradeParametersPage.gotoTradePage();
+        });
 
-    test('VERIFY Add-market is disabled at the platform cap and recovers after closing one tab', async ({
-        tradeParametersPage,
-        marketSelectionPage,
-    }) => {
-        const max = marketSelectionPage.maxOpenMarkets;
+        test('VERIFY Add-market is disabled at the platform cap and recovers after closing one tab', async ({
+            tradeParametersPage,
+            marketSelectionPage,
+        }) => {
+            const max = marketSelectionPage.maxOpenMarkets;
 
-        // One default tab is already open — fill up to (max - 1) more.
-        for (let i = 0; i < max - 1; i++) {
-            await tradeParametersPage.selectMarketAndTradeType(MARKET_POOL[i], 'Rise/Fall', {
-                openInNewTab: true,
-            });
-        }
-        await expect(marketSelectionPage.marketTabs, `Should have ${max} tabs open at the cap`).toHaveCount(max);
+            // One default tab is already open — fill up to (max - 1) more.
+            for (let i = 0; i < max - 1; i++) {
+                await tradeParametersPage.selectMarketAndTradeType(MARKET_POOL[i], 'Rise/Fall', {
+                    openInNewTab: true,
+                });
+            }
+            await expect(marketSelectionPage.marketTabs, `Should have ${max} tabs open at the cap`).toHaveCount(max);
 
-        await expect(
-            marketSelectionPage.addMarketButton,
-            'Add-market button should report aria-disabled at the cap on both platforms'
-        ).toHaveAttribute('aria-disabled', 'true');
+            await expect(
+                marketSelectionPage.addMarketButton,
+                'Add-market button should report aria-disabled at the cap on both platforms'
+            ).toHaveAttribute('aria-disabled', 'true');
 
-        await marketSelectionPage.verifyAddMarketBlockedAtCap(max);
+            await marketSelectionPage.verifyAddMarketBlockedAtCap(max);
 
-        // Recovery: closing one tab should re-enable Add-market and allow a new tab.
-        await marketSelectionPage.removeMarketTab(MARKET_POOL[0], 'Rise/Fall');
-        await expect(marketSelectionPage.marketTabs, 'One tab should be closed').toHaveCount(max - 1);
-        await expect(
-            marketSelectionPage.addMarketButton,
-            'Add-market should be enabled again below the cap'
-        ).toHaveAttribute('aria-disabled', 'false');
+            // Recovery: closing one tab should re-enable Add-market and allow a new tab.
+            await marketSelectionPage.removeMarketTab(MARKET_POOL[0], 'Rise/Fall');
+            await expect(marketSelectionPage.marketTabs, 'One tab should be closed').toHaveCount(max - 1);
+            await expect(
+                marketSelectionPage.addMarketButton,
+                'Add-market should be enabled again below the cap'
+            ).toHaveAttribute('aria-disabled', 'false');
 
-        await tradeParametersPage.selectMarketAndTradeType('Jump 50 Index', 'Rise/Fall', { openInNewTab: true });
-        await expect(
-            marketSelectionPage.marketTabs,
-            'A new tab should be addable again, bringing the count back to the cap'
-        ).toHaveCount(max);
-    });
-});
+            await tradeParametersPage.selectMarketAndTradeType('Jump 50 Index', 'Rise/Fall', { openInNewTab: true });
+            await expect(
+                marketSelectionPage.marketTabs,
+                'A new tab should be addable again, bringing the count back to the cap'
+            ).toHaveCount(max);
+        });
+    }
+);

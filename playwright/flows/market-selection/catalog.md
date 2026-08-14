@@ -3,26 +3,24 @@
 > Source of truth: `playwright/pages/MarketSelectionPage.ts` (picker + tab strip; composed into
 > `playwright/pages/TradeParametersPage.ts` via `tradeParametersPage.marketSelectionPage` — see Section 4)
 > Source components: `packages/trader/src/AppV2/Components/MarketSelection/`, `packages/trader/src/AppV2/Components/MarketTabs/`
-> Created: 2026-08-05 | Last updated: 2026-08-11 (`MarketSelectionPage` extracted as its own composed
-> Page Object; `verify-trade-tabs.spec.ts` consolidated and two bugs fixed — see Flows 14–20, 23 and
-> Section 4)
+> Last updated: 2026-08-11
 
 ---
 
 ## Section 1 — Journey Index
 
-| Journey ID       | Spec File                                                      | Tags                                                             |
-| ---------------- | -------------------------------------------------------------- | ---------------------------------------------------------------- |
-| Flow 1–6, 12, 13 | `market-selection/verify-market-browse-and-discovery.spec.ts`  | `@market-selection @regression @desktop @mobile`                 |
-| Flow 7           | `market-selection/verify-market-info-screen.spec.ts`           | `@market-selection @regression @desktop @mobile`                 |
-| Flow 8, 9        | `market-selection/verify-market-search.spec.ts`                | `@market-selection @smoke @desktop @mobile`                      |
-| Flow 10          | `market-selection/verify-market-favourites.spec.ts`            | `@market-selection @regression @desktop @mobile`                 |
-| Flow 11          | `market-selection/verify-market-favourites.spec.ts`            | `@market-selection @regression @desktop @mobile`                 |
-| Flow 14–20, 23   | `market-selection/verify-trade-tabs.spec.ts`                   | `@market-selection @smoke @desktop @mobile`                      |
-| Flow 21          | `market-selection/verify-trade-tabs-persistence.spec.ts`       | `@market-selection @regression @desktop @mobile`                 |
-| Flow 22          | `market-selection/verify-trade-tabs-buy.spec.ts` — **skipped** | `@market-selection @trade @regression @desktop @mobile @staging` |
-| Flow 24          | `market-selection/verify-trade-tabs-max-limit.spec.ts`         | `@market-selection @regression @desktop @mobile`                 |
-| G1               | Not automated — see [`coverage.md`](./coverage.md)             | —                                                                |
+| Journey ID       | Spec File                                                     | Tags                                                    |
+| ---------------- | ------------------------------------------------------------- | ------------------------------------------------------- |
+| Flow 1–6, 12, 13 | `market-selection/verify-market-browse-and-discovery.spec.ts` | `@market-selection @regression @desktop @mobile`        |
+| Flow 7           | `market-selection/verify-market-info-screen.spec.ts`          | `@market-selection @regression @desktop @mobile`        |
+| Flow 8, 9        | `market-selection/verify-market-search.spec.ts`               | `@market-selection @smoke @production @desktop @mobile` |
+| Flow 10          | `market-selection/verify-market-favourites.spec.ts`           | `@market-selection @regression @desktop @mobile`        |
+| Flow 11          | `market-selection/verify-market-favourites.spec.ts`           | `@market-selection @regression @desktop @mobile`        |
+| Flow 14–20, 23   | `market-selection/verify-trade-tabs.spec.ts`                  | `@market-selection @smoke @production @desktop @mobile` |
+| Flow 21          | `market-selection/verify-trade-tabs-persistence.spec.ts`      | `@market-selection @regression @desktop @mobile`        |
+| Flow 22          | `market-selection/verify-trade-tabs-buy.spec.ts`              | `@market-selection @trade @regression @desktop @mobile` |
+| Flow 24          | `market-selection/verify-trade-tabs-max-limit.spec.ts`        | `@market-selection @smoke @production @desktop @mobile` |
+| G1               | Not automated — see [`coverage.md`](./coverage.md)            | —                                                       |
 
 ---
 
@@ -215,7 +213,9 @@ await expect(
     'Close control should not render with only one tab'
 ).not.toBeVisible();
 
-// Flow 20 — scroll + active/inactive sizing — visual/behavioral, assert via bounding box or scrollLeft change
+// Flow 20 — scroll + active/inactive sizing. Mobile-only scroll: assert overflow at the cap,
+// then click a scrolled-away edge tab and assert the activation-driven auto-scroll brings it into view.
+// Desktop: Chrome-style shrinking tabs (no scroll) — assert the active (expanded) tab stays in view.
 // Flow 23 — tab icon — assert distinct <svg> presence per tab, or a stable data attribute if one is added
 ```
 
@@ -228,22 +228,30 @@ await NavigationUtils.waitForDerivApiSettled(page);
 await expect(tradeParametersPage.marketTabs, 'Both tabs should be restored').toHaveCount(2);
 ```
 
-### Flow 22 — Buy targets the active tab — SKIPPED
+### Flow 22 — Buy targets the active tab
 
-> The whole suite in `verify-trade-tabs-buy.spec.ts` is wrapped in `test.describe.skip(...)` as of
-> 2026-08-11 — pending revisit.
-
-**Account setup:**
+**Account setup:** env-login (no account creation) — uses `TEST_EMAIL_TRADE_TABS` / `TEST_EMAIL_TRADE_TABS_MOBILE` from `playwright/.env.staging`:
 
 ```typescript
-const account = await createAccountV2('real', 'al', { currency: 'USD' });
+const isMobile = testInfo.project.name.includes('mobile');
+const emailVar = isMobile ? 'TEST_EMAIL_TRADE_TABS_MOBILE' : 'TEST_EMAIL_TRADE_TABS';
+const email = process.env[emailVar];
+// ...
+await loginPage.login(email); // password falls back to process.env.TEST_PASSWORD
 ```
 
 ```typescript
-await tradeParametersPage.selectMarketAndTradeType('Bull Market Index', 'Rise/Fall', { openInNewTab: true });
-await tradeParametersPage.stakeInput.fill('5');
-await tradeParametersPage.purchaseButton('Rise').click(); // reuse existing Rise/Fall purchase method if present
-// Assert balance delta is exactly -5.00 and the new position matches Bull Market Index, not the other open tab
+// Buy an Accumulator on the active tab — auto-closes when the barrier is hit (no manual close needed).
+await tradeAccumulatorsPage.buyAccumulatorOnActiveTabAndVerify({
+    accountType: 'demo', // or 'real'
+    market: 'Volatility 100 Index',
+    growthRate: '5%',
+    stake: '5.00',
+    currency: 'USD',
+});
+// Internally: opens a 'Bull Market Index' (Rise/Fall) distractor tab, then buys the Accumulator on the
+// active tab and asserts the balance dropped by exactly the stake — proving the ACTIVE pair was bought.
+// settleAccumulatorContract({ waitForAutoSettle: true }) lets the barrier auto-close it (manual fallback).
 ```
 
 ### Flow 24 — Max tab limit (4 mobile / 7 desktop)
@@ -275,13 +283,13 @@ if (!isMobileViewport) {
 | ------------------- | ----------------------------------------------------------------------------------------- |
 | `@market-selection` | All tests in this feature area (picker + tab strip)                                       |
 | `@trade`            | Additionally applied when a flow also exercises Buy (Flow 22)                             |
-| `@smoke`            | Critical path — search-and-select (Flows 8–9) and core tab mechanics (Flows 14–20, 23)    |
+| `@smoke`            | Critical path — search, core tab mechanics, and max-tab limit (Flows 8–9, 14–20, 23, 24)  |
+| `@production`       | Safe on production — no login, no balance mutation (Flows 8–9, 14–20, 23, 24)             |
 | `@regression`       | Full-coverage flows not required on every run (discovery, favourites, persistence, limit) |
-| `@staging`          | Uses account creation (`createAccountV2`) — Flow 22 only (Flow 11 needs no login)         |
 | `@desktop`          | Desktop viewport (chromium project)                                                       |
 | `@mobile`           | Mobile viewport (chromium-mobile project)                                                 |
 
-> No `@production` tag anywhere in this module — Flow 22 mutates a real account's balance/positions (currently skipped via `test.describe.skip` — see Section 1), and several other flows depend on live market/discovery data that isn't safe to assert deterministically on production.
+> Only search, core tab mechanics, and max-tab limit carry `@production`. Flow 22 mutates a real account's balance/positions, and the remaining flows depend on live discovery/favourites data that isn't safe to assert deterministically on production.
 
 ---
 

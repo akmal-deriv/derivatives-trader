@@ -6,33 +6,33 @@
 
 ## Section 1 — Coverage at a Glance
 
-| #       | Journey                                                         | Desktop | Mobile | Notes                                                                                                                                                                                                                      |
-| ------- | --------------------------------------------------------------- | ------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Flow 1  | Add market opens the picker as a new-tab flow                   | ✅      | ✅     | Verified passing on staging (desktop + mobile) — combined into the commit-mechanics test                                                                                                                                   |
-| Flow 2  | Clicking the active tab replaces it instead of adding a new one | ✅      | ✅     | Verified passing on staging — combined into the commit-mechanics test                                                                                                                                                      |
-| Flow 3  | Trade-type navigation lists the same set on both platforms      | ✅      | ✅     | Verified passing on staging — combined into the picker-browsing test                                                                                                                                                       |
-| Flow 4  | Switching trade type reloads the list to only tradeable symbols | ✅      | ✅     | Verified passing on staging — combined into the picker-browsing test                                                                                                                                                       |
-| Flow 5  | Asset-class category filter chips scope the list                | ✅      | ✅     | Verified passing on staging — combined into the picker-browsing test                                                                                                                                                       |
-| Flow 6  | Time-window dropdown is always present in the category list     | ✅      | ✅     | Verified passing on staging — combined into the picker-browsing test                                                                                                                                                       |
-| Flow 7  | Market Info screen                                              | ✅      | ✅     | Verified passing on staging (desktop + mobile), including after the mobile `dispatchEvent` fix for the Info/Favourite row buttons                                                                                          |
-| Flow 8  | Search by market name                                           | ✅      | ✅     | Verified passing on staging (desktop + mobile)                                                                                                                                                                             |
-| Flow 9  | Search with no matches                                          | ✅      | ✅     | Verified passing on staging (desktop + mobile)                                                                                                                                                                             |
-| Flow 10 | Favourite toggle from the browse list                           | ✅      | ✅     | Verified passing on staging (desktop + mobile), including after the mobile search-exit fix                                                                                                                                 |
-| Flow 11 | Favourites persist across a page reload                         | ✅      | ✅     | Verified passing on staging (desktop + mobile). No login required — `favourite_markets_v2` is plain localStorage                                                                                                           |
-| Flow 12 | Guide affordance opens the trade-type description modal         | 🟡      | 🟡     | Prior pass only covered step 1-2 (opening the modal) — step 3 (switching a trade-type chip inside the Guide) had no POM support at all until now; new locators/assertions added, needs re-verification                     |
-| Flow 13 | Close without selecting                                         | ✅      | ✅     | Verified passing on staging — combined into the commit-mechanics test                                                                                                                                                      |
-| Flow 14 | Switch between existing tabs                                    | ✅      | ✅     | Verified passing on staging (desktop + mobile), including after the already-active-tab click fix                                                                                                                           |
-| Flow 15 | Re-selecting an already-open pair focuses the existing tab      | ✅      | ✅     | Verified passing on staging (desktop + mobile)                                                                                                                                                                             |
-| Flow 16 | Same market, different trade type are independent tabs          | ✅      | ✅     | Verified passing on staging (desktop + mobile), including after the Volatility 100 Index (Accumulators) fix                                                                                                                |
-| Flow 17 | Remove a non-active tab                                         | ✅      | ✅     | Verified passing on staging (desktop + mobile). `removeMarketTab()` activates the non-active target first on mobile (its close control sits behind its content until activated)                                            |
-| Flow 18 | Remove the active tab falls back to an adjacent tab             | ✅      | ✅     | Verified passing on staging (desktop + mobile), in the same run that confirmed Flow 17                                                                                                                                     |
-| Flow 19 | Remove the last remaining tab is blocked                        | ✅      | ✅     | Verified passing on staging (desktop + mobile)                                                                                                                                                                             |
-| Flow 20 | Tab strip scroll and active/inactive tab sizing                 | 🟡      | 🟡     | Prior desktop pass was against code with a silent early-return that could skip the scroll assertions on a borderline-width viewport — now opens up to the platform cap and asserts overflow instead; needs re-verification |
-| Flow 21 | Tabs persist across page reload                                 | ✅      | ✅     | Verified passing on staging (desktop + mobile) (`verify-trade-tabs-persistence.spec.ts`)                                                                                                                                   |
-| Flow 22 | Buy always targets the active tab's pair                        | ⏭️      | ⏭️     | Skipped — whole suite wrapped in `test.describe.skip(...)` in `verify-trade-tabs-buy.spec.ts` (2026-08-11), pending revisit                                                                                                |
-| Flow 23 | Tab icon reflects its own market                                | 🟡      | 🟡     | Spec written — pending verification run                                                                                                                                                                                    |
-| Flow 24 | Max tab limit enforced (4 mobile / 7 desktop)                   | ✅      | ✅     | Verified passing on staging (desktop + mobile), including after the mobile `aria-disabled` force-click fix. Confirmed intentional platform-specific caps — not a bug                                                       |
-| G1      | No trade parameter is tab-scoped except (symbol, contract_type) | ❌      | ❌     | Documented gap only — not automated, per plan                                                                                                                                                                              |
+| #       | Journey                                                         | Desktop | Mobile | Notes                                         |
+| ------- | --------------------------------------------------------------- | ------- | ------ | --------------------------------------------- |
+| Flow 1  | Add market opens the picker as a new-tab flow                   | ✅      | ✅     |                                               |
+| Flow 2  | Clicking the active tab replaces it instead of adding a new one | ✅      | ✅     |                                               |
+| Flow 3  | Trade-type navigation lists the same set on both platforms      | ✅      | ✅     |                                               |
+| Flow 4  | Switching trade type reloads the list to only tradeable symbols | ✅      | ✅     |                                               |
+| Flow 5  | Asset-class category filter chips scope the list                | ✅      | ✅     |                                               |
+| Flow 6  | Time-window dropdown is always present in the category list     | ✅      | ✅     |                                               |
+| Flow 7  | Market Info screen                                              | ✅      | ✅     |                                               |
+| Flow 8  | Search by market name                                           | ✅      | ✅     |                                               |
+| Flow 9  | Search with no matches                                          | ✅      | ✅     |                                               |
+| Flow 10 | Favourite toggle from the browse list                           | ✅      | ✅     |                                               |
+| Flow 11 | Favourites persist across a page reload                         | ✅      | ✅     |                                               |
+| Flow 12 | Guide affordance opens the trade-type description modal         | ✅      | ✅     |                                               |
+| Flow 13 | Close without selecting                                         | ✅      | ✅     |                                               |
+| Flow 14 | Switch between existing tabs                                    | ✅      | ✅     |                                               |
+| Flow 15 | Re-selecting an already-open pair focuses the existing tab      | ✅      | ✅     |                                               |
+| Flow 16 | Same market, different trade type are independent tabs          | ✅      | ✅     |                                               |
+| Flow 17 | Remove a non-active tab                                         | ✅      | ✅     |                                               |
+| Flow 18 | Remove the active tab falls back to an adjacent tab             | ✅      | ✅     |                                               |
+| Flow 19 | Remove the last remaining tab is blocked                        | ✅      | ✅     |                                               |
+| Flow 20 | Tab strip scroll and active/inactive tab sizing                 | ✅      | ✅     |                                               |
+| Flow 21 | Tabs persist across page reload                                 | ✅      | ✅     |                                               |
+| Flow 22 | Buy always targets the active tab's pair                        | ✅      | ✅     |                                               |
+| Flow 23 | Tab icon reflects its own market                                | ✅      | ✅     |                                               |
+| Flow 24 | Max tab limit enforced (4 mobile / 7 desktop)                   | ✅      | ✅     |                                               |
+| G1      | No trade parameter is tab-scoped except (symbol, contract_type) | ❌      | ❌     | Documented gap only — not automated, per plan |
 
 ---
 
@@ -43,19 +43,3 @@
 | G1  | No trade parameter (Stake, Duration, Barrier, etc.) persists per tab — only `{symbol, contract_type}` is tab-scoped by architecture (`TOpenMarket`). Broader/corrected framing of the original "Stake persistence bug" (TABS-03) — file against engineering as a systemic gap, not Stake-only. | `market-selection/verify-trade-tabs-param-isolation.spec.ts` (not yet written — pending a product decision on whether params SHOULD be tab-scoped) |
 
 > Step-by-step test cases for each gap: [`flow.md — Gap Flows`](./flow.md#gap-flows)
-
----
-
-## Section 3 — Priority List
-
-| Priority | Spec file                                                     | Flow             | Reason                                                                                                                |
-| -------- | ------------------------------------------------------------- | ---------------- | --------------------------------------------------------------------------------------------------------------------- |
-| P0       | `market-selection/verify-trade-tabs.spec.ts`                  | Flow 14–20, 23   | Core tab mechanics — every trader touches this; redesign's flagship new capability                                    |
-| P0       | `market-selection/verify-market-search.spec.ts`               | Flow 8–9         | Search is the primary reliable path to any of ~65 markets                                                             |
-| P1       | `market-selection/verify-market-browse-and-discovery.spec.ts` | Flow 1–6, 12, 13 | Entry mechanics + discovery browsing — high traffic, first-run UX                                                     |
-| P1       | `market-selection/verify-trade-tabs-max-limit.spec.ts`        | Flow 24          | Platform-specific caps now confirmed intentional — good regression guard                                              |
-| P1       | `market-selection/verify-trade-tabs-buy.spec.ts`              | Flow 22          | Confirms Buy targets the correct tab — financially significant if wrong. **Currently skipped** (`test.describe.skip`) |
-| P2       | `market-selection/verify-market-info-screen.spec.ts`          | Flow 7           | Secondary discovery surface, not required for a purchase                                                              |
-| P2       | `market-selection/verify-market-favourites.spec.ts`           | Flow 10–11       | Convenience feature, not blocking a trade                                                                             |
-| P2       | `market-selection/verify-trade-tabs-persistence.spec.ts`      | Flow 21          | Important but only observable across a reload                                                                         |
-| P3       | (folded into browse-and-discovery)                            | Flow 12 (Guide)  | Informational only, low risk of regression                                                                            |

@@ -5,7 +5,7 @@ This folder contains plain-English journey specifications, coverage scorecards, 
 
 Updated when new flows are added, tests are implemented, or coverage status changes.
 
-Last updated: 2026-08-06
+Last updated: 2026-08-13
 
 ---
 
@@ -43,8 +43,8 @@ Each module section lists every documented flow with its current **status** and 
 | `auth`             | 3           | 3          | 3         |
 | `automation`       | 9           | 9          | 6         |
 | `feed`             | 1           | 1          | 1         |
-| `market-selection` | 26          | 26         | 2         |
-| **Total**          | **101**     | **101**    | **39**    |
+| `market-selection` | 25          | 25         | 24        |
+| **Total**          | **100**     | **100**    | **61**    |
 
 > Status advances: `documented` → `automated`
 
@@ -197,47 +197,46 @@ Each module section lists every documented flow with its current **status** and 
 
 **Flow docs:** `playwright/flows/market-selection/` · **Test folder:** `playwright/tests/market-selection/`
 
-| Flow    | Priority | Description                                                           | User State            | Status       |
-| ------- | -------- | --------------------------------------------------------------------- | --------------------- | ------------ |
-| Flow 1  | P1       | Add market opens the picker as a new-tab flow                         | unauthenticated       | `documented` |
-| Flow 2  | P1       | Clicking the active tab replaces it instead of adding a new one       | unauthenticated       | `documented` |
-| Flow 3  | P1       | Trade-type navigation lists the same set on both platforms            | unauthenticated       | `documented` |
-| Flow 4  | P1       | Switching trade type reloads the list to only tradeable symbols       | unauthenticated       | `documented` |
-| Flow 5  | P1       | Asset-class category filter chips scope the list                      | unauthenticated       | `documented` |
-| Flow 6  | P1       | Featured/Discovery view removed (regression guard)                    | unauthenticated       | `documented` |
-| Flow 7  | P2       | Time-window dropdown is always present in the category list           | unauthenticated       | `documented` |
-| Flow 8  | P2       | Market Info screen                                                    | unauthenticated       | `documented` |
-| Flow 9  | P0       | Search by market name                                                 | unauthenticated       | `automated`  |
-| Flow 10 | P1       | Search with no matches                                                | unauthenticated       | `automated`  |
-| Flow 11 | P2       | Favourite toggle from the browse list                                 | unauthenticated       | `documented` |
-| Flow 12 | P2       | Favourites persist across a page reload                               | unauthenticated       | `documented` |
-| Flow 13 | P3       | Guide affordance opens the trade-type description modal               | unauthenticated       | `documented` |
-| Flow 14 | P1       | Close without selecting                                               | unauthenticated       | `documented` |
-| Flow 15 | P0       | Switch between existing tabs                                          | unauthenticated       | `documented` |
-| Flow 16 | P0       | Re-selecting an already-open pair focuses the existing tab            | unauthenticated       | `documented` |
-| Flow 17 | P0       | Same market, different trade type are independent tabs                | unauthenticated       | `documented` |
-| Flow 18 | P0       | Remove a non-active tab                                               | unauthenticated       | `documented` |
-| Flow 19 | P0       | Remove the active tab falls back to an adjacent tab                   | unauthenticated       | `documented` |
-| Flow 20 | P0       | Remove the last remaining tab is blocked                              | unauthenticated       | `documented` |
-| Flow 21 | P1       | Tab strip scroll and active/inactive tab sizing                       | unauthenticated       | `documented` |
-| Flow 22 | P2       | Tabs persist across page reload                                       | unauthenticated       | `documented` |
-| Flow 23 | P1       | Buy always targets the active tab's pair                              | authenticated, funded | `documented` |
-| Flow 24 | P0       | Tab icon reflects its own market                                      | unauthenticated       | `documented` |
-| Flow 25 | P1       | Max tab limit enforced (4 mobile / 7 desktop) — confirmed intentional | unauthenticated       | `documented` |
-| —       | —        | No trade parameter is tab-scoped except (symbol, contract_type) (G1)  | unauthenticated       | `documented` |
+| Flow    | Priority | Description                                                          | User State            | Status       |
+| ------- | -------- | -------------------------------------------------------------------- | --------------------- | ------------ |
+| Flow 1  | P1       | Add market opens the picker as a new-tab flow                        | unauthenticated       | `automated`  |
+| Flow 2  | P1       | Clicking the active tab replaces it instead of adding a new one      | unauthenticated       | `automated`  |
+| Flow 3  | P1       | Trade-type navigation lists the same set on both platforms           | unauthenticated       | `automated`  |
+| Flow 4  | P1       | Switching trade type reloads the list to only tradeable symbols      | unauthenticated       | `automated`  |
+| Flow 5  | P1       | Asset-class category filter chips scope the list                     | unauthenticated       | `automated`  |
+| Flow 6  | P1       | Time-window dropdown is always present in the category list          | unauthenticated       | `automated`  |
+| Flow 7  | P2       | Market Info screen                                                   | unauthenticated       | `automated`  |
+| Flow 8  | P0       | Search by market name                                                | unauthenticated       | `automated`  |
+| Flow 9  | P0       | Search with no matches                                               | unauthenticated       | `automated`  |
+| Flow 10 | P2       | Favourite toggle from the browse list                                | unauthenticated       | `automated`  |
+| Flow 11 | P2       | Favourites persist across a page reload                              | unauthenticated       | `automated`  |
+| Flow 12 | P3       | Guide affordance opens the trade-type description modal              | unauthenticated       | `automated`  |
+| Flow 13 | P1       | Close without selecting                                              | unauthenticated       | `automated`  |
+| Flow 14 | P0       | Switch between existing tabs                                         | unauthenticated       | `automated`  |
+| Flow 15 | P0       | Re-selecting an already-open pair focuses the existing tab           | unauthenticated       | `automated`  |
+| Flow 16 | P0       | Same market, different trade type are independent tabs               | unauthenticated       | `automated`  |
+| Flow 17 | P0       | Remove a non-active tab                                              | unauthenticated       | `automated`  |
+| Flow 18 | P0       | Remove the active tab falls back to an adjacent tab                  | unauthenticated       | `automated`  |
+| Flow 19 | P0       | Remove the last remaining tab is blocked                             | unauthenticated       | `automated`  |
+| Flow 20 | P0       | Tab strip scroll and active/inactive tab sizing                      | unauthenticated       | `automated`  |
+| Flow 21 | P2       | Tabs persist across page reload                                      | unauthenticated       | `automated`  |
+| Flow 22 | P1       | Buy always targets the active tab's pair                             | authenticated, funded | `automated`  |
+| Flow 23 | P0       | Tab icon reflects its own market                                     | unauthenticated       | `automated`  |
+| Flow 24 | P0       | Max tab limit enforced (4 mobile / 7 desktop)                        | unauthenticated       | `automated`  |
+| —       | —        | No trade parameter is tab-scoped except (symbol, contract_type) (G1) | unauthenticated       | `documented` |
 
 ---
 
 ## Implementation Priority Order
 
-| Priority | Module             | Key Flows to Implement First                                                                                               |
-| -------- | ------------------ | -------------------------------------------------------------------------------------------------------------------------- |
-| **Now**  | `trade`            | Flow 9.7/9.8 (Deal Cancellation) + Flow 11.1/11.2 (Vanillas)                                                               |
-| **Now**  | `market-selection` | Flow 9–10 (search) done — verify Flow 15–21, 24 (core tab mechanics) next, then the remaining written-but-unverified specs |
-| **Now**  | `positions`        | Flow 1 (open positions mobile), Flow 2 (desktop flyout)                                                                    |
-| **Next** | `reports`          | Flow 1 (page load), Flow 5 (Trade Table), Flow 6 (Statement)                                                               |
-| **Next** | `notifications`    | Flow 3 (bell → dialog desktop), Flow 4 (bell → modal mobile), Flow 1 (trade banner)                                        |
-| **Soon** | `automation`       | Flow 5 (resync after account switch) + G1 (already-running snackbar) + G2 (validation)                                     |
+| Priority | Module             | Key Flows to Implement First                                                        |
+| -------- | ------------------ | ----------------------------------------------------------------------------------- |
+| **Now**  | `trade`            | Flow 9.7/9.8 (Deal Cancellation) + Flow 11.1/11.2 (Vanillas)                        |
+| **Now**  | `positions`        | Flow 1 (open positions mobile), Flow 2 (desktop flyout)                             |
+| **Next** | `reports`          | Flow 1 (page load), Flow 5 (Trade Table), Flow 6 (Statement)                        |
+| **Next** | `notifications`    | Flow 3 (bell → dialog desktop), Flow 4 (bell → modal mobile), Flow 1 (trade banner) |
+| **Soon** | `automation`       | Flow 7 (EU gating) + G1 (already-running snackbar) + G2 (validation)                |
+| **Done** | `market-selection` | Flows 1–24 automated; G1 remains a product gap (tab-scoped params not built yet)    |
 
 ---
 

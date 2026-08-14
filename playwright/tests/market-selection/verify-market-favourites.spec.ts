@@ -1,6 +1,6 @@
 /**
  * @name     Market selection — favourite toggle and persistence across reload
- * @id       flow-10
+ * @id       flow-10, flow-11
  * @flow     playwright/flows/market-selection/flow.md#flow-10--favourite-toggle-from-the-browse-list
  * @coverage playwright/flows/market-selection/coverage.md
  */

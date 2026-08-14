@@ -651,47 +651,6 @@ export class TradeParametersPage extends TradeBasePage {
     }
 
     /**
-     * Buy a Rise/Fall contract on a NEW tab and confirm the balance deducts exactly the given
-     * stake — the strongest available signal that the currently ACTIVE tab's (symbol,
-     * contract_type) pair was purchased, not any other open tab. Opens the new tab itself so
-     * the caller doesn't need to pre-open one and track which tab ends up active.
-     *
-     * @param options.accountType - 'real' or 'demo' — the account created in beforeAll is real by default.
-     * @param options.stake - Stake amount, e.g. '5.00'.
-     * @param options.currency - Account currency, e.g. 'USD' (used only for context, not asserted here).
-     *
-     * @example
-     * ```typescript
-     * await tradeParametersPage.buyOnActiveTabAndVerify({ accountType: 'demo', stake: '5.00', currency: 'USD' });
-     * ```
-     */
-    async buyOnActiveTabAndVerify({
-        accountType,
-        stake,
-        currency,
-    }: {
-        accountType: 'real' | 'demo';
-        stake: string;
-        currency: string;
-    }): Promise<void> {
-        await this.switchToAccountType(accountType);
-        await expect(this.balance, `Active account should be trading in ${currency}`).toContainText(currency);
-
-        // Open a second tab so there is another open market whose balance/positions must NOT change.
-        await this.selectMarketAndTradeType('Bull Market Index', 'Rise/Fall', { openInNewTab: true });
-        await expect(this.activeMarketTab, 'Bull Market Index should be the active (new) tab').toContainText(
-            'Bull Market Index'
-        );
-
-        await this.riseButton.click();
-        await this.setStake(stake);
-        const balanceBefore = await this.getBalance();
-        await this.clickBuy();
-
-        await this.verifyBalanceAfterContractPurchase(balanceBefore, stake);
-    }
-
-    /**
      * Select a duration by unit and preset chip value.
      * Opens the duration popover, switches to the given unit (desktop only — unit sidebar),
      * then clicks the matching preset chip.

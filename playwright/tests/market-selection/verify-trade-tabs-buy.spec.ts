@@ -6,42 +6,52 @@
  */
 import { test } from '../../fixtures/fixtures';
 import { TradeBasePage } from '../../pages/TradeBasePage';
-import { createAccountV2viaJS } from '../../utils';
 
 let accountEmail: string = undefined!;
-let accountPassword: string = undefined!;
 
-// Skipped for now — revisit later.
-test.describe.skip('Market Selection', { tag: ['@desktop', '@mobile', '@market-selection'] }, () => {
-    test.describe.configure({ mode: 'serial' });
+test.describe(
+    'Market Selection',
+    { tag: ['@desktop', '@mobile', '@market-selection', '@trade', '@regression'] },
+    () => {
+        test.describe.configure({ mode: 'serial' });
 
-    test.beforeAll(async ({}, testInfo) => {
-        const isMobile = testInfo.project.name.includes('mobile');
-        const emailVar = isMobile ? 'TEST_EMAIL_TRADE_TABS_MOBILE' : 'TEST_EMAIL_TRADE_TABS';
+        test.beforeAll(async ({}, testInfo) => {
+            const isMobile = testInfo.project.name.includes('mobile');
+            const emailVar = isMobile ? 'TEST_EMAIL_TRADE_TABS_MOBILE' : 'TEST_EMAIL_TRADE_TABS';
+            const email = process.env[emailVar];
 
-        const account = await createAccountV2viaJS('real', {
-            currency: 'USD',
-            trading: true,
-            backupAccount: process.env[emailVar],
+            if (!email) throw new Error(`${emailVar} is not set in playwright/.env`);
+
+            accountEmail = email;
         });
-        accountEmail = account.email;
-        accountPassword = account.password;
-    });
 
-    test.beforeEach(async ({ page, loginPage }) => {
-        await TradeBasePage.seedLocalStorageOnOrigin(page);
-        await loginPage.login(accountEmail, accountPassword);
-    });
+        test.beforeEach(async ({ page, loginPage }) => {
+            await TradeBasePage.seedLocalStorageOnOrigin(page);
+            await loginPage.login(accountEmail);
+        });
 
-    test('VERIFY Buy purchases the active tab, not another open tab (Demo Account)', async ({
-        tradeParametersPage,
-    }) => {
-        await tradeParametersPage.buyOnActiveTabAndVerify({ accountType: 'demo', stake: '5.00', currency: 'USD' });
-    });
+        test('VERIFY Buy purchases the active tab, not another open tab (Demo Account)', async ({
+            tradeAccumulatorsPage,
+        }) => {
+            await tradeAccumulatorsPage.buyAccumulatorOnActiveTabAndVerify({
+                accountType: 'demo',
+                market: 'Volatility 100 Index',
+                growthRate: '5%',
+                stake: '5.00',
+                currency: 'USD',
+            });
+        });
 
-    test('VERIFY Buy purchases the active tab, not another open tab (Real Account)', async ({
-        tradeParametersPage,
-    }) => {
-        await tradeParametersPage.buyOnActiveTabAndVerify({ accountType: 'real', stake: '5.00', currency: 'USD' });
-    });
-});
+        test('VERIFY Buy purchases the active tab, not another open tab (Real Account)', async ({
+            tradeAccumulatorsPage,
+        }) => {
+            await tradeAccumulatorsPage.buyAccumulatorOnActiveTabAndVerify({
+                accountType: 'real',
+                market: 'Volatility 100 Index',
+                growthRate: '5%',
+                stake: '5.00',
+                currency: 'USD',
+            });
+        });
+    }
+);

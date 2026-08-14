@@ -275,4 +275,63 @@ export class TradeAccumulatorsPage extends TradeParametersPage {
         );
         await this.reportsPage.closeReports();
     }
+
+    /**
+     * Buy an Accumulators contract on a NEW tab and confirm the balance deducts exactly the given
+     * stake — the strongest available signal that the currently ACTIVE tab's (symbol,
+     * contract_type) pair was purchased, not any other open tab. Opens the new tab itself so the
+     * caller doesn't need to pre-open one and track which tab ends up active.
+     *
+     * Uses Accumulators (not Rise/Fall) so the contract auto-closes once the barrier is hit — no
+     * manual close step is needed. `settleAccumulatorContract({ waitForAutoSettle: true })` waits
+     * for the barrier to close it, falling back to a manual close if it hasn't triggered in time.
+     *
+     * @param options.accountType - 'real' or 'demo'.
+     * @param options.market     - Market supporting Accumulators (e.g. 'Volatility 100 Index').
+     * @param options.growthRate - Growth rate label (e.g. '5%').
+     * @param options.stake      - Stake amount, e.g. '5.00'.
+     * @param options.currency   - Account currency, e.g. 'USD' (used only for context, not asserted here).
+     *
+     * @example
+     * ```typescript
+     * await tradeAccumulatorsPage.buyAccumulatorOnActiveTabAndVerify({
+     *     accountType: 'demo', market: 'Volatility 100 Index', growthRate: '5%', stake: '5.00', currency: 'USD',
+     * });
+     * ```
+     */
+    async buyAccumulatorOnActiveTabAndVerify({
+        accountType,
+        market,
+        growthRate,
+        stake,
+        currency,
+    }: {
+        accountType: 'real' | 'demo';
+        market: string;
+        growthRate: string;
+        stake: string;
+        currency: string;
+    }): Promise<void> {
+        await this.switchToAccountType(accountType);
+        await expect(this.balance, `Active account should be trading in ${currency}`).toContainText(currency);
+
+        // Open a second tab so there is another open market whose balance/positions must NOT change.
+        await this.selectMarketAndTradeType('Bull Market Index', 'Rise/Fall', { openInNewTab: true });
+        await expect(this.activeMarketTab, 'Bull Market Index should be the active (new) tab').toContainText(
+            'Bull Market Index'
+        );
+
+        // Switch the ACTIVE tab to an Accumulators market and buy there.
+        await this.selectMarketAndTradeType(market, 'Accumulators');
+        await this.setGrowthRate(growthRate);
+        await this.setStake(stake);
+        const balanceBefore = await this.getBalance();
+        await this.clickAccumulatorsBuy();
+
+        // The active tab's stake was deducted — proves the Accumulators pair was purchased.
+        await this.verifyBalanceAfterContractPurchase(balanceBefore, stake);
+
+        // Let the barrier auto-close it (manual close as fallback) so no open contract is left behind.
+        await this.settleAccumulatorContract({ waitForAutoSettle: true });
+    }
 }
