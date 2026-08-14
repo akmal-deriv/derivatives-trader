@@ -337,4 +337,15 @@ describe('trade-types-utils', () => {
             ]);
         });
     });
+
+    describe('AVAILABLE_CONTRACTS badges', () => {
+        it('does not show the x500 badge on Multipliers now that multiple leverage options exist', () => {
+            const multipliers = AVAILABLE_CONTRACTS.find(c => c.tradeType === 'Multipliers');
+            expect(multipliers?.badge).toBeUndefined();
+        });
+
+        it('defines no badge on any trade type', () => {
+            expect(AVAILABLE_CONTRACTS.every(c => c.badge === undefined)).toBe(true);
+        });
+    });
 });

@@ -104,7 +104,6 @@ export const AVAILABLE_CONTRACTS: TAvailableContract[] = [
         id: CONTRACT_LIST.MULTIPLIERS,
         for: [TRADE_TYPES.MULTIPLIER],
         is_popular: true,
-        badge: 'x500',
         category: 'growth_based',
         tooltip: <Localize i18n_default_text='Leveraged trading with risk controls.' />,
     },
