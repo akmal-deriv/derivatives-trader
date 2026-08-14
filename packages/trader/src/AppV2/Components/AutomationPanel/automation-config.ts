@@ -124,7 +124,7 @@ export const getParamDescription = (strategy_id: string, key: string): string | 
         martingale: {
             [KNOWN_PARAM_KEYS.INITIAL_STAKE]: localize('Stake used for the first contract and after a win.'),
             [KNOWN_PARAM_KEYS.MAX_STAKE]: localize(
-                'Upper limit for stake multiplying. Must be >= initial_stake. If omitted, there is no upper limit.'
+                'Upper limit for stake multiplying. Must be at least your stake amount. If empty, there is no upper limit.'
             ),
         },
         dalembert: {
@@ -132,7 +132,7 @@ export const getParamDescription = (strategy_id: string, key: string): string | 
                 'Stake used for the first contract. The stake never falls below this value.'
             ),
             [KNOWN_PARAM_KEYS.MAX_STAKE]: localize(
-                'Upper limit for the stake. Must be >= initial_stake. If the next calculated stake exceeds this value the stake resets to initial_stake.'
+                'Upper limit for the stake. Must be at least your stake amount. If the next stake would exceed it, the stake resets to your stake amount.'
             ),
         },
     };
