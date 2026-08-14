@@ -79,12 +79,25 @@
     }
 }
 
-// Temp Solution for hiding the current date will remove once the flag for disabling
-// current date is functional
+// Overrides for the quill DatePicker rendered inside the "Pick an end date" action sheet
 .duration-datepicker {
-    height: 90dvh;
+    // No explicit height: the action sheet (max-height 90dvh, overflow-y auto) must hug the
+    // calendar. A fixed height here left ~250-400px of dead space above the Done button.
     .react-calendar__viewContainer {
         overflow-y: visible;
+        // Quill sizes this box with aspect-ratio 1.12, which reserves ~5.2 rows and then grows
+        // for 6-row months — i.e. the sheet height changed between months. Space is reserved on
+        // the day grid instead (below), so this box can simply hug weekdays + grid.
+        aspect-ratio: auto;
+    }
+    // Reserve exactly 6 week rows (tiles are 1/7 of the width and square, so 7 / 6 == the
+    // height of 6 rows). Keeps the sheet height identical for 4-, 5- and 6-row months without
+    // reserving more than a single extra row of space.
+    .react-calendar__month-view__days {
+        aspect-ratio: 7 / 6;
+        // Without this the default `align-content: stretch` would stretch the week rows of
+        // short months to fill the reserved height, turning the day tiles into ovals.
+        align-content: flex-start;
     }
     .react-calendar__navigation__label {
         pointer-events: none;
