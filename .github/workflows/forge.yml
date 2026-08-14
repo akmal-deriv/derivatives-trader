@@ -222,12 +222,12 @@ jobs:
         # So: invoke claude directly and print everything. Runs before the repo's
         # dependency install so auth failures surface in ~1 min, not ~10.
         env:
-          # Gateway auth. ANTHROPIC_API_KEY holds the LiteLLM SA key, so it is
-          # passed as ANTHROPIC_AUTH_TOKEN (the gateway bearer) and NOT as
+          # Gateway auth. FORGE_API_KEY is Forge's own LiteLLM SA key, passed as
+          # ANTHROPIC_AUTH_TOKEN (the gateway bearer) and deliberately NOT as
           # ANTHROPIC_API_KEY — that variable makes Claude Code talk to
-          # api.anthropic.com directly, where this key is rejected as
-          # "Invalid API key". Same secret, different variable, different route.
-          ANTHROPIC_AUTH_TOKEN: ${{ secrets.ANTHROPIC_API_KEY }}
+          # api.anthropic.com directly, where a gateway key is rejected as
+          # "Invalid API key". Same key, different variable, different route.
+          ANTHROPIC_AUTH_TOKEN: ${{ secrets.FORGE_API_KEY }}
         run: |
           set -uo pipefail
           echo "base_url: ${ANTHROPIC_BASE_URL:-<unset>} | model: ${ANTHROPIC_MODEL:-<unset>}"
@@ -259,10 +259,10 @@ jobs:
         id: forge
         env:
           # ANTHROPIC_BASE_URL and ANTHROPIC_MODEL come from the "Resolve the LLM
-          # gateway" step via $GITHUB_ENV. The SA key is passed as the gateway
+          # gateway" step via $GITHUB_ENV. Forge's SA key is passed as the gateway
           # bearer only — see the preflight step for why it must not be exported
           # as ANTHROPIC_API_KEY.
-          ANTHROPIC_AUTH_TOKEN: ${{ secrets.ANTHROPIC_API_KEY }}
+          ANTHROPIC_AUTH_TOKEN: ${{ secrets.FORGE_API_KEY }}
           GH_TOKEN: ${{ steps.repo-token.outputs.token }}
           GITHUB_TOKEN: ${{ steps.repo-token.outputs.token }}
           ISSUE_URL: ${{ github.event.issue.html_url }}
