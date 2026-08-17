@@ -256,6 +256,24 @@
     }
 }
 
+.description-loader {
+    display: flex;
+    flex-direction: column;
+    gap: var(--component-actionSheet-spacing-padding-md);
+
+    &__line {
+        width: 100%;
+        border-radius: var(--core-borderRadius-200);
+    }
+
+    &__video {
+        width: 32rem;
+        height: 20.8rem;
+        margin-inline: auto;
+        border-radius: var(--core-borderRadius-400);
+    }
+}
+
 .video-fragment {
     &__wrapper {
         display: flex;
@@ -265,10 +283,7 @@
         height: 20.8rem;
         position: relative;
         margin-inline: auto;
-
-        &--accumulator {
-            margin-block-end: var(--component-actionSheet-spacing-padding-sm);
-        }
+        margin-block-end: var(--component-actionSheet-spacing-padding-sm);
 
         .skeleton-video-loader {
             position: absolute;

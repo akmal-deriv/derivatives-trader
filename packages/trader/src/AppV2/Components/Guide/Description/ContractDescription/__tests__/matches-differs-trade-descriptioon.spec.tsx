@@ -5,6 +5,11 @@ import { render, screen } from '@testing-library/react';
 import MatchesDiffersTradeDescription from '../matches-differs-trade-description';
 import { CONTRACT_LIST } from 'AppV2/Utils/trade-types-utils';
 
+jest.mock('@deriv/stores', () => ({
+    ...jest.requireActual('@deriv/stores'),
+    useStore: () => ({ ui: { is_dark_mode_on: false } }),
+}));
+
 jest.mock('@lottiefiles/dotlottie-react', () => ({
     DotLottieReact: jest.fn(() => <div>DotLottieReact</div>),
 }));

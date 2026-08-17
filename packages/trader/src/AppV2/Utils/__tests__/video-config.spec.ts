@@ -1,4 +1,4 @@
-import { DESCRIPTION_VIDEO_ID, getDescriptionVideoId } from '../video-config';
+import { DESCRIPTION_VIDEO_ID, getContractDescriptionAnimationSrc, getDescriptionVideoId } from '../video-config';
 
 describe('getDescriptionVideoId', () => {
     it('should return an id for Vanillas description video in light theme', () => {
@@ -33,5 +33,22 @@ describe('getDescriptionVideoId', () => {
     });
     it('should return undefined when called with empty arguments', () => {
         expect(getDescriptionVideoId()).toEqual(undefined);
+    });
+});
+
+describe('getContractDescriptionAnimationSrc', () => {
+    it('should return the light .lottie path when is_dark_theme is false', () => {
+        expect(getContractDescriptionAnimationSrc('rise', false)).toEqual('/public/videos/rise_mobile.lottie');
+    });
+    it('should return the dark .lottie path when is_dark_theme is true', () => {
+        expect(getContractDescriptionAnimationSrc('rise', true)).toEqual('/public/videos/rise_mobile_dark.lottie');
+    });
+    it('should lower-case a CONTRACT_LIST key and return the light path by default', () => {
+        expect(getContractDescriptionAnimationSrc('Accumulators')).toEqual('/public/videos/accumulators_mobile.lottie');
+    });
+    it('should lower-case a CONTRACT_LIST key and return the dark path in dark theme', () => {
+        expect(getContractDescriptionAnimationSrc('Accumulators', true)).toEqual(
+            '/public/videos/accumulators_mobile_dark.lottie'
+        );
     });
 });

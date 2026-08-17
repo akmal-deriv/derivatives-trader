@@ -1,12 +1,13 @@
 import React, { useEffect } from 'react';
 
 import { useMobileBridge } from '@deriv/api';
-import { Loading } from '@deriv/components';
 import { makeLazyLoader, moduleLoader } from '@deriv/shared';
 import { Text } from '@deriv-com/quill-ui';
 import { Localize } from '@deriv-com/translations';
 
 import { CONTRACT_LIST } from 'AppV2/Utils/trade-types-utils';
+
+import DescriptionLoader from './description-loader';
 
 type TContractDescription = {
     contract_type: string;
@@ -21,7 +22,7 @@ const AccumulatorsTradeDescription = makeLazyLoader(
                     /* webpackChunkName: "accumulators-trade-description" */ './ContractDescription/accumulators-trade-description'
                 )
         ),
-    () => <Loading is_fullscreen={false} />
+    () => <DescriptionLoader />
 )() as React.ComponentType<TContractDescription>;
 
 const MultiplierTradeDescriptions = makeLazyLoader(
@@ -32,7 +33,7 @@ const MultiplierTradeDescriptions = makeLazyLoader(
                     /* webpackChunkName: "multipliers-trade-description" */ './ContractDescription/multipliers-trade-description'
                 )
         ),
-    () => <Loading is_fullscreen={false} />
+    () => <DescriptionLoader />
 )() as React.ComponentType<TContractDescription>;
 
 const VanillasTradeDescription = makeLazyLoader(
@@ -43,7 +44,7 @@ const VanillasTradeDescription = makeLazyLoader(
                     /* webpackChunkName: "vanillas-trade-description" */ './ContractDescription/vanillas-trade-description'
                 )
         ),
-    () => <Loading is_fullscreen={false} />
+    () => <DescriptionLoader />
 )() as React.ComponentType<TContractDescription>;
 
 const TurbosTradeDescription = makeLazyLoader(
@@ -54,7 +55,7 @@ const TurbosTradeDescription = makeLazyLoader(
                     /* webpackChunkName: "turbos-trade-description" */ './ContractDescription/turbos-trade-description'
                 )
         ),
-    () => <Loading is_fullscreen={false} />
+    () => <DescriptionLoader />
 )() as React.ComponentType<TContractDescription>;
 
 const RiseFallTradeDescription = makeLazyLoader(
@@ -65,7 +66,7 @@ const RiseFallTradeDescription = makeLazyLoader(
                     /* webpackChunkName: "rise-fall-trade-description" */ './ContractDescription/rise-fall-trade-description'
                 )
         ),
-    () => <Loading is_fullscreen={false} />
+    () => <DescriptionLoader />
 )() as React.ComponentType<TContractDescription>;
 
 const HigherLowerTradeDescription = makeLazyLoader(
@@ -76,7 +77,7 @@ const HigherLowerTradeDescription = makeLazyLoader(
                     /* webpackChunkName: "higher-lower-trade-description" */ './ContractDescription/higher-lower-trade-description'
                 )
         ),
-    () => <Loading is_fullscreen={false} />
+    () => <DescriptionLoader />
 )() as React.ComponentType<TContractDescription>;
 
 const TouchNoTouchTradeDescription = makeLazyLoader(
@@ -87,7 +88,7 @@ const TouchNoTouchTradeDescription = makeLazyLoader(
                     /* webpackChunkName: "touch-no-touch-trade-description" */ './ContractDescription/touch-no-touch-trade-description'
                 )
         ),
-    () => <Loading is_fullscreen={false} />
+    () => <DescriptionLoader />
 )() as React.ComponentType<TContractDescription>;
 
 const MatchesDiffersTradeDescription = makeLazyLoader(
@@ -98,7 +99,7 @@ const MatchesDiffersTradeDescription = makeLazyLoader(
                     /* webpackChunkName: "matches-differs-trade-description" */ './ContractDescription/matches-differs-trade-description'
                 )
         ),
-    () => <Loading is_fullscreen={false} />
+    () => <DescriptionLoader />
 )() as React.ComponentType<TContractDescription>;
 
 const EvenOddTradeDescription = makeLazyLoader(
@@ -109,7 +110,7 @@ const EvenOddTradeDescription = makeLazyLoader(
                     /* webpackChunkName: "even-odd-trade-description" */ './ContractDescription/even-odd-trade-description'
                 )
         ),
-    () => <Loading is_fullscreen={false} />
+    () => <DescriptionLoader />
 )() as React.ComponentType<TContractDescription>;
 
 const OverUnderTradeDescription = makeLazyLoader(
@@ -120,7 +121,7 @@ const OverUnderTradeDescription = makeLazyLoader(
                     /* webpackChunkName: "over-under-trade-description" */ './ContractDescription/over-under-trade-description'
                 )
         ),
-    () => <Loading is_fullscreen={false} />
+    () => <DescriptionLoader />
 )() as React.ComponentType<TContractDescription>;
 
 const TradeDescription = ({

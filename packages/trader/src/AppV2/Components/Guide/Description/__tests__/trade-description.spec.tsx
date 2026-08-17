@@ -1,4 +1,4 @@
-import { render, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 
 import { CONTRACT_LIST } from 'AppV2/Utils/trade-types-utils';
 
@@ -24,6 +24,22 @@ jest.mock('../ContractDescription/turbos-trade-description', () => jest.fn(() =>
 jest.mock('../ContractDescription/vanillas-trade-description', () => jest.fn(() => 'mockVanillasTradeDescription'));
 
 describe('TradeDescription', () => {
+    it('should show the skeleton loader while the description chunk is loading', async () => {
+        const { container } = render(
+            <TradeDescription contract_type={CONTRACT_LIST.ACCUMULATORS} onTermClick={jest.fn()} />
+        );
+
+        // The lazily-loaded chunk resolves asynchronously, so the Suspense
+        // fallback (skeleton loader) renders on the first synchronous render.
+        expect(screen.getByTestId('dt_description_loader')).toBeInTheDocument();
+
+        // Once the chunk resolves, the skeleton is replaced by the description.
+        await waitFor(() => {
+            expect(container).toHaveTextContent('mockAccumulatorTradeDescription');
+        });
+        expect(screen.queryByTestId('dt_description_loader')).not.toBeInTheDocument();
+    });
+
     it('should render mockAccumulatorTradeDescription when trade category is "CONTRACT_LIST.ACCUMULATORS"', async () => {
         const { container } = render(
             <TradeDescription contract_type={CONTRACT_LIST.ACCUMULATORS} onTermClick={jest.fn()} />

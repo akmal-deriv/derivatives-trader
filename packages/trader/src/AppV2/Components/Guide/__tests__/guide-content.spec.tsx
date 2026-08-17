@@ -7,6 +7,11 @@ import { AVAILABLE_CONTRACTS, CONTRACT_LIST } from 'AppV2/Utils/trade-types-util
 
 import GuideContent from '../guide-content';
 
+jest.mock('@deriv/stores', () => ({
+    ...jest.requireActual('@deriv/stores'),
+    useStore: () => ({ ui: { is_dark_mode_on: false } }),
+}));
+
 const mock_props = {
     contract_list: AVAILABLE_CONTRACTS,
     onChipSelect: jest.fn(),

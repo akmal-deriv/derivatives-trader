@@ -109,6 +109,12 @@ export const AUTOMATION_ONBOARDING_VIDEO_ID = {
 export const getDescriptionVideoId = (contract_type = '', is_dark_theme = false) =>
     DESCRIPTION_VIDEO_ID[contract_type]?.[is_dark_theme ? 'dark' : 'light'];
 
+// Helper function to derive the themed trade-type guide animation (.lottie) source path.
+// Mirrors the light/dark selection of getDescriptionVideoId, using the committed
+// `<video_key>_mobile.lottie` / `<video_key>_mobile_dark.lottie` assets.
+export const getContractDescriptionAnimationSrc = (video_key: string, is_dark_theme = false) =>
+    `/public/videos/${video_key.toLowerCase()}_mobile${is_dark_theme ? '_dark' : ''}.lottie`;
+
 // Helper function to get onboarding video ID
 export const getOnboardingVideoId = (page_type: 'trade_page' | 'positions_page', is_dark_theme = false) =>
     ONBOARDING_VIDEO_ID[page_type]?.[is_dark_theme ? 'dark' : 'light'];
