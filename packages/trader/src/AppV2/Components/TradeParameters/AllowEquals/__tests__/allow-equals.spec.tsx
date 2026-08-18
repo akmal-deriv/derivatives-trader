@@ -66,6 +66,14 @@ describe('AllowEquals', () => {
         return buttons.find(btn => btn.hasAttribute('aria-pressed'))!;
     };
 
+    it('renders the non-minimized toggle inside .allow-equals__wrapper', () => {
+        render(mockAllowEquals());
+
+        const wrapper = screen.getByTestId('dt_allow_equals_wrapper');
+        expect(wrapper).toHaveClass('allow-equals__wrapper');
+        expect(wrapper).toContainElement(getToggleSwitch());
+    });
+
     it('renders component with ToggleSwitch state value aria-pressed === false if is_equal is 0', () => {
         render(mockAllowEquals());
 

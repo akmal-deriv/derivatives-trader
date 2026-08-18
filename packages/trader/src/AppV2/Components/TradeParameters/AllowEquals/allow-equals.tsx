@@ -103,7 +103,10 @@ const AllowEquals = observer(({ is_minimized }: TTradeParametersProps) => {
 
     return (
         <React.Fragment>
-            <div className={clsx('allow-equals__wrapper', is_automation_params_locked && 'trade-params__field-locked')}>
+            <div
+                className={clsx('allow-equals__wrapper', is_automation_params_locked && 'trade-params__field-locked')}
+                data-testid='dt_allow_equals_wrapper'
+            >
                 {isDesktop ? (
                     <TooltipPortal message={description} position='left' className='allow-equals__tooltip'>
                         {title}

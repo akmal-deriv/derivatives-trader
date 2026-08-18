@@ -16,7 +16,8 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        height: var(--core-size-1100);
+        // Must stay ≥ Quill .toggle-switch height (--core-size-1400) to avoid Manual-trading bottom clip (#1164).
+        height: var(--core-size-1400);
         padding: 0 var(--core-spacing-400);
 
         @include rtl {
