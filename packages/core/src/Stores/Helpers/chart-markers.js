@@ -318,11 +318,13 @@ export const getStartText = contract_info => {
     const { barrier, contract_type, currency, is_sold, profit, tick_count } = contract_info;
     const is_non_tick_contract = !tick_count;
 
-    if (is_sold || isAccumulatorContract(contract_type)) return undefined;
+    if (isAccumulatorContract(contract_type)) return undefined;
 
     // NonTickContract
     if (is_non_tick_contract) {
-        if (!(profit && barrier)) return undefined;
+        // The running P/L is meaningless once the contract is settled, but the
+        // tick counter below stays relevant until the contract's markers go.
+        if (is_sold || !(profit && barrier)) return undefined;
 
         const symbol = currency_symbols[currency] || '';
         const decimal_places = getDecimalPlaces(currency);
@@ -420,6 +422,17 @@ export function calculateMarker(contract_info, is_dark_theme, is_last_contract, 
     const is_contract_finished = contract_info.is_sold || contract_info.is_expired;
     const exit_spot = contract_info.exit_spot;
 
+    // Tick counter rendered just before the start time on the chart. The chart
+    // reads it from the startTimeCollapsed marker, so it must be sent on that
+    // marker in both the running and the finished branch below. Keeping it off
+    // the contractMarker is what lets the counter outlive that marker, which is
+    // dropped on settlement, and stay up until the finished contract's markers
+    // are removed.
+    const is_tick_chart = granularity === 0;
+    const tick_counter_text =
+        !is_accumulator_contract && is_tick_contract && is_tick_chart ? getStartText(contract_info) : undefined;
+    const tick_counter_props = tick_counter_text ? { text: tick_counter_text, textType: 'counter' } : {};
+
     if (is_contract_finished) {
         if (!is_accumulator_contract) {
             // Don't show entrySpot marker for digit contracts
@@ -438,6 +451,7 @@ export function calculateMarker(contract_info, is_dark_theme, is_last_contract, 
                     quote: price,
                     type: 'startTimeCollapsed',
                     direction: getMarkerDirection(contract_type),
+                    ...tick_counter_props,
                 });
             }
             if (end_time) {
@@ -481,6 +495,7 @@ export function calculateMarker(contract_info, is_dark_theme, is_last_contract, 
                 quote: price,
                 type: 'startTimeCollapsed',
                 direction: getMarkerDirection(contract_type),
+                ...tick_counter_props,
             });
         }
         if (date_start && is_last_contract) {
@@ -503,14 +518,10 @@ export function calculateMarker(contract_info, is_dark_theme, is_last_contract, 
                 });
             }
             if (!is_accumulator_contract) {
-                const is_tick_chart = granularity === 0;
-                const tick_counter_text = is_tick_contract && is_tick_chart ? getStartText(contract_info) : undefined;
                 markers.push({
                     epoch: date_start,
                     quote: price,
                     type: 'contractMarker',
-                    text: tick_counter_text,
-                    ...(tick_counter_text ? { textType: 'counter' } : {}),
                     direction: getMarkerDirection(contract_type),
                 });
             }

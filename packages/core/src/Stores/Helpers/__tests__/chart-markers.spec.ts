@@ -118,4 +118,21 @@ describe('createTickMarkers', () => {
         const result = getStartText(contract_info);
         expect(result).toBe('+$1.00');
     });
+
+    it('should not show the profit text of a non-tick contract once it is sold', () => {
+        Object.assign(contract_info, {
+            contract_type: CONTRACT_TYPES.CALL,
+            tick_count: undefined,
+            profit: '1',
+            barrier: '1000',
+            currency: 'USD',
+            is_sold: 1,
+        });
+        expect(getStartText(contract_info)).toBeUndefined();
+    });
+
+    it('should keep showing the tick counter of a tick contract after it is sold', () => {
+        Object.assign(contract_info, { tick_passed: 10, is_sold: 1 });
+        expect(getStartText(contract_info)).toBe('10/10');
+    });
 });
