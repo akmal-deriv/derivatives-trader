@@ -35,16 +35,10 @@ describe('BarrierDesktop', () => {
         });
     });
 
-    const MockedBarrierDesktop = ({
-        store = default_mock_store,
-        isDays = false,
-    }: {
-        store?: ReturnType<typeof mockStore>;
-        isDays?: boolean;
-    }) => (
+    const MockedBarrierDesktop = ({ store = default_mock_store }: { store?: ReturnType<typeof mockStore> }) => (
         <TraderProviders store={store}>
             <ModulesProvider store={store}>
-                <BarrierDesktop is_minimized={false} isDays={isDays} />
+                <BarrierDesktop is_minimized={false} />
             </ModulesProvider>
         </TraderProviders>
     );
@@ -56,58 +50,42 @@ describe('BarrierDesktop', () => {
         expect(screen.getByRole('textbox')).toHaveValue('+0.5');
     });
 
-    it('opens popover when clicked', async () => {
+    it('opens popover with Above spot / Below spot options for a relative barrier', async () => {
         render(<MockedBarrierDesktop />);
 
         await userEvent.click(screen.getByText('Barrier'));
 
-        expect(screen.getByText('Above spot')).toBeInTheDocument();
-        expect(screen.getByText('Below spot')).toBeInTheDocument();
-        expect(screen.getByText('Fixed barrier')).toBeInTheDocument();
+        expect(screen.getAllByRole('tab')).toHaveLength(2);
+        expect(screen.getByRole('tab', { name: 'Above spot' })).toBeInTheDocument();
+        expect(screen.getByRole('tab', { name: 'Below spot' })).toBeInTheDocument();
+        expect(screen.queryByText('Fixed barrier')).not.toBeInTheDocument();
     });
 
-    it('initializes with correct barrier type for above_spot (+)', async () => {
+    it('initializes with the "Above spot" tab selected for a positive barrier', async () => {
         default_mock_store.modules.trade.barrier_1 = '+0.5';
         render(<MockedBarrierDesktop />);
 
         await userEvent.click(screen.getByText('Barrier'));
 
-        const tabs = screen.getAllByRole('tab');
-        const aboveSpotTab = tabs.find(tab => tab.textContent === 'Above spot');
-        expect(aboveSpotTab).toHaveAttribute('aria-selected', 'true');
+        expect(screen.getByRole('tab', { name: 'Above spot' })).toHaveAttribute('aria-selected', 'true');
     });
 
-    it('initializes with correct barrier type for below_spot (-)', async () => {
+    it('initializes with the "Below spot" tab selected for a negative barrier', async () => {
         default_mock_store.modules.trade.barrier_1 = '-0.5';
         render(<MockedBarrierDesktop />);
 
         await userEvent.click(screen.getByText('Barrier'));
 
-        const tabs = screen.getAllByRole('tab');
-        const belowSpotTab = tabs.find(tab => tab.textContent === 'Below spot');
-        expect(belowSpotTab).toHaveAttribute('aria-selected', 'true');
+        expect(screen.getByRole('tab', { name: 'Below spot' })).toHaveAttribute('aria-selected', 'true');
     });
 
-    it('initializes with correct barrier type for fixed_barrier', async () => {
-        default_mock_store.modules.trade.barrier_1 = '1234.00';
+    it('switches sign when the other tab is selected', async () => {
         render(<MockedBarrierDesktop />);
 
         await userEvent.click(screen.getByText('Barrier'));
+        await userEvent.click(screen.getByRole('tab', { name: 'Below spot' }));
 
-        const tabs = screen.getAllByRole('tab');
-        const fixedBarrierTab = tabs.find(tab => tab.textContent === 'Fixed barrier');
-        expect(fixedBarrierTab).toHaveAttribute('aria-selected', 'true');
-    });
-
-    it('switches barrier type when different type is selected', async () => {
-        render(<MockedBarrierDesktop />);
-
-        await userEvent.click(screen.getByText('Barrier'));
-        await userEvent.click(screen.getByText('Below spot'));
-
-        const tabs = screen.getAllByRole('tab');
-        const belowSpotTab = tabs.find(tab => tab.textContent === 'Below spot');
-        expect(belowSpotTab).toHaveAttribute('aria-selected', 'true');
+        expect(screen.getByRole('tab', { name: 'Below spot' })).toHaveAttribute('aria-selected', 'true');
     });
 
     it('disables input when market is closed', () => {
@@ -132,7 +110,7 @@ describe('BarrierDesktop', () => {
         render(
             <TraderProviders store={default_mock_store}>
                 <ModulesProvider store={default_mock_store}>
-                    <BarrierDesktop is_minimized={true} isDays={false} />
+                    <BarrierDesktop is_minimized={true} />
                 </ModulesProvider>
             </TraderProviders>
         );
@@ -142,37 +120,17 @@ describe('BarrierDesktop', () => {
         expect(textField).toHaveValue('+0.5');
     });
 
-    it('shows only Fixed barrier tab when isDays is true', async () => {
-        render(<MockedBarrierDesktop isDays={true} />);
-
-        await userEvent.click(screen.getByText('Barrier'));
-
-        expect(screen.queryByText('Above spot')).not.toBeInTheDocument();
-        expect(screen.queryByText('Below spot')).not.toBeInTheDocument();
-        expect(screen.getByText('Fixed barrier')).toBeInTheDocument();
-    });
-
-    it('shows only Fixed barrier tab for forex markets', async () => {
+    it('shows only the Fixed barrier option for forex markets (absolute support)', async () => {
         default_mock_store.modules.trade.symbol = 'frxEURUSD';
+        default_mock_store.modules.trade.barrier_1 = '1.2345';
         default_mock_store.modules.trade.active_symbols = [
             { underlying_symbol: 'frxEURUSD', market: 'forex', underlying_symbol_type: 'forex' },
         ];
-        render(<MockedBarrierDesktop isDays={false} />);
+        render(<MockedBarrierDesktop />);
 
         await userEvent.click(screen.getByText('Barrier'));
 
-        expect(screen.queryByText('Above spot')).not.toBeInTheDocument();
-        expect(screen.queryByText('Below spot')).not.toBeInTheDocument();
-        expect(screen.getByText('Fixed barrier')).toBeInTheDocument();
-    });
-
-    it('shows all barrier type tabs for non-daily non-forex contracts', async () => {
-        render(<MockedBarrierDesktop isDays={false} />);
-
-        await userEvent.click(screen.getByText('Barrier'));
-
-        expect(screen.getByText('Above spot')).toBeInTheDocument();
-        expect(screen.getByText('Below spot')).toBeInTheDocument();
+        expect(screen.getAllByRole('tab')).toHaveLength(1);
         expect(screen.getByText('Fixed barrier')).toBeInTheDocument();
     });
 });

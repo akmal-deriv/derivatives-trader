@@ -31,8 +31,10 @@ import {
     getContractSubtype,
     getContractTypesConfig,
     getCurrencyDisplayCode,
+    getExpiryType,
     getMarketName,
     getMinPayout,
+    getPropertyValue,
     getTradeNotificationMessage,
     getTradeTypeName,
     getTradeURLParams,
@@ -758,10 +760,45 @@ export default class TradeStore extends BaseStore {
                 this.root_store.notifications.removeTradeNotifications();
             }
         );
+        // `contract_expiry_type` keys the per-expiry data `contracts_for` returns — barrier
+        // defaults and duration limits — so it has to distinguish tick / intraday / daily. It
+        // previously only ever wrote 'tick' or 'intraday', so a days duration or a future end time
+        // resolved against the intraday entry. `getExpiryType` is the same derivation the
+        // trade-params pipeline uses, so the reaction and the pipeline can no longer disagree, and
+        // it depends on everything that derivation reads since several flows assign the
+        // duration/expiry fields directly rather than going through the pipeline.
         reaction(
-            () => this.duration_unit,
+            () => [this.duration_unit, this.expiry_type, this.expiry_date, this.duration_units_list],
             () => {
-                this.contract_expiry_type = this.duration_unit === 't' ? 'tick' : 'intraday';
+                const next_expiry_type = getExpiryType(this);
+                if (!next_expiry_type || next_expiry_type === this.contract_expiry_type) return;
+
+                const previous_expiry_type = this.contract_expiry_type;
+                runInAction(() => {
+                    this.contract_expiry_type = next_expiry_type;
+
+                    // `contracts_for` returns a different default barrier per expiry_type, so
+                    // crossing a boundary (minutes -> days flips relative to absolute) has to
+                    // re-seed the barrier, or the previous type's value is left in a field that no
+                    // longer accepts it. Owned here because this is the only writer that can see
+                    // the transition; `onChangeExpiry` could only infer it by disagreeing with
+                    // this observable, which stopped being a reliable signal once this reaction
+                    // started deriving the value correctly.
+                    if (!previous_expiry_type) return; // first resolve: the pipeline seeds it
+
+                    const { barrier_1, barrier_2, barrier_count } = ContractType.getBarriers(
+                        this.contract_type,
+                        next_expiry_type
+                    );
+                    // A contract may offer no barrier for the new expiry_type (e.g. a daily-only
+                    // contract reached via an intraday end time). Leave the existing value rather
+                    // than blanking the field.
+                    if (!barrier_1) return;
+
+                    this.barrier_1 = barrier_1;
+                    this.barrier_2 = barrier_2;
+                    this.barrier_count = barrier_count;
+                });
             }
         );
         reaction(
@@ -3102,16 +3139,89 @@ export default class TradeStore extends BaseStore {
     }
 
     /**
-     * Helper function to determine if a symbol supports relative barriers (Above/Below spot)
+     * Reads the default barrier that `contracts_for` returns for a contract type + `expiry_type`
+     * (the same data `getBarriers` parses into `barrier_1`). Returns undefined when the currently
+     * loaded contracts_for config (which only covers the active symbol) has no entry for it.
+     */
+    private getApiDefaultBarrier(
+        contract_type: string = this.contract_type,
+        expiry_type: string = this.contract_expiry_type
+    ): string | undefined {
+        if (!contract_type || !expiry_type) return undefined;
+
+        const default_barrier = getPropertyValue(ContractType.getFullContractTypes(), [
+            contract_type,
+            'config',
+            'barriers',
+            expiry_type,
+            'barrier',
+        ]);
+
+        return typeof default_barrier === 'string' && default_barrier ? default_barrier : undefined;
+    }
+
+    /**
+     * Derives barrier support (relative offset vs absolute price) from the sign of the API's
+     * per-expiry-type default barrier: a leading `+`/`-` means relative, a bare number means
+     * absolute. Returns null when no default barrier is available for this contract type +
+     * expiry_type (e.g. contracts_for for it hasn't loaded yet).
+     */
+    public getBarrierSupportFromApiDefault(
+        contract_type: string = this.contract_type,
+        expiry_type: string = this.contract_expiry_type
+    ): BarrierSupportType | null {
+        const default_barrier = this.getApiDefaultBarrier(contract_type, expiry_type);
+        if (!default_barrier) return null;
+
+        return /^[+-]/.test(default_barrier) ? 'relative' : 'absolute';
+    }
+
+    /**
+     * Pre-populated default barrier for the current contract type + expiry_type: the store's
+     * `barrier_1` when it's already been set from the API (by `getBarriers`), otherwise the
+     * hardcoded BARRIER_DEFAULTS fallback for the given support type.
+     */
+    public getDefaultBarrierValue(
+        support: BarrierSupportType = this.getBarrierSupportFromApiDefault() ?? 'absolute'
+    ): string {
+        if (this.barrier_1) return this.barrier_1;
+
+        if (support === 'absolute') {
+            const current_spot = this.tick_data?.quote;
+            return current_spot
+                ? (current_spot + BARRIER_DEFAULTS.ABSOLUTE_BARRIER_OFFSET).toFixed(
+                      BARRIER_DEFAULTS.ABSOLUTE_BARRIER_DECIMAL_PLACES
+                  )
+                : BARRIER_DEFAULTS.FALLBACK_ABSOLUTE_BARRIER;
+        }
+        return BARRIER_DEFAULTS.DEFAULT_RELATIVE_BARRIER;
+    }
+
+    /**
+     * Helper function to determine if a symbol supports relative barriers (Above/Below spot).
+     *
+     * Falls back to 'relative' while the symbol list hasn't loaded or the symbol isn't in it: the
+     * barrier field renders from a static per-trade-type map that doesn't wait for
+     * `active_symbols`, and most barrier symbols are synthetics, so guessing 'absolute' shows a
+     * fixed-price field that then switches to the sign control once the data arrives.
+     *
      * @param symbol - The symbol to check
      * @returns 'relative' for synthetic indices, 'absolute' for forex markets
      */
     public getSymbolBarrierSupport(symbol: string): BarrierSupportType {
-        if (!symbol || !this.active_symbols.length) return 'absolute';
+        if (!symbol || !this.active_symbols.length) return 'relative';
 
         const symbol_info = this.active_symbols.find(s => s.underlying_symbol === symbol);
 
-        if (!symbol_info) return 'absolute';
+        if (!symbol_info) return 'relative';
+
+        // Prefer the live API default-barrier sign for the currently selected symbol's contract
+        // type. A prospective symbol (one we haven't switched to yet) has no contracts_for
+        // loaded, so it falls through to the market-based heuristic below.
+        if (symbol === this.symbol) {
+            const api_default_support = this.getBarrierSupportFromApiDefault();
+            if (api_default_support) return api_default_support;
+        }
 
         // Forex symbols typically only support absolute barriers
         // Synthetic indices typically support relative barriers
@@ -3215,21 +3325,28 @@ export default class TradeStore extends BaseStore {
                 // Clear barrier validation errors before updating values to prevent "required field" errors
                 this.clearBarrierValidationErrors();
 
+                // Prefer the live API default barrier for the new context (contracts_for for the
+                // new symbol may already be loaded); otherwise fall back to the hardcoded
+                // constants for the derived support type.
+                const api_default_barrier = this.getApiDefaultBarrier();
+
                 if (new_barrier_support === 'absolute') {
                     // Switching to absolute barriers (e.g., forex)
                     // Get current spot price or use a reasonable default
                     const current_spot = this.tick_data?.quote;
-                    const default_barrier = current_spot
-                        ? (current_spot + BARRIER_DEFAULTS.ABSOLUTE_BARRIER_OFFSET).toFixed(
-                              BARRIER_DEFAULTS.ABSOLUTE_BARRIER_DECIMAL_PLACES
-                          )
-                        : BARRIER_DEFAULTS.FALLBACK_ABSOLUTE_BARRIER;
+                    const default_barrier =
+                        api_default_barrier ||
+                        (current_spot
+                            ? (current_spot + BARRIER_DEFAULTS.ABSOLUTE_BARRIER_OFFSET).toFixed(
+                                  BARRIER_DEFAULTS.ABSOLUTE_BARRIER_DECIMAL_PLACES
+                              )
+                            : BARRIER_DEFAULTS.FALLBACK_ABSOLUTE_BARRIER);
                     reset_values.barrier_1 = default_barrier;
                     reset_values.barrier_2 = '';
                 } else {
                     // Switching to relative barriers (e.g., synthetics)
                     // Reset to default relative barrier
-                    reset_values.barrier_1 = BARRIER_DEFAULTS.DEFAULT_RELATIVE_BARRIER;
+                    reset_values.barrier_1 = api_default_barrier || BARRIER_DEFAULTS.DEFAULT_RELATIVE_BARRIER;
                     reset_values.barrier_2 = '';
                 }
             }

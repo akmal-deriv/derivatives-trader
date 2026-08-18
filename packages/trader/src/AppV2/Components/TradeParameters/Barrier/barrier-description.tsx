@@ -1,9 +1,15 @@
 import React from 'react';
 
-import { Localize } from '@deriv-com/translations';
 import { ActionSheet, Text } from '@deriv-com/quill-ui';
+import { Localize } from '@deriv-com/translations';
 
-const BarrierDescription = ({ isDays, is_turbos }: { isDays: boolean; is_turbos?: boolean }) => {
+const BarrierDescription = ({
+    barrierSupport,
+    is_turbos,
+}: {
+    barrierSupport: 'relative' | 'absolute';
+    is_turbos?: boolean;
+}) => {
     if (is_turbos) {
         return (
             <ActionSheet.Content className='barrier-params__description-content'>
@@ -16,7 +22,7 @@ const BarrierDescription = ({ isDays, is_turbos }: { isDays: boolean; is_turbos?
 
     return (
         <ActionSheet.Content className='barrier-params__description-content'>
-            {isDays ? (
+            {barrierSupport === 'absolute' ? (
                 <div className='content-section'>
                     <Text bold>
                         <Localize i18n_default_text='Fixed barrier:' />
@@ -41,14 +47,6 @@ const BarrierDescription = ({ isDays, is_turbos }: { isDays: boolean; is_turbos?
                         </Text>
                         <Text>
                             <Localize i18n_default_text='Barrier set below spot price.' />
-                        </Text>
-                    </div>
-                    <div className='content-section'>
-                        <Text bold>
-                            <Localize i18n_default_text='Fixed barrier:' />
-                        </Text>
-                        <Text>
-                            <Localize i18n_default_text='Barrier set at specific price.' />
                         </Text>
                     </div>
                 </>

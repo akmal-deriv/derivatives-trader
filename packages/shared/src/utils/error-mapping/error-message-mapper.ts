@@ -1,4 +1,5 @@
 import { localize } from '@deriv-com/translations';
+
 import type { ErrorObject } from './types';
 
 /**
@@ -39,16 +40,25 @@ export const mapErrorMessage = (error: ErrorObject): string => {
         case 'BarrierNotAllowed':
             return localize('Barrier is not allowed for this contract type.');
         case 'BarrierNotInRange':
-            return localize('Barrier is not an integer in range of {{param_1}} to {{param_2}}.', {
-                param_1: params[0],
-                param_2: params[1],
-            });
+            return params.length >= 2
+                ? localize('Barrier is not an integer in range of {{param_1}} to {{param_2}}.', {
+                      param_1: params[0],
+                      param_2: params[1],
+                  })
+                : localize('Barrier is not in the accepted range for this contract.');
         case 'BarrierOutOfRange':
-            return localize('Barrier is out of acceptable range.');
+            return params.length >= 2
+                ? localize('Barrier must be between {{param_1}} and {{param_2}}.', {
+                      param_1: params[0],
+                      param_2: params[1],
+                  })
+                : localize('Barrier is out of acceptable range.');
         case 'BarrierValidationError':
-            return localize('Barrier can only be up to {{param_1}} decimal places.', {
-                param_1: params[0],
-            });
+            return params.length
+                ? localize('Barrier can only be up to {{param_1}} decimal places.', {
+                      param_1: params[0],
+                  })
+                : localize('Barrier is not valid for this contract.');
         case 'BetExpired':
             return localize('The contract has expired.');
         case 'CancelIsBetter':

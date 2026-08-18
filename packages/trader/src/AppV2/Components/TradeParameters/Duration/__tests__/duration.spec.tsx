@@ -321,6 +321,32 @@ describe('Duration - Mobile', () => {
         expect(screen.getByRole('dialog')).toBeInTheDocument();
     });
 
+    it('seeds a usable end-time date when none was ever received from a proposal (mobile)', async () => {
+        // `saved_expiry_date_v2` is only filled from `expiry_epoch`, which arrives on a *successful*
+        // proposal. When the proposal errors — e.g. a contract advertising a tick duration the
+        // backend then rejects — it stays ''. The End time tab renders regardless, and an empty
+        // string reaches the date picker as `new Date('')`, which it throws on.
+        default_trade_store.modules.trade.saved_expiry_date_v2 = '';
+        mockDurationMobile();
+
+        await userEvent.click(screen.getByLabelText('Duration'));
+
+        const { setUnsavedExpiryDateV2 } = default_trade_store.modules.trade;
+        expect(setUnsavedExpiryDateV2).toHaveBeenCalledTimes(1);
+        const [seeded_date] = (setUnsavedExpiryDateV2 as jest.Mock).mock.calls[0];
+        expect(seeded_date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+        expect(new Date(seeded_date).getTime()).not.toBeNaN();
+    });
+
+    it('keeps an already-known end-time date when opening (mobile)', async () => {
+        default_trade_store.modules.trade.saved_expiry_date_v2 = '2024-10-15';
+        mockDurationMobile();
+
+        await userEvent.click(screen.getByLabelText('Duration'));
+
+        expect(default_trade_store.modules.trade.setUnsavedExpiryDateV2).toHaveBeenCalledWith('2024-10-15');
+    });
+
     it('should update the selected hour and unit when the component is opened (mobile)', async () => {
         default_trade_store.modules.trade.duration_unit = 'm';
         default_trade_store.modules.trade.duration = 125;

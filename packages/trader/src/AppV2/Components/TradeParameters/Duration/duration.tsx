@@ -13,11 +13,13 @@ import {
     DURATION_TAB,
     DURATION_UNIT,
     getDurationFromTimeWheelSelection,
+    getDatePickerStartDate,
     getDurationTab,
     getTickWheelRange,
     getTimeWheelSelectionFromDuration,
     getTimeWheelVisibleUnits,
     isValidPersistedDuration,
+    toExpiryDateString,
 } from 'AppV2/Utils/trade-params-utils';
 import { getDisplayedContractTypes } from 'AppV2/Utils/trade-types-utils';
 import { useTraderStore } from 'Stores/useTraderStores';
@@ -47,6 +49,7 @@ const Duration = observer(({ is_minimized }: TTradeParametersProps) => {
         saved_expiry_date_v2: saved_expiry_date,
         setSavedExpiryDateV2: setSavedExpiryDate,
         setUnsavedExpiryDateV2: setSelectedExpiryDate,
+        start_time,
         symbol,
         trade_type_tab,
         trade_types,
@@ -71,8 +74,9 @@ const Duration = observer(({ is_minimized }: TTradeParametersProps) => {
         (validation_errors.duration?.length ?? 0) > 0;
     const isInitialMount = useRef(true);
     const prevExpiryEpoch = useRef<string | number | null>(null);
-    const { client } = useStore();
+    const { client, common } = useStore();
     const { is_logged_in } = client;
+    const { server_time } = common;
     const { localize } = useTranslations();
 
     // Initialize saved date/time from expiry_epoch or set defaults
@@ -284,8 +288,13 @@ const Duration = observer(({ is_minimized }: TTradeParametersProps) => {
 
     useEffect(() => {
         if (is_open) {
-            // Initialize selected values from saved values when opening
-            setSelectedExpiryDate(saved_expiry_date);
+            // Initialize selected values from saved values when opening.
+            setSelectedExpiryDate(
+                saved_expiry_date ||
+                    toExpiryDateString(
+                        getDatePickerStartDate(duration_units_list, server_time, start_time, duration_min_max)
+                    )
+            );
             setSelectedExpiryTime(saved_expiry_time);
 
             setTab(getDurationTab(duration_unit, !!expiry_time));

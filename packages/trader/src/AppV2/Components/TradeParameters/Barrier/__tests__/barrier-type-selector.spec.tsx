@@ -9,32 +9,42 @@ describe('BarrierTypeSelector', () => {
     const defaultProps = {
         selectedType: 'above_spot',
         onSelectType: mockOnSelectType,
+        support: 'relative' as const,
     };
 
     beforeEach(() => {
         jest.clearAllMocks();
     });
 
-    it('renders all barrier type options', () => {
-        render(<BarrierTypeSelector {...defaultProps} />);
-
-        expect(screen.getByText('Above spot')).toBeInTheDocument();
-        expect(screen.getByText('Below spot')).toBeInTheDocument();
-        expect(screen.getByText('Fixed barrier')).toBeInTheDocument();
-    });
-
-    it('marks the selected barrier type with aria-selected', () => {
+    it('renders Above spot / Below spot for relative support (no Fixed barrier)', () => {
         render(<BarrierTypeSelector {...defaultProps} />);
 
         const tabs = screen.getAllByRole('tab');
-        const aboveSpotTab = tabs.find(tab => tab.textContent === 'Above spot');
-        expect(aboveSpotTab).toHaveAttribute('aria-selected', 'true');
+        expect(tabs).toHaveLength(2);
+        expect(screen.getByRole('tab', { name: 'Above spot' })).toBeInTheDocument();
+        expect(screen.getByRole('tab', { name: 'Below spot' })).toBeInTheDocument();
+        expect(screen.queryByText('Fixed barrier')).not.toBeInTheDocument();
     });
 
-    it('calls onSelectType when a barrier type is clicked', async () => {
+    it('renders only the Fixed barrier option for absolute support', () => {
+        render(<BarrierTypeSelector {...defaultProps} support='absolute' selectedType='fixed_barrier' />);
+
+        const tabs = screen.getAllByRole('tab');
+        expect(tabs).toHaveLength(1);
+        expect(screen.getByText('Fixed barrier')).toBeInTheDocument();
+        expect(tabs[0]).toHaveAttribute('aria-selected', 'true');
+    });
+
+    it('marks the selected sign with aria-selected', () => {
         render(<BarrierTypeSelector {...defaultProps} />);
 
-        await userEvent.click(screen.getByText('Below spot'));
+        expect(screen.getByRole('tab', { name: 'Above spot' })).toHaveAttribute('aria-selected', 'true');
+    });
+
+    it('calls onSelectType when the other sign is clicked', async () => {
+        render(<BarrierTypeSelector {...defaultProps} />);
+
+        await userEvent.click(screen.getByRole('tab', { name: 'Below spot' }));
 
         expect(mockOnSelectType).toHaveBeenCalledWith('below_spot');
     });
@@ -42,17 +52,7 @@ describe('BarrierTypeSelector', () => {
     it('renders with below_spot selected', () => {
         render(<BarrierTypeSelector {...defaultProps} selectedType='below_spot' />);
 
-        const tabs = screen.getAllByRole('tab');
-        const belowSpotTab = tabs.find(tab => tab.textContent === 'Below spot');
-        expect(belowSpotTab).toHaveAttribute('aria-selected', 'true');
-    });
-
-    it('renders with fixed_barrier selected', () => {
-        render(<BarrierTypeSelector {...defaultProps} selectedType='fixed_barrier' />);
-
-        const tabs = screen.getAllByRole('tab');
-        const fixedBarrierTab = tabs.find(tab => tab.textContent === 'Fixed barrier');
-        expect(fixedBarrierTab).toHaveAttribute('aria-selected', 'true');
+        expect(screen.getByRole('tab', { name: 'Below spot' })).toHaveAttribute('aria-selected', 'true');
     });
 
     it('has proper ARIA attributes for accessibility', () => {
@@ -61,8 +61,7 @@ describe('BarrierTypeSelector', () => {
         const container = screen.getByRole('tablist');
         expect(container).toHaveAttribute('aria-orientation', 'vertical');
 
-        const tabs = screen.getAllByRole('tab');
-        expect(tabs).toHaveLength(3);
+        expect(screen.getAllByRole('tab')).toHaveLength(2);
     });
 
     it('supports keyboard navigation', async () => {

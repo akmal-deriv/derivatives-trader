@@ -19,18 +19,26 @@ describe('BarrierInput', () => {
         // Reset the default trade store
         default_trade_store.modules.trade.barrier_1 = '+10';
         default_trade_store.modules.trade.validation_errors.barrier_1 = [];
+        default_trade_store.modules.trade.symbol = '1HZ100V';
     });
 
+    // getSymbolBarrierSupport/getDefaultBarrierValue come from @deriv/stores' mockStore default,
+    // which mirrors the real trade-store's non-API-backed fallback (support from the symbol's
+    // market, default barrier from the hardcoded constants) since no contracts_for config is
+    // loaded in this unit test.
     const default_trade_store = {
         modules: {
             trade: {
+                ...mockStore({}).modules.trade,
                 barrier_1: '+10',
                 onChange,
                 validation_errors: { barrier_1: [] },
                 duration: 10,
                 proposal_info: { CALL: { id: '123', message: 'test_message', has_error: true, spot: 12345 } },
-                symbol: '1HZ100V', // Synthetic symbol to show barrier chips
+                symbol: '1HZ100V', // Synthetic symbol to show the relative offset control
                 tick_data: { quote: 1234.56 },
+                barrier_choices: [],
+                validation_params: {},
                 active_symbols: [
                     {
                         underlying_symbol: '1HZ100V',
@@ -55,17 +63,18 @@ describe('BarrierInput', () => {
         render(
             <TraderProviders store={mocked_store}>
                 <ModulesProvider store={mocked_store}>
-                    <BarrierInput isDays={false} onClose={onClose} />
+                    <BarrierInput onClose={onClose} />
                 </ModulesProvider>
             </TraderProviders>
         );
     };
 
-    it('renders BarrierInput component correctly', () => {
+    it('renders BarrierInput component correctly with Above spot / Below spot options for a relative barrier', () => {
         mockBarrierInput(mockStore(default_trade_store));
-        expect(screen.getByText('Above spot')).toBeInTheDocument();
-        expect(screen.getByText('Below spot')).toBeInTheDocument();
-        expect(screen.getByText('Fixed barrier')).toBeInTheDocument();
+        expect(screen.getAllByRole('tab')).toHaveLength(2);
+        expect(screen.getByRole('tab', { name: 'Above spot' })).toBeInTheDocument();
+        expect(screen.getByRole('tab', { name: 'Below spot' })).toBeInTheDocument();
+        expect(screen.queryByText('Fixed barrier')).not.toBeInTheDocument();
         expect(screen.getByPlaceholderText('Distance to spot')).toBeInTheDocument();
         expect(screen.getByText('Current spot')).toBeInTheDocument();
     });
@@ -79,31 +88,20 @@ describe('BarrierInput', () => {
         });
     });
 
-    it('initializes with correct tab based on barrier_1 value', () => {
+    it('initializes with the sign tab selected based on the barrier_1 value', () => {
         mockBarrierInput(mockStore(default_trade_store));
-        // Should select "Above spot" tab for "+10" barrier
-        expect(screen.getAllByRole('tab')[0]).toHaveAttribute('aria-selected', 'true');
+        expect(screen.getByRole('tab', { name: 'Above spot' })).toHaveAttribute('aria-selected', 'true');
     });
 
-    it('handles chip selection correctly', async () => {
+    it('toggling the sign does not call onChange until Save is pressed, and preserves magnitude', async () => {
         mockBarrierInput(mockStore(default_trade_store));
-        const aboveSpotChip = screen.getByText('Above spot');
-        const belowSpotChip = screen.getByText('Below spot');
-        const fixedPriceChip = screen.getByText('Fixed barrier');
 
-        // onChange should not be called during chip selection
-        await userEvent.click(belowSpotChip);
+        await userEvent.click(screen.getByRole('tab', { name: 'Below spot' }));
         expect(onChange).not.toHaveBeenCalled();
+        expect(screen.getByDisplayValue('10')).toBeInTheDocument();
 
-        await userEvent.click(fixedPriceChip);
-        expect(onChange).not.toHaveBeenCalled();
-
-        await userEvent.click(aboveSpotChip);
-        expect(onChange).not.toHaveBeenCalled();
-
-        // onChange should only be called when Save is clicked
         await userEvent.click(screen.getByText(/Save/));
-        expect(onChange).toHaveBeenCalledWith({ target: { name: 'barrier_1', value: '+10' } });
+        expect(onChange).toHaveBeenCalledWith({ target: { name: 'barrier_1', value: '-10' } });
     });
 
     it('handles input change correctly', async () => {
@@ -114,8 +112,7 @@ describe('BarrierInput', () => {
         fireEvent.change(input, { target: { value: '20' } });
         expect(onChange).not.toHaveBeenCalled();
 
-        const belowSpotChip = screen.getByText('Below spot');
-        await userEvent.click(belowSpotChip);
+        await userEvent.click(screen.getByRole('tab', { name: 'Below spot' }));
         fireEvent.change(input, { target: { value: '15' } });
         expect(onChange).not.toHaveBeenCalled();
 
@@ -124,24 +121,17 @@ describe('BarrierInput', () => {
         expect(onChange).toHaveBeenCalledWith({ target: { name: 'barrier_1', value: '-15' } });
     });
 
-    it('sets initial barrier value and option correctly for a positive barrier', () => {
+    it('sets initial barrier value and sign correctly for a positive barrier', () => {
         mockBarrierInput(mockStore(default_trade_store));
-        expect(screen.getAllByRole('tab')[0]).toHaveAttribute('aria-selected', 'true');
+        expect(screen.getByRole('tab', { name: 'Above spot' })).toHaveAttribute('aria-selected', 'true');
         expect(screen.getByDisplayValue('10')).toBeInTheDocument();
     });
 
-    it('sets initial barrier value and option correctly for a negative barrier', () => {
+    it('sets initial barrier value and sign correctly for a negative barrier', () => {
         default_trade_store.modules.trade.barrier_1 = '-10';
         mockBarrierInput(mockStore(default_trade_store));
-        expect(screen.getAllByRole('tab')[1]).toHaveAttribute('aria-selected', 'true');
+        expect(screen.getByRole('tab', { name: 'Below spot' })).toHaveAttribute('aria-selected', 'true');
         expect(screen.getByDisplayValue('10')).toBeInTheDocument();
-    });
-
-    it('sets initial barrier value and option correctly for a fixed price barrier', () => {
-        default_trade_store.modules.trade.barrier_1 = '30';
-        mockBarrierInput(mockStore(default_trade_store));
-        expect(screen.getAllByRole('tab')[2]).toHaveAttribute('aria-selected', 'true');
-        expect(screen.getByDisplayValue('30')).toBeInTheDocument();
     });
 
     it('shows error when a validation error comes', async () => {
@@ -158,9 +148,10 @@ describe('BarrierInput', () => {
         });
     });
 
-    it('shows error when a validation error comes for fixed price as well', async () => {
+    it('shows error when a validation error comes for an absolute (fixed price) barrier too', async () => {
         default_trade_store.modules.trade.validation_errors.barrier_1 = ['Something went wrong'] as never;
-        default_trade_store.modules.trade.barrier_1 = '10';
+        default_trade_store.modules.trade.symbol = 'EURUSD';
+        default_trade_store.modules.trade.barrier_1 = '1.0000';
         mockBarrierInput(mockStore(default_trade_store));
 
         // Clear the input to trigger validation error
@@ -173,14 +164,13 @@ describe('BarrierInput', () => {
         });
     });
 
-    it('handles chip selection correctly for Above spot when initial barrier is negative', async () => {
+    it('handles sign toggle correctly for "Below spot" when initial barrier is negative', async () => {
         default_trade_store.modules.trade.barrier_1 = '-10';
         mockBarrierInput(mockStore(default_trade_store));
 
-        const aboveSpotChip = screen.getByText('Above spot');
-        await userEvent.click(aboveSpotChip);
+        await userEvent.click(screen.getByRole('tab', { name: 'Above spot' }));
 
-        // onChange should not be called during chip selection
+        // onChange should not be called during tab selection
         expect(onChange).not.toHaveBeenCalled();
 
         // onChange should only be called when Save is clicked
@@ -188,14 +178,13 @@ describe('BarrierInput', () => {
         expect(onChange).toHaveBeenCalledWith({ target: { name: 'barrier_1', value: '+10' } });
     });
 
-    it('handles chip selection correctly for Below spot when initial barrier is positive', async () => {
+    it('handles sign toggle correctly for "Above spot" when initial barrier is positive', async () => {
         default_trade_store.modules.trade.barrier_1 = '+0.6';
         mockBarrierInput(mockStore(default_trade_store));
 
-        const belowSpotChip = screen.getByText('Below spot');
-        await userEvent.click(belowSpotChip);
+        await userEvent.click(screen.getByRole('tab', { name: 'Below spot' }));
 
-        // onChange should not be called during chip selection
+        // onChange should not be called during tab selection
         expect(onChange).not.toHaveBeenCalled();
 
         // onChange should only be called when Save is clicked
@@ -203,48 +192,25 @@ describe('BarrierInput', () => {
         expect(onChange).toHaveBeenCalledWith({ target: { name: 'barrier_1', value: '-0.6' } });
     });
 
-    it('handles chip selection correctly for Fixed barrier', async () => {
-        default_trade_store.modules.trade.barrier_1 = '+0.6';
-        mockBarrierInput(mockStore(default_trade_store));
-
-        const fixedPriceChip = screen.getByText('Fixed barrier');
-        await userEvent.click(fixedPriceChip);
-
-        // onChange should not be called during chip selection
-        expect(onChange).not.toHaveBeenCalled();
-
-        // onChange should only be called when Save is clicked
-        await userEvent.click(screen.getByText(/Save/));
-        expect(onChange).toHaveBeenCalledWith({ target: { name: 'barrier_1', value: '0.6' } });
-    });
-
-    it('handles chip selection correctly for Above spot when initial barrier is fixed price', async () => {
-        default_trade_store.modules.trade.barrier_1 = '0.6';
-        mockBarrierInput(mockStore(default_trade_store));
-
-        const aboveSpotChip = screen.getByText('Above spot');
-        await userEvent.click(aboveSpotChip);
-
-        // onChange should not be called during chip selection
-        expect(onChange).not.toHaveBeenCalled();
-
-        // onChange should only be called when Save is clicked
-        await userEvent.click(screen.getByText(/Save/));
-        expect(onChange).toHaveBeenLastCalledWith({ target: { name: 'barrier_1', value: '+0.6' } });
-    });
-
-    it('does not show chips for forex symbols (absolute barrier support)', () => {
+    it('does not show a sign toggle for forex symbols (absolute barrier support)', () => {
         default_trade_store.modules.trade.symbol = 'EURUSD';
         default_trade_store.modules.trade.barrier_1 = '1.0000'; // Set a valid forex barrier
         mockBarrierInput(mockStore(default_trade_store));
 
-        // Chips should not be visible for forex symbols
+        // No sign toggle should be visible for forex symbols
+        expect(screen.queryByRole('tab')).not.toBeInTheDocument();
         expect(screen.queryByText('Above spot')).not.toBeInTheDocument();
         expect(screen.queryByText('Below spot')).not.toBeInTheDocument();
-        expect(screen.queryByText('Fixed barrier')).not.toBeInTheDocument();
 
         // Should show price input directly
         expect(screen.getByPlaceholderText('Price')).toBeInTheDocument();
+    });
+
+    it('pre-populates from the hardcoded fallback default when the store has no barrier_1 and no API default is available', () => {
+        default_trade_store.modules.trade.barrier_1 = '';
+        mockBarrierInput(mockStore(default_trade_store));
+
+        expect(onChange).toHaveBeenCalledWith({ target: { name: 'barrier_1', value: '+0.1' } });
     });
 
     it('shows current spot price', () => {

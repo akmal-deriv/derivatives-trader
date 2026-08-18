@@ -659,6 +659,10 @@ export const getDatePickerStartDate = (
     return min_date;
 };
 
+/** `YYYY-MM-DD` in local terms — the shape the End time tab keeps its date in. */
+export const toExpiryDateString = (date: Date) =>
+    `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+
 export const getProposalRequestObject = ({
     new_values = {},
     should_subscribe = false,

@@ -12,32 +12,24 @@ import BarrierTypeSelector from './barrier-type-selector';
 
 interface BarrierDesktopProps {
     is_minimized?: boolean;
-    isDays: boolean;
 }
 
-const getBarrierType = (barrier: string, showBarrierTypes: boolean): string => {
-    if (!showBarrierTypes) return 'fixed_barrier';
-    if (!barrier) return 'above_spot';
-    if (barrier.startsWith('+')) return 'above_spot';
-    if (barrier.startsWith('-')) return 'below_spot';
-    return 'fixed_barrier';
+const getBarrierType = (barrier: string, support: 'relative' | 'absolute'): string => {
+    if (support === 'absolute') return 'fixed_barrier';
+    return barrier?.startsWith('-') ? 'below_spot' : 'above_spot';
 };
 
 const BarrierPopoverContent: React.FC<{
     selectedType: string;
     onSelectType: (type: string) => void;
-    showBarrierTypes: boolean;
-}> = ({ selectedType, onSelectType, showBarrierTypes }) => {
+    support: 'relative' | 'absolute';
+}> = ({ selectedType, onSelectType, support }) => {
     const { closePopover } = useTradeParameterPopover();
 
     return (
         <div className='barrier-popover__layout'>
             <div className='barrier-popover__sidebar'>
-                <BarrierTypeSelector
-                    selectedType={selectedType}
-                    onSelectType={onSelectType}
-                    showAllTypes={showBarrierTypes}
-                />
+                <BarrierTypeSelector selectedType={selectedType} onSelectType={onSelectType} support={support} />
             </div>
             <div className='barrier-popover__main'>
                 <div className='barrier-popover__content'>
@@ -48,31 +40,16 @@ const BarrierPopoverContent: React.FC<{
     );
 };
 
-const BarrierDesktop: React.FC<BarrierDesktopProps> = observer(({ is_minimized, isDays }) => {
-    const { barrier_1, contract_type, is_market_closed, symbol, active_symbols } = useTraderStore();
+const BarrierDesktop: React.FC<BarrierDesktopProps> = observer(({ is_minimized }) => {
+    const trade_store = useTraderStore();
+    const { barrier_1, contract_type, is_market_closed, symbol } = trade_store;
     const is_turbos = isTurbosContract(contract_type);
 
-    const barrierSupport = useMemo(() => {
-        if (!symbol || !active_symbols?.length) return 'relative';
+    // Barrier support (relative offset vs absolute price), derived from the sign of the API's
+    // per-expiry-type default barrier — shared with the mobile barrier input.
+    const barrierSupport = trade_store.getSymbolBarrierSupport(symbol);
 
-        const symbol_info = active_symbols.find((s: { underlying_symbol?: string }) => s.underlying_symbol === symbol);
-        if (!symbol_info) return 'relative';
-
-        const { market, underlying_symbol_type } = symbol_info as {
-            market?: string;
-            underlying_symbol_type?: string;
-        };
-
-        if (market === 'forex' || underlying_symbol_type === 'forex') {
-            return 'absolute';
-        }
-
-        return 'relative';
-    }, [symbol, active_symbols]);
-
-    const showBarrierTypes = !isDays && barrierSupport === 'relative';
-
-    const initialType = useMemo(() => getBarrierType(barrier_1, showBarrierTypes), [barrier_1, showBarrierTypes]);
+    const initialType = useMemo(() => getBarrierType(barrier_1, barrierSupport), [barrier_1, barrierSupport]);
     const [selectedType, setSelectedType] = useState(initialType);
 
     React.useEffect(() => {
@@ -100,7 +77,7 @@ const BarrierDesktop: React.FC<BarrierDesktopProps> = observer(({ is_minimized, 
             <BarrierPopoverContent
                 selectedType={selectedType}
                 onSelectType={handleTypeSelect}
-                showBarrierTypes={showBarrierTypes}
+                support={barrierSupport}
             />
         </TradeParameterPopover>
     );

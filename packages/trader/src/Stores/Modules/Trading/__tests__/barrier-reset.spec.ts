@@ -1,7 +1,12 @@
 import { configure } from 'mobx';
+
+import { TRADE_TYPES } from '@deriv/shared';
 import { mockStore } from '@deriv/stores';
-import TradeStore from '../trade-store';
+
 import { TRootStore } from 'Types';
+
+import { ContractType } from '../Helpers/contract-type';
+import TradeStore from '../trade-store';
 
 configure({ safeDescriptors: false });
 
@@ -121,9 +126,11 @@ describe('TradeStore - Barrier Reset on Symbol Change', () => {
             expect(result).toBe('relative');
         });
 
-        it('should return "absolute" for unknown symbols', () => {
-            const result = trade_store.getSymbolBarrierSupport('UNKNOWN');
-            expect(result).toBe('absolute');
+        it('should return "relative" for symbols it cannot resolve yet', () => {
+            // The barrier field renders before active_symbols arrives, and most barrier symbols
+            // are synthetics, so an unresolved symbol reports relative rather than flashing a
+            // fixed-price field that then switches.
+            expect(trade_store.getSymbolBarrierSupport('UNKNOWN')).toBe('relative');
         });
 
         it('should be accessible as public method for component usage', () => {
@@ -133,7 +140,92 @@ describe('TradeStore - Barrier Reset on Symbol Change', () => {
             // Test that it works correctly when called from external components
             expect(trade_store.getSymbolBarrierSupport('EURUSD')).toBe('absolute');
             expect(trade_store.getSymbolBarrierSupport('1HZ100V')).toBe('relative');
-            expect(trade_store.getSymbolBarrierSupport('')).toBe('absolute');
+            expect(trade_store.getSymbolBarrierSupport('')).toBe('relative');
+        });
+    });
+
+    describe('getBarrierSupportFromApiDefault', () => {
+        beforeEach(() => {
+            // Populate contracts_for-derived config for a few contract types + expiry_types,
+            // mirroring what `contracts_for` returns per contract type/duration.
+            ContractType.processContractsForResponse(
+                {
+                    contracts_for: {
+                        available: [
+                            {
+                                contract_type: 'ONETOUCH',
+                                barriers: 1,
+                                expiry_type: 'tick',
+                                barrier: '+39.37',
+                                min_contract_duration: '5t',
+                                max_contract_duration: '10t',
+                            },
+                            {
+                                contract_type: 'NOTOUCH',
+                                barriers: 1,
+                                expiry_type: 'tick',
+                                barrier: '+39.37',
+                                min_contract_duration: '5t',
+                                max_contract_duration: '10t',
+                            },
+                            {
+                                contract_type: 'TURBOSLONG',
+                                barriers: 1,
+                                expiry_type: 'tick',
+                                barrier: '963.4521',
+                                min_contract_duration: '5t',
+                                max_contract_duration: '10t',
+                            },
+                            {
+                                contract_type: 'TURBOSSHORT',
+                                barriers: 1,
+                                expiry_type: 'tick',
+                                barrier: '963.4521',
+                                min_contract_duration: '5t',
+                                max_contract_duration: '10t',
+                            },
+                            {
+                                contract_type: 'HIGHER',
+                                barriers: 1,
+                                expiry_type: 'intraday',
+                                barrier: '1.23450',
+                                min_contract_duration: '1m',
+                                max_contract_duration: '1d',
+                            },
+                            {
+                                contract_type: 'LOWER',
+                                barriers: 1,
+                                expiry_type: 'intraday',
+                                barrier: '1.23450',
+                                min_contract_duration: '1m',
+                                max_contract_duration: '1d',
+                            },
+                        ],
+                        non_available: [],
+                    },
+                } as any,
+                '1HZ50V'
+            );
+        });
+
+        it('derives relative support for Touch/No Touch from a tick default barrier of +39.37', () => {
+            trade_store.updateStore({ contract_type: TRADE_TYPES.TOUCH, contract_expiry_type: 'tick' });
+            expect(trade_store.getBarrierSupportFromApiDefault()).toBe('relative');
+        });
+
+        it('derives absolute support for Turbos from a bare-number tick default barrier', () => {
+            trade_store.updateStore({ contract_type: TRADE_TYPES.TURBOS.LONG, contract_expiry_type: 'tick' });
+            expect(trade_store.getBarrierSupportFromApiDefault()).toBe('absolute');
+        });
+
+        it('derives absolute support for a forex barrier contract from the default-barrier sign', () => {
+            trade_store.updateStore({ contract_type: TRADE_TYPES.HIGH_LOW, contract_expiry_type: 'intraday' });
+            expect(trade_store.getBarrierSupportFromApiDefault()).toBe('absolute');
+        });
+
+        it('returns null when no API default barrier is available for the contract type + expiry_type', () => {
+            trade_store.updateStore({ contract_type: TRADE_TYPES.TOUCH, contract_expiry_type: 'daily' });
+            expect(trade_store.getBarrierSupportFromApiDefault()).toBeNull();
         });
     });
 

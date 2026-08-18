@@ -9,25 +9,27 @@ interface BarrierTypeSelectorProps {
     selectedType: string;
     onSelectType: (type: string) => void;
     className?: string;
-    showAllTypes?: boolean;
+    support?: 'relative' | 'absolute';
 }
 
 const BarrierTypeSelector: React.FC<BarrierTypeSelectorProps> = ({
     selectedType,
     onSelectType,
     className,
-    showAllTypes = true,
+    support = 'relative',
 }) => {
+    // Relative barriers are a signed offset from spot, so only the two sign options apply; the
+    // fixed-price option shows only when the API default for this contract type + duration is
+    // an absolute price.
     const BARRIER_TYPES: VerticalTabItem[] = useMemo(
         () =>
-            showAllTypes
+            support === 'relative'
                 ? [
                       { value: 'above_spot', label: localize('Above spot') },
                       { value: 'below_spot', label: localize('Below spot') },
-                      { value: 'fixed_barrier', label: localize('Fixed barrier') },
                   ]
                 : [{ value: 'fixed_barrier', label: localize('Fixed barrier') }],
-        [showAllTypes]
+        [support]
     );
 
     return (

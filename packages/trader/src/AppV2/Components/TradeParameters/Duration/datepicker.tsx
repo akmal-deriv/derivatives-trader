@@ -75,15 +75,19 @@ const DaysDatepicker = ({
         const day = date.getDay();
         return disabled_days.includes(day);
     };
+
+    const min_date = new Date(start_date);
+    const selected_date = end_date instanceof Date && !isNaN(end_date.getTime()) ? end_date : min_date;
+
     return (
         <div className='duration-datepicker duration-container__date-picker'>
             <DatePicker
                 className='date-picker'
                 hasFixedWidth={false}
-                minDate={new Date(start_date)}
+                minDate={min_date}
                 maxDate={new Date(new Date().setFullYear(new Date().getFullYear() + 1))}
                 view='month'
-                value={end_date}
+                value={selected_date}
                 tileDisabled={getDisabledDays}
                 tileContent={tileContent}
                 onActiveStartDateChange={handleActiveStartDateChange}

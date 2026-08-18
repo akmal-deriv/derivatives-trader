@@ -9,7 +9,7 @@ import { Localize } from '@deriv-com/translations';
 
 import { useProposal } from 'AppV2/Hooks/useProposal';
 import { ERROR_SNACKBAR_DURATION } from 'AppV2/Utils/layout-utils';
-import { getClosestTimeToCurrentGMT, getDatePickerStartDate } from 'AppV2/Utils/trade-params-utils';
+import { getClosestTimeToCurrentGMT, getDatePickerStartDate, toExpiryDateString } from 'AppV2/Utils/trade-params-utils';
 import { ContractType } from 'Stores/Modules/Trading/Helpers/contract-type';
 import { getBoundaries } from 'Stores/Modules/Trading/Helpers/end-time';
 import { useTraderStore } from 'Stores/useTraderStores';
@@ -152,7 +152,7 @@ const DayInput = ({
         timeZone: 'GMT',
     });
     const today_local = new Date();
-    const today_date_string = `${today_local.getFullYear()}-${String(today_local.getMonth() + 1).padStart(2, '0')}-${String(today_local.getDate()).padStart(2, '0')}`;
+    const today_date_string = toExpiryDateString(today_local);
     const is_selected_date_today = selected_expiry_date === today_date_string;
 
     React.useEffect(() => {
@@ -197,7 +197,7 @@ const DayInput = ({
 
         // Keep browsing_expiry_date and selected_expiry_date in sync
         setBrowsingExpiryDate(date);
-        const selected_date_string = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        const selected_date_string = toExpiryDateString(date);
         lastSelectedDateRef.current = selected_date_string;
         setSelectedExpiryDate(selected_date_string);
 

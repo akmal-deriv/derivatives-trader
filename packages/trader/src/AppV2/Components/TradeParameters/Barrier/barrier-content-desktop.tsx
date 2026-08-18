@@ -2,13 +2,14 @@ import React, { useState } from 'react';
 import { observer } from 'mobx-react-lite';
 
 import { useDebounce } from '@deriv/api-v2';
-import { mapErrorMessage } from '@deriv/shared';
 import { Button, TextField, TextFieldAddon } from '@deriv-com/quill-ui';
 import { Localize, useTranslations } from '@deriv-com/translations';
 
 import { useProposal } from 'AppV2/Hooks/useProposal';
 import { getDisplayedContractTypes } from 'AppV2/Utils/trade-types-utils';
 import { useTraderStore } from 'Stores/useTraderStores';
+
+import { getBarrierErrorMessage } from './barrier-error-utils';
 
 interface BarrierContentDesktopProps {
     barrierType: string;
@@ -17,14 +18,19 @@ interface BarrierContentDesktopProps {
 
 const BarrierContentDesktop: React.FC<BarrierContentDesktopProps> = observer(({ barrierType, onClose }) => {
     const trade_store = useTraderStore();
-    const { barrier_1, onChange, tick_data, contract_type, trade_type_tab, trade_types } = trade_store;
+    const { barrier_1, onChange, tick_data, symbol, contract_type, trade_type_tab, trade_types, barrier_choices } =
+        trade_store;
     const { localize } = useTranslations();
 
-    const getInitialValue = () => {
-        if (!barrier_1) return '';
-        return barrier_1.replace(/^[+-]/, '');
-    };
-    const [inputValue, setInputValue] = useState(getInitialValue());
+    // Barrier support (relative offset vs absolute price), derived from the sign of the API's
+    // per-expiry-type default barrier — shared with the mobile barrier input.
+    const barrierSupport = trade_store.getSymbolBarrierSupport(symbol);
+
+    // Seed from the store's API default barrier_1 when the field is empty; the hardcoded
+    // fallback constants only apply when the API itself provided no default.
+    const getInitialFullValue = () =>
+        barrier_1 && barrier_1.trim() !== '' ? barrier_1 : trade_store.getDefaultBarrierValue(barrierSupport);
+    const [inputValue, setInputValue] = useState(getInitialFullValue().replace(/^[+-]/, ''));
 
     const { pip_size, quote } = tick_data ?? {};
 
@@ -32,8 +38,17 @@ const BarrierContentDesktop: React.FC<BarrierContentDesktopProps> = observer(({ 
 
     const [localValidationError, setLocalValidationError] = useState<string>('');
     const [proposalRequestValues, setProposalRequestValues] = useState({
-        barrier_1: barrier_1 || '',
+        barrier_1: getInitialFullValue(),
     });
+
+    // The store's barrier_1 can change while the popover stays mounted (e.g. the expiry-transition
+    // reseed reaction in trade-store when duration/expiry changes elsewhere on the page). Resync the
+    // local input so Save can't write a stale value over the reseeded barrier — mirrors barrier-input.tsx.
+    React.useEffect(() => {
+        if (!barrier_1) return;
+        const newValue = barrier_1.replace(/^[+-]/, '');
+        setInputValue(prev => (prev !== newValue ? newValue : prev));
+    }, [barrier_1]);
 
     const contract_types = React.useMemo(
         () => getDisplayedContractTypes(trade_types, contract_type, trade_type_tab),
@@ -52,10 +67,10 @@ const BarrierContentDesktop: React.FC<BarrierContentDesktopProps> = observer(({ 
             proposalError &&
             (proposalError.details?.field === 'barrier' || proposalError.details?.field === 'barrier2')
         ) {
-            return mapErrorMessage(proposalError);
+            return getBarrierErrorMessage(proposalError, barrier_choices, barrierSupport);
         }
         return '';
-    }, [proposalError]);
+    }, [proposalError, barrier_choices, barrierSupport]);
 
     const validateBarrierValue = React.useCallback(
         (value: string): string => {
@@ -107,8 +122,10 @@ const BarrierContentDesktop: React.FC<BarrierContentDesktopProps> = observer(({ 
         }
     }, [debouncedInputValue, barrierType, localize]);
 
+    // The API's range/format message is the most actionable correction, so it takes precedence
+    // over a generic client-side message when both apply.
     const show_validation_error = localValidationError !== '' || apiValidationError !== '';
-    const displayError = localValidationError || apiValidationError;
+    const displayError = apiValidationError || localValidationError;
 
     const handleSave = () => {
         if (show_validation_error || isLoadingProposal) return;

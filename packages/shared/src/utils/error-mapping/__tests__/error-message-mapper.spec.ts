@@ -113,6 +113,31 @@ describe('mapErrorMessage', () => {
         expect(result).toContain('USD');
     });
 
+    it('states the accepted range when BarrierNotInRange carries code_args', () => {
+        const error = { subcode: 'BarrierNotInRange', code_args: ['30.5', '45.2'] };
+        expect(mapErrorMessage(error)).toBe('Barrier is not an integer in range of 30.5 to 45.2.');
+    });
+
+    it('falls back to a format hint when BarrierNotInRange carries no code_args', () => {
+        const error = { subcode: 'BarrierNotInRange', code_args: [] };
+        expect(mapErrorMessage(error)).toBe('Barrier is not in the accepted range for this contract.');
+    });
+
+    it('states the accepted range when BarrierOutOfRange carries code_args', () => {
+        const error = { subcode: 'BarrierOutOfRange', code_args: ['1.1000', '1.2000'] };
+        expect(mapErrorMessage(error)).toBe('Barrier must be between 1.1000 and 1.2000.');
+    });
+
+    it('falls back to a generic message when BarrierOutOfRange carries no code_args', () => {
+        const error = { subcode: 'BarrierOutOfRange', code_args: [] };
+        expect(mapErrorMessage(error)).toBe('Barrier is out of acceptable range.');
+    });
+
+    it('falls back to a format hint when BarrierValidationError carries no code_args', () => {
+        const error = { subcode: 'BarrierValidationError', code_args: [] };
+        expect(mapErrorMessage(error)).toBe('Barrier is not valid for this contract.');
+    });
+
     it('should return default message when error has no message and no subcode', () => {
         const error = {};
         expect(mapErrorMessage(error)).toBe('An error occurred. Please try again later.');

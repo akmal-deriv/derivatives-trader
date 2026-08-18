@@ -298,6 +298,96 @@ describe('BarrierContentDesktop', () => {
         });
     });
 
+    it('states the accepted range for Touch/No Touch when the proposal error carries code_args', async () => {
+        default_mock_store.modules.trade.contract_type = 'touch';
+        (useProposal as jest.Mock).mockReturnValue({
+            data: null,
+            error: {
+                subcode: 'BarrierNotInRange',
+                code_args: ['30.5', '45.2'],
+                details: { field: 'barrier' },
+            },
+            isFetching: false,
+        });
+
+        render(<MockedBarrierContentDesktop barrierType='above_spot' />);
+
+        await waitFor(() => {
+            expect(screen.getByText('Barrier is not an integer in range of 30.5 to 45.2.')).toBeInTheDocument();
+        });
+    });
+
+    it('states the accepted range for another barrier trade type (High/Low) when the proposal error carries code_args', async () => {
+        default_mock_store.modules.trade.contract_type = 'high_low';
+        (useProposal as jest.Mock).mockReturnValue({
+            data: null,
+            error: {
+                subcode: 'BarrierOutOfRange',
+                code_args: ['1.1000', '1.2000'],
+                details: { field: 'barrier' },
+            },
+            isFetching: false,
+        });
+
+        render(<MockedBarrierContentDesktop barrierType='fixed_barrier' />);
+
+        await waitFor(() => {
+            expect(screen.getByText('Barrier must be between 1.1000 and 1.2000.')).toBeInTheDocument();
+        });
+    });
+
+    it('falls back to a format hint when the barrier rejection carries no range', async () => {
+        // A forex symbol, so absolute support is derived from real symbol data rather than from
+        // the unresolved-symbol fallback (which the barrier input treats as relative).
+        default_mock_store.modules.trade.active_symbols = [
+            { underlying_symbol: 'frxEURUSD', market: 'forex', underlying_symbol_type: 'forex' },
+        ];
+        default_mock_store.modules.trade.symbol = 'frxEURUSD';
+        (useProposal as jest.Mock).mockReturnValue({
+            data: null,
+            error: {
+                subcode: 'BarrierValidationError',
+                code_args: [],
+                details: { field: 'barrier' },
+            },
+            isFetching: false,
+        });
+
+        render(<MockedBarrierContentDesktop barrierType='above_spot' />);
+
+        await waitFor(() => {
+            expect(
+                screen.getByText('Barrier is not valid for this contract. Enter the barrier as an absolute price.')
+            ).toBeInTheDocument();
+        });
+    });
+
+    it('names the relative barrier format in the no-range fallback when the symbol supports relative barriers', async () => {
+        default_mock_store.modules.trade.active_symbols = [
+            { underlying_symbol: 'R_100', market: 'synthetic_index', underlying_symbol_type: 'synthetic_index' },
+        ];
+        default_mock_store.modules.trade.symbol = 'R_100';
+        (useProposal as jest.Mock).mockReturnValue({
+            data: null,
+            error: {
+                subcode: 'BarrierValidationError',
+                code_args: [],
+                details: { field: 'barrier' },
+            },
+            isFetching: false,
+        });
+
+        render(<MockedBarrierContentDesktop barrierType='above_spot' />);
+
+        await waitFor(() => {
+            expect(
+                screen.getByText(
+                    'Barrier is not valid for this contract. Enter a distance from the current spot, starting with + (above spot) or - (below spot).'
+                )
+            ).toBeInTheDocument();
+        });
+    });
+
     it('disables Save button when proposal is loading', () => {
         (useProposal as jest.Mock).mockReturnValue({
             data: null,

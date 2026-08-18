@@ -355,6 +355,22 @@ const mock = (): TStores & { is_mock: boolean } => {
                 expiry_time: null,
                 expiry_type: '',
                 form_components: [],
+                // Mirrors the real trade-store's fallback behaviour (no contracts_for config is
+                // loaded in unit tests): support falls back to the symbol's market, and the
+                // default barrier falls back to the hardcoded constants.
+                getSymbolBarrierSupport: jest.fn(function (this: Record<string, any>, symbol: string) {
+                    const symbol_info = (this.active_symbols || []).find(
+                        (s: { underlying_symbol?: string }) => s.underlying_symbol === symbol
+                    );
+                    if (!symbol_info) return 'relative';
+                    return symbol_info.market === 'forex' || symbol_info.underlying_symbol_type === 'forex'
+                        ? 'absolute'
+                        : 'relative';
+                }),
+                getDefaultBarrierValue: jest.fn(function (this: Record<string, any>, support: 'relative' | 'absolute') {
+                    if (this.barrier_1) return this.barrier_1;
+                    return support === 'absolute' ? '1.0000' : '+0.1';
+                }),
                 growth_rate: 0.01,
                 has_cancellation: false,
                 has_equals_only: false,

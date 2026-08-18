@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import clsx from 'clsx';
 import { observer } from 'mobx-react-lite';
 
@@ -19,21 +19,15 @@ import BarrierDesktop from './barrier-desktop';
 import BarrierInput from './barrier-input';
 
 const Barrier = observer(({ is_minimized }: TTradeParametersProps) => {
-    const {
-        barrier_1,
-        contract_type,
-        duration_unit,
-        expiry_type,
-        is_market_closed,
-        validation_errors,
-        proposal_info,
-        trade_type_tab,
-    } = useTraderStore();
+    const trade_store = useTraderStore();
+    const { barrier_1, contract_type, is_market_closed, validation_errors, proposal_info, trade_type_tab, symbol } =
+        trade_store;
     const is_turbos = isTurbosContract(contract_type);
     const { isMobile } = useDevice();
     const [is_open, setIsOpen] = React.useState(false);
-    // Barriers should be absolute when using end time (expiry_type === 'endtime') or days duration
-    const isDays = duration_unit === 'd' || expiry_type === 'endtime';
+    // Same per-expiry-type support that drives BarrierInput/BarrierDesktop, so the description
+    // page always matches the options the input actually offers.
+    const barrierSupport = trade_store.getSymbolBarrierSupport(symbol);
 
     const has_error =
         (validation_errors.barrier_1?.length ?? 0) > 0 ||
@@ -75,18 +69,18 @@ const Barrier = observer(({ is_minimized }: TTradeParametersProps) => {
         () => [
             {
                 id: 1,
-                component: <BarrierInput isDays={isDays} onClose={onClose} is_open={is_open} />,
+                component: <BarrierInput onClose={onClose} is_open={is_open} />,
             },
             {
                 id: 2,
-                component: <BarrierDescription isDays={isDays} is_turbos={is_turbos} />,
+                component: <BarrierDescription barrierSupport={barrierSupport} is_turbos={is_turbos} />,
             },
         ],
-        [isDays, onClose, is_open]
+        [barrierSupport, is_turbos, onClose, is_open]
     );
 
     if (!isMobile) {
-        return <BarrierDesktop is_minimized={is_minimized} isDays={isDays} />;
+        return <BarrierDesktop is_minimized={is_minimized} />;
     }
 
     return (
