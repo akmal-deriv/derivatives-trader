@@ -1,3 +1,15 @@
+// Locally named so quill's shared `skeleton-pulse` keyframes stay untouched. Mirrors its
+// 0/50/100 shape so only the colours differ, not the motion.
+@keyframes purchase-button-payout-pulsate {
+    0%,
+    100% {
+        background-color: var(--core-color-opacity-white-200);
+    }
+    50% {
+        background-color: var(--core-color-opacity-white-400);
+    }
+}
+
 .purchase-button {
     flex-direction: column-reverse;
     padding-block: var(--core-spacing-400);
@@ -44,6 +56,18 @@
         // and turning the payout text black in light theme.
         &__wrapper &__item {
             color: var(--component-button-label-color-sell-primary);
+        }
+
+        // The pending-value placeholder sits on a saturated purchase/sell pill, where quill's
+        // monochrome page-surface tokens are all but invisible. Translucent white reads on both
+        // green and red in either theme. Scoped under the wrapper for (0,2,0)/(0,3,0) specificity
+        // so it beats quill's own rules whatever the stylesheet order — same hazard as above.
+        &__wrapper .quill-loader__skeleton {
+            background-color: var(--core-color-opacity-white-200);
+
+            &.quill-loader__skeleton--animated {
+                animation-name: purchase-button-payout-pulsate;
+            }
         }
     }
 

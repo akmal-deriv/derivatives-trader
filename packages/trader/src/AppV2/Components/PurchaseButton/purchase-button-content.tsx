@@ -3,7 +3,7 @@ import clsx from 'clsx';
 
 import { Money } from '@deriv/components';
 import { getLocalizedBasis } from '@deriv/shared';
-import { CaptionText } from '@deriv-com/quill-ui';
+import { CaptionText, Skeleton } from '@deriv-com/quill-ui';
 import { useTranslations } from '@deriv-com/translations';
 
 import { useTraderStore } from 'Stores/useTraderStores';
@@ -66,18 +66,23 @@ const PurchaseButtonContent = ({
 
     const text_basis = getTextBasis();
     const amount = getAmount();
-    const is_content_empty = !text_basis || !amount;
+    // The basis label is a static string that never depends on the proposal, so it must not wait for
+    // one. Hiding it alongside a missing amount is what left the button reading just "Buy" above a
+    // blank row whenever prices were in flight (#1142). Only the value slot resolves now: the amount
+    // when priced, a dash once the proposal has errored (so it can't shimmer forever), and otherwise
+    // a placeholder — the same three-way treatment the trade params panel uses for its Payout row.
+    const has_no_basis = !text_basis;
 
     return (
         <CaptionText
             size='sm'
             className={clsx(
                 'purchase-button__information__wrapper',
-                is_content_empty && 'purchase-button__information__wrapper--disabled-placeholder'
+                has_no_basis && 'purchase-button__information__wrapper--disabled-placeholder'
             )}
             data-testid='dt_purchase_button_wrapper'
         >
-            {!is_content_empty && (
+            {!has_no_basis && (
                 <React.Fragment>
                     <CaptionText
                         as='span'
@@ -93,12 +98,19 @@ const PurchaseButtonContent = ({
                         className={clsx(!has_open_accu_contract && 'purchase-button__information__item')}
                         color='quill-typography__color--prominent'
                     >
-                        <Money
-                            amount={amount}
-                            currency={currency}
-                            should_format={!is_turbos && !is_vanilla}
-                            show_currency
-                        />
+                        {amount ? (
+                            <Money
+                                amount={amount}
+                                currency={currency}
+                                should_format={!is_turbos && !is_vanilla}
+                                show_currency
+                            />
+                        ) : info.has_error ? (
+                            `- ${currency}`
+                        ) : (
+                            // Renders a <span>, so it nests safely inside this <p>-based CaptionText.
+                            <Skeleton.Square width={56} height={12} rounded />
+                        )}
                     </CaptionText>
                 </React.Fragment>
             )}

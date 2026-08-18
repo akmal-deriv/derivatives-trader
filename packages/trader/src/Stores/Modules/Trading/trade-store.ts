@@ -59,6 +59,7 @@ import {
     WS,
 } from '@deriv/shared';
 import { safeParse } from '@deriv/utils';
+import { localize } from '@deriv-com/translations';
 
 import { TRADE_PANEL_TABS, type TTradePanelTab } from 'AppV2/Components/AutomationPanel/automation-config';
 import { getStakePresetOverride } from 'AppV2/Config/trade-parameter-presets';
@@ -244,6 +245,16 @@ type TValidationParams = ReturnType<typeof getProposalInfo>['validation_params']
 
 const store_name = 'trade_store';
 const g_subscribers_map: Partial<Record<string, ReturnType<typeof WS.subscribeTicksHistory>>> = {}; // blame amin.m
+
+/**
+ * How long a purchase attempt may wait for a usable proposal before giving up. Needed because the
+ * wait's predicate requires proposal_info to be populated, and requestProposal has early returns
+ * (market closed, awaiting contracts_for, validation errors) that leave it empty indefinitely —
+ * without a bound the wait never settles and is_purchase_pending strands the Buy button spinning.
+ */
+const PROPOSAL_WAIT_TIMEOUT = 10000;
+/** mobx rejects a timed-out `when` with this message. */
+const WHEN_TIMEOUT = 'WHEN_TIMEOUT';
 
 // Validates the persisted tab value — a plain `as` cast would let any
 // stale/tampered localStorage value through and hide both the purchase
@@ -1441,39 +1452,42 @@ export default class TradeStore extends BaseStore {
             this.is_purchase_pending = true;
         });
         try {
-            await when(() => {
-                const proposal_info_keys = Object.keys(this.proposal_info);
-                const proposal_request_keys = Object.keys(this.proposal_requests);
+            await when(
+                () => {
+                    const proposal_info_keys = Object.keys(this.proposal_info);
+                    const proposal_request_keys = Object.keys(this.proposal_requests);
 
-                // Determine what type of keys we have
-                const hasHigherLowerKeys =
-                    proposal_info_keys.includes('HIGHER') && proposal_info_keys.includes('LOWER');
-                const hasCallPutKeys = proposal_info_keys.includes('CALL') && proposal_info_keys.includes('PUT');
+                    // Determine what type of keys we have
+                    const hasHigherLowerKeys =
+                        proposal_info_keys.includes('HIGHER') && proposal_info_keys.includes('LOWER');
+                    const hasCallPutKeys = proposal_info_keys.includes('CALL') && proposal_info_keys.includes('PUT');
 
-                // Determine the expected key based on available keys
-                let expectedKey = trade_type;
-                if (hasHigherLowerKeys && !hasCallPutKeys) {
-                    if (trade_type === 'CALL') expectedKey = 'HIGHER';
-                    else if (trade_type === 'PUT') expectedKey = 'LOWER';
-                }
+                    // Determine the expected key based on available keys
+                    let expectedKey = trade_type;
+                    if (hasHigherLowerKeys && !hasCallPutKeys) {
+                        if (trade_type === 'CALL') expectedKey = 'HIGHER';
+                        else if (trade_type === 'PUT') expectedKey = 'LOWER';
+                    }
 
-                const hasRequiredProposal =
-                    this.proposal_info[expectedKey] && !this.proposal_info[expectedKey].has_error;
+                    const hasRequiredProposal =
+                        this.proposal_info[expectedKey] && !this.proposal_info[expectedKey].has_error;
 
-                // Standard condition: both proposal_info and proposal_requests have matching keys
-                const standardCondition =
-                    proposal_info_keys.length > 0 && proposal_info_keys.length === proposal_request_keys.length;
+                    // Standard condition: both proposal_info and proposal_requests have matching keys
+                    const standardCondition =
+                        proposal_info_keys.length > 0 && proposal_info_keys.length === proposal_request_keys.length;
 
-                // Higher/Lower condition: proposal_info has HIGHER/LOWER keys and the required proposal
-                const higherLowerCondition = hasHigherLowerKeys && hasRequiredProposal;
+                    // Higher/Lower condition: proposal_info has HIGHER/LOWER keys and the required proposal
+                    const higherLowerCondition = hasHigherLowerKeys && hasRequiredProposal;
 
-                // Rise/Fall condition: proposal_info has CALL/PUT keys and the required proposal
-                const riseFallCondition = hasCallPutKeys && hasRequiredProposal;
+                    // Rise/Fall condition: proposal_info has CALL/PUT keys and the required proposal
+                    const riseFallCondition = hasCallPutKeys && hasRequiredProposal;
 
-                const condition = standardCondition || higherLowerCondition || riseFallCondition;
+                    const condition = standardCondition || higherLowerCondition || riseFallCondition;
 
-                return condition;
-            });
+                    return condition;
+                },
+                { timeout: PROPOSAL_WAIT_TIMEOUT }
+            );
 
             // Determine the correct key to use based on what's available in proposal_info
             const proposal_info_keys = Object.keys(this.proposal_info);
@@ -1500,6 +1514,20 @@ export default class TradeStore extends BaseStore {
             }
         } catch (error) {
             this.endPurchaseAttempt();
+            // The Buy button calls this without awaiting, so rethrowing a timeout would surface as an
+            // unhandled rejection. Report it through the same channel as a rejected buy instead —
+            // the button has already been released above, so the user can retry.
+            if ((error as Error)?.message === WHEN_TIMEOUT) {
+                this.root_store.common.setServicesError(
+                    {
+                        type: 'buy',
+                        code: 'ProposalTimeout',
+                        message: localize('Something went wrong. Please try again.'),
+                    },
+                    this.is_dtrader_v2
+                );
+                return;
+            }
             throw error;
         }
     }
@@ -2017,11 +2045,15 @@ export default class TradeStore extends BaseStore {
         // Don't request proposals for closed markets - the server would return MarketIsClosed errors
         // which trigger error snackbars. The closed market state is handled by ClosedMarketMessage.
         if (this.is_market_closed) {
+            // Forget before clearing: forgetAllProposal decides whether to unsubscribe by inspecting
+            // the request map. The map is dropped alongside the prices because a stale map left next
+            // to an empty proposal_info makes the purchase wait's key-count comparison unsatisfiable.
+            this.forgetAllProposal();
             runInAction(() => {
                 this.proposal_info = {};
                 this.purchase_info = {};
+                this.proposal_requests = {};
             });
-            this.forgetAllProposal();
             return;
         }
 
@@ -2031,16 +2063,18 @@ export default class TradeStore extends BaseStore {
             runInAction(() => {
                 this.proposal_info = {};
                 this.purchase_info = {};
+                this.proposal_requests = {};
             });
             return;
         }
         const requests = createProposalRequests(this);
         if (Object.values(this.validation_errors).some(e => e.length)) {
+            this.forgetAllProposal();
             runInAction(() => {
                 this.proposal_info = {};
                 this.purchase_info = {};
+                this.proposal_requests = {};
             });
-            this.forgetAllProposal();
             if (this.is_accumulator) this.resetAccumulatorData();
             return;
         }

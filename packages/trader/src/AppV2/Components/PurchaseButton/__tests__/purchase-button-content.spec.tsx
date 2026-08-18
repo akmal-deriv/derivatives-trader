@@ -26,13 +26,32 @@ const wrapper_data_test_id = 'dt_purchase_button_wrapper';
 const localized_basis = getLocalizedBasis();
 
 describe('PurchaseButtonContent', () => {
-    it('should render empty wrapper with specific className if info prop is empty object or falsy', () => {
+    it('should keep the basis label and show a pending placeholder while the proposal has no amount yet', () => {
+        // The label is static, so a proposal still in flight must not blank the whole row — that left
+        // the button reading just "Buy" over an empty row (#1142).
         render(<PurchaseButtonContent {...mock_props} info={{} as TInfo} />);
 
-        expect(screen.getByTestId(wrapper_data_test_id)).toHaveClass(
+        expect(screen.getByText(localized_basis.payout)).toBeInTheDocument();
+        expect(screen.getByTestId('square-skeleton')).toBeInTheDocument();
+        expect(screen.getByTestId(wrapper_data_test_id)).not.toHaveClass(
             'purchase-button__information__wrapper--disabled-placeholder'
         );
-        expect(screen.queryByText(mock_props.currency)).not.toBeInTheDocument();
+    });
+
+    it('should show a dash instead of a placeholder once the proposal has errored', () => {
+        // An errored proposal carries no amount and never will, so it must not shimmer forever.
+        render(<PurchaseButtonContent {...mock_props} info={{ has_error: true } as TInfo} />);
+
+        expect(screen.getByText(localized_basis.payout)).toBeInTheDocument();
+        expect(screen.getByText(`- ${mock_props.currency}`)).toBeInTheDocument();
+        expect(screen.queryByTestId('square-skeleton')).not.toBeInTheDocument();
+    });
+
+    it('should show a pending placeholder for the multipliers total cost before it is priced', () => {
+        render(<PurchaseButtonContent {...mock_props} is_multiplier has_cancellation info={{} as TInfo} />);
+
+        expect(screen.getByText('Total cost')).toBeInTheDocument();
+        expect(screen.getByTestId('square-skeleton')).toBeInTheDocument();
     });
 
     it('should render correct default text basis and amount if info was passed', () => {

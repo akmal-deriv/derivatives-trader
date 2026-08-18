@@ -521,6 +521,70 @@ describe('TradeStore', () => {
 
                 onPurchaseSpy.mockRestore();
             });
+
+            it('releases the button when the wait for a proposal times out, and reports it', async () => {
+                // An empty proposal_info alongside a live request map is what the requestProposal early
+                // returns leave behind, and the wait requires proposal_info to be populated — so
+                // without a timeout the attempt never settles and the button spins forever.
+                jest.useFakeTimers();
+                tradeStore.proposal_info = {};
+                tradeStore.proposal_requests = { CALL: {} };
+                const onPurchaseSpy = jest.spyOn(tradeStore, 'onPurchase').mockImplementation(() => undefined);
+
+                const attempt = tradeStore.onPurchaseV2('CALL', false);
+                expect(tradeStore.is_purchase_pending).toBe(true);
+
+                jest.advanceTimersByTime(10000);
+                // Must resolve, not reject: the Buy button invokes this without awaiting, so a
+                // rejection would surface as an unhandled promise rejection.
+                await expect(attempt).resolves.toBeUndefined();
+
+                expect(tradeStore.is_purchase_pending).toBe(false);
+                expect(onPurchaseSpy).not.toHaveBeenCalled();
+                expect(mockRootStore.common.setServicesError).toHaveBeenCalled();
+
+                onPurchaseSpy.mockRestore();
+                jest.useRealTimers();
+            });
+        });
+
+        describe('requestProposal', () => {
+            // Each early return has to drop the request map along with the prices, or a later attempt
+            // compares an empty proposal_info against a stale request map and can never proceed.
+            beforeEach(() => {
+                tradeStore.proposal_requests = { CALL: {} };
+                tradeStore.proposal_info = { CALL: {} as any };
+            });
+
+            it('clears the request map when the market is closed', () => {
+                tradeStore.is_market_closed = true;
+
+                tradeStore.requestProposal();
+
+                expect(tradeStore.proposal_info).toEqual({});
+                expect(tradeStore.proposal_requests).toEqual({});
+            });
+
+            it("clears the request map while awaiting the symbol's contracts_for", () => {
+                tradeStore.is_market_closed = false;
+                tradeStore.is_awaiting_contracts_for = true;
+
+                tradeStore.requestProposal();
+
+                expect(tradeStore.proposal_info).toEqual({});
+                expect(tradeStore.proposal_requests).toEqual({});
+            });
+
+            it('clears the request map when a validation error blocks the request', () => {
+                tradeStore.is_market_closed = false;
+                tradeStore.is_awaiting_contracts_for = false;
+                tradeStore.validation_errors = { duration: ['Invalid duration'] } as any;
+
+                tradeStore.requestProposal();
+
+                expect(tradeStore.proposal_info).toEqual({});
+                expect(tradeStore.proposal_requests).toEqual({});
+            });
         });
 
         describe('symbol switch', () => {
