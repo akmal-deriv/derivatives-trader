@@ -3,28 +3,35 @@ import { localize } from '@deriv-com/translations';
 
 type TBarrierSupport = 'relative' | 'absolute';
 
-// Subcodes where mapErrorMessage falls back to a bare "not valid"/"not in range" string once its
-// own code_args are absent — these are the ones that need the format/sign hint appended below.
-const BARE_FALLBACK_SUBCODES = new Set([
-    'BarrierNotInRange',
-    'BarrierOutOfRange',
-    'BarrierValidationError',
-    'InvalidBarrier',
-    'InvalidBarrierUndef',
-]);
+// Rejections that mean "the value is outside the accepted band". `mapErrorMessage` only reports the
+// band when the error carries its own code_args; without them it falls back to a bare "out of
+// range" string, so we say which way to move instead.
+const OUT_OF_RANGE_SUBCODES = new Set(['BarrierOutOfRange', 'BarrierNotInRange']);
 
-const getBarrierFormatHint = (barrier_support: TBarrierSupport): string =>
+// Rejections that carry no reason at all. Nothing can be said about *why* the value failed, so the
+// message explains what the field expects instead.
+const NOT_VALID_SUBCODES = new Set(['BarrierValidationError', 'InvalidBarrier', 'InvalidBarrierUndef']);
+
+// The relative input takes a distance from spot, not a price: the sign comes from the Above/Below
+// spot selector and the field itself strips `+`/`-` (`allowSign={false}`), so the copy must never
+// ask the user to type one.
+const getOutOfRangeMessage = (barrier_support: TBarrierSupport): string =>
     barrier_support === 'relative'
-        ? localize('Enter a distance from the current spot, starting with + (above spot) or - (below spot).')
-        : localize('Enter the barrier as an absolute price.');
+        ? localize('Your barrier is too far from the current spot. Enter a smaller distance.')
+        : localize('Your barrier is too far from the current spot. Enter a price closer to it.');
+
+const getNotValidMessage = (barrier_support: TBarrierSupport): string =>
+    barrier_support === 'relative'
+        ? localize("This barrier isn't valid. Enter how far you want the barrier from the current spot.")
+        : localize("This barrier isn't valid. Enter the price where you want the barrier.");
 
 /**
  * Maps a rejected-barrier proposal error to a user-facing message. Prefers, in order: the
  * range/format message `mapErrorMessage` derives from the error's own `code_args`; then, when the
- * error carries no range args, a hint built from the contract's `barrier_choices` (when present)
- * instead of an unqualified rejection. When neither numeric range is available, the message names
- * the expected format/sign for the current barrier support type rather than leaving the user with
- * a bare "invalid"/"not in range" string.
+ * error carries no range args, a range built from the contract's `barrier_choices` (when present)
+ * instead of an unqualified rejection. When no numeric range is available from either source, it
+ * replaces the bare "invalid"/"not in range" string with copy that states which way to move the
+ * value and names what the field actually holds for the current barrier support type.
  */
 export const getBarrierErrorMessage = (
     error: ErrorObject | undefined,
@@ -49,12 +56,11 @@ export const getBarrierErrorMessage = (
         }
     }
 
-    const mapped_message = mapErrorMessage(error);
-
     const has_no_range_info = !has_range_args && !barrier_choices.length;
-    if (has_no_range_info && error.subcode && BARE_FALLBACK_SUBCODES.has(error.subcode)) {
-        return `${mapped_message} ${getBarrierFormatHint(barrier_support)}`;
+    if (has_no_range_info && error.subcode) {
+        if (OUT_OF_RANGE_SUBCODES.has(error.subcode)) return getOutOfRangeMessage(barrier_support);
+        if (NOT_VALID_SUBCODES.has(error.subcode)) return getNotValidMessage(barrier_support);
     }
 
-    return mapped_message;
+    return mapErrorMessage(error);
 };

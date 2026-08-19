@@ -336,7 +336,7 @@ describe('BarrierContentDesktop', () => {
         });
     });
 
-    it('falls back to a format hint when the barrier rejection carries no range', async () => {
+    it('names what the absolute field expects when the barrier rejection carries no range', async () => {
         // A forex symbol, so absolute support is derived from real symbol data rather than from
         // the unresolved-symbol fallback (which the barrier input treats as relative).
         default_mock_store.modules.trade.active_symbols = [
@@ -357,12 +357,12 @@ describe('BarrierContentDesktop', () => {
 
         await waitFor(() => {
             expect(
-                screen.getByText('Barrier is not valid for this contract. Enter the barrier as an absolute price.')
+                screen.getByText("This barrier isn't valid. Enter the price where you want the barrier.")
             ).toBeInTheDocument();
         });
     });
 
-    it('names the relative barrier format in the no-range fallback when the symbol supports relative barriers', async () => {
+    it('names what the relative field expects when the symbol supports relative barriers', async () => {
         default_mock_store.modules.trade.active_symbols = [
             { underlying_symbol: 'R_100', market: 'synthetic_index', underlying_symbol_type: 'synthetic_index' },
         ];
@@ -381,9 +381,7 @@ describe('BarrierContentDesktop', () => {
 
         await waitFor(() => {
             expect(
-                screen.getByText(
-                    'Barrier is not valid for this contract. Enter a distance from the current spot, starting with + (above spot) or - (below spot).'
-                )
+                screen.getByText("This barrier isn't valid. Enter how far you want the barrier from the current spot.")
             ).toBeInTheDocument();
         });
     });
