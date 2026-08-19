@@ -1,10 +1,6 @@
 # Trade Journey Coverage
 
-**Analysis date:** 2026-08-03
-
-> **Account type:** Flows 2–10 below (excluding Multipliers Deal Cancellation 9.7/9.8 and Vanillas 11.1/11.2,
-> both not yet implemented) each run as a `(Demo Account)` / `(Real Account)` test pair via `accountType` on
-> the corresponding `buy*AndVerify()` page-object method.
+**Analysis date:** 2026-08-17
 
 ---
 
@@ -41,8 +37,8 @@
 | Flow 10.2 | Turbos without TP — buy Down → verify in positions     | ✅      | ✅     |       |
 | Flow 10.3 | Turbos with TP — buy Up → verify TP set in positions   | ✅      | ✅     |       |
 | Flow 10.4 | Turbos with TP — buy Down → verify TP set in positions | ✅      | ✅     |       |
-| Flow 11.1 | Vanillas — buy Call → verify in positions              | ❌      | ❌     |       |
-| Flow 11.2 | Vanillas — buy Put → verify in positions               | ❌      | ❌     |       |
+| Flow 11.1 | Vanillas — buy Call → close contract                   | ✅      | ✅     |       |
+| Flow 11.2 | Vanillas — buy Put → close contract                    | ✅      | ✅     |       |
 | Flow 12   | Market closed → purchase hidden, countdown visible     | ❌      | ❌     |       |
 | G1        | Insufficient balance → ServiceErrorSheet               | ❌      | ❌     |       |
 | G2        | Unauthenticated purchase → login prompt sheet          | ❌      | ❌     |       |
@@ -70,7 +66,7 @@
 | P1       | `trade/higher-lower/verify-higher-lower.spec.ts`                 | Flow 3.1 + 3.2                 | Core directional type with barrier                 |
 | P1       | `trade/multipliers/verify-multipliers-with-sl.spec.ts`           | Flow 9.5 + 9.6                 | SL is a critical risk control path                 |
 | P1       | `trade/turbos/verify-turbos.spec.ts`                             | Flow 10.1 + 10.2 + 10.3 + 10.4 | Unique payout per point param; without and with TP |
-| P1       | `trade/vanillas/verify-vanillas.spec.ts`                         | Flow 11.1 + 11.2               | Unique strike price param                          |
+| P1       | `trade/vanillas/verify-vanillas.spec.ts`                         | Flow 11.1 + 11.2               | Unique strike price param; full open + close chain |
 | P2       | `trade/touch-no-touch/verify-touch-no-touch.spec.ts`             | Flow 4.1 + 4.2                 | Directional with barrier — lower traffic           |
 | P2       | `trade/over-under/verify-over-under.spec.ts`                     | Flow 6.1 + 6.2                 | Secondary Digit type                               |
 | P2       | `trade/even-odd/verify-even-odd.spec.ts`                         | Flow 7.1 + 7.2                 | Secondary Digit type; simplest params              |

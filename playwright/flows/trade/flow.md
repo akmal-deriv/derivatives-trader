@@ -7,8 +7,8 @@
 > **Authentication:** All flows start from a logged-in state (`loginPage.login()` in `beforeEach`)
 > **Desktop source:** `trade-desktop.tsx` — inline trade params in a grid
 > **Mobile source:** `trade-mobile.tsx` → `TradeParametersContainer` (swipeable bottom sheet)
-> **Account type:** Every implemented buy flow below (Flows 2–10, excluding Multipliers Deal Cancellation and
-> Vanillas, which are gap/not-yet-implemented) runs as a `(Demo Account)` / `(Real Account)` test pair via
+> **Account type:** Every implemented buy flow below (Flows 2–11, excluding Multipliers Deal Cancellation
+> 9.7/9.8 which is not yet implemented) runs as a `(Demo Account)` / `(Real Account)` test pair via
 > `accountType: 'real' | 'demo'` on the page object's `buy*AndVerify()` method — the account created in
 > `beforeAll` is real by default, and the demo variant switches in-app via `switchToAccountType('demo')`
 > before configuring the trade.
@@ -728,40 +728,56 @@ Identical chain to Flow 7.1 with `selectPredictionOption('Odd', 'bottom')` (purc
 
 ## Vanillas
 
-> **Structural exception:** Vanillas contracts expire at duration end — there is no manual close button. The buy flow verifies purchase and presence in positions only (all rows in the table below). The remainder of the standard chain (closed tab, contract details closed, balance after close, Reports) is not applicable.
+> **Contract type label:** Positions and mobile contract details show the combined label (`"Vanillas Call"` / `"Vanillas Put"`). Desktop contract-details drawer shows direction only (`"Call"` / `"Put"`) — assert each surface with the label it actually renders.
 
-### Flow 11.1 — Vanillas: buy Call → verify in positions
+### Flow 11.1 — Vanillas: buy Call → close contract
 
-**Prerequisites:** Authenticated with funded account. Forex/Synthetics symbol supporting Vanillas (e.g. EUR/USD).
-**Spec:** `playwright/tests/trade/vanillas/verify-vanillas.spec.ts` — `VERIFY Buy "Call" Vanillas Contract`
-**Unique params:** Duration, Strike price (`dt_strike_wrapper`), Stake (`10.00`) — Payout per point info panel
+**Prerequisites:** Authenticated with funded account (`createAccountV2viaJS` in spec `beforeAll`). Synthetics symbol supporting Vanillas (e.g. Volatility 100 Index). Spec runs **serial** (Call Demo → Call Real → Put Demo → Put Real) on a shared account.
+**Spec:** `playwright/tests/trade/vanillas/verify-vanillas.spec.ts` — `VERIFY Buy "Call" Vanillas Contract (Demo Account)` / `(Real Account)`
+**Unique params:** Duration (`5 min`), Strike price (`+0.00`), Stake (`10.00`) — Payout per point info panel
 
-| #   | Step                                 | Action                                                         | Expected Result                            | Platform |
-| --- | ------------------------------------ | -------------------------------------------------------------- | ------------------------------------------ | -------- |
-| 1   | Navigate to trade page               | `page.goto(BASE_URL)` + `waitForDerivApiSettled`               | Trade page loaded                          | Both     |
-| 2   | Select market and trade type         | `selectMarketAndTradeType('EUR/USD', 'Vanillas')`              | Vanillas chip selected                     | Both     |
-| 3   | Verify Strike price param visible    | Observe parameters                                             | "Strike price" parameter visible           | Both     |
-| 4   | Verify Duration param visible        | Observe parameters                                             | "Duration" parameter visible               | Both     |
-| 5   | Verify Payout per point info visible | Observe below parameters                                       | Payout per point info panel visible        | Both     |
-| 6   | Set stake                            | `setStake('10.00')`                                            | Stake field shows `10.00`                  | Both     |
-| 7   | Buy Call contract                    | `clickBuy()` — captures payout                                 | Contract purchased                         | Both     |
-| 8   | Verify open position in Positions    | `verifyOpenPositionsVisible()` + `verifyContractCardDetails()` | Card visible; balance reduced by stake     | Both     |
-| 9   | Verify open position in Reports      | `verifyOpenPositionsInReports()` — captures `buyId`            | Headers, row values, footer totals correct | Both     |
+| #   | Step                                 | Action                                                                     | Expected Result                                                                            | Platform |
+| --- | ------------------------------------ | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ | -------- |
+| 1   | Navigate to trade page               | `page.goto(BASE_URL)` + `waitForDerivApiSettled`                           | Trade page loaded                                                                          | Both     |
+| 2   | Select market and trade type         | `selectMarketAndTradeType('Volatility 100 Index', 'Vanillas')`             | Vanillas chip selected                                                                     | Both     |
+| 3   | Verify Strike price param visible    | Observe parameters                                                         | "Strike price" parameter visible                                                           | Both     |
+| 4   | Verify Duration param visible        | Observe parameters                                                         | "Duration" parameter visible                                                               | Both     |
+| 5   | Select Call direction                | `selectDirection('Call')`                                                  | Buy button enabled                                                                         | Both     |
+| 6   | Set strike price                     | `selectStrike('+0.00')`                                                    | Strike field shows `+0.00`                                                                 | Both     |
+| 7   | Verify Payout per point info visible | Observe below parameters (desktop) / Strike sheet (mobile)                 | Payout per point visible                                                                   | Both     |
+| 8   | Set duration                         | `selectDuration('Minutes', '5 min')`                                       | Duration field shows `5 min`                                                               | Both     |
+| 9   | Set stake                            | `setStake('10.00')`                                                        | Stake field shows `10.00`                                                                  | Both     |
+| 10  | Buy Call contract                    | `clickVanillasBuy()`                                                       | Contract purchased                                                                         | Both     |
+| 11  | Verify open position in Positions    | `verifyOpenPositionsVisible()` + `verifyContractCardDetails()`             | Card shows `"Vanillas Call"`; balance reduced by stake                                     | Both     |
+| 12  | Verify open position in Reports      | `verifyOpenPositionsInReportsForVanillas()` — captures `buyId`             | Headers, row values, footer totals correct                                                 | Both     |
+| 13  | Verify open contract details         | `verifyVanillasOpenContractDetailsPage()`                                  | Desktop: type `"Call"`; mobile: `"Vanillas Call"`; Strike, payout per point, buyId correct | Both     |
+| 14  | Close contract from Positions        | `closeFirstContract()`                                                     | Open tab empty; contract moved to Closed                                                   | Both     |
+| 15  | Verify closed position               | `verifyClosedPositionsTab()` + `verifyVanillasClosedContractDetailsPage()` | Closed card `"Vanillas Call"`; desktop details `"Call"`; sell ID correct                   | Both     |
+| 16  | Verify balance after close           | `verifyBalanceAfterContractClose()`                                        | Balance reflects P/L from early close                                                      | Both     |
+| 17  | Verify closed contract in Reports    | `verifyClosedContractInReports()`                                          | Trade table + Statement rows correct                                                       | Both     |
 
-### Flow 11.2 — Vanillas: buy Put → verify in positions
+### Flow 11.2 — Vanillas: buy Put → close contract
 
 **Prerequisites:** Same as Flow 11.1.
-**Spec:** `playwright/tests/trade/vanillas/verify-vanillas.spec.ts` — `VERIFY Buy "Put" Vanillas Contract`
-**Unique params:** Stake (`10.00`)
+**Spec:** `playwright/tests/trade/vanillas/verify-vanillas.spec.ts` — `VERIFY Buy "Put" Vanillas Contract (Demo Account)` / `(Real Account)`
+**Unique params:** Stake (`10.00`), Strike price (`+0.00`)
 
-| #   | Step                              | Action                                                         | Expected Result                            | Platform |
-| --- | --------------------------------- | -------------------------------------------------------------- | ------------------------------------------ | -------- |
-| 1   | Navigate to trade page            | `page.goto(BASE_URL)` + `waitForDerivApiSettled`               | Trade page loaded                          | Both     |
-| 2   | Select market and trade type      | `selectMarketAndTradeType('EUR/USD', 'Vanillas')`              | Vanillas chip selected                     | Both     |
-| 3   | Set stake                         | `setStake('10.00')`                                            | Stake field shows `10.00`                  | Both     |
-| 4   | Buy Put contract                  | `clickBuy()` — captures payout                                 | Contract purchased                         | Both     |
-| 5   | Verify open position in Positions | `verifyOpenPositionsVisible()` + `verifyContractCardDetails()` | Card visible; balance reduced by stake     | Both     |
-| 6   | Verify open position in Reports   | `verifyOpenPositionsInReports()` — captures `buyId`            | Headers, row values, footer totals correct | Both     |
+| #   | Step                              | Action                                                                     | Expected Result                                                                          | Platform |
+| --- | --------------------------------- | -------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | -------- |
+| 1   | Navigate to trade page            | `page.goto(BASE_URL)` + `waitForDerivApiSettled`                           | Trade page loaded                                                                        | Both     |
+| 2   | Select market and trade type      | `selectMarketAndTradeType('Volatility 100 Index', 'Vanillas')`             | Vanillas chip selected                                                                   | Both     |
+| 3   | Select Put direction              | `selectDirection('Put')`                                                   | Buy button enabled                                                                       | Both     |
+| 4   | Set strike price                  | `selectStrike('+0.00')`                                                    | Strike field shows `+0.00`                                                               | Both     |
+| 5   | Set duration                      | `selectDuration('Minutes', '5 min')`                                       | Duration field shows `5 min`                                                             | Both     |
+| 6   | Set stake                         | `setStake('10.00')`                                                        | Stake field shows `10.00`                                                                | Both     |
+| 7   | Buy Put contract                  | `clickVanillasBuy()`                                                       | Contract purchased                                                                       | Both     |
+| 8   | Verify open position in Positions | `verifyOpenPositionsVisible()` + `verifyContractCardDetails()`             | Card shows `"Vanillas Put"`; balance reduced by stake                                    | Both     |
+| 9   | Verify open position in Reports   | `verifyOpenPositionsInReportsForVanillas()` — captures `buyId`             | Headers, row values, footer totals correct                                               | Both     |
+| 10  | Verify open contract details      | `verifyVanillasOpenContractDetailsPage()`                                  | Desktop: type `"Put"`; mobile: `"Vanillas Put"`; Strike, payout per point, buyId correct | Both     |
+| 11  | Close contract from Positions     | `closeFirstContract()`                                                     | Open tab empty; contract moved to Closed                                                 | Both     |
+| 12  | Verify closed position            | `verifyClosedPositionsTab()` + `verifyVanillasClosedContractDetailsPage()` | Closed card `"Vanillas Put"`; desktop details `"Put"`; sell ID correct                   | Both     |
+| 13  | Verify balance after close        | `verifyBalanceAfterContractClose()`                                        | Balance reflects P/L from early close                                                    | Both     |
+| 14  | Verify closed contract in Reports | `verifyClosedContractInReports()`                                          | Trade table + Statement rows correct                                                     | Both     |
 
 ---
 

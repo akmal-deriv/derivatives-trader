@@ -13,6 +13,7 @@ import { TradeEvenOddPage } from '../pages/TradeEvenOddPage';
 import { TradeMultipliersPage } from '../pages/TradeMultipliersPage';
 import { TradeAccumulatorsPage } from '../pages/TradeAccumulatorsPage';
 import { TradeTurbosPage } from '../pages/TradeTurbosPage';
+import { TradeVanillasPage } from '../pages/TradeVanillasPage';
 import { TradeAutomationPage } from '../pages/TradeAutomationPage';
 import { PositionsPage } from '../pages/PositionsPage';
 import { ReportsPage } from '../pages/ReportsPage';
@@ -78,6 +79,7 @@ export const test = base.extend<{
     tradeMultipliersPage: TradeMultipliersPage;
     tradeAccumulatorsPage: TradeAccumulatorsPage;
     tradeTurbosPage: TradeTurbosPage;
+    tradeVanillasPage: TradeVanillasPage;
     tradeAutomationPage: TradeAutomationPage;
     positionsPage: PositionsPage;
     reportsPage: ReportsPage;
@@ -187,6 +189,13 @@ export const test = base.extend<{
      */
     tradeTurbosPage: async ({ page }, use) => {
         await use(new TradeTurbosPage(page));
+    },
+
+    /**
+     * Trade Vanillas page fixture — provides initialized TradeVanillasPage instance
+     */
+    tradeVanillasPage: async ({ page }, use) => {
+        await use(new TradeVanillasPage(page));
     },
 
     /**

@@ -5,7 +5,7 @@ This folder contains plain-English journey specifications, coverage scorecards, 
 
 Updated when new flows are added, tests are implemented, or coverage status changes.
 
-Last updated: 2026-08-13
+Last updated: 2026-08-17
 
 ---
 
@@ -36,7 +36,7 @@ Each module section lists every documented flow with its current **status** and 
 
 | Module             | Total Flows | Documented | Automated |
 | ------------------ | ----------- | ---------- | --------- |
-| `trade`            | 34          | 34         | 27        |
+| `trade`            | 34          | 34         | 29        |
 | `positions`        | 11          | 11         | 0         |
 | `reports`          | 8           | 8          | 0         |
 | `notifications`    | 9           | 9          | 0         |
@@ -44,7 +44,7 @@ Each module section lists every documented flow with its current **status** and 
 | `automation`       | 9           | 9          | 6         |
 | `feed`             | 1           | 1          | 1         |
 | `market-selection` | 25          | 25         | 24        |
-| **Total**          | **100**     | **100**    | **61**    |
+| **Total**          | **100**     | **100**    | **63**    |
 
 > Status advances: `documented` → `automated`
 
@@ -85,8 +85,8 @@ Each module section lists every documented flow with its current **status** and 
 | Flow 10.2 | P1       | Turbos without TP — buy Down → verify in positions         | authenticated, funded        | `automated`  |
 | Flow 10.3 | P1       | Turbos with TP — buy Up → verify TP set in positions       | authenticated, funded        | `automated`  |
 | Flow 10.4 | P1       | Turbos with TP — buy Down → verify TP set in positions     | authenticated, funded        | `automated`  |
-| Flow 11.1 | P1       | Vanillas — buy Call → verify in positions                  | authenticated, funded        | `documented` |
-| Flow 11.2 | P1       | Vanillas — buy Put → verify in positions                   | authenticated, funded        | `documented` |
+| Flow 11.1 | P1       | Vanillas — buy Call → close contract                       | authenticated, funded        | `automated`  |
+| Flow 11.2 | P1       | Vanillas — buy Put → close contract                        | authenticated, funded        | `automated`  |
 | Flow 12   | P2       | Market closed → purchase hidden, countdown visible         | authenticated, closed market | `documented` |
 | —         | P2       | Insufficient balance → ServiceErrorSheet (G1)              | authenticated, zero balance  | `documented` |
 | —         | P3       | Unauthenticated purchase attempt → login prompt sheet (G2) | unauthenticated              | `documented` |
@@ -231,7 +231,7 @@ Each module section lists every documented flow with its current **status** and 
 
 | Priority | Module             | Key Flows to Implement First                                                        |
 | -------- | ------------------ | ----------------------------------------------------------------------------------- |
-| **Now**  | `trade`            | Flow 9.7/9.8 (Deal Cancellation) + Flow 11.1/11.2 (Vanillas)                        |
+| **Now**  | `trade`            | Flow 9.7/9.8 (Deal Cancellation)                                                    |
 | **Now**  | `positions`        | Flow 1 (open positions mobile), Flow 2 (desktop flyout)                             |
 | **Next** | `reports`          | Flow 1 (page load), Flow 5 (Trade Table), Flow 6 (Statement)                        |
 | **Next** | `notifications`    | Flow 3 (bell → dialog desktop), Flow 4 (bell → modal mobile), Flow 1 (trade banner) |

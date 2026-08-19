@@ -342,6 +342,17 @@ export class ContractDetailsPage extends TradeBasePage {
     }
 
     /**
+     * Audit-grid value cell scoped by its label text — use when multiple `dt_bt_label` rows exist
+     * (e.g. Vanillas render separate Strike and Payout per point rows).
+     */
+    contractAuditValue(label: string): Locator {
+        return this.page
+            .getByTestId('dt_bt_label')
+            .filter({ has: this.page.locator('.contract-audit__label', { hasText: label }) })
+            .locator('.contract-audit__value');
+    }
+
+    /**
      * Start time label in the audit grid.
      * Source: contract-audit__grid[data-testid="dt_start_time_label"] > contract-audit__label
      */
@@ -2458,5 +2469,273 @@ export class ContractDetailsPage extends TradeBasePage {
         ).not.toBeEmpty();
 
         return { buyId, sellId };
+    }
+
+    /**
+     * Verify the open Vanillas contract details page (Call/Put).
+     *
+     * Vanillas have no fixed Potential payout on the trade form or card — the audit/order-details
+     * grid shows Strike (absolute barrier) and Payout per point instead.
+     *
+     * @param market        - Market symbol, e.g. "Volatility 75 Index"
+     * @param direction     - Direction label on desktop contract details, e.g. "Call" or "Put"
+     * @param contractType  - Positions card label (mobile), e.g. "Vanillas Call" or "Vanillas Put"
+     * @param currency      - Currency badge (desktop), e.g. "USD"
+     * @param stake         - Stake as displayed, e.g. "10.00"
+     * @param buyId         - Buy reference ID from Reports
+     * @param durationValue - Duration chip label, e.g. "5 min"
+     * @param buyDate       - UTC date captured before buy, e.g. "2026-08-19"
+     */
+    async verifyVanillasOpenContractDetailsPage(
+        market: string,
+        direction: 'Call' | 'Put',
+        contractType: string,
+        currency: string,
+        stake: string,
+        buyId: string,
+        durationValue: string,
+        buyDate: string
+    ): Promise<void> {
+        const auditDuration = this.normaliseDurationForAudit(durationValue);
+
+        if (this.isMobile) {
+            await expect(
+                this.contractDetailsHeaderTitle,
+                'Contract details header should show "Contract details"'
+            ).toHaveText('Contract details');
+
+            await expect(this.mobileContractMarket, `Mobile contract card should show market "${market}"`).toHaveText(
+                market
+            );
+            await expect(
+                this.mobileContractTradeType,
+                `Mobile contract card should show trade type "${contractType}"`
+            ).toHaveText(contractType);
+            await expect(this.mobileContractProfit, 'Mobile contract profit/loss should have a value').not.toBeEmpty();
+
+            await expect(
+                this.mobileOrderDetailsValue('Reference ID'),
+                `Reference ID should contain "${buyId} (Buy)"`
+            ).toContainText(`${buyId} (Buy)`);
+            await expect(this.mobileOrderDetailsValue('Duration'), `Duration should be "${auditDuration}"`).toHaveText(
+                auditDuration
+            );
+            await expect(
+                this.mobileOrderDetailsValue('Strike Price'),
+                'Strike price should show a numeric absolute barrier'
+            ).toHaveText(/[\d,]+\.\d{2}/);
+            await expect(
+                this.mobileOrderDetailsValue('Payout per point'),
+                `Payout per point should contain "${currency}"`
+            ).toContainText(currency);
+            await expect(this.mobileOrderDetailsValue('Stake'), `Stake should contain "${stake}"`).toContainText(stake);
+
+            await expect(this.mobileEntryExitDetails, 'Entry & exit details section should be visible').toBeVisible();
+            await expect(
+                this.mobileContractDetailsCloseButton,
+                'Close button should be visible on the mobile contract details page'
+            ).toBeVisible();
+            return;
+        }
+
+        await expect(
+            this.contractDetailsHeaderTitle,
+            'Contract details header title should be "Contract details"'
+        ).toHaveText('Contract details');
+
+        await expect(this.contractDetailsMarket, `Contract card symbol should be "${market}"`).toHaveText(market);
+        // Desktop contract-details drawer shows direction only ("Call"/"Put"), not "Vanillas Call".
+        await expect(this.contractDetailsTradeType, `Contract card type should be "${direction}"`).toHaveText(
+            direction
+        );
+        await expect(this.contractDetailsCurrency, `Contract card currency should be "${currency}"`).toHaveText(
+            currency
+        );
+
+        await expect(this.contractDetailsRemainingTime, 'Remaining time should have a value').not.toBeEmpty();
+        await expect(this.contractDetailsProgressBar, 'Progress bar should be visible').toBeVisible();
+        await expect(
+            this.contractCardItem('Total profit/loss:'),
+            'Total profit/loss should have a value'
+        ).not.toBeEmpty();
+        await expect(this.contractCardItem('Contract value:'), 'Contract value should have a value').not.toBeEmpty();
+        await expect(this.contractCardItem('Stake:'), `Stake should be "${stake}"`).toHaveText(stake);
+
+        await expect(
+            this.contractDetailsSellButton,
+            'Sell button should be visible on the contract card'
+        ).toBeVisible();
+
+        await expect(this.contractDetailsReferenceID, `Reference ID should be "${buyId} (Buy)"`).toHaveText(
+            `${buyId} (Buy)`
+        );
+        await expect(this.contractDetailsDuration, `Duration should be "${auditDuration}"`).toHaveText(auditDuration);
+        await expect(this.contractDetailsStartTime, `Start time should contain "${buyDate}"`).toContainText(buyDate);
+        await expect(this.contractDetailsEntrySpot, 'Entry spot price should have a value').not.toBeEmpty();
+
+        await expect(this.contractAuditValue('Strike'), 'Strike should show a numeric absolute barrier').toHaveText(
+            /[\d,]+\.\d{2}/
+        );
+        await expect(
+            this.contractAuditValue('Payout per point'),
+            'Payout per point should have a value'
+        ).not.toBeEmpty();
+    }
+
+    /**
+     * Verify the closed Vanillas contract details page (Call/Put) after early close.
+     *
+     * Vanillas show Strike and Payout per point in order details — not Potential payout or Barrier.
+     *
+     * @param profitLossAmount - P&L from the closed positions card, e.g. "+1.26 USD" or "-2.05 USD"
+     * @returns The sell reference ID string (desktop) or extracted from mobile order details
+     */
+    async verifyVanillasClosedContractDetailsPage(
+        market: string,
+        direction: 'Call' | 'Put',
+        contractType: string,
+        currency: string,
+        stake: string,
+        buyId: string,
+        durationValue: string,
+        buyDate: string,
+        profitLossAmount: string
+    ): Promise<string> {
+        const auditDuration = this.normaliseDurationForAudit(durationValue);
+
+        if (this.isMobile) {
+            await expect(
+                this.contractDetailsHeaderTitle,
+                'Contract details header should show "Contract details"'
+            ).toHaveText('Contract details');
+
+            await expect(
+                this.mobileContractMarket,
+                `Mobile closed contract card should show market "${market}"`
+            ).toHaveText(market);
+            await expect(
+                this.mobileContractTradeType,
+                `Mobile closed contract card should show trade type "${contractType}"`
+            ).toHaveText(contractType);
+            await expect(
+                this.mobileContractProfit,
+                'Mobile closed contract card profit/loss should have a value'
+            ).not.toBeEmpty();
+
+            const refIdValueCell = this.page
+                .locator('.order-details__table-row', {
+                    has: this.page.locator('.order-details__table-row-cell', { hasText: 'Reference ID' }),
+                })
+                .locator('.order-details__table-row-cell')
+                .last();
+
+            const buyRefIdParagraph = refIdValueCell.locator('p').filter({ hasText: '(Buy)' });
+            const sellRefIdParagraph = refIdValueCell.locator('p').filter({ hasText: '(Sell)' });
+
+            await expect(buyRefIdParagraph, `Buy Reference ID should contain "${buyId} (Buy)"`).toContainText(
+                `${buyId} (Buy)`
+            );
+            await expect(sellRefIdParagraph, 'Sell Reference ID should contain "(Sell)"').toContainText('(Sell)');
+
+            const sellRefIdRaw = (await sellRefIdParagraph.innerText()).trim();
+            const sellId = sellRefIdRaw.replace(' (Sell)', '');
+
+            await expect(this.mobileOrderDetailsValue('Duration'), `Duration should be "${auditDuration}"`).toHaveText(
+                auditDuration
+            );
+            await expect(
+                this.mobileOrderDetailsValue('Strike Price'),
+                'Strike price should show a numeric absolute barrier'
+            ).toHaveText(/[\d,]+\.\d{2}/);
+            await expect(
+                this.mobileOrderDetailsValue('Payout per point'),
+                `Payout per point should contain "${currency}"`
+            ).toContainText(currency);
+            await expect(this.mobileOrderDetailsValue('Stake'), `Stake should contain "${stake}"`).toContainText(stake);
+
+            await expect(this.mobileEntryExitDetails, 'Entry & exit details section should be visible').toBeVisible();
+            await expect(
+                this.mobileContractDetailsCloseButton,
+                'Close button should not be visible on a closed contract'
+            ).not.toBeVisible();
+
+            return sellId;
+        }
+
+        const profitLossNumeric = profitLossAmount
+            .replace(/^[+-]/, '')
+            .replace(/\s+[A-Z]+$/, '')
+            .trim();
+        const expectedContractValue = this.calculateClosedContractValue(stake, profitLossAmount);
+
+        await expect(
+            this.contractDetailsHeaderTitle,
+            'Contract details header title should be "Contract details"'
+        ).toHaveText('Contract details');
+
+        await expect(this.contractDetailsMarket, `Contract card symbol should be "${market}"`).toHaveText(market);
+        // Desktop contract-details drawer shows direction only ("Call"/"Put"), not "Vanillas Call".
+        await expect(this.contractDetailsTradeType, `Contract card type should be "${direction}"`).toHaveText(
+            direction
+        );
+        await expect(this.contractDetailsCurrency, `Contract card currency should be "${currency}"`).toHaveText(
+            currency
+        );
+
+        await expect(
+            this.contractDetailsRemainingTime,
+            'Remaining time should not be visible on a closed contract'
+        ).not.toBeVisible();
+
+        await expect(
+            this.contractCardItem('Total profit/loss:'),
+            `Total profit/loss should contain "${profitLossNumeric}"`
+        ).toContainText(profitLossNumeric);
+        await expect(
+            this.contractCardItem('Contract value:'),
+            `Contract value should be "${expectedContractValue}"`
+        ).toHaveText(expectedContractValue);
+        await expect(this.contractCardItem('Stake:'), `Stake should be "${stake}"`).toHaveText(stake);
+
+        await expect(
+            this.contractDetailsSellButton,
+            'Sell button should not be visible on a closed contract'
+        ).not.toBeVisible();
+
+        await expect(this.contractDetailsReferenceID, `Buy reference ID should be "${buyId} (Buy)"`).toHaveText(
+            `${buyId} (Buy)`
+        );
+        await expect(this.contractDetailsReferenceIDSell, 'Sell reference ID should have a value').not.toBeEmpty();
+        const sellIdText = (await this.contractDetailsReferenceIDSell.innerText()).trim();
+        const sellId = sellIdText.replace(' (Sell)', '');
+
+        await expect(this.contractDetailsDuration, `Duration should be "${auditDuration}"`).toHaveText(auditDuration);
+        await expect(this.contractDetailsStartTime, `Start time should contain "${buyDate}"`).toContainText(buyDate);
+        await expect(this.contractDetailsEntrySpot, 'Entry spot price should have a value').not.toBeEmpty();
+        await expect(this.contractDetailsEntrySpotTime, `Entry spot time should contain "${buyDate}"`).toContainText(
+            buyDate
+        );
+
+        await expect(this.contractAuditValue('Strike'), 'Strike should show a numeric absolute barrier').toHaveText(
+            /[\d,]+\.\d{2}/
+        );
+        await expect(
+            this.contractAuditValue('Payout per point'),
+            'Payout per point should have a value'
+        ).not.toBeEmpty();
+
+        await expect(this.contractDetailsExitSpotLabel, 'Exit spot label should be "Exit spot"').toHaveText(
+            'Exit spot'
+        );
+        await expect(this.contractDetailsExitSpot, 'Exit spot price should have a value').not.toBeEmpty();
+        await expect(this.contractDetailsExitSpotTime, `Exit spot time should contain "${buyDate}"`).toContainText(
+            buyDate
+        );
+        await expect(this.contractDetailsExitTimeLabel, 'Exit time label should be "Exit time"').toHaveText(
+            'Exit time'
+        );
+        await expect(this.contractDetailsExitTime, `Exit time should contain "${buyDate}"`).toContainText(buyDate);
+
+        return sellId;
     }
 }

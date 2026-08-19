@@ -189,6 +189,32 @@ export class TradeParametersPage extends TradeBasePage {
     }
 
     /**
+     * "Strike price" label — Vanillas only, stable across both viewports.
+     * Desktop: TradeParameterPopover labelled "Strike price".
+     * Mobile: ActionSheet TextField labelled "Strike price".
+     * Source: strike-desktop.tsx / strike.tsx — i18n_default_text='Strike price'
+     */
+    get strikePriceLabel(): Locator {
+        return this.page.locator('label', { hasText: 'Strike price' }).first();
+    }
+
+    /**
+     * Strike price field (readOnly TextField showing the current barrier_1 value).
+     * Source: strike-desktop.tsx TradeParameterPopover / strike.tsx TextField — label "Strike price".
+     */
+    get strikePriceField(): Locator {
+        return this.page.getByLabel('Strike price').first();
+    }
+
+    /**
+     * Payout per point info panel — Vanillas only (read-only; not the Turbos selectable param).
+     * Source: PayoutPerPointInfo/payout-per-point-info.tsx — `.payout-per-point-info__container`.
+     */
+    get payoutPerPointInfo(): Locator {
+        return this.page.locator('.payout-per-point-info__container');
+    }
+
+    /**
      * Network status indicator — confirms WebSocket connection is active.
      * Source: network-status.tsx data-testid='dt_network_status_element'
      */
@@ -632,6 +658,15 @@ export class TradeParametersPage extends TradeBasePage {
             await this.marketSelectionPage.marketSelectionSearchButton.click();
         }
         await this.marketSelectionPage.marketSearchInput.fill(market);
+        // Vanillas (and other late-ordered types) sit below the fold in the grouped search list.
+        // Wait for that trade-type group to land (per-type symbol fetches resolve independently),
+        // then scroll it into the list's overflow container before clicking the row.
+        const searchGroup = this.marketSelectionPage.marketSearchResultsGroup(tradeType);
+        await expect(
+            searchGroup,
+            `Search results should include the '${tradeType}' group for '${market}'`
+        ).toBeAttached();
+        await searchGroup.evaluate(el => el.scrollIntoView({ block: 'center' }));
         await this.marketSelectionPage.marketSearchResultRow(market, tradeType).click();
 
         await expect(
@@ -738,12 +773,12 @@ export class TradeParametersPage extends TradeBasePage {
                     await this.selectWheelPickerColumnOption(timeWheel, 1, `${minutes} min`);
                     await this.selectWheelPickerColumnOption(timeWheel, 2, `${seconds} sec`);
                 } else if (columnCount === 2) {
-                    // [hr, min] is only confirmed for the 'Hours' tab (Higher/Lower) — other trade types could render [min, sec] instead.
-                    if (unitLower !== 'hours') {
+                    // [hr, min] — Hours tab (Higher/Lower) and Vanillas Time tab (seconds N/A for Vanillas).
+                    if (unitLower !== 'hours' && unitLower !== 'minutes') {
                         throw new Error(
                             `selectDuration: 2-column Time wheel encountered for unit '${unit}', but the ` +
-                                `[hr, min] layout is only confirmed for the 'Hours' tab. Verify this trade ` +
-                                `type's actual column order (it may be [min, sec]) before mapping it here.`
+                                `[hr, min] layout is only confirmed for the 'Hours' and 'Minutes' tabs. ` +
+                                `Verify this trade type's actual column order (it may be [min, sec]) before mapping it here.`
                         );
                     }
                     await this.selectWheelPickerColumnOption(timeWheel, 0, `${hours} hr`);
@@ -906,12 +941,15 @@ export class TradeParametersPage extends TradeBasePage {
             }
         }
 
-        // Escape all regex special chars (not just '.') and anchor to the start, so e.g. '5.00' can't
-        // false-positive match a wrong committed value like '25.00 USD' via unanchored substring match.
-        const escapedAmount = amount.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        await expect(this.stakeField, `Stake field should contain '${amount}' after saving`).toHaveValue(
-            new RegExp(`^${escapedAmount}`)
-        );
+        // Compare numerically: Vanillas (and some other types) drop a trailing zero in the trigger
+        // ("10.0 USD" after saving "10.00"). parseFloat still matches, and "25.00" cannot pass for "5.00".
+        const expectedStake = parseFloat(amount);
+        await expect
+            .poll(async () => parseFloat(await this.stakeField.inputValue()), {
+                message: `Stake field should show ${amount} after saving`,
+                timeout: 10_000,
+            })
+            .toBe(expectedStake);
     }
 
     /**
@@ -1231,8 +1269,22 @@ export class TradeParametersPage extends TradeBasePage {
                 // Multipliers render a single buy button with no payout content wrapper (no fixed payout).
                 await expect(this.singlePurchaseButton, 'Buy button should be visible for Multipliers').toBeVisible();
                 break;
-            // Add a case for Vanillas once it's implemented — no page object/locators exist for it
-            // yet, so its param structure hasn't been confirmed against the live app.
+            case 'Vanillas':
+                await expect(this.strikePriceLabel, 'Strike price param should be visible for Vanillas').toBeVisible();
+                await expect(this.durationLabel, 'Duration param should be visible for Vanillas').toBeVisible();
+                await expect(this.stakeLabel, 'Stake param should be visible for Vanillas').toBeVisible();
+                // Payout per point info is a below-params row on desktop only — mobile drops it
+                // (trade-parameters.tsx `{!isMobile && ...}`) and surfaces the value inside the
+                // Strike action sheet instead. TradeVanillasPage.verifyPayoutPerPointInfo() covers both.
+                if (!this.isMobile) {
+                    await expect(
+                        this.payoutPerPointInfo,
+                        'Payout per point info panel should be visible for Vanillas on desktop'
+                    ).toBeVisible();
+                }
+                // Vanillas render a single buy button with no payout content wrapper.
+                await expect(this.singlePurchaseButton, 'Buy button should be visible for Vanillas').toBeVisible();
+                break;
             default:
                 throw new Error(
                     `verifyParamsForTradeType: no assertions defined for trade type '${tradeType}'. ` +

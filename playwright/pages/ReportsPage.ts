@@ -369,6 +369,32 @@ export class ReportsPage extends TradeBasePage {
         return this.openPositionsFirstRow.locator('.dc-progress-bar__bar');
     }
 
+    /**
+     * Progress slider on the first open positions card — mobile Vanillas/Turbos.
+     * Replaces `.dc-progress-bar__bar` for duration contracts that use ProgressSliderMobile.
+     * Source: mobile-row-renderer.tsx data-testid='dt_progress_slider_mobile'
+     */
+    get openPositionsMobProgressSlider(): Locator {
+        return this.openPositionsFirstRow.getByTestId('dt_progress_slider_mobile');
+    }
+
+    /**
+     * Payout/Strike cell on the first open positions row — desktop.
+     * Vanillas render the strike as raw text (`barrier.toFixed(2)`), not a Money `dt_span`.
+     * Source: data-table-constants.tsx payout column.
+     */
+    get openPositionsFirstRowPayoutOrStrike(): Locator {
+        return this.openPositionsFirstRow.locator('.table__cell.payout');
+    }
+
+    /**
+     * Payout/Strike value on the first open positions card — mobile.
+     * Vanillas render the strike as raw text in the payout column content.
+     */
+    get openPositionsMobFirstRowPayoutOrStrike(): Locator {
+        return this.openPositionsFirstRow.locator('.payout .data-list__row-content');
+    }
+
     // Footer cells
     /** "Total" label cell in the footer row. */
     get openPositionsFooterLabel(): Locator {
@@ -862,6 +888,150 @@ export class ReportsPage extends TradeBasePage {
             this.openPositionsFooterPayout,
             `Footer payout total should be "${expectedPayoutTotal}" (sum of all rows)`
         ).toHaveText(expectedPayoutTotal);
+        await expect(
+            this.openPositionsFooterProfitLoss,
+            'Footer profit/loss total should have a value'
+        ).not.toBeEmpty();
+        await expect(
+            this.openPositionsFooterContractValue,
+            'Footer contract value total should have a value'
+        ).not.toBeEmpty();
+
+        return buyId;
+    }
+
+    /**
+     * Click the "Open positions" tab in Reports and verify a Vanillas row is populated.
+     *
+     * Vanillas differ from standard options in two ways:
+     *  - **Mobile** payout column header is "Strike" and the cell is `barrier.toFixed(2)` (raw text,
+     *    no Money `dt_span`). Remaining time uses ProgressSliderMobile (`dt_progress_slider_mobile`).
+     *  - **Desktop** table headers still render the column `title` ("Potential payout") because
+     *    DataTable does not call `renderHeader`. The payout cell may be a Money amount or "-".
+     *
+     * @param currency - Expected currency badge, e.g. "USD"
+     * @param stake    - Expected stake amount, e.g. "10.00"
+     * @returns        The buy ID (Ref. ID) string from the first row
+     */
+    async verifyOpenPositionsInReportsForVanillas(currency: string, stake: string): Promise<string> {
+        if (this.isMobile) {
+            await this.reportsRoutePicker.selectOption(ReportsPage.ROUTE_OPEN_POSITIONS_MOB);
+        } else {
+            await this.reportsOpenPositionsTab.click();
+        }
+
+        await expect(
+            this.reportsEmptyOpenPositions,
+            'Empty open positions state should not be visible — at least one Vanillas position must exist'
+        ).not.toBeVisible();
+        await expect(
+            this.openPositionsFirstRow,
+            'At least one open position row should be present in the table'
+        ).toBeAttached();
+
+        return this.isMobile
+            ? this.verifyVanillasOpenPositionsMobile(currency, stake)
+            : this.verifyVanillasOpenPositionsDesktop(currency, stake);
+    }
+
+    private async verifyVanillasOpenPositionsMobile(currency: string, stake: string): Promise<string> {
+        await expect(this.openPositionsMobRowTitleRefId, 'Row should show "Ref. ID" label').toHaveText('Ref. ID');
+        await expect(this.openPositionsMobRowTitleCurrency, 'Row should show "Currency" label').toHaveText('Currency');
+        await expect(this.openPositionsMobRowTitleStake, 'Row should show "Stake" label').toHaveText('Stake');
+        await expect(this.openPositionsMobRowTitlePayout, 'Row should show "Strike" label for Vanillas').toHaveText(
+            'Strike'
+        );
+        await expect(this.openPositionsMobRowTitleProfitLoss, 'Row should show "Total profit/loss" label').toHaveText(
+            'Total profit/loss'
+        );
+        await expect(this.openPositionsMobRowTitleContractValue, 'Row should show "Contract value" label').toHaveText(
+            'Contract value'
+        );
+
+        const buyId = (await this.openPositionsMobFirstRowRefId.innerText()).trim();
+
+        await expect(this.openPositionsMobFirstRowCurrency, `Currency should be "${currency}"`).toHaveText(currency);
+        await expect(this.openPositionsMobFirstRowStake, `Stake should be "${stake}"`).toHaveText(stake);
+        // Reports shows the absolute barrier (`barrier.toFixed(2)`); the trade form shows a relative
+        // offset (e.g. "+0.13"). Assert a 2-decimal numeric strike rather than the form offset.
+        await expect(
+            this.openPositionsMobFirstRowPayoutOrStrike,
+            'Strike cell should show a numeric strike price'
+        ).toHaveText(/^\d+\.\d{2}$/);
+
+        await expect(
+            this.openPositionsMobFirstRowProfitLoss,
+            'Total profit/loss cell should have a value'
+        ).not.toBeEmpty();
+        await expect(
+            this.openPositionsMobFirstRowContractValue,
+            'Contract value cell should have a value'
+        ).not.toBeEmpty();
+        await expect(this.openPositionsFirstRowSellButton, 'Sell button should be visible').toBeVisible();
+        await expect(
+            this.openPositionsMobProgressSlider,
+            'Vanillas remaining-time slider should be visible on mobile'
+        ).toBeVisible();
+
+        await expect(this.openPositionsMobFooter, 'Mobile footer should be visible').toBeVisible();
+        await expect(this.openPositionsMobFooterStake, 'Footer stake should have a value').not.toBeEmpty();
+        await expect(this.openPositionsMobFooterProfitLoss, 'Footer profit/loss should have a value').not.toBeEmpty();
+        await expect(
+            this.openPositionsMobFooterContractValue,
+            'Footer contract value should have a value'
+        ).not.toBeEmpty();
+
+        return buyId;
+    }
+
+    private async verifyVanillasOpenPositionsDesktop(currency: string, stake: string): Promise<string> {
+        // Desktop DataTable renders column `title` for headers (renderHeader is mobile-only),
+        // so the payout column still reads "Potential payout" even for Vanillas.
+        await expect(this.openPositionsHeaderType, 'Table header should show "Type"').toHaveText('Type');
+        await expect(this.openPositionsHeaderRefId, 'Table header should show "Ref. ID"').toHaveText('Ref. ID');
+        await expect(this.openPositionsHeaderCurrency, 'Table header should show "Currency"').toHaveText('Currency');
+        await expect(this.openPositionsHeaderStake, 'Table header should show "Stake"').toHaveText('Stake');
+        await expect(this.openPositionsHeaderPayout, 'Table header should show "Potential payout"').toHaveText(
+            'Potential payout'
+        );
+        await expect(this.openPositionsHeaderProfitLoss, 'Table header should show "Total profit/loss"').toHaveText(
+            'Total profit/loss'
+        );
+        await expect(this.openPositionsHeaderContractValue, 'Table header should show "Contract value"').toHaveText(
+            'Contract value'
+        );
+        await expect(this.openPositionsHeaderRemainingTime, 'Table header should show "Remaining time"').toHaveText(
+            'Remaining time'
+        );
+
+        const buyId = (await this.openPositionsFirstRowRefId.innerText()).trim();
+
+        await expect(this.openPositionsFirstRowCurrency, `Currency should be "${currency}"`).toHaveText(currency);
+        await expect(this.openPositionsFirstRowStake, `Stake should be "${stake}"`).toHaveText(stake);
+        await expect(
+            this.openPositionsFirstRowPayoutOrStrike,
+            'Payout/strike cell should have a value'
+        ).not.toBeEmpty();
+
+        await expect(
+            this.openPositionsFirstRowProfitLoss,
+            'Total profit/loss cell should have a value'
+        ).not.toBeEmpty();
+        await expect(
+            this.openPositionsFirstRowContractValue,
+            'Contract value cell should have a value'
+        ).not.toBeEmpty();
+        await expect(this.openPositionsFirstRowSellButton, 'Sell button should be visible').toBeVisible();
+        await expect(this.openPositionsFirstRowRemainingTime, 'Remaining time should have a value').not.toBeEmpty();
+        await expect(this.openPositionsFirstRowProgressBar, 'Progress slider should be visible').toBeVisible();
+
+        await expect(this.openPositionsFooterLabel, 'Footer should show "Total" label').toHaveText('Total');
+        const stakeTexts = await this.openPositionsAllRowStakes.allInnerTexts();
+        const expectedStakeTotal = stakeTexts.reduce((sum, t) => sum + parseFloat(t.trim()), 0).toFixed(2);
+        await expect(
+            this.openPositionsFooterStake,
+            `Footer stake total should be "${expectedStakeTotal}" (sum of all rows)`
+        ).toHaveText(expectedStakeTotal);
         await expect(
             this.openPositionsFooterProfitLoss,
             'Footer profit/loss total should have a value'

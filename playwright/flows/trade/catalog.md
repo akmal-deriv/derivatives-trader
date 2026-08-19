@@ -1,13 +1,7 @@
 # 🗺️ Trade Journey Catalog — Technical Reference
 
 > Source of truth: `packages/trader/src/AppV2/Containers/Trade/` · `packages/trader/src/AppV2/Components/TradeParameters/` · `packages/trader/src/AppV2/Components/PurchaseButton/`
-> Last updated: 2026-08-03
->
-> **Account type:** Every implemented buy flow (Flows 2–10, excluding Multipliers Deal Cancellation and
-> Vanillas — both gap/not-yet-implemented) takes `accountType: 'real' | 'demo'` on its `buy*AndVerify()`
-> method and is exercised as a `(Demo Account)` / `(Real Account)` test pair. The code snippets below show
-> only the `(Demo Account)` variant for brevity — the `(Real Account)` counterpart is identical except for
-> `accountType: 'real'` and (for Rise/Fall Flow 2.1) a reduced stake on production.
+> Last updated: 2026-08-17
 
 ---
 
@@ -44,8 +38,8 @@
 | Flow 10.2  | `trade/turbos/verify-turbos.spec.ts`                             | `@trade @desktop @mobile`                    |
 | Flow 10.3  | `trade/turbos/verify-turbos-tp.spec.ts`                          | `@trade @desktop @mobile`                    |
 | Flow 10.4  | `trade/turbos/verify-turbos-tp.spec.ts`                          | `@trade @desktop @mobile`                    |
-| Flow 11.1  | `trade/verify-vanillas.spec.ts`                                  | `@trade @desktop @mobile`                    |
-| Flow 11.2  | `trade/verify-vanillas.spec.ts`                                  | `@trade @desktop @mobile`                    |
+| Flow 11.1  | `trade/vanillas/verify-vanillas.spec.ts`                         | `@trade @desktop @mobile`                    |
+| Flow 11.2  | `trade/vanillas/verify-vanillas.spec.ts`                         | `@trade @desktop @mobile`                    |
 | Flow 12    | `trade/verify-closed-market.spec.ts`                             | `@trade @desktop @mobile`                    |
 | G1         | `trade/verify-insufficient-balance.spec.ts`                      | `@trade`                                     |
 | G2         | `trade/verify-unauthenticated-purchase.spec.ts`                  | `@trade`                                     |
@@ -829,54 +823,91 @@ test.describe('Trade — Turbos', { tag: ['@desktop', '@mobile', '@trade'] }, ()
 
 ---
 
-### Flow 11.1 — Vanillas: buy Call → verify in positions
+### Flow 11.1 — Vanillas: buy Call → close contract
 
 ```typescript
-test.describe('Trade — Vanillas', { tag: ['@trade', '@desktop', '@mobile'] }, () => {
-    test.beforeEach(async ({ loginPage, tradePage, page }) => {
-        await loginPage.login();
-        await tradePage.goto();
-        await NavigationUtils.waitForDerivApiSettled(page);
-        await tradePage.selectMarketAndTradeType('EUR/USD', 'Vanillas');
+test.describe('Trade — Vanillas', { tag: ['@desktop', '@mobile', '@trade'] }, () => {
+    test.describe.configure({ mode: 'serial' });
+
+    test.beforeAll(async ({}, testInfo) => {
+        const isMobile = testInfo.project.name.includes('mobile');
+        const backupEmailVar = isMobile ? 'TEST_EMAIL_VANILLAS_MOBILE' : 'TEST_EMAIL_VANILLAS';
+        const account = await createAccountV2viaJS('real', {
+            currency: 'USD',
+            trading: true,
+            backupAccount: process.env[backupEmailVar],
+        });
+        accountEmail = account.email;
+        accountPassword = account.password;
     });
 
-    test('VERIFY buy Vanillas Call contract and verify in positions', async ({ tradePage, page }) => {
-        await expect(page.getByText('Strike price'), 'Strike price param should be visible').toBeVisible();
-        await expect(page.getByText('Duration'), 'Duration param should be visible for Vanillas').toBeVisible();
-        await tradePage.setStake('10.00');
-        await tradePage.clickCall();
-        await expect(
-            page.locator('.trade-notification--purchase'),
-            'Purchase notification should appear'
-        ).toBeVisible();
-        await tradePage.gotoPositions();
-        await NavigationUtils.waitForDerivApiSettled(page);
-        await expect(
-            page.getByTestId('dt_contract_card').first(),
-            'Vanillas contract card should appear in positions'
-        ).toBeVisible();
+    test.beforeEach(async ({ page, loginPage }) => {
+        await TradeBasePage.seedLocalStorageOnOrigin(page);
+        await loginPage.login(accountEmail, accountPassword);
     });
 
-    test('VERIFY buy Vanillas Put contract and verify in positions', async ({ tradePage, page }) => {
-        await tradePage.setStake('10.00');
-        await tradePage.clickPut();
-        await expect(
-            page.locator('.trade-notification--purchase'),
-            'Purchase notification should appear'
-        ).toBeVisible();
-        await tradePage.gotoPositions();
-        await NavigationUtils.waitForDerivApiSettled(page);
-        await expect(
-            page.getByTestId('dt_contract_card').first(),
-            'Vanillas contract card should appear in positions'
-        ).toBeVisible();
+    test('VERIFY Buy "Call" Vanillas Contract (Demo Account)', async ({ tradeVanillasPage }) => {
+        await tradeVanillasPage.buyVanillasAndVerify({
+            accountType: 'demo',
+            market: 'Volatility 100 Index',
+            direction: 'Call',
+            durationUnit: 'Minutes',
+            durationValue: '5 min',
+            strike: '+0.00',
+            stake: '10.00',
+            currency: 'USD',
+        });
+    });
+
+    test('VERIFY Buy "Call" Vanillas Contract (Real Account)', async ({ tradeVanillasPage }) => {
+        await tradeVanillasPage.buyVanillasAndVerify({
+            accountType: 'real',
+            market: 'Volatility 100 Index',
+            direction: 'Call',
+            durationUnit: 'Minutes',
+            durationValue: '5 min',
+            strike: '+0.00',
+            stake: '10.00',
+            currency: 'USD',
+        });
+    });
+
+    test('VERIFY Buy "Put" Vanillas Contract (Demo Account)', async ({ tradeVanillasPage }) => {
+        await tradeVanillasPage.buyVanillasAndVerify({
+            accountType: 'demo',
+            market: 'Volatility 100 Index',
+            direction: 'Put',
+            durationUnit: 'Minutes',
+            durationValue: '5 min',
+            strike: '+0.00',
+            stake: '10.00',
+            currency: 'USD',
+        });
+    });
+
+    test('VERIFY Buy "Put" Vanillas Contract (Real Account)', async ({ tradeVanillasPage }) => {
+        await tradeVanillasPage.buyVanillasAndVerify({
+            accountType: 'real',
+            market: 'Volatility 100 Index',
+            direction: 'Put',
+            durationUnit: 'Minutes',
+            durationValue: '5 min',
+            strike: '+0.00',
+            stake: '10.00',
+            currency: 'USD',
+        });
     });
 });
 ```
 
+> **Fixture:** `tradeVanillasPage` from `playwright/fixtures/fixtures.ts`
+> **Env vars:** `TEST_EMAIL_VANILLAS` / `TEST_EMAIL_VANILLAS_MOBILE` — backup accounts for `createAccountV2viaJS`
+> **Serial mode:** four tests share one account; each `buyVanillasAndVerify` closes its contract before the next run
+
+> `buyVanillasAndVerify` covers (in order): switch account type → select market → select Vanillas (asserts Strike price / Duration / Stake / Payout per point info / Buy) → `selectDirection` → `selectStrike('+0.00')` → `verifyPayoutPerPointInfo` (desktop) → `selectDuration('Minutes','5 min')` → `setStake` → `clickVanillasBuy` → verify open card + balance → `verifyOpenPositionsInReportsForVanillas` (captures `buyId`) → `verifyVanillasOpenContractDetailsPage` → `closeFirstContract` → `verifyClosedPositionsTab` → `verifyVanillasClosedContractDetailsPage` (captures `sellId`) → `verifyBalanceAfterContractClose` → `verifyClosedContractInReports`.
+> **Vanillas buttons are "Call" / "Put"** — Positions cards and mobile contract details use the combined label (`"Vanillas Call"` / `"Vanillas Put"`). Desktop contract-details drawer shows direction only (`"Call"` / `"Put"`). Source: `getContractTypeDisplay()` with `showMainTitle` only on Positions AppV2 cards, not on desktop `ContractTypeCell`.
 > **Vanillas have NO take profit parameter** — confirmed from `getTradeParams()` in `trade-params-utils.tsx`. Do not add TP assertions for Vanillas.
-> **Vanillas auto-expire** — no manual close. Test only verifies purchase + position card.
-> **Flow 11.1** = `VERIFY buy Vanillas Call contract and verify in positions` · **Flow 11.2** = `VERIFY buy Vanillas Put contract and verify in positions`
+> **Flow 11.1** = `VERIFY Buy "Call" Vanillas Contract` · **Flow 11.2** = `VERIFY Buy "Put" Vanillas Contract`
 
 ---
 
@@ -956,7 +987,8 @@ test.describe('Trade — Closed Market', { tag: ['@trade', '@desktop', '@mobile'
 | Accumulators                          | Close button on trade page (`getByRole('button', { name: /^Close/ })`) while contract is active                                                                                                                     |
 | Multipliers                           | Manual close via contract details footer                                                                                                                                                                            |
 | Matches/Differs, Over/Under, Even/Odd | Auto-expiry — no manual close                                                                                                                                                                                       |
-| Turbos, Vanillas                      | Auto-expiry — no manual close; test only verifies purchase + position card                                                                                                                                          |
+| Turbos                                | Auto-expiry — no manual close; test only verifies purchase + position card                                                                                                                                          |
+| Vanillas                              | Early close via `PositionsPage.closeFirstContract()`; full closed-chain assertions via `verifyVanillasClosedContractDetailsPage()` and `verifyClosedContractInReports()`                                            |
 
 ### `NavigationUtils.waitForDerivApiSettled(page)` required after every navigation
 
