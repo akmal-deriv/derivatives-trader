@@ -4,15 +4,23 @@
     overflow-x: hidden;
     position: relative;
     scroll-behavior: smooth;
-    /* Firefox only */
-    scrollbar-color: var(--color-interactive-active) var(--color-surface-primary);
+    /* Firefox only — track matches WebKit transparent gutter */
+    scrollbar-color: var(--color-interactive-active) transparent;
     scrollbar-width: thin;
 
     &__autohide {
+        /* Firefox: hide scrollbar until hover (closest equivalent to WebKit thumb hide) */
+        scrollbar-width: none;
+        scrollbar-color: transparent transparent;
+
         &::-webkit-scrollbar-thumb {
             display: none;
         }
         &--is-hovered {
+            /* Firefox: restore thin themed thumb on hover */
+            scrollbar-width: thin;
+            scrollbar-color: var(--color-interactive-active) transparent;
+
             &::-webkit-scrollbar-thumb {
                 display: unset;
             }
@@ -22,6 +30,9 @@
         overflow-x: auto;
     }
     &--hidden-scrollbar {
+        scrollbar-width: none;
+        scrollbar-color: transparent transparent;
+
         &::-webkit-scrollbar {
             display: none !important;
         }

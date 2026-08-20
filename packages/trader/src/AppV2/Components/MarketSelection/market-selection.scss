@@ -149,6 +149,10 @@
 }
 
 @mixin themed-scrollbar {
+    /* Firefox — match WebKit thin thumb + transparent track */
+    scrollbar-width: thin;
+    scrollbar-color: var(--semantic-color-slate-solid-surface-frame-mid) transparent;
+
     &::-webkit-scrollbar {
         width: 0.6rem;
     }
