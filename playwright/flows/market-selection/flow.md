@@ -18,6 +18,25 @@
 | 1   | Open picker (new tab) | Click the "Add market" (+) button on the tab strip | Mobile: full-screen dialog (`role="dialog"`, `aria-label="Market selection"`). Desktop: popover anchored below the strip (`.market-selection-desktop`). Both default straight into the flat category list, scoped to the first available category for the current trade type | Both     |
 | 1b  | Open picker (replace) | Click the already-active tab                       | Same picker opens; selecting a market here REPLACES the active tab in place instead of adding a new one                                                                                                                                                                      | Both     |
 
+> **Chevron affordance (added 2026-08-17).** The active tab advertises step 1b: a `chevron-down`
+> renders inline after the trade-type text on its subtitle row (`[data-testid="dt_market_tab_chevron"]`,
+> `aria-hidden="true"` — decorative, the whole tab stays the tap target). Only the ACTIVE tab has it;
+> inactive and disabled tabs do not, because their tap does not open the picker. Nor does the active
+> tab while the strip is locked by a running automation (Automate view) — there its tap only raises the
+> "Tab switching is locked until automation is stopped." snackbar, so the cue is withheld too. The same affordance
+> is exposed to assistive tech on the tab root: `aria-haspopup="dialog"` plus an `aria-label` naming
+> the action and carrying both values (e.g. `Change market and trade type: EUR/USD, Rise/Fall`).
+> Note the `aria-label` overrides the tab's accessible name — locate tabs by `data-testid` /
+> `aria-current` / visible text (as `MarketSelectionPage` already does), never by accessible name.
+>
+> **P/L separator (revised 2026-08-18, issue #1168).** When the active tab has open positions, the
+> chevron is divided from the inline P/L amount by a 1×12px vertical rule
+> (`[data-testid="dt_market_tab_profit_separator"]`, `aria-hidden="true"`), so the row reads
+> `Rise/Fall ⌄ | +$12.98` — matching Figma. It replaces the `•` glyph that shipped originally, and it is
+> drawn in CSS, so it adds no text content: the divider never appears in `textContent`/`hasText`
+> locators. It renders only alongside the amount — desktop only, and only with a position running, so a
+> tab with no open positions shows no orphaned divider.
+
 ---
 
 ## Section 2 — Per-Flow Sections
@@ -39,7 +58,7 @@ Follows [Open Market Selection Steps](#open-market-selection-steps) step 1b.
 | #   | Step                           | Action                                          | Expected Result                                                                                                                               | Platform |
 | --- | ------------------------------ | ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
 | 1   | Note current tab count         | Read the number of open tabs                    | Baseline count captured                                                                                                                       | Both     |
-| 2   | Click the currently active tab | Click the tab that is already active            | Picker opens (same picker as Flow 1)                                                                                                          | Both     |
+| 2   | Click the currently active tab | Click the tab that is already active            | The active tab shows the chevron cue on its trade-type row before the click; picker opens (same picker as Flow 1)                             | Both     |
 | 3   | Select a different market      | Search for and select a market not already open | Picker closes; the PREVIOUSLY ACTIVE tab is replaced IN PLACE with the new market — tab count is unchanged (still baseline), not baseline + 1 | Both     |
 
 ### Flow 3 — Trade-type navigation lists the same set on both platforms
@@ -208,11 +227,11 @@ Follows [Open Market Selection Steps](#open-market-selection-steps) step 1b.
 > Chrome-style — tabs shrink to fit (`overflow: visible`), no scroll. Steps 2–3 are therefore
 > mobile-only; desktop achieves the same "everything visible" goal by shrinking/ellipsising tabs.
 
-| #   | Step                   | Action                                   | Expected Result                                                                                                                  | Platform |
-| --- | ---------------------- | ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | -------- |
-| 1   | Observe collapsed tabs | Look at inactive tabs when many are open | Inactive tabs render compact (icon-first); the ACTIVE tab alone expands to show its full market name + trade-type subtitle       | Both     |
-| 2   | Scroll the strip       | Scroll/swipe the tab list horizontally   | Strip scrolls; at the platform's cap it overflows the visible width (`scrollWidth > clientWidth`)                                | Mobile   |
-| 3   | Activate an edge tab   | Click a tab near the scrolled-away edge  | Strip auto-scrolls (a tweened `scrollIntoView` driven on activation) to bring the newly-active tab fully into view as it expands | Mobile   |
+| #   | Step                   | Action                                   | Expected Result                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | Platform |
+| --- | ---------------------- | ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| 1   | Observe collapsed tabs | Look at inactive tabs when many are open | Inactive tabs render compact (icon-first); the ACTIVE tab alone expands to show its full market name + trade-type subtitle — and its chevron cue. As tabs shrink on desktop each line of the label truncates as one text flow, so a shrunken tab keeps its trade-type text (ellipsised only if the text alone overflows) and drops the trailing chevron and inline P/L — matching production, and never showing a one-character trade type beside a whole P/L amount. Nothing on that row paints over the strip or a neighbouring tab past 4 tabs (issue #1175). The active tab never shrinks, so it keeps both cue and amount in full | Both     |
+| 2   | Scroll the strip       | Scroll/swipe the tab list horizontally   | Strip scrolls; at the platform's cap it overflows the visible width (`scrollWidth > clientWidth`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | Mobile   |
+| 3   | Activate an edge tab   | Click a tab near the scrolled-away edge  | Strip auto-scrolls (a tweened `scrollIntoView` driven on activation) to bring the newly-active tab fully into view as it expands                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | Mobile   |
 
 ### Flow 21 — Tabs persist across page reload
 
@@ -274,6 +293,17 @@ Follows [Open Market Selection Steps](#open-market-selection-steps) step 1b.
 | --- | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1   | Stake does not persist per tab                | On Tab A, set Stake to a non-default value. Switch to Tab B, then back to Tab A                             | Tab A's Stake has reverted to its (re-derived) default for that symbol/trade type — the manually-entered value was NOT remembered, because `TOpenMarket` only stores `{symbol, contract_type}`; Stake is a single global observable (`this.amount` in `trade-store.ts`) |
 | 2   | Same applies to Duration/Barrier/other params | On Tab A, change Duration (or Barrier, if applicable) from its default. Switch to Tab B, then back to Tab A | Any apparent "isolation" is coincidental — each symbol/trade-type pulls its own default from `contracts_for` on activation, not because the value is remembered per tab. This is systemic, not Stake-specific — do not scope a fix narrowly to Stake                    |
+
+### G2 — Active tab's chevron cue marks it as the picker trigger
+
+| #   | Test case                          | Steps                                                                                         | Expected Result                                                                                                                                                                                                           |
+| --- | ---------------------------------- | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Active tab carries the cue         | With 2+ tabs open, read the active tab (`[data-testid="dt_market_tab"][aria-current="true"]`) | It contains `[data-testid="dt_market_tab_chevron"]`, and the tab root has `aria-haspopup="dialog"` and an `aria-label` containing both the market name and the trade type                                                 |
+| 2   | Inactive tabs do not carry the cue | Read every tab that is not `aria-current="true"`                                              | None contains `dt_market_tab_chevron`; none has `aria-haspopup` or `aria-label` — their tap only activates them                                                                                                           |
+| 3   | The cue moves with the active tab  | Click an inactive tab to activate it                                                          | The chevron (and the popup affordance) leaves the previously-active tab and appears on the newly-active one                                                                                                               |
+| 4   | Tapping the cue opens the picker   | Click the chevron on the active tab                                                           | The picker opens exactly as clicking anywhere else on that tab does (Flow 2) — the chevron is decorative, so no second/duplicate action fires                                                                             |
+| 5   | Locked strip withholds the cue     | In the Automate view, start a run, then read the active (running) tab                         | It stays `aria-current="true"` with its highlight and live P/L, but contains no `dt_market_tab_chevron` and has no `aria-haspopup`/`aria-label` — its tap only raises the "locked until automation is stopped" snackbar   |
+| 6   | Divider sits between cue and P/L   | On desktop, read the active tab with a position running, then close/expire the position       | With a position: the tab contains `[data-testid="dt_market_tab_profit_separator"]` between `dt_market_tab_chevron` and the P/L amount, and the tab's text still contains no `•`. Without one: no separator element at all |
 
 > **Framing correction vs the original test plan:** the manual test run (`06-multiple-trade-tabs.md`,
 > TABS-03) described this narrowly as "Stake persistence bug." Source confirms it is broader: the

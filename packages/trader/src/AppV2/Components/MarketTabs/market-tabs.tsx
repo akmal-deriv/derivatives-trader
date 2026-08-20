@@ -361,13 +361,19 @@ const MarketTabs = observer(({ supported_trade_types, onSelectorOpenChange }: TM
                         market.contract_type
                     );
                     const profit = positions.length ? getTotalPositionsProfit(positions) : null;
+                    // Active = the tab whose symbol + trade-type category match the store; a
+                    // disabled (unsupported) tab is never shown as active.
+                    const is_active = isActiveMarket(market) && !is_disabled;
                     return (
                         <MarketTab
                             key={`${market.symbol}__${market.contract_type}`}
                             market={market}
-                            // Active = the tab whose symbol + trade-type category match the store; a
-                            // disabled (unsupported) tab is never shown as active.
-                            is_active={isActiveMarket(market) && !is_disabled}
+                            is_active={is_active}
+                            // Only the active tab's tap opens the selector — and not even that while a
+                            // run locks the strip, where `handleSelect` shows the locked snackbar
+                            // instead. Told explicitly so the tab never advertises an affordance
+                            // (chevron cue / aria-haspopup) that its tap won't deliver.
+                            opens_selector={is_active && !is_automation_market_locked}
                             is_removable={is_removable}
                             is_disabled={is_disabled}
                             profit={profit}

@@ -93,12 +93,21 @@ jest.mock('../../MarketSelection', () => {
 // Expose the props the container computes per tab so we can assert on the removability rule, and
 // wire onSelect so the tap behaviour (activate vs open-selector) can be exercised.
 jest.mock('../market-tab', () => {
-    const MarketTab = ({ market, is_active, is_removable, is_disabled, onSelect, onRemove }: TMockTab) => (
+    const MarketTab = ({
+        market,
+        is_active,
+        is_removable,
+        is_disabled,
+        opens_selector,
+        onSelect,
+        onRemove,
+    }: TMockTab) => (
         <div
             data-testid={`tab-${market.symbol}__${market.contract_type}`}
             data-active={String(is_active)}
             data-removable={String(is_removable)}
             data-disabled={String(is_disabled)}
+            data-opens-selector={String(opens_selector)}
             onClick={() => onSelect(market)}
         >
             <button
@@ -119,6 +128,7 @@ type TMockTab = {
     is_active: boolean;
     is_removable?: boolean;
     is_disabled?: boolean;
+    opens_selector?: boolean;
     onSelect: (market: TOpenMarket) => void;
     onRemove?: (market: TOpenMarket) => void;
 };
@@ -347,10 +357,14 @@ describe('MarketTabs', () => {
         expect(active_tab).toHaveAttribute('data-active', 'true');
         expect(active_tab).toHaveAttribute('data-disabled', 'false');
         expect(active_tab).toHaveAttribute('data-removable', 'false');
+        // …but its tap can't open the selector either (handleSelect shows the locked snackbar), so it
+        // must not advertise one: no chevron cue, no aria-haspopup.
+        expect(active_tab).toHaveAttribute('data-opens-selector', 'false');
         // Every other tab greys out so the strip stays pinned to the running market.
         const other_tab = screen.getByTestId('tab-frxGBPUSD__turboslong');
         expect(other_tab).toHaveAttribute('data-disabled', 'true');
         expect(other_tab).toHaveAttribute('data-active', 'false');
+        expect(other_tab).toHaveAttribute('data-opens-selector', 'false');
     });
 
     it('leaves the strip fully interactive when no run is active', () => {
@@ -358,6 +372,9 @@ describe('MarketTabs', () => {
         render(<MarketTabs />);
         expect(screen.getByRole('button', { name: 'Add market' })).toBeEnabled();
         expect(screen.getByTestId('tab-frxGBPUSD__turboslong')).toHaveAttribute('data-disabled', 'false');
+        // The active tab's tap opens the replace-selector, so it advertises that (chevron cue).
+        expect(screen.getByTestId('tab-frxEURUSD__rise_fall')).toHaveAttribute('data-opens-selector', 'true');
+        expect(screen.getByTestId('tab-frxGBPUSD__turboslong')).toHaveAttribute('data-opens-selector', 'false');
     });
 
     it('snaps to the running market on return to the automation view after drifting in manual', () => {

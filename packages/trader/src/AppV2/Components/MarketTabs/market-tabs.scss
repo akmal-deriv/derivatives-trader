@@ -69,16 +69,26 @@
     }
 
     // Open-positions P/L amount in the subtitle — desktop only (mobile shows the glow instead), so
-    // it's hidden by default and revealed under `.market-tabs--desktop`.
+    // it's hidden by default and revealed under `.market-tabs--desktop`. An inline box on the
+    // trade-type text line (not a flex item): its own margin disappears with it when it's hidden,
+    // and it truncates as a unit — a tab too narrow for the amount drops it rather than showing a
+    // half-cut number.
     &__profit {
         display: none;
         align-items: center;
+        vertical-align: middle;
         gap: var(--core-spacing-200, 4px);
         margin-inline-start: var(--core-spacing-200, 4px);
     }
 
-    &__profit-dot {
-        color: var(--component-textIcon-normal-subtle);
+    // Divider between the chevron cue and the P/L amount — a 1×12px vertical rule per Figma, not a
+    // text glyph. It lives inside `&__profit`, so it disappears with the amount (mobile, and any tab
+    // with no open positions) rather than being left orphaned.
+    &__profit-separator {
+        flex-shrink: 0;
+        width: 1px;
+        height: 1.2rem;
+        background: var(--semantic-color-monochrome-border-normal-mid);
     }
 
     // The two stacked label lines (name + trade type); reveal/expand lives in the blocks below.
@@ -88,8 +98,25 @@
         white-space: nowrap;
     }
 
+    // Trade-type row: the trade type, then the "change this" chevron and the inline P/L, laid out as
+    // ONE text line rather than a flex row. That's what makes a shrinking tab (a desktop strip
+    // crowded past 4 tabs) truncate the way the strip has always truncated — the trade type keeps
+    // its width and reads in full, and the cue and the amount are what run off the end. A flex row
+    // would instead squeeze the trade-type text down to a leading character or two while holding the
+    // cue and the amount whole, which leaves the tab unidentifiable. The ellipsis itself is the
+    // desktop `&__text > *` rule below, which truncates both label lines the same way.
     &__subtitle {
         color: var(--component-textIcon-normal-default);
+    }
+
+    // Chevron marking the active tab as the control that changes market + trade type. Inline, so it
+    // sits on the trade-type line; centred on the text rather than dropped onto its baseline (an
+    // icon-only inline box baselines on its bottom edge, which rides high against the text).
+    &__chevron {
+        display: inline-flex;
+        align-items: center;
+        vertical-align: middle;
+        margin-inline-start: var(--core-spacing-200, 4px);
     }
 
     // Remove ✕: sits in a `&__reveal` — slides in with the label on mobile, a visibility-toggled
@@ -277,6 +304,11 @@
             display: inline-flex;
         }
 
+        // Truncate BOTH label lines as the tab shrinks — each as a single text flow ending in an
+        // ellipsis. On the trade-type line that means the trade type is read first and keeps its
+        // width, and the chevron cue + P/L amount trailing it are dropped once there's no room:
+        // a crowded strip stays readable as "which market, which trade type", which is what a tab
+        // is for. It also keeps the line inside the tab, so nothing paints over its neighbour.
         &__text > * {
             display: block;
             overflow: hidden;

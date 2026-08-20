@@ -21,6 +21,7 @@
 | Flow 22          | `market-selection/verify-trade-tabs-buy.spec.ts`              | `@market-selection @trade @regression @desktop @mobile` |
 | Flow 24          | `market-selection/verify-trade-tabs-max-limit.spec.ts`        | `@market-selection @smoke @production @desktop @mobile` |
 | G1               | Not automated — see [`coverage.md`](./coverage.md)            | —                                                       |
+| G2               | Not automated — see [`coverage.md`](./coverage.md)            | —                                                       |
 
 ---
 
