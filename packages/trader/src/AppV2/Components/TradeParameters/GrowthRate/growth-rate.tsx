@@ -71,7 +71,10 @@ const GrowthRate = observer(({ is_minimized }: TTradeParametersProps) => {
     // The wheel commits live to the store (so barrier/max-duration proposal values refresh) and mirrors
     // the value into the reactive draft that drives the header check.
     const handleWheelChange = (new_value: number) => {
-        if (new_value === selected_growth_rate) return;
+        // Reads the ref, not the closed-over draft: the wheel's scroll listener is registered once and
+        // keeps calling the callback captured then, so comparing against the stale value makes scrolling
+        // back to it a no-op — stranding the draft on the value you scrolled away from.
+        if (new_value === selected_growth_rate_ref.current) return;
         setSelectedGrowthRate(new_value);
         debouncedSetGrowthRate(handleGrowthRateChange, new_value);
     };

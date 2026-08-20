@@ -25,9 +25,15 @@ const MultiplierWheelPicker = ({
     );
     const block_sheet_swipe = useBlockSheetSwipe();
 
+    // The wheel registers its scroll listener once and keeps calling the callback captured then, so the
+    // guard below reads the live selection through a ref; against the closed-over value, scrolling back
+    // to it is a no-op and the draft stays on the value you scrolled away from.
+    const selected_multiplier_ref = React.useRef(selected_multiplier);
+    selected_multiplier_ref.current = selected_multiplier;
+
     const handlePickerValuesChange = (value: string | number) => {
         const new_value = Number((value as string).slice(1));
-        if (new_value === selected_multiplier) return;
+        if (new_value === selected_multiplier_ref.current) return;
         setSelectedMultiplier(new_value);
     };
 

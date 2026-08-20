@@ -42,6 +42,11 @@ const StrikeWheel = ({
     onDetailClick,
 }: TStrikeWheelProps) => {
     const block_sheet_swipe = useBlockSheetSwipe();
+    // The wheel registers its scroll listener once and keeps calling the callback captured then, so the
+    // guard below reads the live draft through a ref; against the closed-over prop, scrolling back to it
+    // is a no-op and the draft stays on the value you scrolled away from.
+    const value_ref = React.useRef(value);
+    value_ref.current = value;
 
     const openPayoutPerPointInfo = (e?: React.MouseEvent<HTMLElement> | React.KeyboardEvent<HTMLElement>) =>
         clickAndKeyEventHandler(() => onDetailClick?.(PAYOUT_PER_POINT_PAGE), e);
@@ -56,7 +61,7 @@ const StrikeWheel = ({
                     data={strike_price_list}
                     selectedValue={value}
                     setSelectedValue={(new_value: string | number) => {
-                        if (new_value === value) return;
+                        if (new_value === value_ref.current) return;
                         setValue(new_value);
                         // Commit live so the payout-per-point row below refreshes as the wheel moves; the
                         // sheet reverts to its opening value on dismiss.
