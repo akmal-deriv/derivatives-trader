@@ -6,6 +6,7 @@ import { getCurrencyDisplayCode, getDecimalPlaces, mapErrorMessage, trackAnalyti
 import { ActionSheet, CaptionText, Text, TextFieldWithSteppers, ToggleSwitch } from '@deriv-com/quill-ui';
 import { Localize, useTranslations } from '@deriv-com/translations';
 
+import ActionSheetHeaderTooltip from 'AppV2/Components/ActionSheetHeaderTooltip';
 import { useProposal } from 'AppV2/Hooks/useProposal';
 import useTradeError from 'AppV2/Hooks/useTradeError';
 import { focusAndOpenKeyboard } from 'AppV2/Utils/trade-params-utils';
@@ -14,12 +15,20 @@ import { ExpandedProposal } from 'Stores/Modules/Trading/Helpers/proposal';
 import { useTraderStore } from 'Stores/useTraderStores';
 import { TTradeStore } from 'Types';
 
+// Reported up to the header owner so it can drive the single header check (state-backed dirty gate
+// AND-ed with the existing blocking-error conditions). `onSave` is exposed for single-input hosts.
+export type TTakeProfitAndStopLossGate = {
+    is_dirty: boolean;
+    has_blocking_error: boolean;
+    onSave: () => void;
+};
+
 type TTakeProfitAndStopLossInputProps = {
     classname?: string;
-    has_save_button?: boolean;
     has_actionsheet_wrapper?: boolean;
     initial_error_text?: React.ReactNode;
     onActionSheetClose: () => void;
+    onGateChange?: (gate: TTakeProfitAndStopLossGate) => void;
     parent_ref?: React.MutableRefObject<{
         has_take_profit?: boolean;
         has_stop_loss?: boolean;
@@ -34,10 +43,10 @@ type TTakeProfitAndStopLossInputProps = {
 
 const TakeProfitAndStopLossInput = ({
     classname,
-    has_save_button = true,
     has_actionsheet_wrapper = true,
     initial_error_text,
     onActionSheetClose,
+    onGateChange,
     parent_ref,
     parent_is_api_response_received_ref,
     type = 'take_profit',
@@ -67,6 +76,15 @@ const TakeProfitAndStopLossInput = ({
     // For handling cases when user clicks on Save btn before we got response from API
     const is_api_response_received = React.useRef(false);
     const is_api_response_received_ref = parent_is_api_response_received_ref || is_api_response_received;
+
+    // `onSave` reads the ref imperatively (and the container shares one per field), but mutating a ref
+    // does not re-render — so the header gate below never recomputed once the proposal landed. Mirror
+    // the flag in state and always set the two together.
+    const [has_api_response, setHasApiResponse] = React.useState(false);
+    const setApiResponseReceived = (received: boolean) => {
+        is_api_response_received_ref.current = received;
+        setHasApiResponse(received);
+    };
 
     const [is_enabled, setIsEnabled] = React.useState(is_take_profit_input ? has_take_profit : has_stop_loss);
     const [new_input_value, setNewInputValue] = React.useState(is_take_profit_input ? take_profit : stop_loss);
@@ -125,7 +143,7 @@ const TakeProfitAndStopLossInput = ({
     };
 
     const onToggleSwitch = (new_value: boolean) => {
-        is_api_response_received_ref.current = false;
+        setApiResponseReceived(false);
         setIsEnabled(new_value);
         updateParentRef({ field_name: is_take_profit_input ? 'has_take_profit' : 'has_stop_loss', new_value });
 
@@ -149,7 +167,7 @@ const TakeProfitAndStopLossInput = ({
                 field_name: is_take_profit_input ? 'tp_error_text' : 'sl_error_text',
                 new_value: is_error_field_match ? new_error : '',
             });
-            is_api_response_received_ref.current = true;
+            setApiResponseReceived(true);
         }
 
         if (response) {
@@ -171,7 +189,7 @@ const TakeProfitAndStopLossInput = ({
                         : info
                 );
             }
-            is_api_response_received_ref.current = true;
+            setApiResponseReceived(true);
         }
     }, [is_enabled, response, queryError]);
 
@@ -181,7 +199,7 @@ const TakeProfitAndStopLossInput = ({
 
         // If new value is equal to previous one, then we won't send API request
         const is_equal = value === new_input_value;
-        is_api_response_received_ref.current = is_equal;
+        setApiResponseReceived(is_equal);
         if (is_equal) return;
         setFEErrorText('');
         setNewInputValue(value);
@@ -222,11 +240,27 @@ const TakeProfitAndStopLossInput = ({
         onActionSheetClose();
     };
 
+    // The committed value this input drafts against. Save must stay disabled until the draft differs.
+    const committed_is_enabled = is_take_profit_input ? has_take_profit : has_stop_loss;
+    const committed_value = is_take_profit_input ? take_profit : stop_loss;
+    const is_dirty =
+        is_enabled !== committed_is_enabled || (is_enabled && (new_input_value ?? '') !== (committed_value ?? ''));
+
+    // Ref-based disable preserved from the previous footer path, now AND-ed with the dirty gate.
+    const has_blocking_error = Boolean(
+        (!has_api_response && is_enabled) || (error_text && is_enabled) || fe_error_text
+    );
+
+    // Surface the gate + save handler to the header owner (container for TP&SL, take-profit.tsx for
+    // the standalone sheet). Runs on every relevant change so the single header check stays reactive.
+    React.useEffect(() => {
+        onGateChange?.({ is_dirty, has_blocking_error, onSave });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [is_dirty, has_blocking_error, is_enabled, new_input_value, error_text, fe_error_text, has_api_response]);
+
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter') {
-            const isSaveDisabled =
-                (!is_api_response_received_ref.current && is_enabled) || (error_text && is_enabled) || fe_error_text;
-            if (!isSaveDisabled) {
+            if (!has_blocking_error) {
                 onSave();
             }
         }
@@ -250,13 +284,25 @@ const TakeProfitAndStopLossInput = ({
         <React.Fragment>
             <Component className={clsx('take-profit__wrapper', classname)}>
                 <div className='take-profit__content'>
-                    <Text>
-                        {is_take_profit_input ? (
-                            <Localize i18n_default_text='Take profit' />
-                        ) : (
-                            <Localize i18n_default_text='Stop loss' />
-                        )}
-                    </Text>
+                    <span className='take-profit__label'>
+                        <Text>
+                            {is_take_profit_input ? (
+                                <Localize i18n_default_text='Take profit' />
+                            ) : (
+                                <Localize i18n_default_text='Stop loss' />
+                            )}
+                        </Text>
+                        <ActionSheetHeaderTooltip
+                            description={
+                                is_take_profit_input ? (
+                                    <Localize i18n_default_text='When your profit reaches or exceeds this amount, your trade will be closed automatically.' />
+                                ) : (
+                                    <Localize i18n_default_text='When your loss reaches or exceeds this amount, your trade will be closed automatically.' />
+                                )
+                            }
+                            label={is_take_profit_input ? localize('Take profit') : localize('Stop loss')}
+                        />
+                    </span>
                     <ToggleSwitch checked={is_enabled} onChange={onToggleSwitch} />
                 </div>
                 <TextFieldWithSteppers
@@ -309,16 +355,6 @@ const TakeProfitAndStopLossInput = ({
                     </CaptionText>
                 )}
             </Component>
-            {has_save_button && (
-                <ActionSheet.Footer
-                    alignment='vertical'
-                    primaryAction={{
-                        content: <Localize i18n_default_text='Save' />,
-                        onAction: onSave,
-                    }}
-                    shouldCloseOnPrimaryButtonClick={false}
-                />
-            )}
         </React.Fragment>
     );
 };

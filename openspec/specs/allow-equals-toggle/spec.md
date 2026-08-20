@@ -1,8 +1,11 @@
 # allow-equals-toggle Specification
 
 ## Purpose
+
 TBD - created by archiving change the-toggle-switch-component-on-desktop-is-cut-off-at-the-bottom. Update Purpose after archive.
+
 ## Requirements
+
 ### Requirement: Desktop Allow equals toggle is fully visible
 
 On desktop Manual trading, when the non-minimized Allow equals row is shown under Stake for Rise/Fall (or Rise/Fall Equal), the toggle switch SHALL be fully visible. No part of the switch track or knob SHALL be clipped at the bottom of the row or by the surrounding trade-parameters panel.
@@ -46,4 +49,3 @@ Fixing the desktop clip SHALL NOT change Allow equals behaviour: label text, too
 
 - **WHEN** Allow equals is rendered in minimized mode
 - **THEN** it still shows the read-only field with "Yes" / "-" values and does not use the desktop toggle row layout
-

@@ -3,10 +3,15 @@ import { TCoreStores } from '@deriv/stores/types';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
+import { useProposal } from 'AppV2/Hooks/useProposal';
 import ModulesProvider from 'Stores/Providers/modules-providers';
 
 import TraderProviders from '../../../../../trader-providers';
 import BarrierInput from '../barrier-input';
+
+jest.mock('AppV2/Hooks/useProposal', () => ({
+    useProposal: jest.fn(() => ({ data: { proposal: {} }, error: null, isFetching: false })),
+}));
 
 describe('BarrierInput', () => {
     const onChange = jest.fn();
@@ -15,11 +20,13 @@ describe('BarrierInput', () => {
     beforeEach(() => {
         // Clear all mocks before each test
         jest.clearAllMocks();
+        (useProposal as jest.Mock).mockReturnValue({ data: { proposal: {} }, error: null, isFetching: false });
 
         // Reset the default trade store
         default_trade_store.modules.trade.barrier_1 = '+10';
         default_trade_store.modules.trade.validation_errors.barrier_1 = [];
         default_trade_store.modules.trade.symbol = '1HZ100V';
+        default_trade_store.modules.trade.contract_type = '';
     });
 
     // getSymbolBarrierSupport/getDefaultBarrierValue come from @deriv/stores' mockStore default,
@@ -59,15 +66,19 @@ describe('BarrierInput', () => {
         },
     };
 
-    const mockBarrierInput = (mocked_store: TCoreStores) => {
+    const mockBarrierInput = (mocked_store: TCoreStores, is_open?: boolean) => {
         render(
             <TraderProviders store={mocked_store}>
                 <ModulesProvider store={mocked_store}>
-                    <BarrierInput onClose={onClose} />
+                    <BarrierInput onClose={onClose} is_open={is_open} />
                 </ModulesProvider>
             </TraderProviders>
         );
     };
+
+    // The barrier input debounces its validation by 300ms and the header save stays disabled until the
+    // draft has been validated, so tests must let that window close before committing.
+    const settleValidation = () => new Promise(resolve => setTimeout(resolve, 400));
 
     it('renders BarrierInput component correctly with Above spot / Below spot options for a relative barrier', () => {
         mockBarrierInput(mockStore(default_trade_store));
@@ -79,13 +90,61 @@ describe('BarrierInput', () => {
         expect(screen.getByText('Current spot')).toBeInTheDocument();
     });
 
-    it('closes ActionSheet on pressing Save button', async () => {
+    it('disables the header save action on open (nothing changed yet)', () => {
         mockBarrierInput(mockStore(default_trade_store));
-        await userEvent.click(screen.getByRole('textbox'));
-        await userEvent.click(screen.getByText(/Save/));
+        expect(screen.getByRole('button', { name: /Save/i })).toBeDisabled();
+    });
+
+    it('shows the barrier description in the header info tooltip', () => {
+        mockBarrierInput(mockStore(default_trade_store));
+        fireEvent.mouseEnter(screen.getByRole('button', { name: 'Barrier' }));
+        expect(screen.getByText('Above spot:')).toBeInTheDocument();
+        expect(screen.getByText('Below spot:')).toBeInTheDocument();
+        // A relative barrier is a signed offset from spot, so the description must not offer a
+        // fixed price the sign selector does not let the user pick.
+        expect(screen.queryByText('Fixed barrier:')).not.toBeInTheDocument();
+    });
+
+    it('describes the fixed barrier in the tooltip when the symbol uses absolute barriers', () => {
+        default_trade_store.modules.trade.symbol = 'EURUSD';
+        default_trade_store.modules.trade.barrier_1 = '1.0000';
+        mockBarrierInput(mockStore(default_trade_store));
+
+        fireEvent.mouseEnter(screen.getByRole('button', { name: 'Barrier' }));
+        expect(screen.getByText('Fixed barrier:')).toBeInTheDocument();
+        expect(screen.queryByText('Above spot:')).not.toBeInTheDocument();
+    });
+
+    it('describes the payout-derived barrier in the tooltip for Turbos', () => {
+        default_trade_store.modules.trade.contract_type = 'turboslong';
+        mockBarrierInput(mockStore(default_trade_store));
+
+        fireEvent.mouseEnter(screen.getByRole('button', { name: 'Barrier' }));
+        expect(screen.getByText(/corresponding price level based on the payout per point/)).toBeInTheDocument();
+    });
+
+    it('closes ActionSheet on tapping the header save action after a change', async () => {
+        mockBarrierInput(mockStore(default_trade_store));
+        const input = screen.getByPlaceholderText('Distance to spot');
+        fireEvent.change(input, { target: { value: '25' } });
+        await settleValidation();
+        await userEvent.click(screen.getByRole('button', { name: /Save/i }));
         await waitFor(() => {
             expect(onClose).toBeCalledWith(true);
         });
+    });
+
+    it('does not enable the header save before the drafted barrier has been validated', async () => {
+        // The check used to flash on between keystroke and request (the 300ms debounce) and off again
+        // once the proposal started. It must stay off until the draft is actually committable.
+        mockBarrierInput(mockStore(default_trade_store));
+        const input = screen.getByPlaceholderText('Distance to spot');
+
+        fireEvent.change(input, { target: { value: '25' } });
+        expect(screen.getByRole('button', { name: /Save/i })).toBeDisabled();
+
+        await settleValidation();
+        expect(screen.getByRole('button', { name: /Save/i })).toBeEnabled();
     });
 
     it('initializes with the sign tab selected based on the barrier_1 value', () => {
@@ -100,7 +159,7 @@ describe('BarrierInput', () => {
         expect(onChange).not.toHaveBeenCalled();
         expect(screen.getByDisplayValue('10')).toBeInTheDocument();
 
-        await userEvent.click(screen.getByText(/Save/));
+        await userEvent.click(screen.getByRole('button', { name: /Save/i }));
         expect(onChange).toHaveBeenCalledWith({ target: { name: 'barrier_1', value: '-10' } });
     });
 
@@ -117,7 +176,8 @@ describe('BarrierInput', () => {
         expect(onChange).not.toHaveBeenCalled();
 
         // onChange should only be called when Save is clicked
-        await userEvent.click(screen.getByText(/Save/));
+        await settleValidation();
+        await userEvent.click(screen.getByRole('button', { name: /Save/i }));
         expect(onChange).toHaveBeenCalledWith({ target: { name: 'barrier_1', value: '-15' } });
     });
 
@@ -174,7 +234,7 @@ describe('BarrierInput', () => {
         expect(onChange).not.toHaveBeenCalled();
 
         // onChange should only be called when Save is clicked
-        await userEvent.click(screen.getByText(/Save/));
+        await userEvent.click(screen.getByRole('button', { name: /Save/i }));
         expect(onChange).toHaveBeenCalledWith({ target: { name: 'barrier_1', value: '+10' } });
     });
 
@@ -188,7 +248,7 @@ describe('BarrierInput', () => {
         expect(onChange).not.toHaveBeenCalled();
 
         // onChange should only be called when Save is clicked
-        await userEvent.click(screen.getByText(/Save/));
+        await userEvent.click(screen.getByRole('button', { name: /Save/i }));
         expect(onChange).toHaveBeenCalledWith({ target: { name: 'barrier_1', value: '-0.6' } });
     });
 
@@ -282,7 +342,8 @@ describe('BarrierInput', () => {
             expect(onChange).not.toHaveBeenCalled();
 
             // Click Save
-            await userEvent.click(screen.getByText(/Save/));
+            await settleValidation();
+            await userEvent.click(screen.getByRole('button', { name: /Save/i }));
 
             // onChange should be called only once on Save
             await waitFor(() => {
@@ -375,9 +436,53 @@ describe('BarrierInput', () => {
             // onChange should NOT be called (only on Save)
             expect(onChange).not.toHaveBeenCalled();
 
-            // Save button should be enabled for valid input
-            const saveButton = screen.getByRole('button', { name: /Save/i });
-            expect(saveButton).toBeEnabled();
+            // Save button should be enabled for valid input, once validation has settled
+            await settleValidation();
+            expect(screen.getByRole('button', { name: /Save/i })).toBeEnabled();
+        });
+
+        it('shows the API barrier rejection message', async () => {
+            (useProposal as jest.Mock).mockReturnValue({
+                data: null,
+                error: { message: 'Barrier is not valid', details: { field: 'barrier' } },
+                isFetching: false,
+            });
+            mockBarrierInput(mockStore(default_trade_store), true);
+
+            expect(await screen.findByText('Barrier is not valid')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: /Save/i })).toBeDisabled();
+        });
+
+        it('states the accepted range when the barrier rejection carries code_args', async () => {
+            (useProposal as jest.Mock).mockReturnValue({
+                data: null,
+                error: { subcode: 'BarrierOutOfRange', code_args: ['30.5', '45.2'], details: { field: 'barrier' } },
+                isFetching: false,
+            });
+            mockBarrierInput(mockStore(default_trade_store), true);
+
+            expect(await screen.findByText('Barrier must be between 30.5 and 45.2.')).toBeInTheDocument();
+        });
+
+        it('ignores a proposal error raised against a field other than the barrier', () => {
+            (useProposal as jest.Mock).mockReturnValue({
+                data: null,
+                error: { message: 'Stake is not valid', details: { field: 'amount' } },
+                isFetching: false,
+            });
+            mockBarrierInput(mockStore(default_trade_store), true);
+
+            expect(screen.queryByText('Stake is not valid')).not.toBeInTheDocument();
+        });
+
+        it('disables Save while the proposal is still validating the drafted barrier', () => {
+            (useProposal as jest.Mock).mockReturnValue({ data: null, error: null, isFetching: true });
+            mockBarrierInput(mockStore(default_trade_store), true);
+
+            const input = screen.getByPlaceholderText('Distance to spot');
+            fireEvent.change(input, { target: { value: '25' } });
+
+            expect(screen.getByRole('button', { name: /Save/i })).toBeDisabled();
         });
     });
 });

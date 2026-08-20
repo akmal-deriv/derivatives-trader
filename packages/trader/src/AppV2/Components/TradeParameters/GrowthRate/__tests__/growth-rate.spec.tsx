@@ -2,7 +2,7 @@ import React from 'react';
 
 import { CONTRACT_TYPES, getGrowthRatePercentage } from '@deriv/shared';
 import { mockStore } from '@deriv/stores';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import ModulesProvider from 'Stores/Providers/modules-providers';
@@ -118,8 +118,18 @@ describe('GrowthRate', () => {
         ).toBeInTheDocument();
         expect(screen.getByText('Max duration')).toBeInTheDocument();
         expect(screen.getByText(`${default_mock_store.modules.trade.maximum_ticks} ticks`)).toBeInTheDocument();
-        expect(screen.getByText('Save')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
         expect(screen.getAllByText(mocked_definition).length).toBeGreaterThan(0);
+    });
+    it('disables the header save action on open and reveals the definition tooltip on the info icon', async () => {
+        const user = userEvent.setup();
+        mockGrowthRate();
+
+        await user.click(screen.getByText(growth_rate_param_label));
+        expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+
+        fireEvent.mouseEnter(screen.getByRole('button', { name: 'Growth rate' }));
+        expect(screen.getByText(/The growth rate determines the rate/)).toBeInTheDocument();
     });
     it('sets the sheet title to Barrier when the barrier explanation is opened', async () => {
         const user = userEvent.setup();
@@ -184,10 +194,47 @@ describe('GrowthRate', () => {
         const new_selected_value = default_mock_store.modules.trade.accumulator_range_list[1];
         await user.click(screen.getByText(growth_rate_param_label));
         await user.click(screen.getByText(`${getGrowthRatePercentage(new_selected_value)}%`));
-        await user.click(screen.getByText('Save'));
+
+        const save_button = screen.getByRole('button', { name: 'Save' });
+        expect(save_button).toBeEnabled();
+        await user.click(save_button);
 
         await waitFor(() => {
             expect(default_mock_store.modules.trade.onChange).toBeCalled();
+        });
+    });
+    it('keeps the header save enabled once the wheel change reaches the store', async () => {
+        // The wheel commits live so the barrier / max duration rows refresh. With the gate comparing
+        // draft against the live store, the store caught up ~200ms later and the check greyed out again.
+        const user = userEvent.setup();
+        default_mock_store.modules.trade.onChange = jest.fn(({ target }: { target: { value: number } }) => {
+            default_mock_store.modules.trade.growth_rate = target.value;
+        });
+        mockGrowthRate();
+
+        const new_selected_value = default_mock_store.modules.trade.accumulator_range_list[1];
+        await user.click(screen.getByText(growth_rate_param_label));
+        await user.click(screen.getByText(`${getGrowthRatePercentage(new_selected_value)}%`));
+
+        await waitFor(() => expect(default_mock_store.modules.trade.growth_rate).toBe(new_selected_value));
+        expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
+    });
+
+    it('reverts to the committed growth rate when the sheet is dismissed via the overlay', async () => {
+        const user = userEvent.setup();
+        mockGrowthRate();
+
+        const new_selected_value = default_mock_store.modules.trade.accumulator_range_list[1];
+        await user.click(screen.getByText(growth_rate_param_label));
+        await user.click(screen.getByText(`${getGrowthRatePercentage(new_selected_value)}%`));
+        await user.click(screen.getByTestId('dt-actionsheet-overlay'));
+
+        // Dismissal discards the browsed value: the last store update reverts to the opened value.
+        await waitFor(() => {
+            const calls = default_mock_store.modules.trade.onChange.mock.calls;
+            expect(calls[calls.length - 1][0]).toEqual({
+                target: { name: 'growth_rate', value: default_mock_store.modules.trade.growth_rate },
+            });
         });
     });
 });

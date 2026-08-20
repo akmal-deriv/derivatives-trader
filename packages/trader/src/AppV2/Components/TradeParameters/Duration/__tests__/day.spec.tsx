@@ -7,6 +7,8 @@ import { useSnackbar } from '@deriv-com/quill-ui';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
+import { useProposal } from 'AppV2/Hooks/useProposal';
+
 import TraderProviders from '../../../../../trader-providers';
 import DayInput from '../day';
 
@@ -36,9 +38,12 @@ jest.mock('../datepicker', () => ({
     default: () => <div>Mocked DaysDatepicker</div>,
 }));
 
+// Interactive so a test can browse to a new end time (the real picker just calls setEndTime)
 jest.mock('../timepicker', () => ({
     __esModule: true,
-    default: () => <div>Mocked EndTimePicker</div>,
+    default: ({ setEndTime }: { setEndTime: (t: string) => void }) => (
+        <button onClick={() => setEndTime('10:30:00')}>browse-time</button>
+    ),
 }));
 
 describe('DayInput', () => {
@@ -81,7 +86,12 @@ describe('DayInput', () => {
         (useSnackbar as jest.Mock).mockReturnValue({ addSnackbar: jest.fn() });
     });
 
-    const mockDayInput = () =>
+    afterEach(() => {
+        // Reset the proposal hook so an error stubbed in one test does not leak into the next
+        (useProposal as jest.Mock).mockReturnValue({ data: undefined, error: undefined });
+    });
+
+    const mockDayInput = (props: Partial<React.ComponentProps<typeof DayInput>> = {}) =>
         render(
             <TraderProviders store={default_trade_store}>
                 <DayInput
@@ -89,6 +99,7 @@ describe('DayInput', () => {
                     selected_expiry_time='23:59:59'
                     setSelectedExpiryDate={jest.fn()}
                     setSelectedExpiryTime={jest.fn()}
+                    {...props}
                 />
             </TraderProviders>
         );
@@ -120,5 +131,63 @@ describe('DayInput', () => {
         await userEvent.click(screen.getByDisplayValue('23:59:59 GMT'));
 
         expect(screen.getByText('Pick an end time')).toBeInTheDocument();
+    });
+
+    it('disables the header save until the browsed value differs from the snapshot', async () => {
+        mockDayInput();
+
+        await userEvent.click(screen.getByDisplayValue('23:59:59 GMT'));
+
+        // Nothing browsed yet → save disabled
+        expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+
+        await userEvent.click(screen.getByText('browse-time'));
+
+        expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
+    });
+
+    it('keeps the browsed end time when the header save is tapped', async () => {
+        mockDayInput();
+
+        await userEvent.click(screen.getByDisplayValue('23:59:59 GMT'));
+        await userEvent.click(screen.getByText('browse-time'));
+        await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+        // Save keeps the browsed value: the time field still shows the new value
+        expect(screen.getByDisplayValue('10:30:00 GMT')).toBeInTheDocument();
+    });
+
+    it('restores the snapshot when the picker is dismissed via the close action', async () => {
+        mockDayInput();
+
+        await userEvent.click(screen.getByDisplayValue('23:59:59 GMT'));
+        await userEvent.click(screen.getByText('browse-time'));
+
+        // Field reflects the browsed value while the picker is open
+        expect(screen.getByDisplayValue('10:30:00 GMT')).toBeInTheDocument();
+
+        await userEvent.click(screen.getByRole('button', { name: 'Close' }));
+
+        // Dismiss discards the browse and restores the snapshot taken on open
+        expect(screen.getByDisplayValue('23:59:59 GMT')).toBeInTheDocument();
+        expect(screen.queryByDisplayValue('10:30:00 GMT')).not.toBeInTheDocument();
+    });
+
+    it('disables the header save while the browsed date fails proposal validation', async () => {
+        // Mount with a valid proposal, then flip to an error so the proposal effect runs while the
+        // picker is open (mirrors a browsed date that fails validation) and sets the disabled state.
+        let proposal_result: { data: unknown; error: unknown } = { data: { proposal: {} }, error: undefined };
+        (useProposal as jest.Mock).mockImplementation(() => proposal_result);
+        mockDayInput();
+
+        proposal_result = {
+            data: undefined,
+            error: { message: 'Invalid duration', details: { field: 'duration' } },
+        };
+        await userEvent.click(screen.getByDisplayValue('23:59:59 GMT'));
+        await userEvent.click(screen.getByText('browse-time'));
+
+        // Even though the browsed value is dirty, the proposal error keeps save disabled
+        expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
     });
 });

@@ -1,7 +1,7 @@
 import React from 'react';
 
 import { mockStore } from '@deriv/stores';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import ModulesProvider from 'Stores/Providers/modules-providers';
@@ -34,19 +34,27 @@ jest.mock('@deriv-com/quill-ui', () => ({
 
 jest.mock('../payout-per-point-wheel', () => ({
     __esModule: true,
-    default: jest.fn(({ barrier, onDetailClick, onPayoutPerPointSelect, onClose, payout_per_point_list }) => (
+    default: jest.fn(({ barrier, onDetailClick, setValue, is_api_response_received_ref, payout_per_point_list }) => (
         <div>
             <p>WheelPicker</p>
             <ul>
-                {payout_per_point_list.map(({ value }: { value: string }) => (
-                    <li key={value}>
-                        <button onClick={() => onPayoutPerPointSelect(value)}>{value}</button>
+                {payout_per_point_list.map(({ value: option_value }: { value: string }) => (
+                    <li key={option_value}>
+                        <button
+                            onClick={() => {
+                                // Mimic the real wheel: a selection means the barrier proposal resolved,
+                                // which unblocks the header Save (handleSave checks this ref).
+                                if (is_api_response_received_ref) is_api_response_received_ref.current = true;
+                                setValue(option_value);
+                            }}
+                        >
+                            {option_value}
+                        </button>
                     </li>
                 ))}
             </ul>
             <button onClick={() => onDetailClick?.(2)}>Barrier</button>
             {barrier && <p>{barrier}</p>}
-            <button onClick={onClose}>Save</button>
         </div>
     )),
 }));
@@ -118,7 +126,10 @@ describe('PayoutPerPoint', () => {
         expect(screen.getByText('WheelPicker')).toBeInTheDocument();
         expect(screen.getByText('Barrier')).toBeInTheDocument();
         expect(screen.getByText('+1.80')).toBeInTheDocument();
-        expect(screen.getByText('Save')).toBeInTheDocument();
+        // Save is now the header action (icon-only, aria-label) instead of a footer text button.
+        expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
+        // The definition moved into the header title's info-icon tooltip — revealed on hover/tap.
+        fireEvent.mouseEnter(screen.getByRole('button', { name: payout_per_point_label }));
         expect(
             screen.getByText(
                 'The amount you choose to receive at expiry for every point of change between the final price and the barrier.'
@@ -165,7 +176,7 @@ describe('PayoutPerPoint', () => {
         const new_selected_value = default_mock_store.modules.trade.payout_choices[1];
         await userEvent.click(screen.getByText(payout_per_point_label));
         await userEvent.click(screen.getByText(new_selected_value));
-        await userEvent.click(screen.getByText('Save'));
+        await userEvent.click(screen.getByRole('button', { name: 'Save' }));
 
         expect(default_mock_store.modules.trade.setPayoutPerPoint).toBeCalled();
     });

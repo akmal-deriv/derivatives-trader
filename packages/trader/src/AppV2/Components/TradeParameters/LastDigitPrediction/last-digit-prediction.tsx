@@ -93,6 +93,8 @@ const LastDigitPrediction = observer(({ is_minimized, is_automation }: TTradePar
     const onSaveButtonClick = () => {
         if (last_digit !== selected_digit) handleLastDigitChange(selected_digit);
     };
+    // Header save is disabled until a different, valid digit is drafted.
+    const is_save_disabled = selected_digit === last_digit || selected_digit === invalid_digit;
     const onActionSheetClose = React.useCallback(() => {
         setIsOpen(false);
         setSelectedDigit(last_digit);
@@ -125,7 +127,14 @@ const LastDigitPrediction = observer(({ is_minimized, is_automation }: TTradePar
                     expandable={false}
                     shouldBlurOnClose={is_open}
                 >
-                    <ActionSheet.Portal shouldCloseOnDrag>
+                    <ActionSheet.Portal showHandlebar={false} shouldDetectSwipingOnContainer shouldCloseOnDrag>
+                        <ActionSheet.Header
+                            title={<Localize i18n_default_text='Last digit prediction' />}
+                            closeAction={{ ariaLabel: localize('Close') }}
+                            saveAction={{ onAction: onSaveButtonClick, ariaLabel: localize('Save') }}
+                            isSaveActionDisabled={is_save_disabled}
+                            shouldCloseOnSaveActionClick
+                        />
                         <ActionSheet.Content>
                             <LastDigitSelector
                                 digits={displayed_digits}
@@ -139,14 +148,6 @@ const LastDigitPrediction = observer(({ is_minimized, is_automation }: TTradePar
                                 invalid_digit={invalid_digit}
                             />
                         </ActionSheet.Content>
-                        <ActionSheet.Footer
-                            alignment='vertical'
-                            className='last-digit-prediction__footer'
-                            primaryAction={{
-                                content: <Localize i18n_default_text='Save' />,
-                                onAction: onSaveButtonClick,
-                            }}
-                        />
                     </ActionSheet.Portal>
                 </ActionSheet.Root>
             </>

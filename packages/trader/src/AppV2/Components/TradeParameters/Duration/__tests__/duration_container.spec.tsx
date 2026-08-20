@@ -47,10 +47,9 @@ const default_props = {
     selected_expiry_time: '',
     selected_expiry_date: '',
     setSelectedExpiryTime: jest.fn(),
-    setSavedExpiryTime: jest.fn(),
     setSelectedExpiryDate: jest.fn(),
-    setSavedExpiryDate: jest.fn(),
-    onRequestClose: jest.fn(),
+    onSave: jest.fn(),
+    is_save_disabled: false,
 };
 
 describe('DurationActionSheetContainer', () => {
@@ -294,67 +293,33 @@ describe('DurationActionSheetContainer', () => {
         expect(screen.queryByText('2 hr')).not.toBeInTheDocument();
     });
 
-    it('should render DayInput and Save on the End time tab', () => {
+    it('should render DayInput and the header save action on the End time tab', () => {
         renderDurationContainer(default_trade_store, { tab: 'd' });
 
         expect(screen.getByText('Mocked DayInput')).toBeInTheDocument();
-        expect(screen.getByText('Save')).toBeInTheDocument();
+        // The commit is a header icon-action (aria-label), not a visible-text footer button
+        expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
     });
 
-    it('should call onChangeMultiple with correct endtime on Save', async () => {
-        default_trade_store.modules.trade.expiry_time = '23:35';
+    it('should not render a footer Save button for the End time tab', () => {
+        renderDurationContainer(default_trade_store, { tab: 'd' });
 
-        renderDurationContainer(default_trade_store, {
-            tab: 'd',
-            selected_expiry_time: '11:35',
-            selected_expiry_date: new Date().toISOString().slice(0, 10),
-        });
-        await userEvent.click(screen.getByText('Save'));
-
-        expect(default_trade_store.modules.trade.onChangeMultiple).toHaveBeenCalledWith({
-            expiry_date: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T11:35Z$/),
-            expiry_time: '11:35',
-            expiry_type: 'endtime',
-        });
+        // The header save exposes only an aria-label, so there is no visible "Save" text anymore
+        expect(screen.queryByText('Save')).not.toBeInTheDocument();
     });
 
-    it('should correctly handle end time selection with future date', async () => {
-        const future_date = new Date();
-        future_date.setDate(future_date.getDate() + 2);
-        const formatted_date = future_date.toISOString().slice(0, 10);
+    it('should call onSave when the header save action is tapped', async () => {
+        const onSave = jest.fn();
+        renderDurationContainer(default_trade_store, { tab: 'd', onSave });
 
-        renderDurationContainer(default_trade_store, {
-            tab: 'd',
-            selected_expiry_time: '14:30:00',
-            selected_expiry_date: formatted_date,
-        });
+        await userEvent.click(screen.getByRole('button', { name: 'Save' }));
 
-        await userEvent.click(screen.getByText('Save'));
-
-        expect(default_trade_store.modules.trade.onChangeMultiple).toHaveBeenCalledWith({
-            expiry_date: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T14:30:00Z$/),
-            expiry_time: '14:30:00',
-            expiry_type: 'endtime',
-        });
+        expect(onSave).toHaveBeenCalledTimes(1);
     });
 
-    it('should synchronize saved expiry values on Save', async () => {
-        const setSavedExpiryTime = jest.fn();
-        const setSavedExpiryDate = jest.fn();
-        const today = new Date().toISOString().slice(0, 10);
+    it('should disable the header save action when is_save_disabled is true', () => {
+        renderDurationContainer(default_trade_store, { tab: 'd', is_save_disabled: true });
 
-        renderDurationContainer(default_trade_store, {
-            tab: 'd',
-            selected_expiry_time: '12:00:00',
-            selected_expiry_date: today,
-            setSavedExpiryTime,
-            setSavedExpiryDate,
-        });
-
-        await userEvent.click(screen.getByText('Save'));
-
-        expect(setSavedExpiryDate).toHaveBeenCalledWith(today);
-        expect(setSavedExpiryTime).toHaveBeenCalledWith('12:00:00');
-        expect(default_trade_store.modules.trade.onChangeMultiple).toHaveBeenCalled();
+        expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
     });
 });

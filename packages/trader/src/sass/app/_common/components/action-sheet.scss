@@ -1,0 +1,8 @@
+// quill defaults the action sheet title (an H5) to 16px; the design system asks for 20px/28px,
+// centered. Global so every sheet matches — this previously lived as a per-sheet override in
+// stake.scss, duration.scss and carousel.scss, so every other sheet was left at 16px.
+.quill-action-sheet--title-text {
+    font-size: var(--core-fontSize-300);
+    line-height: var(--core-lineHeight-400);
+    text-align: center;
+}

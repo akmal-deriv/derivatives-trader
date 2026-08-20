@@ -403,8 +403,38 @@ describe('Duration - Mobile', () => {
         expect(mockOnChangeMultiple).not.toHaveBeenCalled();
     });
 
-    it('should commit the clamped time wheel selection when the sheet is closed (mobile)', async () => {
-        // 2 hours exceeds the 3600s intraday max, so the wheel clamps to 1 hour and commits it as minutes
+    it('should disable the header save action when the selection matches the stored duration (mobile)', async () => {
+        // 30 minutes opens on the Time tab with [0,30,0], which equals the committed value → nothing to save
+        mockDurationMobile();
+
+        await userEvent.click(screen.getByLabelText('Duration'));
+
+        expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+    });
+
+    it('should commit the clamped time wheel selection only when the header save is tapped (mobile)', async () => {
+        // 2 hours exceeds the 3600s intraday max, so the wheel clamps to 1 hour → the draft differs
+        // from the committed 2h, enabling save; tapping it commits the clamped value as minutes
+        default_trade_store.modules.trade.duration_unit = 'h';
+        default_trade_store.modules.trade.duration = 2;
+        mockDurationMobile();
+
+        await userEvent.click(screen.getByLabelText('Duration'));
+
+        const save_button = screen.getByRole('button', { name: 'Save' });
+        expect(save_button).toBeEnabled();
+
+        await userEvent.click(save_button);
+
+        expect(mockOnChangeMultiple).toHaveBeenCalledWith({
+            duration_unit: 'm',
+            duration: 60,
+            expiry_type: 'duration',
+        });
+    });
+
+    it('should not commit the changed selection when dismissed via the overlay (mobile)', async () => {
+        // Same clamped-and-dirty selection as above, but dismissed instead of saved → no commit
         default_trade_store.modules.trade.duration_unit = 'h';
         default_trade_store.modules.trade.duration = 2;
         mockDurationMobile();
@@ -412,11 +442,22 @@ describe('Duration - Mobile', () => {
         await userEvent.click(screen.getByLabelText('Duration'));
         await userEvent.click(screen.getByTestId('dt-actionsheet-overlay'));
 
-        expect(mockOnChangeMultiple).toHaveBeenCalledWith({
-            duration_unit: 'm',
-            duration: 60,
-            expiry_type: 'duration',
-        });
+        expect(mockOnChangeMultiple).not.toHaveBeenCalled();
+    });
+
+    it('should enable the header save and commit an endtime change when switching to the End time tab (mobile)', async () => {
+        // The committed expiry_type is 'duration', so moving to End time is inherently dirty
+        mockDurationMobile();
+
+        await userEvent.click(screen.getByLabelText('Duration'));
+        await userEvent.click(screen.getByRole('tab', { name: 'End time' }));
+
+        const save_button = screen.getByRole('button', { name: 'Save' });
+        expect(save_button).toBeEnabled();
+
+        await userEvent.click(save_button);
+
+        expect(mockOnChangeMultiple).toHaveBeenCalledWith(expect.objectContaining({ expiry_type: 'endtime' }));
     });
 });
 

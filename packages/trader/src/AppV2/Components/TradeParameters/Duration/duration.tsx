@@ -140,72 +140,75 @@ const Duration = observer(({ is_minimized }: TTradeParametersProps) => {
         }
     }, [symbol, contract_type, duration_min_max, duration_units_list, duration, duration_unit]);
 
-    // Wheel selections apply once, when the sheet closes (End time commits via its own Save button)
-    const onClose = React.useCallback(() => {
-        if (is_open && tab !== DURATION_TAB.END_TIME) {
-            // The sheet can close inside the wheel's snap-back window, so clamp here as well
-            const clamped_time = duration_min_max?.intraday
-                ? clampTimeWheelSelection(
-                      getTimeWheelVisibleUnits(duration_units_list),
-                      duration_min_max.intraday,
-                      selected_time
-                  )
-                : selected_time;
-            const next =
-                tab === DURATION_TAB.TICKS
-                    ? { duration: selected_ticks, duration_unit: DURATION_UNIT.TICKS }
-                    : getDurationFromTimeWheelSelection(clamped_time, duration_units_list);
-            // Compare normalized selections, not raw unit/value: the wheel commits hours as
-            // minutes, so e.g. a stored 2h must count as unchanged against a 120min selection
-            const is_unchanged =
-                expiry_type === 'duration' &&
-                (tab === DURATION_TAB.TICKS
-                    ? duration_unit === DURATION_UNIT.TICKS && duration === next.duration
-                    : getTimeWheelSelectionFromDuration(duration, duration_unit).every(
-                          (value, index) => value === clamped_time[index]
-                      ));
+    // The sheet can close inside the wheel's snap-back window, so clamp the time selection here too
+    const clamped_time = duration_min_max?.intraday
+        ? clampTimeWheelSelection(
+              getTimeWheelVisibleUnits(duration_units_list),
+              duration_min_max.intraday,
+              selected_time
+          )
+        : selected_time;
+    const next_wheel_change =
+        tab === DURATION_TAB.TICKS
+            ? { duration: selected_ticks, duration_unit: DURATION_UNIT.TICKS }
+            : getDurationFromTimeWheelSelection(clamped_time, duration_units_list);
 
-            if (!is_unchanged && next.duration > 0) {
-                setSavedExpiryDate(selected_expiry_date);
-                setSavedExpiryTime(selected_expiry_time);
-                setSelectedExpiryTime('');
+    // Header save is disabled while the active tab's selection still equals its committed value
+    // (and, for the wheel tabs, while the converted duration is not positive). Compares normalized
+    // selections, not raw unit/value: the wheel commits hours as minutes, so a stored 2h counts as
+    // unchanged against a 120min selection.
+    const is_save_disabled =
+        tab === DURATION_TAB.END_TIME
+            ? expiry_type === 'endtime' &&
+              selected_expiry_date === saved_expiry_date &&
+              selected_expiry_time === saved_expiry_time
+            : next_wheel_change.duration <= 0 ||
+              (expiry_type === 'duration' &&
+                  (tab === DURATION_TAB.TICKS
+                      ? duration_unit === DURATION_UNIT.TICKS && duration === next_wheel_change.duration
+                      : getTimeWheelSelectionFromDuration(duration, duration_unit).every(
+                            (value, index) => value === clamped_time[index]
+                        )));
 
-                onChangeMultiple({ ...next, expiry_type: 'duration' });
+    // Dismissing the sheet (X, overlay, drag) never commits — the `is_open` effect below re-initializes
+    // the drafts from committed values on every open, so dismiss = discard.
+    const onClose = React.useCallback(() => setOpen(false), []);
 
-                trackAnalyticsEvent('ce_trade_types_form_v2', {
-                    action: 'customizing_trades',
-                    input_method: 'custom',
-                    parameter_type: 'duration',
-                });
-            }
+    // The single header check commits the active tab: Ticks/Time apply the wheel selection as a
+    // `duration` change, End time applies the selected date/time as an `endtime` change.
+    const handleSave = React.useCallback(() => {
+        if (tab === DURATION_TAB.END_TIME) {
+            setSavedExpiryDate(selected_expiry_date);
+            setSavedExpiryTime(selected_expiry_time);
+
+            onChangeMultiple({
+                expiry_date: `${selected_expiry_date}T${selected_expiry_time}Z`,
+                expiry_time: selected_expiry_time,
+                expiry_type: 'endtime',
+            });
+
+            trackAnalyticsEvent('ce_trade_types_form_v2', {
+                action: 'customizing_trades',
+                input_method: 'custom',
+                parameter_type: 'duration',
+            });
+            return;
         }
-        setOpen(false);
-    }, [
-        is_open,
-        tab,
-        selected_ticks,
-        selected_time,
-        expiry_type,
-        duration,
-        duration_unit,
-        duration_min_max,
-        duration_units_list,
-        selected_expiry_date,
-        selected_expiry_time,
-        onChangeMultiple,
-        setSavedExpiryDate,
-    ]);
 
-    // Tap-to-select: a tapped wheel item updates the selection (in the wheel) and flips this flag;
-    // once the updated selection has been applied, run the normal `onClose` commit + dismiss. Going
-    // through `onClose` reuses its clamping/conversion so a tap commits exactly like a drag-close.
-    const [pending_close, setPendingClose] = React.useState(false);
-    const requestClose = React.useCallback(() => setPendingClose(true), []);
-    useEffect(() => {
-        if (!pending_close) return;
-        setPendingClose(false);
-        onClose();
-    }, [pending_close, onClose]);
+        if (next_wheel_change.duration > 0) {
+            setSavedExpiryDate(selected_expiry_date);
+            setSavedExpiryTime(selected_expiry_time);
+            setSelectedExpiryTime('');
+
+            onChangeMultiple({ ...next_wheel_change, expiry_type: 'duration' });
+
+            trackAnalyticsEvent('ce_trade_types_form_v2', {
+                action: 'customizing_trades',
+                input_method: 'custom',
+                parameter_type: 'duration',
+            });
+        }
+    }, [tab, next_wheel_change, selected_expiry_date, selected_expiry_time, onChangeMultiple, setSavedExpiryDate]);
 
     const getInputValues = () => {
         const formatted_date = saved_expiry_date
@@ -349,7 +352,7 @@ const Duration = observer(({ is_minimized }: TTradeParametersProps) => {
                 expandable={false}
                 shouldBlurOnClose={is_open}
             >
-                <ActionSheet.Portal shouldCloseOnDrag>
+                <ActionSheet.Portal showHandlebar={false} shouldDetectSwipingOnContainer shouldCloseOnDrag>
                     <DurationActionSheetContainer
                         tab={tab}
                         setTab={setTab}
@@ -357,13 +360,12 @@ const Duration = observer(({ is_minimized }: TTradeParametersProps) => {
                         setSelectedTicks={setSelectedTicks}
                         selected_time={selected_time}
                         setSelectedTime={setSelectedTime}
-                        onRequestClose={requestClose}
+                        onSave={handleSave}
+                        is_save_disabled={is_save_disabled}
                         selected_expiry_time={selected_expiry_time}
                         selected_expiry_date={selected_expiry_date}
                         setSelectedExpiryTime={setSelectedExpiryTime}
-                        setSavedExpiryTime={setSavedExpiryTime}
                         setSelectedExpiryDate={setSelectedExpiryDate}
-                        setSavedExpiryDate={setSavedExpiryDate}
                     />
                 </ActionSheet.Portal>
             </ActionSheet.Root>

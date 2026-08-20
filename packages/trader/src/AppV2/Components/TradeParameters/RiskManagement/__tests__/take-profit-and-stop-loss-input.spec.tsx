@@ -58,11 +58,29 @@ describe('TakeProfitAndStopLossInput', () => {
 
     afterEach(() => jest.clearAllMocks());
 
+    // The input no longer renders its own footer Save; it lifts a commit handler + dirty gate to the
+    // header owner via `onGateChange`. This harness stands in for that owner, rendering the Save
+    // action (after the input) wired to the reported handler so the save behaviour stays covered.
+    const HeaderActionsHarness = () => {
+        const [gate, setGate] = React.useState<{ onSave: () => void }>();
+        return (
+            <React.Fragment>
+                <TakeProfitAndStopLossInput {...default_props} onGateChange={setGate} />
+                <button onClick={() => gate?.onSave()}>Save</button>
+            </React.Fragment>
+        );
+    };
+
+    // The label's info-icon tooltip is now the first button in the DOM, so target the toggle switch
+    // by its own class rather than by index.
+    const getToggleSwitch = () =>
+        screen.getAllByRole('button').find(button => button.classList.contains('toggle-switch')) as HTMLElement;
+
     const mockTakeProfitAndStopLossInput = () =>
         render(
             <TraderProviders store={default_mock_store}>
                 <ModulesProvider store={default_mock_store}>
-                    <TakeProfitAndStopLossInput {...default_props} />
+                    <HeaderActionsHarness />
                 </ModulesProvider>
             </TraderProviders>
         );
@@ -97,7 +115,7 @@ describe('TakeProfitAndStopLossInput', () => {
         const mockFocusAndOpenKeyboard = jest.spyOn(utils, 'focusAndOpenKeyboard');
         mockTakeProfitAndStopLossInput();
 
-        const toggle_switcher = screen.getAllByRole('button')[0];
+        const toggle_switcher = getToggleSwitch();
         await userEvent.click(toggle_switcher);
         expect(mockFocusAndOpenKeyboard).toBeCalledTimes(1);
     });
@@ -118,7 +136,7 @@ describe('TakeProfitAndStopLossInput', () => {
         mockTakeProfitAndStopLossInput();
 
         expect(screen.queryByTestId('dt_take_profit_overlay')).not.toBeInTheDocument();
-        const toggle_switcher = screen.getAllByRole('button')[0];
+        const toggle_switcher = getToggleSwitch();
         await userEvent.click(toggle_switcher);
 
         expect(screen.getByTestId('dt_take_profit_overlay')).toBeInTheDocument();

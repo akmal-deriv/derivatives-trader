@@ -1,8 +1,11 @@
 # barrier-range-errors Specification
 
 ## Purpose
+
 TBD - created by archiving change touch-no-touch-barrier-input-unusable-barrier-errors-omit-the-valid-range-all-trade-types. Update Purpose after archive.
+
 ## Requirements
+
 ### Requirement: A rejected barrier states the accepted range
 
 When a barrier (or range) input is rejected, the error message shown to the user SHALL state the accepted range whenever that range is available from the proposal response. The range SHALL be sourced from the proposal error's `code_args` (e.g. the `BarrierNotInRange` mapping in `error-message-mapper.ts`) and, when present, from the contract's `barrier_choices` bounds. Bounds taken from `barrier_choices` SHALL be quoted using the API's own strings, preserving the sign convention and decimal places the user is expected to type (e.g. `+207.90`, not `207.9`). This applies to every trade type that takes a barrier or range, not only Touch/No Touch.
@@ -41,4 +44,3 @@ The client-side barrier validation messages (required, cannot be zero, complete 
 
 - **WHEN** the field is empty or zero
 - **THEN** the existing client-side "required" / "cannot be zero" messages still fire (no proposal request is needed to show them)
-

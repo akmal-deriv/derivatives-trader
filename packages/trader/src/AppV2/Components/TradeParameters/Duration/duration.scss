@@ -5,10 +5,6 @@
     border-radius: 10rem !important;
 }
 
-.duration-container .quill-action-sheet--title-text {
-    font-size: var(--core-fontSize-300);
-}
-
 .duration-container {
     display: flex;
     flex-direction: column;
@@ -28,22 +24,12 @@
     }
     &__wheel-picker-container {
         padding: 0 var(--component-actionSheet-spacing-padding-md);
-        min-height: 268px;
-        &__single {
-            min-height: 236px;
-        }
-
-        // The centered wheel value is the only item quill does not mark disabled — emphasise it
-        // at 18px bold; the rest stay 16px regular.
-        .quill-wheel-picker__data-item[class*='__disabled--false'] .quill-dropdown-item-label {
-            font-size: var(--core-fontSize-200);
-            font-weight: var(--semantic-typography-body-md-bold-default-fontWeight);
-        }
+        // Matches WHEEL_PICKER_HEIGHT in AppV2/Utils/trade-params-utils.
+        min-height: 144px;
     }
     &__days-input {
         flex: 1;
         padding: var(--core-spacing-800);
-        padding-bottom: var(--core-spacing-50);
         display: flex;
         flex-direction: column;
         gap: var(--core-spacing-400);
@@ -54,8 +40,7 @@
         }
     }
     &__time-picker {
-        padding-left: var(--core-spacing-800);
-        padding-right: var(--core-spacing-800);
+        padding: 0 var(--core-spacing-800) var(--core-spacing-800);
     }
     &__endtime {
         text-align: center;

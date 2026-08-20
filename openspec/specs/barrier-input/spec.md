@@ -1,8 +1,11 @@
 # barrier-input Specification
 
 ## Purpose
+
 TBD - created by archiving change touch-no-touch-barrier-input-unusable-barrier-errors-omit-the-valid-range-all-trade-types. Update Purpose after archive.
+
 ## Requirements
+
 ### Requirement: Barrier support is derived from the API per-expiry default barrier
 
 The barrier field SHALL determine whether a barrier is entered as a relative offset or an absolute price from the sign of the default barrier that `contracts_for` returns for the selected contract type and `expiry_type`, NOT from a hardcoded market check (`market === 'forex'`). A default barrier that begins with `+` or `-` SHALL be treated as a relative offset; a default barrier that is a bare number SHALL be treated as an absolute price.
@@ -97,4 +100,3 @@ While the symbol list has not loaded, or the selected symbol is not in it, barri
 - **WHEN** the barrier field renders and the symbol cannot yet be resolved
 - **THEN** support is reported as relative
 - **AND** the same single derivation is used by mobile and desktop — there is no per-caller fallback
-

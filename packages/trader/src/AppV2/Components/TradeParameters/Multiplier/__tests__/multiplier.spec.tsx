@@ -1,5 +1,5 @@
 import { mockStore } from '@deriv/stores';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import ModulesProvider from 'Stores/Providers/modules-providers';
@@ -8,9 +8,9 @@ import TraderProviders from '../../../../../trader-providers';
 import Multiplier from '../multiplier';
 
 const multiplier_param_label = 'Multiplier';
-const multiplier_carousel_testid = 'dt_carousel';
 const skeleton_testid = 'square-skeleton';
-const mocked_definition = 'Multiplier is...';
+const mocked_definition =
+    'Multipliers amplify your potential profit if the market moves in your favour, with losses limited to your initial capital.';
 
 jest.mock('@deriv/shared', () => ({
     ...jest.requireActual('@deriv/shared'),
@@ -36,13 +36,6 @@ jest.mock('@deriv-com/ui', () => ({
     ...jest.requireActual('@deriv-com/ui'),
     useDevice: jest.fn(() => ({ isDesktop: false })),
 }));
-jest.mock('AppV2/Components/TradeParamDefinition', () => jest.fn(() => <div>{mocked_definition}</div>));
-jest.mock('lodash.debounce', () =>
-    jest.fn(fn => {
-        fn.cancel = () => null;
-        return fn;
-    })
-);
 
 describe('<Multiplier />', () => {
     let default_mock_store: ReturnType<typeof mockStore>;
@@ -96,7 +89,7 @@ describe('<Multiplier />', () => {
 
         expect(screen.getByRole('textbox')).toBeDisabled();
     });
-    it('opens ActionSheet with WheelPicker component, details, "Save" button and trade param definition if user clicks on multiplier trade param', async () => {
+    it('opens ActionSheet with WheelPicker component and the header save action if user clicks on multiplier trade param', async () => {
         const user = userEvent.setup();
         mockMultiplier();
 
@@ -106,8 +99,33 @@ describe('<Multiplier />', () => {
 
         expect(screen.getByTestId('dt-actionsheet-overlay')).toBeInTheDocument();
         expect(screen.getByText('WheelPicker')).toBeInTheDocument();
-        expect(screen.getByText('Save')).toBeInTheDocument();
-        expect(screen.getAllByText(mocked_definition).length).toBeGreaterThan(0);
+        expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
+    });
+    it('disables the header save action on open (nothing changed yet)', async () => {
+        const user = userEvent.setup();
+        mockMultiplier();
+
+        await user.click(screen.getByText(multiplier_param_label));
+
+        expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+    });
+    it('enables the header save action after changing the multiplier value', async () => {
+        const user = userEvent.setup();
+        mockMultiplier();
+
+        await user.click(screen.getByText(multiplier_param_label));
+        await user.click(screen.getByText('x2'));
+
+        expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
+    });
+    it('shows the multiplier definition in the header info tooltip', async () => {
+        const user = userEvent.setup();
+        mockMultiplier();
+
+        await user.click(screen.getByText(multiplier_param_label));
+        fireEvent.mouseEnter(screen.getByRole('button', { name: 'Multiplier' }));
+
+        expect(screen.getByText(mocked_definition)).toBeInTheDocument();
     });
     it('renders skeleton instead of WheelPicker if multiplier_range_list is empty', async () => {
         const user = userEvent.setup();
@@ -128,30 +146,29 @@ describe('<Multiplier />', () => {
 
         expect(screen.queryByText('Stop out level')).not.toBeInTheDocument();
     });
-    // The sheet is now sized to the wheel itself, so it fits small screens without an override.
-    it('keeps the same carousel sizing on small screens', async () => {
-        const user = userEvent.setup();
-        const original_height = window.innerHeight;
-        window.innerHeight = 640;
-        mockMultiplier();
-
-        await user.click(screen.getByText(multiplier_param_label));
-
-        expect(screen.getByTestId(multiplier_carousel_testid)).toHaveClass('multiplier__carousel');
-        expect(screen.getByTestId(multiplier_carousel_testid)).not.toHaveClass('multiplier__carousel--small');
-        window.innerHeight = original_height;
-    });
-    it('calls onChange function if user changes selected value', async () => {
+    it('commits the selected multiplier when tapping the header save action', async () => {
         const user = userEvent.setup();
         mockMultiplier();
 
         await user.click(screen.getByText(multiplier_param_label));
         await user.click(screen.getByText('x2'));
-        await user.click(screen.getByText('Save'));
+        await user.click(screen.getByRole('button', { name: 'Save' }));
 
         await waitFor(() => {
-            expect(default_mock_store.modules.trade.onChange).toBeCalled();
+            expect(default_mock_store.modules.trade.onChange).toBeCalledWith({
+                target: { name: 'multiplier', value: 2 },
+            });
         });
+    });
+    it('does not commit when the sheet is dismissed via the overlay', async () => {
+        const user = userEvent.setup();
+        mockMultiplier();
+
+        await user.click(screen.getByText(multiplier_param_label));
+        await user.click(screen.getByText('x2'));
+        await user.click(screen.getByTestId('dt-actionsheet-overlay'));
+
+        expect(default_mock_store.modules.trade.onChange).not.toBeCalled();
     });
     it('does not render a commission row or explanation page', async () => {
         const user = userEvent.setup();

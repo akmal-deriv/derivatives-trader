@@ -5,8 +5,9 @@ import { LabelPairedCalendarSmRegularIcon, LabelPairedClockThreeSmRegularIcon } 
 import { hasIntradayDurationUnit, mapErrorMessage, setTime, toMoment } from '@deriv/shared';
 import { useStore } from '@deriv/stores';
 import { ActionSheet, Text, TextField, useSnackbar } from '@deriv-com/quill-ui';
-import { Localize } from '@deriv-com/translations';
+import { Localize, useTranslations } from '@deriv-com/translations';
 
+import { useBlockSheetSwipe } from 'AppV2/Hooks/useBlockSheetSwipe';
 import { useProposal } from 'AppV2/Hooks/useProposal';
 import { ERROR_SNACKBAR_DURATION } from 'AppV2/Utils/layout-utils';
 import { getClosestTimeToCurrentGMT, getDatePickerStartDate, toExpiryDateString } from 'AppV2/Utils/trade-params-utils';
@@ -63,6 +64,22 @@ const DayInput = ({
     } = useTraderStore();
     const trade_store = useTraderStore();
     const { addSnackbar } = useSnackbar();
+    const { localize } = useTranslations();
+    const block_sheet_swipe = useBlockSheetSwipe();
+
+    // Snapshot the committed end date/time when the sub-sheet opens so a dismiss can restore it.
+    // `is_saving_ref` marks a save (keep the browsed value); `was_open_ref` gates the restore so it
+    // never fires on the mount-time onClose that the ActionSheet.Root runs while the sheet is closed.
+    const is_saving_ref = useRef(false);
+    const was_open_ref = useRef(false);
+    const snapshot_ref = useRef<{ date: string; time: string }>({ date: '', time: '' });
+    const takeSnapshot = () => {
+        snapshot_ref.current = { date: selected_expiry_date, time: browsing_expiry_time };
+        is_saving_ref.current = false;
+        was_open_ref.current = true;
+    };
+    const is_dirty =
+        selected_expiry_date !== snapshot_ref.current.date || browsing_expiry_time !== snapshot_ref.current.time;
 
     // Calculate date_expiry epoch when expiry_type is endtime
     const getDateExpiryEpoch = () => {
@@ -241,6 +258,7 @@ const DayInput = ({
                 value={formatted_date}
                 disabled={duration_units_list.filter(item => item.value === 'd').length === 0}
                 onClick={() => {
+                    takeSnapshot();
                     setOpen(true);
                 }}
                 leftIcon={<LabelPairedCalendarSmRegularIcon width={24} height={24} fill='var(--color-text-primary)' />}
@@ -254,6 +272,7 @@ const DayInput = ({
                 value={`${browsing_expiry_time || '23:59:59'} GMT`}
                 disabled={!is_24_hours_contract}
                 onClick={() => {
+                    takeSnapshot();
                     setOpenTimePicker(true);
                 }}
                 leftIcon={
@@ -274,11 +293,26 @@ const DayInput = ({
                     setOpen(false);
                     setOpenTimePicker(false);
                     setIsDisabled(false);
+                    if (was_open_ref.current) {
+                        // Dismiss (X / overlay / drag) discards the browsed value and restores the
+                        // snapshot; save leaves is_saving_ref set so the browsed value is kept.
+                        if (!is_saving_ref.current) {
+                            setBrowsingExpiryTime(snapshot_ref.current.time);
+                            setSelectedExpiryDate(snapshot_ref.current.date);
+                            setSelectedExpiryTime(snapshot_ref.current.time);
+                        }
+                        was_open_ref.current = false;
+                    }
                 }}
                 position='left'
                 expandable={false}
             >
-                <ActionSheet.Portal shouldCloseOnDrag>
+                <ActionSheet.Portal
+                    {...block_sheet_swipe}
+                    showHandlebar={false}
+                    shouldDetectSwipingOnContainer
+                    shouldCloseOnDrag
+                >
                     <ActionSheet.Header
                         title={
                             open ? (
@@ -287,6 +321,19 @@ const DayInput = ({
                                 <Localize i18n_default_text='Pick an end time' />
                             )
                         }
+                        closeAction={{ ariaLabel: localize('Close') }}
+                        saveAction={{
+                            onAction: () => {
+                                if (is_disabled) return;
+                                is_saving_ref.current = true;
+                                setOpen(false);
+                                setOpenTimePicker(false);
+                                setSelectedExpiryTime(browsing_expiry_time);
+                            },
+                            ariaLabel: localize('Save'),
+                        }}
+                        isSaveActionDisabled={is_disabled || !is_dirty}
+                        shouldCloseOnSaveActionClick={false}
                     />
                     {open && (
                         <DaysDatepicker
@@ -308,22 +355,6 @@ const DayInput = ({
                             adjusted_start_time={adjusted_start_time}
                         />
                     )}
-                    <ActionSheet.Footer
-                        alignment='vertical'
-                        className='duration-container__footer'
-                        shouldCloseOnPrimaryButtonClick={false}
-                        isPrimaryButtonDisabled={is_disabled}
-                        primaryAction={{
-                            content: <Localize i18n_default_text='Done' />,
-                            onAction: () => {
-                                if (!is_disabled) {
-                                    setOpen(false);
-                                    setOpenTimePicker(false);
-                                    setSelectedExpiryTime(browsing_expiry_time);
-                                }
-                            },
-                        }}
-                    />
                 </ActionSheet.Portal>
             </ActionSheet.Root>
         </div>

@@ -99,9 +99,6 @@
                 }
             }
         }
-        &:is(.action-sheet--content *) {
-            margin: var(--core-spacing-1600) 0;
-        }
     }
 
     &--disabled {

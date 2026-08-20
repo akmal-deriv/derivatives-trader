@@ -122,6 +122,11 @@ const RiskManagementItem = observer(
 
         const error_message = showError ? getErrorMessage() : '';
 
+        // Header save stays disabled until the drafted amount differs from the committed value
+        // (and while it is empty). Existing validation still runs on save via `onSave`.
+        const is_save_disabled =
+            stepperValue === '' || stepperValue === undefined || Math.abs(Number(stepperValue)) === finalValue;
+
         const onSave = () => {
             setShowError(true);
             const current_error_message = getErrorMessage();
@@ -198,8 +203,14 @@ const RiskManagementItem = observer(
                         setShowError(false);
                     }}
                 >
-                    <ActionSheet.Portal shouldCloseOnDrag>
-                        <ActionSheet.Header title={label} />
+                    <ActionSheet.Portal showHandlebar={false} shouldDetectSwipingOnContainer shouldCloseOnDrag>
+                        <ActionSheet.Header
+                            title={label}
+                            closeAction={{ ariaLabel: localize('Close') }}
+                            saveAction={{ onAction: onSave, ariaLabel: localize('Save') }}
+                            isSaveActionDisabled={is_save_disabled}
+                            shouldCloseOnSaveActionClick={false}
+                        />
                         <ActionSheet.Content className='risk-management-item__action-sheet-content'>
                             {isSheetOpen && (
                                 <TextFieldWithSteppers
@@ -231,13 +242,6 @@ const RiskManagementItem = observer(
                                 />
                             )}
                         </ActionSheet.Content>
-                        <ActionSheet.Footer
-                            shouldCloseOnPrimaryButtonClick={false}
-                            primaryAction={{
-                                content: <Localize i18n_default_text='Save' />,
-                                onAction: onSave,
-                            }}
-                        />
                     </ActionSheet.Portal>
                 </ActionSheet.Root>
             </div>

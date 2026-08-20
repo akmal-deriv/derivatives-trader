@@ -4,8 +4,8 @@
 }
 
 // The stake sheet is a carousel: the stake input on page 0, and the Stop out explanation as a page
-// navigated to by tapping its label (mirrors the Turbos Payout-per-point sheet). Each page fills the
-// sheet so switching between them doesn't resize it.
+// navigated to by tapping its label (mirrors the Turbos Payout-per-point sheet). Pages stretch to the
+// tallest so the sheet does not resize when switching between them.
 .stake__carousel {
     flex: 1;
     min-height: 0;
@@ -13,7 +13,6 @@
     & > .carousel__item {
         display: flex;
         flex-direction: column;
-        height: 100%;
     }
 
     .trade-param-definition {
@@ -21,19 +20,14 @@
     }
 }
 
-.stake-container .quill-action-sheet--title-text {
-    font-size: var(--core-fontSize-300);
-}
-
 .stake-container {
-    min-height: 37rem;
     display: flex;
     flex-direction: column;
 
     // Mobile sheet only: pin the payout details above the footer (desktop shares the class)
     .stake-content__details {
         margin-top: auto;
-        padding-top: var(--core-spacing-800);
+        padding: var(--core-spacing-800) 0;
     }
 }
 

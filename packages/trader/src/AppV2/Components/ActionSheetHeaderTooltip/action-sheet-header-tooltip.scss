@@ -1,0 +1,23 @@
+.action-sheet-header-tooltip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    vertical-align: middle;
+    // The quill icon's path has no fill attribute, so it paints SVG-default black and `color` never
+    // reaches it.
+    fill: var(--component-textIcon-normal-prominent);
+
+    &:hover {
+        fill: var(--component-textIcon-normal-default);
+    }
+}
+
+.action-sheet-header-title {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--core-spacing-400);
+}

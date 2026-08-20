@@ -2,14 +2,17 @@ import React from 'react';
 import { observer } from 'mobx-react-lite';
 
 import { useDebounce } from '@deriv/api-v2';
+import { isTurbosContract } from '@deriv/shared';
 import { ActionSheet, Text, TextField, TextFieldAddon } from '@deriv-com/quill-ui';
 import { Localize, useTranslations } from '@deriv-com/translations';
 
+import { ActionSheetHeaderTitle } from 'AppV2/Components/ActionSheetHeaderTooltip';
 import { HorizontalTabSelector } from 'AppV2/Components/InputPopover';
 import { useProposal } from 'AppV2/Hooks/useProposal';
 import { getDisplayedContractTypes } from 'AppV2/Utils/trade-types-utils';
 import { useTraderStore } from 'Stores/useTraderStores';
 
+import BarrierDescription from './barrier-description';
 import { getBarrierErrorMessage } from './barrier-error-utils';
 
 type TSign = '+' | '-';
@@ -221,6 +224,16 @@ const BarrierInput = observer(({ onClose, is_open }: { onClose: (val: boolean) =
     const show_validation_error = localValidationError !== '' || apiValidationError !== '';
     const displayError = apiValidationError || localValidationError;
 
+    // Mirror the value handleSave would commit so the header save only enables on an actual change.
+    const drafted_barrier = isRelative ? `${sign}${inputValue}` : inputValue;
+
+    // One window covering the whole validation of the drafted barrier: the debounce gap before the
+    // request goes out, plus the request itself. `isLoadingProposal` alone is false during that gap, so
+    // the check flickered on and off while the draft was still settling. It is also what `handleSave`
+    // enforces below, so the check is enabled only when tapping it would really commit.
+    const is_validating = drafted_barrier !== proposalRequestValues.barrier_1 || isLoadingProposal;
+    const is_save_disabled = show_validation_error || is_validating || drafted_barrier === barrier_1;
+
     const handleSignToggle = (value: string) => {
         setSign(value as TSign);
     };
@@ -230,8 +243,8 @@ const BarrierInput = observer(({ onClose, is_open }: { onClose: (val: boolean) =
     };
 
     const handleSave = () => {
-        // Prevent save if there are any validation errors or if API is still loading
-        if (show_validation_error || isLoadingProposal) {
+        // Prevent save while a validation error shows or the draft has not been validated yet
+        if (show_validation_error || is_validating) {
             return;
         }
 
@@ -239,10 +252,8 @@ const BarrierInput = observer(({ onClose, is_open }: { onClose: (val: boolean) =
         const finalError = validateBarrierValue(inputValue);
 
         if (finalError === '') {
-            const newValue = isRelative ? `${sign}${inputValue}` : inputValue;
-
             // Update the trade store (this is the ONLY place where we update the store)
-            onChange({ target: { name: 'barrier_1', value: newValue } });
+            onChange({ target: { name: 'barrier_1', value: drafted_barrier } });
             onClose(true);
         } else {
             // Update local error state if validation fails
@@ -252,7 +263,7 @@ const BarrierInput = observer(({ onClose, is_open }: { onClose: (val: boolean) =
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter') {
-            const isSaveDisabled = show_validation_error || isLoadingProposal;
+            const isSaveDisabled = show_validation_error || is_validating;
             if (!isSaveDisabled) {
                 handleSave();
             }
@@ -261,6 +272,24 @@ const BarrierInput = observer(({ onClose, is_open }: { onClose: (val: boolean) =
 
     return (
         <>
+            <ActionSheet.Header
+                title={
+                    <ActionSheetHeaderTitle
+                        title={<Localize i18n_default_text='Barrier' />}
+                        description={
+                            <BarrierDescription
+                                barrierSupport={barrierSupport}
+                                is_turbos={isTurbosContract(contract_type)}
+                            />
+                        }
+                        label={localize('Barrier')}
+                    />
+                }
+                closeAction={{ ariaLabel: localize('Close') }}
+                saveAction={{ onAction: handleSave, ariaLabel: localize('Save') }}
+                isSaveActionDisabled={is_save_disabled}
+                shouldCloseOnSaveActionClick={false}
+            />
             <ActionSheet.Content>
                 <div className='barrier-params'>
                     {isRelative && (
@@ -325,15 +354,6 @@ const BarrierInput = observer(({ onClose, is_open }: { onClose: (val: boolean) =
                     </div>
                 </div>
             </ActionSheet.Content>
-            <ActionSheet.Footer
-                alignment='vertical'
-                shouldCloseOnPrimaryButtonClick={false}
-                primaryAction={{
-                    content: <Localize i18n_default_text='Save' />,
-                    onAction: handleSave,
-                }}
-                isPrimaryButtonDisabled={show_validation_error || isLoadingProposal}
-            />
         </>
     );
 });

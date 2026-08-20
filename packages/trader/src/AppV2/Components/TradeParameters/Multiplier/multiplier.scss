@@ -1,24 +1,10 @@
-$FOOTER_BUTTON_HEIGHT: var(--core-size-4000);
-// Keep in sync with WHEEL_PICKER_HEIGHT in multiplier-wheel-picker.tsx
-$WHEEL_PICKER_HEIGHT: 230px;
-
 .multiplier {
-    &__carousel {
-        & > .carousel__item {
-            height: 100%;
-        }
-        // The definition page has no footer button, so it takes that space instead — both carousel
-        // pages end up the same height and the sheet doesn't resize when switching between them.
-        .trade-param-definition {
-            height: calc($WHEEL_PICKER_HEIGHT + $FOOTER_BUTTON_HEIGHT);
-        }
-    }
-    // Sized to the wheel itself: anything taller just adds dead space above and below it.
+    // Hugs the wheel: a fixed height here would let the padding eat into it and clip the third row.
     &__picker {
         display: flex;
         flex-direction: column;
-        height: $WHEEL_PICKER_HEIGHT;
-        padding: 0 var(--component-actionSheet-spacing-padding-md);
+        height: auto;
+        padding: 0 var(--component-actionSheet-spacing-padding-md) var(--component-actionSheet-spacing-padding-md);
     }
     &__wheel-picker {
         min-height: 0;

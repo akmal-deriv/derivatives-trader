@@ -4,9 +4,7 @@ import { getCurrencyDisplayCode, getDecimalPlaces } from '@deriv/shared';
 import { ActionSheet, Text, TextField, ToggleSwitch } from '@deriv-com/quill-ui';
 import { Localize, useTranslations } from '@deriv-com/translations';
 
-import Carousel from 'AppV2/Components/Carousel';
-import CarouselHeader from 'AppV2/Components/Carousel/carousel-header';
-import TradeParamDefinition from 'AppV2/Components/TradeParamDefinition';
+import { ActionSheetHeaderTitle } from 'AppV2/Components/ActionSheetHeaderTooltip';
 import { AutomationLockOverlay } from 'AppV2/Components/TradeParameters/Shared';
 import { createDecimalInputGuard, getDecimalInputMaxLength } from 'AppV2/Utils/decimal-input';
 
@@ -30,7 +28,6 @@ const MaxTradeStakeMobile = ({
     const { localize } = useTranslations();
     const display_currency = getCurrencyDisplayCode(currency);
     const [is_open, setIsOpen] = React.useState(false);
-    const [carousel_index, setCarouselIndex] = React.useState(0);
     const [is_enabled, setIsEnabled] = React.useState(initialValue !== null);
     const [value, setValue] = React.useState(initialValue ? String(initialValue) : '');
     const [error, setError] = React.useState('');
@@ -39,11 +36,19 @@ const MaxTradeStakeMobile = ({
 
     const onClose = React.useCallback(() => {
         setIsOpen(false);
-        setCarouselIndex(0);
         setIsEnabled(initialValue !== null);
         setValue(initialValue ? String(initialValue) : '');
         setError('');
     }, [initialValue]);
+
+    // Re-init the draft from the committed value whenever the sheet opens (dismiss = discard).
+    React.useEffect(() => {
+        if (is_open) {
+            setIsEnabled(initialValue !== null);
+            setValue(initialValue ? String(initialValue) : '');
+            setError('');
+        }
+    }, [is_open, initialValue]);
 
     const handleToggle = (enabled: boolean) => {
         setIsEnabled(enabled);
@@ -81,6 +86,10 @@ const MaxTradeStakeMobile = ({
         setIsOpen(false);
     };
 
+    // Mirror the value handleSave would commit so the header save only enables on an actual change.
+    const drafted_value = !is_enabled ? null : value === '' ? null : Number(value);
+    const is_save_disabled = drafted_value === initialValue;
+
     return (
         <React.Fragment>
             <div className='trade-params__field-locked'>
@@ -97,71 +106,56 @@ const MaxTradeStakeMobile = ({
                 {disabled && <AutomationLockOverlay />}
             </div>
             <ActionSheet.Root isOpen={is_open} onClose={onClose} position='left' expandable={false}>
-                <ActionSheet.Portal shouldCloseOnDrag>
-                    <Carousel
-                        header={CarouselHeader}
-                        classname='automation-param-sheet'
-                        current_index={carousel_index}
-                        setCurrentIndex={setCarouselIndex}
-                        title={<Localize i18n_default_text='Max. stake' />}
-                        pages={[
-                            {
-                                id: 1,
-                                component: (
-                                    <React.Fragment>
-                                        <ActionSheet.Content>
-                                            <div className='automation-popover__input-wrapper'>
-                                                <div className='automation-popover__toggle-header'>
-                                                    <Text size='sm'>
-                                                        <Localize i18n_default_text='Max. stake' />
-                                                    </Text>
-                                                    <ToggleSwitch checked={is_enabled} onChange={handleToggle} />
-                                                </div>
-                                                <div className='automation-popover__toggle-content'>
-                                                    <TextField
-                                                        label={`${localize('Amount')} (${display_currency})`}
-                                                        value={value}
-                                                        onChange={handleChange}
-                                                        onBeforeInput={onBeforeInput}
-                                                        placeholder={localize('Amount')}
-                                                        variant='fill'
-                                                        inputMode='decimal'
-                                                        customType='commaRemoval'
-                                                        allowDecimals
-                                                        decimals={decimals}
-                                                        regex={/[^0-9.,]/g}
-                                                        maxLength={getDecimalInputMaxLength(value, decimals)}
-                                                        message={error || undefined}
-                                                        status={error ? 'error' : 'neutral'}
-                                                        noStatusIcon
-                                                        disabled={!is_enabled}
-                                                    />
-                                                    {!is_enabled && (
-                                                        <div
-                                                            className='automation-popover__toggle-overlay'
-                                                            onClick={() => handleToggle(true)}
-                                                        />
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </ActionSheet.Content>
-                                        <ActionSheet.Footer
-                                            alignment='vertical'
-                                            shouldCloseOnPrimaryButtonClick={false}
-                                            primaryAction={{
-                                                content: <Localize i18n_default_text='Save' />,
-                                                onAction: handleSave,
-                                            }}
-                                        />
-                                    </React.Fragment>
-                                ),
-                            },
-                            {
-                                id: 2,
-                                component: <TradeParamDefinition description={description} />,
-                            },
-                        ]}
+                <ActionSheet.Portal showHandlebar={false} shouldDetectSwipingOnContainer shouldCloseOnDrag>
+                    <ActionSheet.Header
+                        title={
+                            <ActionSheetHeaderTitle
+                                title={<Localize i18n_default_text='Max. stake' />}
+                                description={description}
+                                label={localize('Max. stake')}
+                            />
+                        }
+                        closeAction={{ ariaLabel: localize('Close') }}
+                        saveAction={{ onAction: handleSave, ariaLabel: localize('Save') }}
+                        isSaveActionDisabled={is_save_disabled}
+                        shouldCloseOnSaveActionClick={false}
                     />
+                    <ActionSheet.Content>
+                        <div className='automation-popover__input-wrapper'>
+                            <div className='automation-popover__toggle-header'>
+                                <Text size='sm'>
+                                    <Localize i18n_default_text='Max. stake' />
+                                </Text>
+                                <ToggleSwitch checked={is_enabled} onChange={handleToggle} />
+                            </div>
+                            <div className='automation-popover__toggle-content'>
+                                <TextField
+                                    label={`${localize('Amount')} (${display_currency})`}
+                                    value={value}
+                                    onChange={handleChange}
+                                    onBeforeInput={onBeforeInput}
+                                    placeholder={localize('Amount')}
+                                    variant='fill'
+                                    inputMode='decimal'
+                                    customType='commaRemoval'
+                                    allowDecimals
+                                    decimals={decimals}
+                                    regex={/[^0-9.,]/g}
+                                    maxLength={getDecimalInputMaxLength(value, decimals)}
+                                    message={error || undefined}
+                                    status={error ? 'error' : 'neutral'}
+                                    noStatusIcon
+                                    disabled={!is_enabled}
+                                />
+                                {!is_enabled && (
+                                    <div
+                                        className='automation-popover__toggle-overlay'
+                                        onClick={() => handleToggle(true)}
+                                    />
+                                )}
+                            </div>
+                        </div>
+                    </ActionSheet.Content>
                 </ActionSheet.Portal>
             </ActionSheet.Root>
         </React.Fragment>

@@ -4,6 +4,7 @@ import clsx from 'clsx';
 import { observer } from '@deriv/stores';
 import { WheelPickerContainer } from '@deriv-com/quill-ui';
 
+import { useBlockSheetSwipe } from 'AppV2/Hooks/useBlockSheetSwipe';
 import {
     clampTimeWheelSelection,
     getTicksWheelOptions,
@@ -11,58 +12,41 @@ import {
     getTimeWheelColumnRange,
     getTimeWheelVisibleUnits,
     TIME_WHEEL_UNITS,
+    WHEEL_PICKER_HEIGHT,
 } from 'AppV2/Utils/trade-params-utils';
 import { useTraderStore } from 'Stores/useTraderStores';
 
-const getWheelPickerHeight = (is_single_unit: boolean) => (is_single_unit ? '230px' : '268px');
+const WheelContainer = ({ is_single_unit, children }: { is_single_unit: boolean; children: React.ReactNode }) => {
+    const block_sheet_swipe = useBlockSheetSwipe();
 
-const WheelContainer = ({ is_single_unit, children }: { is_single_unit: boolean; children: React.ReactNode }) => (
-    <div
-        className={clsx('duration-container__wheel-picker-container', {
-            'duration-container__wheel-picker-container__single': is_single_unit,
-        })}
-    >
-        {children}
-    </div>
-);
+    return (
+        <div
+            className={clsx('duration-container__wheel-picker-container', {
+                'duration-container__wheel-picker-container__single': is_single_unit,
+            })}
+            {...block_sheet_swipe}
+        >
+            {children}
+        </div>
+    );
+};
 
 export const DurationTicksWheel = observer(
-    ({
-        selected_ticks,
-        setSelectedTicks,
-        onRequestClose,
-    }: {
-        selected_ticks: number;
-        setSelectedTicks: (arg: number) => void;
-        onRequestClose: () => void;
-    }) => {
+    ({ selected_ticks, setSelectedTicks }: { selected_ticks: number; setSelectedTicks: (arg: number) => void }) => {
         const { duration_min_max, duration_units_list } = useTraderStore();
         const options = React.useMemo(() => getTicksWheelOptions(duration_min_max), [duration_min_max]);
         const is_single_unit = duration_units_list.length === 1;
 
-        // Tapping an item selects it and dismisses the sheet: pick the tapped option by its position in
-        // the column, apply it, then ask the sheet to commit + close.
-        const handleItemClick = (event: React.MouseEvent<HTMLDivElement>) => {
-            const item = (event.target as HTMLElement).closest('.quill-wheel-picker__data-item');
-            const list = item?.closest('.quill-wheel-picker__data-items');
-            if (!item || !list) return;
-            const index = Array.from(list.querySelectorAll('.quill-wheel-picker__data-item')).indexOf(item);
-            const value = options[index]?.value;
-            if (value == null) return;
-            setSelectedTicks(Number(value));
-            onRequestClose();
-        };
-
+        // Tapping an item only updates the draft (quill scrolls it into place and fires setInputValues);
+        // committing happens solely through the header save action.
         return (
             <WheelContainer is_single_unit={is_single_unit}>
-                <div onClick={handleItemClick}>
-                    <WheelPickerContainer
-                        data={[options]}
-                        containerHeight={getWheelPickerHeight(is_single_unit)}
-                        inputValues={[selected_ticks]}
-                        setInputValues={(_, value) => setSelectedTicks(Number(value))}
-                    />
-                </div>
+                <WheelPickerContainer
+                    data={[options]}
+                    containerHeight={WHEEL_PICKER_HEIGHT}
+                    inputValues={[selected_ticks]}
+                    setInputValues={(_, value) => setSelectedTicks(Number(value))}
+                />
             </WheelContainer>
         );
     }
@@ -72,15 +56,7 @@ export const DurationTicksWheel = observer(
 const SNAP_BACK_DELAY_MS = 300;
 
 export const DurationTimeWheel = observer(
-    ({
-        selected_time,
-        setSelectedTime,
-        onRequestClose,
-    }: {
-        selected_time: number[];
-        setSelectedTime: (arg: number[]) => void;
-        onRequestClose: () => void;
-    }) => {
+    ({ selected_time, setSelectedTime }: { selected_time: number[]; setSelectedTime: (arg: number[]) => void }) => {
         const { duration_min_max, duration_units_list } = useTraderStore();
         const intraday = duration_min_max?.intraday;
         const visible_units = React.useMemo(() => getTimeWheelVisibleUnits(duration_units_list), [duration_units_list]);
@@ -166,28 +142,14 @@ export const DurationTimeWheel = observer(
             updateSelectedTime(next);
         };
 
-        // Tapping an item selects it and dismisses the sheet: resolve which column + option was tapped,
-        // apply it through the same change handler (so finer units follow), then commit + close.
-        const handleItemClick = (event: React.MouseEvent<HTMLDivElement>) => {
-            const item = (event.target as HTMLElement).closest('.quill-wheel-picker__data-item');
-            const list = item?.closest('.quill-wheel-picker__data-items');
-            if (!item || !list || !wheel_ref.current) return;
-            const column_index = Array.from(
-                wheel_ref.current.querySelectorAll('.quill-wheel-picker__data-items')
-            ).indexOf(list);
-            const item_index = Array.from(list.querySelectorAll('.quill-wheel-picker__data-item')).indexOf(item);
-            const value = data[column_index]?.[item_index]?.value;
-            if (column_index < 0 || value == null) return;
-            onWheelChange(column_index, value);
-            onRequestClose();
-        };
-
+        // Tapping an item only updates the draft: quill scrolls it into place and fires setInputValues
+        // (onWheelChange), so finer units still follow. Committing happens solely through the header save.
         return (
             <WheelContainer is_single_unit={is_single_unit}>
-                <div ref={wheel_ref} onClick={handleItemClick}>
+                <div ref={wheel_ref}>
                     <WheelPickerContainer
                         data={data}
-                        containerHeight={getWheelPickerHeight(is_single_unit)}
+                        containerHeight={WHEEL_PICKER_HEIGHT}
                         inputValues={visible_units.map(unit => selected_time[TIME_WHEEL_UNITS.indexOf(unit)])}
                         setInputValues={onWheelChange}
                     />

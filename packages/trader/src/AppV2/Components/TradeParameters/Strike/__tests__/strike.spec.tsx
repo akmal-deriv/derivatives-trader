@@ -2,7 +2,7 @@ import React from 'react';
 
 import { CONTRACT_TYPES, TRADE_TYPES } from '@deriv/shared';
 import { mockStore } from '@deriv/stores';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import ModulesProvider from 'Stores/Providers/modules-providers';
@@ -86,7 +86,7 @@ describe('Strike', () => {
         expect(screen.getByRole('textbox')).toHaveValue('+1.80');
     });
 
-    it('opens ActionSheet with WheelPicker component, Payout per point information, "Save" button and text content with definition if user clicks on trade param', async () => {
+    it('opens ActionSheet with the wheel, the payout-per-point row and the header close/save actions', async () => {
         const user = userEvent.setup();
         mockStrike();
 
@@ -98,7 +98,29 @@ describe('Strike', () => {
         expect(screen.getByText('WheelPicker')).toBeInTheDocument();
         expect(screen.getByText('Payout per point')).toBeInTheDocument();
         expect(screen.getByText(/14.245555/)).toBeInTheDocument();
-        expect(screen.getByText('Save')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /Close/i })).toBeInTheDocument();
+        // Nothing drafted yet, so the check starts off.
+        expect(screen.getByRole('button', { name: /Save/i })).toBeDisabled();
+    });
+
+    it('shows the strike definition in the header info tooltip', async () => {
+        const user = userEvent.setup();
+        mockStrike();
+
+        await user.click(screen.getByText(strike_trade_param_label));
+        fireEvent.mouseEnter(screen.getByRole('button', { name: 'Strike price' }));
+
+        expect(screen.getByText(/you receive a payout at expiry if the final price is/)).toBeInTheDocument();
+    });
+
+    it('enables the header save once a different strike is drafted', async () => {
+        const user = userEvent.setup();
+        mockStrike();
+
+        await user.click(screen.getByText(strike_trade_param_label));
+        await user.click(screen.getByText(default_mock_store.modules.trade.barrier_choices[1]));
+
+        expect(screen.getByRole('button', { name: /Save/i })).toBeEnabled();
     });
 
     it('opens the payout-per-point explanation (retitling the sheet) when tapped', async () => {
@@ -147,7 +169,7 @@ describe('Strike', () => {
         const new_selected_value = default_mock_store.modules.trade.barrier_choices[1];
         await user.click(screen.getByText(strike_trade_param_label));
         await user.click(screen.getByText(new_selected_value));
-        await user.click(screen.getByText('Save'));
+        await user.click(screen.getByRole('button', { name: /Save/i }));
 
         await waitFor(() => {
             expect(default_mock_store.modules.trade.onChange).toBeCalled();

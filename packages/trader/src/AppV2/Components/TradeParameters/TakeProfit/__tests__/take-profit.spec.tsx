@@ -12,7 +12,6 @@ import TakeProfit from '../take-profit';
 jest.mock('../../RiskManagement/take-profit-and-stop-loss-input', () =>
     jest.fn(() => <div>TakeProfitAndStopLossInput</div>)
 );
-jest.mock('AppV2/Components/TradeParamDefinition', () => jest.fn(() => <div>TradeParamDefinition</div>));
 jest.mock('@deriv-com/ui', () => ({
     ...jest.requireActual('@deriv-com/ui'),
     useDevice: jest.fn(() => ({ isMobile: true })),
@@ -48,13 +47,14 @@ describe('TakeProfit', () => {
         expect(screen.getByText('Take profit')).toBeInTheDocument();
     });
 
-    it('renders TakeProfitAndStopLossInput and TradeParamDefinition when user clicks on TP input', async () => {
+    it('renders TakeProfitAndStopLossInput and the header Save action when user clicks on TP input', async () => {
         mockTakeProfit();
 
         await userEvent.click(screen.getByText('Take profit'));
 
         expect(screen.getByText('TakeProfitAndStopLossInput')).toBeInTheDocument();
-        expect(screen.getByText('TradeParamDefinition')).toBeInTheDocument();
+        // The definition moved into the input's info-icon tooltip; the sheet header now owns Save.
+        expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
     });
 
     it('disables trade param if is_market_closed === true', () => {

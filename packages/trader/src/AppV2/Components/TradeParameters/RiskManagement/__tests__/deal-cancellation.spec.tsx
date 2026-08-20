@@ -59,11 +59,25 @@ describe('DealCancellation', () => {
 
     afterEach(() => jest.clearAllMocks());
 
+    // DealCancellation lifts its commit handler + dirty gate to the header owner (the picker) via
+    // `onActionsChange` instead of rendering its own footer Save. This harness stands in for that
+    // owner: it renders the Save action after the component, wired to the reported handler, keeping
+    // the commit/no-commit behaviour covered.
+    const HeaderActionsHarness = () => {
+        const [actions, setActions] = React.useState<{ onSave: () => void; is_save_disabled: boolean }>();
+        return (
+            <React.Fragment>
+                <DealCancellation closeActionSheet={jest.fn()} onActionsChange={setActions} />
+                <button onClick={() => actions?.onSave()}>{save_button}</button>
+            </React.Fragment>
+        );
+    };
+
     const mockDealCancellation = () =>
         render(
             <TraderProviders store={default_mock_store}>
                 <ModulesProvider store={default_mock_store}>
-                    <DealCancellation closeActionSheet={jest.fn()} />
+                    <HeaderActionsHarness />
                 </ModulesProvider>
             </TraderProviders>
         );
@@ -137,8 +151,10 @@ describe('DealCancellation', () => {
         default_mock_store.modules.trade.has_take_profit = true;
         mockDealCancellation();
 
-        const toggle_switch = screen.getAllByRole('button')[0];
-        await userEvent.click(toggle_switch);
+        // The `Deal cancellation` label carries an info tooltip, which is a button too; the toggle
+        // switch is the unnamed one, so match on that rather than on DOM position.
+        const toggle_switch = screen.getAllByRole('button').find(button => !button.getAttribute('aria-label'));
+        await userEvent.click(toggle_switch as HTMLElement);
         await userEvent.click(screen.getByText('15 min'));
         await userEvent.click(screen.getByText(save_button));
 

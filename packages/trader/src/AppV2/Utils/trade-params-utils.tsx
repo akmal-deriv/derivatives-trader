@@ -363,6 +363,9 @@ export const DURATION_TAB = {
     END_TIME: DURATION_UNIT.DAYS,
 } as const;
 
+// 3 rows. quill derives the selected index from `scrollTop / 48`, so keep this a multiple of 48.
+export const WHEEL_PICKER_HEIGHT = '144px';
+
 // Ordered coarse → fine; index in this array is the index in a [hours, minutes, seconds] selection
 export const TIME_WHEEL_UNITS = [DURATION_UNIT.HOURS, DURATION_UNIT.MINUTES, DURATION_UNIT.SECONDS];
 

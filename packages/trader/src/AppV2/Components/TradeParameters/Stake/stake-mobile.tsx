@@ -5,7 +5,7 @@ import { observer } from 'mobx-react-lite';
 import { LabelPairedArrowLeftMdRegularIcon } from '@deriv/quill-icons';
 import { CONTRACT_TYPES, getCurrencyDisplayCode } from '@deriv/shared';
 import { ActionSheet, TextField } from '@deriv-com/quill-ui';
-import { Localize } from '@deriv-com/translations';
+import { Localize, useTranslations } from '@deriv-com/translations';
 
 import Carousel from 'AppV2/Components/Carousel';
 import CarouselHeader from 'AppV2/Components/Carousel/carousel-header';
@@ -25,15 +25,41 @@ const STAKE_PAGE = 0;
 const STOP_OUT_PAGE = 1;
 const STOP_OUT_LEVEL_PAGE = 2;
 
-// Carousel header for the stake sheet: a back arrow on the definition pages, no icon on the stake
-// input page (unlike the default CarouselHeader, which shows a general info icon on the first page).
-const StakeSheetHeader = ({ current_index, onPrevClick, title }: React.ComponentProps<typeof CarouselHeader>) => (
-    <ActionSheet.Header
-        title={title}
-        icon={current_index ? <LabelPairedArrowLeftMdRegularIcon onClick={onPrevClick} /> : undefined}
-        iconPosition={current_index ? 'left' : undefined}
-    />
-);
+type TStakeHeaderActions = {
+    onSave: () => void;
+    is_save_disabled: boolean;
+    close_aria_label: string;
+    save_aria_label: string;
+};
+
+// Carousel header for the stake sheet: a back arrow on the config pages (stop out / stop out level),
+// and the value-editor header actions (X / check) on the stake input page (page 0). The inner config
+// pages keep back-arrow navigation only; the check/X live on page 0 exclusively.
+const StakeSheetHeader = ({
+    current_index,
+    onPrevClick,
+    title,
+    header_actions,
+}: React.ComponentProps<typeof CarouselHeader> & { header_actions?: TStakeHeaderActions }) => {
+    if (current_index) {
+        return (
+            <ActionSheet.Header
+                title={title}
+                icon={<LabelPairedArrowLeftMdRegularIcon onClick={onPrevClick} />}
+                iconPosition='left'
+            />
+        );
+    }
+    return (
+        <ActionSheet.Header
+            title={title}
+            closeAction={{ ariaLabel: header_actions?.close_aria_label }}
+            saveAction={{ onAction: header_actions?.onSave, ariaLabel: header_actions?.save_aria_label }}
+            isSaveActionDisabled={header_actions?.is_save_disabled}
+            shouldCloseOnSaveActionClick={false}
+        />
+    );
+};
 
 const Stake = observer(({ is_minimized, is_automation }: TTradeParametersProps) => {
     const {
@@ -51,9 +77,23 @@ const Stake = observer(({ is_minimized, is_automation }: TTradeParametersProps) 
     } = useTraderStore();
     const automation_store = React.useContext(AutomationStoreContext);
     const { is_error_matching_field: has_error } = useTradeError({ error_fields: ['stake', 'amount'] });
+    const { localize } = useTranslations();
 
     const [is_open, setIsOpen] = React.useState(false);
     const [carousel_index, setCarouselIndex] = React.useState(STAKE_PAGE);
+
+    // `StakeInput` owns the draft/validation state, so it publishes its commit handler and gate here
+    // (page 0's header check). The handler lives in a ref (a new identity every render) so it never
+    // re-triggers a render; only the disabled flag is state, and React bails out on an unchanged value.
+    const save_handler_ref = React.useRef<() => void>(() => undefined);
+    const [is_save_disabled, setIsSaveDisabled] = React.useState(true);
+    const registerHeaderActions = React.useCallback(
+        ({ onSave, is_save_disabled: disabled }: { onSave: () => void; is_save_disabled: boolean }) => {
+            save_handler_ref.current = onSave;
+            setIsSaveDisabled(disabled);
+        },
+        []
+    );
 
     const contract_types = getDisplayedContractTypes(trade_types, contract_type, trade_type_tab);
     const is_all_types_with_errors = contract_types.every(item => proposal_info?.[item]?.has_error);
@@ -106,6 +146,7 @@ const Stake = observer(({ is_minimized, is_automation }: TTradeParametersProps) 
                     is_open={is_open}
                     onOpenStopOut={() => setCarouselIndex(STOP_OUT_PAGE)}
                     onOpenStopOutLevel={() => setCarouselIndex(STOP_OUT_LEVEL_PAGE)}
+                    registerHeaderActions={registerHeaderActions}
                 />
             ),
         },
@@ -116,6 +157,23 @@ const Stake = observer(({ is_minimized, is_automation }: TTradeParametersProps) 
             { id: STOP_OUT_LEVEL_PAGE, component: <TradeParamDefinition description={stop_out_level_description} /> }
         );
     }
+
+    // Inject the page-0 header actions into the carousel header (Carousel only forwards its own props).
+    // `save_handler_ref` is read at click time, so only the disabled flag / localize drive the identity.
+    const header = React.useCallback(
+        (props: React.ComponentProps<typeof StakeSheetHeader>) => (
+            <StakeSheetHeader
+                {...props}
+                header_actions={{
+                    onSave: () => save_handler_ref.current(),
+                    is_save_disabled,
+                    close_aria_label: localize('Close'),
+                    save_aria_label: localize('Save'),
+                }}
+            />
+        ),
+        [is_save_disabled, localize]
+    );
 
     const is_field_disabled = has_open_accu_contract || is_market_closed || is_automation_params_locked;
 
@@ -156,11 +214,11 @@ const Stake = observer(({ is_minimized, is_automation }: TTradeParametersProps) 
                 expandable={false}
                 shouldBlurOnClose={is_open}
             >
-                <ActionSheet.Portal shouldCloseOnDrag>
+                <ActionSheet.Portal showHandlebar={false} shouldDetectSwipingOnContainer shouldCloseOnDrag>
                     <div className='stake-container'>
                         <Carousel
                             classname='stake__carousel'
-                            header={StakeSheetHeader}
+                            header={header}
                             title={getSheetTitle()}
                             current_index={carousel_index}
                             setCurrentIndex={setCarouselIndex}

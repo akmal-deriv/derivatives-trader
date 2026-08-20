@@ -3,17 +3,16 @@ import clsx from 'clsx';
 import { observer } from 'mobx-react-lite';
 
 import { getCurrencyDisplayCode } from '@deriv/shared';
-import { Localize } from '@deriv-com/translations';
+import { Localize, useTranslations } from '@deriv-com/translations';
 import { ActionSheet, TextField } from '@deriv-com/quill-ui';
 import { useDevice } from '@deriv-com/ui';
 
-import Carousel from 'AppV2/Components/Carousel';
-import CarouselHeader from 'AppV2/Components/Carousel/carousel-header';
-import TradeParamDefinition from 'AppV2/Components/TradeParamDefinition';
 import useTradeError from 'AppV2/Hooks/useTradeError';
 import { useTraderStore } from 'Stores/useTraderStores';
 
-import TakeProfitAndStopLossInput from '../RiskManagement/take-profit-and-stop-loss-input';
+import TakeProfitAndStopLossInput, {
+    TTakeProfitAndStopLossGate,
+} from '../RiskManagement/take-profit-and-stop-loss-input';
 import { TTradeParametersProps } from '../trade-parameters';
 
 import TakeProfitDesktop from './take-profit-desktop';
@@ -23,26 +22,14 @@ const TakeProfit = observer(({ is_minimized }: TTradeParametersProps) => {
     const { currency, has_open_accu_contract, has_take_profit, is_market_closed, take_profit } = useTraderStore();
     const { is_error_matching_field: has_error } = useTradeError({ error_fields: ['take_profit'] });
     const { isMobile } = useDevice();
+    const { localize } = useTranslations();
     const [is_open, setIsOpen] = React.useState(false);
+    // The single input lifts its commit handler + state-backed dirty gate here (this is the header owner).
+    const [gate, setGate] = React.useState<TTakeProfitAndStopLossGate>();
 
     const onActionSheetClose = React.useCallback(() => setIsOpen(false), []);
 
-    const action_sheet_content = [
-        {
-            id: 1,
-            component: <TakeProfitAndStopLossInput onActionSheetClose={onActionSheetClose} />,
-        },
-        {
-            id: 2,
-            component: (
-                <TradeParamDefinition
-                    description={
-                        <Localize i18n_default_text='When your profit reaches or exceeds this amount, your trade will be closed automatically.' />
-                    }
-                />
-            ),
-        },
-    ];
+    const is_save_disabled = !gate?.is_dirty || gate.has_blocking_error;
 
     // Use desktop component for desktop, ActionSheet for mobile
     if (!isMobile) {
@@ -70,12 +57,15 @@ const TakeProfit = observer(({ is_minimized }: TTradeParametersProps) => {
                 expandable={false}
                 shouldBlurOnClose={is_open}
             >
-                <ActionSheet.Portal shouldCloseOnDrag>
-                    <Carousel
-                        header={CarouselHeader}
-                        pages={action_sheet_content}
+                <ActionSheet.Portal showHandlebar={false} shouldDetectSwipingOnContainer shouldCloseOnDrag>
+                    <ActionSheet.Header
                         title={<Localize i18n_default_text='Take profit' />}
+                        closeAction={{ ariaLabel: localize('Close') }}
+                        saveAction={{ onAction: () => gate?.onSave(), ariaLabel: localize('Save') }}
+                        isSaveActionDisabled={is_save_disabled}
+                        shouldCloseOnSaveActionClick={false}
                     />
+                    <TakeProfitAndStopLossInput onActionSheetClose={onActionSheetClose} onGateChange={setGate} />
                 </ActionSheet.Portal>
             </ActionSheet.Root>
         </React.Fragment>

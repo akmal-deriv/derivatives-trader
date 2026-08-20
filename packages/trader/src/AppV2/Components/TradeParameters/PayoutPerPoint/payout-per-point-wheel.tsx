@@ -5,16 +5,21 @@ import { Skeleton } from '@deriv/components';
 import { ActionSheet, Text, WheelPicker } from '@deriv-com/quill-ui';
 import { Localize } from '@deriv-com/translations';
 
+import { useBlockSheetSwipe } from 'AppV2/Hooks/useBlockSheetSwipe';
 import { useProposal } from 'AppV2/Hooks/useProposal';
+import { WHEEL_PICKER_HEIGHT } from 'AppV2/Utils/trade-params-utils';
 import { useTraderStore } from 'Stores/useTraderStores';
+
+// Carousel page index of the barrier detail page (after the sheet-level definition became a tooltip).
+const BARRIER_PAGE = 1;
 
 type TPayoutPerPointWheelProps = {
     barrier?: string | number;
     is_open?: boolean;
-    current_payout_per_point: string;
+    is_api_response_received_ref: React.MutableRefObject<boolean>;
     onDetailClick?: (page_index: number) => void;
-    onPayoutPerPointSelect: (new_value: string | number) => void;
-    onClose: () => void;
+    value: string | number;
+    setValue: (new_value: string | number) => void;
     payout_per_point_list: {
         value: string;
     }[];
@@ -23,21 +28,18 @@ type TPayoutPerPointWheelProps = {
 const PayoutPerPointWheel = observer(
     ({
         barrier,
-        current_payout_per_point,
         is_open,
+        is_api_response_received_ref,
         onDetailClick,
-        onPayoutPerPointSelect,
-        onClose,
+        value,
+        setValue,
         payout_per_point_list,
     }: TPayoutPerPointWheelProps) => {
         const trade_store = useTraderStore();
         const { trade_types } = trade_store;
 
-        const [value, setValue] = React.useState<string | number>(current_payout_per_point);
         const [displayed_barrier_value, setDisplayedBarrierValue] = React.useState(barrier);
-
-        // For handling cases when user clicks on Save btn before we got response from API
-        const is_api_response_received_ref = React.useRef(false);
+        const block_sheet_swipe = useBlockSheetSwipe();
 
         const new_values = { payout_per_point: String(value) };
 
@@ -62,13 +64,6 @@ const PayoutPerPointWheel = observer(
             setValue(new_value);
         };
 
-        const onSave = () => {
-            // Prevent from saving if user clicks before BE validation
-            if (!is_api_response_received_ref.current) return;
-            onPayoutPerPointSelect(value);
-            onClose();
-        };
-
         React.useEffect(() => {
             if (response) {
                 const { proposal } = response;
@@ -78,56 +73,51 @@ const PayoutPerPointWheel = observer(
 
                 is_api_response_received_ref.current = true;
             }
-        }, [response]);
+        }, [response, is_api_response_received_ref]);
 
         return (
-            <React.Fragment>
-                <ActionSheet.Content className='payout-per-point__wrapper' data-testid='dt_payout-per-point_wrapper'>
-                    <div className='payout-per-point__wheel-picker'>
-                        <WheelPicker data={payout_per_point_list} selectedValue={value} setSelectedValue={onChange} />
-                    </div>
-                    <div
-                        className='payout-per-point__barrier'
-                        role='button'
-                        tabIndex={0}
-                        onClick={() => onDetailClick?.(2)}
-                        onKeyDown={(e: React.KeyboardEvent) => {
-                            if (e.key === 'Enter' || e.key === ' ') {
-                                e.preventDefault();
-                                onDetailClick?.(2);
-                            }
-                        }}
-                    >
-                        <Text
-                            color='quill-typography__color--subtle'
-                            size='sm'
-                            className='payout-per-point__barrier__label'
-                        >
-                            <Localize i18n_default_text='Barrier' />
-                        </Text>
-                        <Text
-                            color='quill-typography__color--subtle'
-                            size='sm'
-                            as='div'
-                            className='payout-per-point__barrier__content'
-                        >
-                            {!displayed_barrier_value || error || isFetching ? (
-                                <Skeleton width={90} height={14} />
-                            ) : (
-                                displayed_barrier_value
-                            )}
-                        </Text>
-                    </div>
-                </ActionSheet.Content>
-                <ActionSheet.Footer
-                    alignment='vertical'
-                    primaryAction={{
-                        content: <Localize i18n_default_text='Save' />,
-                        onAction: onSave,
+            <ActionSheet.Content className='payout-per-point__wrapper' data-testid='dt_payout-per-point_wrapper'>
+                <div className='payout-per-point__wheel-picker' {...block_sheet_swipe}>
+                    <WheelPicker
+                        containerHeight={WHEEL_PICKER_HEIGHT}
+                        data={payout_per_point_list}
+                        selectedValue={value}
+                        setSelectedValue={onChange}
+                    />
+                </div>
+                <div
+                    className='payout-per-point__barrier'
+                    role='button'
+                    tabIndex={0}
+                    onClick={() => onDetailClick?.(BARRIER_PAGE)}
+                    onKeyDown={(e: React.KeyboardEvent) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            onDetailClick?.(BARRIER_PAGE);
+                        }
                     }}
-                    shouldCloseOnPrimaryButtonClick={false}
-                />
-            </React.Fragment>
+                >
+                    <Text
+                        color='quill-typography__color--subtle'
+                        size='sm'
+                        className='payout-per-point__barrier__label'
+                    >
+                        <Localize i18n_default_text='Barrier' />
+                    </Text>
+                    <Text
+                        color='quill-typography__color--subtle'
+                        size='sm'
+                        as='div'
+                        className='payout-per-point__barrier__content'
+                    >
+                        {!displayed_barrier_value || error || isFetching ? (
+                            <Skeleton width={90} height={14} />
+                        ) : (
+                            displayed_barrier_value
+                        )}
+                    </Text>
+                </div>
+            </ActionSheet.Content>
         );
     }
 );
