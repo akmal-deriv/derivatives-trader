@@ -10,6 +10,7 @@ import { filterPositionsBySymbolAndTradeType } from 'AppV2/Utils/positions-utils
 import { SmartChart } from 'Modules/SmartChart';
 import AccumulatorsChartElements from 'Modules/SmartChart/Components/Markers/accumulators-chart-elements';
 import ToolbarWidgets from 'Modules/SmartChart/Components/toolbar-widgets';
+import useBarrierTouchDrag from 'Modules/SmartChart/Hooks/useBarrierTouchDrag';
 import { useSmartChartsAdapter } from 'Modules/SmartChart/Hooks/useSmartChartsAdapter';
 import { CHART_CONSTANTS, getMarketsOrder } from 'Modules/SmartChart/Utils/chart-utils';
 import { useTraderStore } from 'Stores/useTraderStores';
@@ -89,6 +90,9 @@ const TradeChart = observer(() => {
     } = useTraderStore();
     const is_accumulator = isAccumulatorContract(contract_type);
     const timeoutsMapRef = React.useRef<Map<number, NodeJS.Timeout>>(new Map());
+
+    // SmartCharts only binds barrier dragging to mouse events, so touch devices need a bridge.
+    useBarrierTouchDrag();
 
     // Memoize settings object to prevent chart re-initialization
     const settings = React.useMemo(
