@@ -75,7 +75,7 @@ const MarketSelectionDesktop = observer(
             handleSelectFavourite,
             handleSelectSymbolForTradeType,
             handleSelectTradeType,
-        } = useMarketSelection({ onClose: () => setIsOpen(false) });
+        } = useMarketSelection({ is_open: isOpen, onClose: () => setIsOpen(false) });
 
         // Clear the local search when the panel closes so it reopens clean (and drop out of search
         // mode so the all-trade-type symbol fetch is disabled again).

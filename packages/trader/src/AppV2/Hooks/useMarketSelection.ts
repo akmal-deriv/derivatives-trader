@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import useActiveSymbols from 'AppV2/Hooks/useActiveSymbols';
 import useAllTradeTypeSymbols from 'AppV2/Hooks/useAllTradeTypeSymbols';
@@ -19,6 +19,11 @@ import { AVAILABLE_CONTRACTS, getOrderedAvailableContracts, TAvailableContract }
 import { useTraderStore } from 'Stores/useTraderStores';
 
 type TUseMarketSelection = {
+    /**
+     * Whether the shell is currently showing the selector. The hook stays mounted across open/close
+     * cycles, so it needs this to re-seed its browse state from the store on each cycle.
+     */
+    is_open: boolean;
     /** Called after a market is committed (or the shell otherwise wants to close). */
     onClose: () => void;
 };
@@ -31,7 +36,7 @@ type TUseMarketSelection = {
  *
  * Consumers must be wrapped in `observer()` — this reads MobX observables from the trader store.
  */
-const useMarketSelection = ({ onClose }: TUseMarketSelection) => {
+const useMarketSelection = ({ is_open, onClose }: TUseMarketSelection) => {
     const { contract_type, selectMarketAndTradeType } = useTraderStore();
 
     const [selected_trade_type, setSelectedTradeType] = useState<TAvailableContract | undefined>(
@@ -44,6 +49,30 @@ const useMarketSelection = ({ onClose }: TUseMarketSelection) => {
     // The trade type the info screen was opened from, so its Favourite button can default to it.
     const [info_trade_type, setInfoTradeType] = useState('');
     const [list_window, setListWindow] = useState<TDiscoveryWindow>(DEFAULT_DISCOVERY_WINDOW);
+
+    // The browse state is seeded from the store's contract_type, but this hook stays mounted across
+    // open/close cycles (the desktop popover keeps its shell mounted; the mobile shell calls the hook
+    // before its `!isOpen` early return), so state from a previous session — including a trade-type
+    // tab the user browsed to but never committed — would otherwise leak into the next open. Re-seed
+    // the browse tab, category, favourites tab, search mode and info state from the live contract_type
+    // on every open/close transition, and again whenever the store's contract_type changes, so the
+    // selector and the Market Info page opened from it always reflect the currently selected trade type
+    // and market. Resetting here rather than only in `handleClose` keeps it independent of HOW the
+    // selector closed — the onboarding guide, for one, flips `is_market_selector_open` straight on the
+    // store without routing through the close handler.
+    // Re-seeding on close (rather than only on open) means the reopened selector shows the active trade
+    // type from its very first render — no flash of the abandoned tab and no symbol fetch for it; the
+    // matching run on open then sets the same values, so React bails out of it. Within a single open
+    // session a voluntary tab pick (`handleSelectTradeType`) only sets local state, so it survives until
+    // the selector is closed.
+    useEffect(() => {
+        setSelectedTradeType(getTradeTypeForContractType(contract_type) ?? AVAILABLE_CONTRACTS[0]);
+        setSelectedCategory('');
+        setIsFavouritesTab(false);
+        setIsSearching(false);
+        setInfoSymbol(null);
+        setInfoTradeType('');
+    }, [is_open, contract_type]);
 
     const { symbols, isLoading } = useTradeTypeSymbols(selected_trade_type);
     const { favourites: all_favourites } = useFavouriteMarkets();

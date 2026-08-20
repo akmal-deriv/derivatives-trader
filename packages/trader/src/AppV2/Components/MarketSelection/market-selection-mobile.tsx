@@ -62,7 +62,7 @@ const MarketSelectionMobile = observer(({ isOpen, setIsOpen, supported_trade_typ
         handleSelectFavourite,
         handleSelectSymbolForTradeType,
         handleSelectTradeType,
-    } = useMarketSelection({ onClose: () => setIsOpen(false) });
+    } = useMarketSelection({ is_open: isOpen, onClose: () => setIsOpen(false) });
 
     if (!isOpen) return null;
 
