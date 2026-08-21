@@ -231,20 +231,15 @@ describe('MenuPage', () => {
     });
 
     describe('Theme toggle', () => {
-        it('should show Dark theme label when light mode is active', () => {
-            renderMenuPage();
-
-            expect(screen.getByText('Dark theme')).toBeInTheDocument();
-        });
-
-        it('should show Light theme label when dark mode is active', () => {
+        it('keeps the Dark theme label while dark mode is active', () => {
             const store = mockStore({
                 ...default_mock_store,
                 ui: { is_dark_mode_on: true, setDarkMode: jest.fn() },
             });
             renderMenuPage(store);
 
-            expect(screen.getByText('Light theme')).toBeInTheDocument();
+            expect(screen.getByText('Dark theme')).toBeInTheDocument();
+            expect(screen.queryByText('Light theme')).not.toBeInTheDocument();
         });
 
         it('should call setDarkMode when the theme row is clicked', async () => {

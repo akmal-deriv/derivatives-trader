@@ -1330,6 +1330,40 @@ describe('TradeStore', () => {
             await tradeStore.onChange({ target: { name: 'is_equal', value: 1 } });
             expect(tradeStore.contract_type).toBe(TRADE_TYPES.ACCUMULATOR);
         });
+
+        it('preserves a user-set stake when Allow equals is toggled on (rise_fall → rise_fall_equal)', async () => {
+            tradeStore.default_stake = 10;
+            tradeStore.contract_type = TRADE_TYPES.RISE_FALL;
+            tradeStore.amount = 50; // user-customised, different from default_stake
+
+            await tradeStore.onChange({ target: { name: 'is_equal', value: 1 } });
+
+            expect(tradeStore.contract_type).toBe(TRADE_TYPES.RISE_FALL_EQUAL);
+            expect(tradeStore.amount).toBe(50);
+        });
+
+        it('preserves the stake across an Allow equals on→off toggle and returns to rise_fall', async () => {
+            tradeStore.default_stake = 10;
+            tradeStore.contract_type = TRADE_TYPES.RISE_FALL;
+            tradeStore.amount = 50;
+
+            await tradeStore.onChange({ target: { name: 'is_equal', value: 1 } });
+            await tradeStore.onChange({ target: { name: 'is_equal', value: 0 } });
+
+            expect(tradeStore.contract_type).toBe(TRADE_TYPES.RISE_FALL);
+            expect(tradeStore.amount).toBe(50);
+        });
+
+        it('still resets the stake to default_stake on a genuine trade-type switch (different group)', async () => {
+            tradeStore.default_stake = 10;
+            tradeStore.contract_type = TRADE_TYPES.RISE_FALL;
+            tradeStore.amount = 50;
+
+            await tradeStore.onChange({ target: { name: 'contract_type', value: TRADE_TYPES.MATCH_DIFF } });
+
+            expect(tradeStore.contract_type).toBe(TRADE_TYPES.MATCH_DIFF);
+            expect(tradeStore.amount).toBe(10);
+        });
     });
 
     describe('processContractsForV2 duration reconciliation', () => {

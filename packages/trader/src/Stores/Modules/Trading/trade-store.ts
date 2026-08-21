@@ -1921,10 +1921,13 @@ export default class TradeStore extends BaseStore {
         // On contract type we also additionally reset take profit and stop loss
         if (this.default_stake && this.is_dtrader_v2) {
             const has_symbol_changed = obj_new_values.symbol && this.symbol && this.symbol !== obj_new_values.symbol;
+            // A within-group sub-type flip (e.g. Allow equals: rise_fall ↔ rise_fall_equal) is not a
+            // trade-type switch, so it must not reset the stake — mirrors the duration-group guard.
             const has_contract_type_changed =
                 obj_new_values.contract_type &&
                 obj_old_values?.contract_type &&
-                obj_new_values.contract_type !== obj_old_values.contract_type;
+                obj_new_values.contract_type !== obj_old_values.contract_type &&
+                !this.isSameTradeTypeGroup(obj_old_values.contract_type, obj_new_values.contract_type);
 
             if (has_symbol_changed || has_contract_type_changed) {
                 const is_crypto = isCryptocurrency(this.currency ?? '');

@@ -13,7 +13,6 @@ import {
     StandaloneLifeRingRegularIcon,
     StandaloneMoonRegularIcon,
     StandaloneRightFromBracketRegularIcon,
-    StandaloneSunBrightRegularIcon,
     StandaloneTableLayoutRegularIcon,
 } from '@deriv/quill-icons';
 import { getHelpCentreUrl, routes } from '@deriv/shared';
@@ -112,23 +111,14 @@ const MenuPage = observer(() => {
                         )}
                         <div className='menu-page__item' onClick={() => toggleTheme(!is_dark_mode)}>
                             <div className={classNames('header__menu-mobile-link')}>
-                                {is_dark_mode ? (
-                                    <StandaloneSunBrightRegularIcon
-                                        className='header__menu-mobile-link-icon'
-                                        iconSize='sm'
-                                        fill='var(--color-text-primary)'
-                                    />
-                                ) : (
-                                    <StandaloneMoonRegularIcon
-                                        className='header__menu-mobile-link-icon'
-                                        iconSize='sm'
-                                        fill='var(--color-text-primary)'
-                                    />
-                                )}
+                                <StandaloneMoonRegularIcon
+                                    className='header__menu-mobile-link-icon'
+                                    iconSize='sm'
+                                    fill='var(--color-text-primary)'
+                                />
                                 <div className='header__menu-mobile-link-text' onClick={e => e.preventDefault()}>
-                                    <Text size='s'>
-                                        {is_dark_mode ? localize('Light theme') : localize('Dark theme')}
-                                    </Text>
+                                    {/* Labels the switch, so it does not change with the switch's own state. */}
+                                    <Text size='s'>{localize('Dark theme')}</Text>
                                     <div>
                                         <ToggleSwitch
                                             id='dt_menu_page_theme_toggler'
