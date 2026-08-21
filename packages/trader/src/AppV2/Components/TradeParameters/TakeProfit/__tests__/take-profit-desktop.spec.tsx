@@ -77,7 +77,7 @@ describe('TakeProfitDesktop', () => {
         render(<MockedTakeProfitDesktop />);
 
         expect(screen.getByText('Take profit')).toBeInTheDocument();
-        expect(screen.getByRole('textbox')).toHaveValue('100 USD');
+        expect(screen.getByRole('textbox')).toHaveValue('$100');
     });
 
     it('displays dash when take_profit is not set', () => {
@@ -121,14 +121,14 @@ describe('TakeProfitDesktop', () => {
 
         const textField = screen.getByRole('textbox');
         expect(textField).toBeInTheDocument();
-        expect(textField).toHaveValue('100 USD');
+        expect(textField).toHaveValue('$100');
     });
 
-    it('displays currency code correctly', () => {
+    it('prefixes the symbol of a non-USD currency', () => {
         default_mock_store.modules.trade.currency = 'EUR';
         render(<MockedTakeProfitDesktop />);
 
-        expect(screen.getByRole('textbox')).toHaveValue('100 EUR');
+        expect(screen.getByRole('textbox')).toHaveValue('€100');
     });
 
     it('closes popover when Save is clicked', async () => {

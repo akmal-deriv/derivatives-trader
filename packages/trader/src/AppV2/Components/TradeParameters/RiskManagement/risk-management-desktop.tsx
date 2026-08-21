@@ -1,9 +1,9 @@
 import React, { useCallback, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 
-import { getCurrencyDisplayCode } from '@deriv/shared';
 import { Localize, localize } from '@deriv-com/translations';
 
+import { getCurrencySymbol } from 'AppV2/Utils/currency-utils';
 import { addUnit } from 'AppV2/Utils/trade-params-utils';
 import { useTraderStore } from 'Stores/useTraderStores';
 
@@ -83,12 +83,10 @@ const RiskManagementDesktop: React.FC<RiskManagementDesktopProps> = observer(({ 
 
     const getRiskManagementText = useCallback(() => {
         if (has_cancellation) return `DC: ${addUnit({ value: cancellation_duration, unit: localize('minutes') })}`;
-        if (has_take_profit && has_stop_loss)
-            return `TP: ${take_profit} ${getCurrencyDisplayCode(currency)} / SL: ${stop_loss} ${getCurrencyDisplayCode(
-                currency
-            )}`;
-        if (has_take_profit) return `TP: ${take_profit} ${getCurrencyDisplayCode(currency)}`;
-        if (has_stop_loss) return `SL: ${stop_loss} ${getCurrencyDisplayCode(currency)}`;
+        const symbol = getCurrencySymbol(currency);
+        if (has_take_profit && has_stop_loss) return `TP: ${symbol}${take_profit} / SL: ${symbol}${stop_loss}`;
+        if (has_take_profit) return `TP: ${symbol}${take_profit}`;
+        if (has_stop_loss) return `SL: ${symbol}${stop_loss}`;
         return '-';
     }, [has_cancellation, has_take_profit, has_stop_loss, take_profit, stop_loss, currency, cancellation_duration]);
 

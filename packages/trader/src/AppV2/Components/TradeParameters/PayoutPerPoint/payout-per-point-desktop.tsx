@@ -4,6 +4,7 @@ import { observer } from 'mobx-react-lite';
 import { getCurrencyDisplayCode } from '@deriv/shared';
 import { Localize } from '@deriv-com/translations';
 
+import { getCurrencySymbol } from 'AppV2/Utils/currency-utils';
 import { useTraderStore } from 'Stores/useTraderStores';
 
 import { SelectionListPopover, TradeParameterPopover } from '../Shared';
@@ -42,7 +43,7 @@ const PayoutPerPointDesktop = observer(({ is_minimized }: TTradeParametersProps)
                     key={`payout-per-point${is_minimized ? '-minimized' : ''}`}
                 />
             }
-            value={`${payout_per_point} ${currency_display_code}`}
+            value={`${getCurrencySymbol(currency)}${payout_per_point}`}
             is_minimized={is_minimized}
             disabled={is_market_closed}
             popover_classname='selection-list-popover'

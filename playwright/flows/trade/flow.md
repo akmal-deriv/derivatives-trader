@@ -46,23 +46,23 @@
 
 **Prerequisites:** Authenticated (real or demo account). Market open.
 
-| #   | Step                               | Action                       | Expected Result                                             | Platform |
-| --- | ---------------------------------- | ---------------------------- | ----------------------------------------------------------- | -------- |
-| 1   | Login                              | `loginPage.login()`          | Redirected to trade page; API settled                       | Both     |
-| 2   | Verify account info                | Observe header               | Account info, balance, deposit button visible               | Both     |
-| 3   | Verify login button absent         | Observe header               | Login button not visible                                    | Both     |
-| 4   | Verify market selector             | Observe market selector area | Market name + current spot price visible                    | Both     |
-| 5   | Verify trade type selector         | Observe trade type row       | "View all trade types" button visible                       | Both     |
-| 6   | Verify selected chip               | Observe trade type chips     | Rise/Fall chip selected by default                          | Both     |
-| 7   | Verify Rise/Fall buttons           | Observe segmented control    | Rise and Fall buttons visible                               | Both     |
-| 8   | Verify Duration + Stake            | Observe parameters           | Duration and Stake labels visible                           | Both     |
-| 9   | Verify Allow equals                | Observe parameters           | Allow equals text visible                                   | Both     |
-| 10  | Verify purchase button             | Observe buy area             | Purchase button visible                                     | Both     |
-| 11  | Verify param container (mobile)    | Observe bottom sheet         | `trade-params-container` visible with `trade-params-handle` | Mobile   |
-| 12  | Verify network status (desktop)    | Observe footer               | Network status indicator visible                            | Desktop  |
-| 13  | Verify fullscreen toggle (desktop) | Observe footer               | Fullscreen toggle visible                                   | Desktop  |
-| 14  | Verify sidebar (desktop)           | Observe sidebar              | Home, Positions, Reports, Help, Language, Theme, Account    | Desktop  |
-| 15  | Verify bottom nav (mobile)         | Observe bottom navigation    | Home, Trade, Positions, Menu tabs visible                   | Mobile   |
+| #   | Step                               | Action                       | Expected Result                                            | Platform |
+| --- | ---------------------------------- | ---------------------------- | ---------------------------------------------------------- | -------- |
+| 1   | Login                              | `loginPage.login()`          | Redirected to trade page; API settled                      | Both     |
+| 2   | Verify account info                | Observe header               | Account info, balance, deposit button visible              | Both     |
+| 3   | Verify login button absent         | Observe header               | Login button not visible                                   | Both     |
+| 4   | Verify market selector             | Observe market selector area | Market name + current spot price visible                   | Both     |
+| 5   | Verify trade type selector         | Observe trade type row       | "View all trade types" button visible                      | Both     |
+| 6   | Verify selected chip               | Observe trade type chips     | Rise/Fall chip selected by default                         | Both     |
+| 7   | Verify Rise/Fall buttons           | Observe segmented control    | Rise and Fall buttons visible                              | Both     |
+| 8   | Verify Duration + Stake            | Observe parameters           | Duration and Stake labels visible                          | Both     |
+| 9   | Verify Allow equals                | Observe parameters           | Allow equals text visible                                  | Both     |
+| 10  | Verify purchase button             | Observe buy area             | Purchase button visible                                    | Both     |
+| 11  | Verify param container (mobile)    | Observe bottom sheet         | `trade-params-container` visible (fixed height, no handle) | Mobile   |
+| 12  | Verify network status (desktop)    | Observe footer               | Network status indicator visible                           | Desktop  |
+| 13  | Verify fullscreen toggle (desktop) | Observe footer               | Fullscreen toggle visible                                  | Desktop  |
+| 14  | Verify sidebar (desktop)           | Observe sidebar              | Home, Positions, Reports, Help, Language, Theme, Account   | Desktop  |
+| 15  | Verify bottom nav (mobile)         | Observe bottom navigation    | Home, Trade, Positions, Menu tabs visible                  | Mobile   |
 
 ---
 

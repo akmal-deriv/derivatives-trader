@@ -11,6 +11,7 @@ import { ActionSheetHeaderTitle } from 'AppV2/Components/ActionSheetHeaderToolti
 import Carousel from 'AppV2/Components/Carousel';
 import CarouselHeader from 'AppV2/Components/Carousel/carousel-header';
 import TradeParamDefinition from 'AppV2/Components/TradeParamDefinition';
+import { getCurrencySymbol } from 'AppV2/Utils/currency-utils';
 import { isSmallScreen } from 'AppV2/Utils/trade-params-utils';
 import { useTraderStore } from 'Stores/useTraderStores';
 
@@ -123,7 +124,7 @@ const PayoutPerPoint = observer(({ is_minimized }: TTradeParametersProps) => {
                 onClick={() => setIsOpen(true)}
                 readOnly
                 variant='fill'
-                value={`${payout_per_point} ${currency_display_code}`}
+                value={`${getCurrencySymbol(currency)}${payout_per_point}`}
             />
             <ActionSheet.Root
                 isOpen={is_open}

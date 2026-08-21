@@ -1,11 +1,11 @@
 import React from 'react';
 import { observer } from 'mobx-react-lite';
 
-import { getCurrencyDisplayCode } from '@deriv/shared';
 import { Localize } from '@deriv-com/translations';
 
 import { TradeParameterPopover, useTradeParameterPopover } from 'AppV2/Components/TradeParameters/Shared';
 import useTradeError from 'AppV2/Hooks/useTradeError';
+import { getCurrencySymbol } from 'AppV2/Utils/currency-utils';
 import { useTraderStore } from 'Stores/useTraderStores';
 
 import { TTradeParametersProps } from '../trade-parameters';
@@ -30,7 +30,7 @@ const TakeProfitDesktop = observer(({ is_minimized }: TTradeParametersProps) => 
     return (
         <TradeParameterPopover
             label={<Localize i18n_default_text='Take profit' key={`take-profit${is_minimized ? '-minimized' : ''}`} />}
-            value={has_take_profit && take_profit ? `${take_profit} ${getCurrencyDisplayCode(currency)}` : '-'}
+            value={has_take_profit && take_profit ? `${getCurrencySymbol(currency)}${take_profit}` : '-'}
             is_minimized={is_minimized}
             disabled={has_open_accu_contract || is_market_closed}
             has_error={has_error}

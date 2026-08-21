@@ -38,7 +38,9 @@ const Barrier = observer(({ is_minimized }: TTradeParametersProps) => {
         const has_error = proposal_error?.has_error;
         const error_field = proposal_error?.error_field;
 
-        if (has_error && error_field === 'barrier' && !barrier_error_shown && !is_open && !is_minimized) {
+        // See the Duration equivalent: the former `!is_minimized` gate meant "expanded sheet only",
+        // which no longer exists, so keeping it would make this unreachable on mobile.
+        if (has_error && error_field === 'barrier' && !barrier_error_shown && !is_open) {
             addSnackbar({
                 message: mapErrorMessage(proposal_error),
                 hasCloseButton: true,
@@ -48,7 +50,7 @@ const Barrier = observer(({ is_minimized }: TTradeParametersProps) => {
             });
             setBarrierErrorShown(true);
         }
-    }, [proposal_info, barrier_error_shown, is_open, is_minimized, trade_type_tab, addSnackbar]);
+    }, [proposal_info, barrier_error_shown, is_open, trade_type_tab, addSnackbar]);
 
     // Reset error shown flag when modal opens
     React.useEffect(() => {

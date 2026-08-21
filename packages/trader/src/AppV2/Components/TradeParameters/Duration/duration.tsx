@@ -269,8 +269,12 @@ const Duration = observer(({ is_minimized }: TTradeParametersProps) => {
         }
     };
 
+    // Fires on every viewport. This was previously gated on `!is_minimized`, i.e. it only showed
+    // while the mobile params sheet was expanded — a state that no longer exists, so the gate would
+    // now make the toast unreachable on mobile. The collapsed chip only turns red and truncates, so
+    // without this a blocked trade gives no reason. No sibling param gates its snackbar this way.
     useEffect(() => {
-        if (has_error && !is_minimized) {
+        if (has_error) {
             const error_obj = proposal_info[contract_type_object[0]] || validation_errors?.duration?.[0];
             if (error_obj?.error_field === 'duration') {
                 addSnackbar({

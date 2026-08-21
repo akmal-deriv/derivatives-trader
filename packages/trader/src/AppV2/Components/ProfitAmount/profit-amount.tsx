@@ -2,7 +2,7 @@ import clsx from 'clsx';
 
 import { formatMoney } from '@deriv/shared';
 
-import { getCurrencySymbol } from './currency-utils';
+import { getCurrencySymbol } from 'AppV2/Utils/currency-utils';
 
 import './profit-amount.scss';
 

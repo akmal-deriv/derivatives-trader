@@ -2,11 +2,12 @@ import React from 'react';
 import clsx from 'clsx';
 import { observer } from 'mobx-react-lite';
 
-import { getCurrencyDisplayCode, isMobile } from '@deriv/shared';
+import { isMobile } from '@deriv/shared';
 import { ActionSheet, TextField } from '@deriv-com/quill-ui';
 import { Localize, useTranslations } from '@deriv-com/translations';
 
 import useTradeError from 'AppV2/Hooks/useTradeError';
+import { getCurrencySymbol } from 'AppV2/Utils/currency-utils';
 import { addUnit } from 'AppV2/Utils/trade-params-utils';
 import { useTraderStore } from 'Stores/useTraderStores';
 
@@ -38,12 +39,10 @@ const RiskManagement = observer(({ is_minimized }: TTradeParametersProps) => {
     const closeActionSheet = React.useCallback(() => setIsOpen(false), []);
     const getRiskManagementText = () => {
         if (has_cancellation) return `DC: ${addUnit({ value: cancellation_duration, unit: localize('minutes') })}`;
-        if (has_take_profit && has_stop_loss)
-            return `TP: ${take_profit} ${getCurrencyDisplayCode(currency)} / SL: ${stop_loss} ${getCurrencyDisplayCode(
-                currency
-            )}`;
-        if (has_take_profit) return `TP: ${take_profit} ${getCurrencyDisplayCode(currency)}`;
-        if (has_stop_loss) return `SL: ${stop_loss} ${getCurrencyDisplayCode(currency)}`;
+        const symbol = getCurrencySymbol(currency);
+        if (has_take_profit && has_stop_loss) return `TP: ${symbol}${take_profit} / SL: ${symbol}${stop_loss}`;
+        if (has_take_profit) return `TP: ${symbol}${take_profit}`;
+        if (has_stop_loss) return `SL: ${symbol}${stop_loss}`;
         return '-';
     };
 

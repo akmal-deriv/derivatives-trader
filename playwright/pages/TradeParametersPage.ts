@@ -559,19 +559,12 @@ export class TradeParametersPage extends TradeBasePage {
     }
 
     /**
-     * Trade parameters container — mobile only (AppV2 swipeable bottom sheet).
-     * Source: trade-parameters-container.tsx:59
+     * Trade parameters container — mobile only (AppV2 bottom sheet). Fixed height with no
+     * expand/collapse handle: every param is sized to fit the row.
+     * Source: trade-parameters-container.tsx
      */
     get tradeParamsContainer(): Locator {
         return this.page.getByTestId('trade-params-container');
-    }
-
-    /**
-     * Trade parameters drag handle — mobile only.
-     * Source: trade-parameters-container.tsx:85
-     */
-    get tradeParamsHandle(): Locator {
-        return this.page.getByTestId('trade-params-handle');
     }
 
     /**
@@ -1008,9 +1001,11 @@ export class TradeParametersPage extends TradeBasePage {
 
         // Compare numerically: Vanillas (and some other types) drop a trailing zero in the trigger
         // ("10.0 USD" after saving "10.00"). parseFloat still matches, and "25.00" cannot pass for "5.00".
+        // Strip non-numerics first — the trigger is "10.0 USD" on desktop but "$10.0" on mobile, and
+        // parseFloat('$10.0') is NaN.
         const expectedStake = parseFloat(amount);
         await expect
-            .poll(async () => parseFloat(await this.stakeField.inputValue()), {
+            .poll(async () => parseFloat((await this.stakeField.inputValue()).replace(/[^\d.]/g, '')), {
                 message: `Stake field should show ${amount} after saving`,
                 timeout: 10_000,
             })
@@ -1475,7 +1470,6 @@ export class TradeParametersPage extends TradeBasePage {
                 this.tradeParamsContainer,
                 'Trade params container (bottom sheet) should be visible on mobile'
             ).toBeVisible();
-            await expect(this.tradeParamsHandle, 'Trade params drag handle should be visible on mobile').toBeVisible();
         } else {
             await expect(
                 this.networkStatus,

@@ -3,7 +3,7 @@ import clsx from 'clsx';
 import { observer } from 'mobx-react-lite';
 
 import { LabelPairedArrowLeftMdRegularIcon } from '@deriv/quill-icons';
-import { CONTRACT_TYPES, getCurrencyDisplayCode } from '@deriv/shared';
+import { CONTRACT_TYPES } from '@deriv/shared';
 import { ActionSheet, TextField } from '@deriv-com/quill-ui';
 import { Localize, useTranslations } from '@deriv-com/translations';
 
@@ -11,6 +11,7 @@ import Carousel from 'AppV2/Components/Carousel';
 import CarouselHeader from 'AppV2/Components/Carousel/carousel-header';
 import TradeParamDefinition from 'AppV2/Components/TradeParamDefinition';
 import useTradeError from 'AppV2/Hooks/useTradeError';
+import { getCurrencySymbol } from 'AppV2/Utils/currency-utils';
 import { getDisplayedContractTypes } from 'AppV2/Utils/trade-types-utils';
 import { AutomationStoreContext } from 'Stores/useAutomationStore';
 import { useTraderStore } from 'Stores/useTraderStores';
@@ -201,7 +202,7 @@ const Stake = observer(({ is_minimized, is_automation }: TTradeParametersProps) 
                     }
                     noStatusIcon
                     onClick={() => setIsOpen(true)}
-                    value={`${amount} ${getCurrencyDisplayCode(currency)}`}
+                    value={`${getCurrencySymbol(currency)}${amount}`}
                     className={clsx('trade-params__option', is_minimized && 'trade-params__option--minimized')}
                     status={has_error && should_show_snackbar ? 'error' : 'neutral'}
                 />

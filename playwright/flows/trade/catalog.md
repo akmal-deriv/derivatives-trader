@@ -67,10 +67,6 @@ test.describe('Trade — Form Loads', { tag: ['@trade', '@smoke', '@desktop', '@
                 page.getByTestId('trade-params-container'),
                 'Bottom sheet should be visible on mobile'
             ).toBeVisible();
-            await expect(
-                page.getByTestId('trade-params-handle'),
-                'Drag handle should be visible on mobile'
-            ).toBeVisible();
         }
     });
 });

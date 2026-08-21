@@ -2,12 +2,12 @@ import React from 'react';
 import clsx from 'clsx';
 import { observer } from 'mobx-react-lite';
 
-import { getCurrencyDisplayCode } from '@deriv/shared';
 import { Localize, useTranslations } from '@deriv-com/translations';
 import { ActionSheet, TextField } from '@deriv-com/quill-ui';
 import { useDevice } from '@deriv-com/ui';
 
 import useTradeError from 'AppV2/Hooks/useTradeError';
+import { getCurrencySymbol } from 'AppV2/Utils/currency-utils';
 import { useTraderStore } from 'Stores/useTraderStores';
 
 import TakeProfitAndStopLossInput, {
@@ -47,7 +47,7 @@ const TakeProfit = observer(({ is_minimized }: TTradeParametersProps) => {
                 onClick={() => setIsOpen(true)}
                 readOnly
                 variant='fill'
-                value={has_take_profit && take_profit ? `${take_profit} ${getCurrencyDisplayCode(currency)}` : '-'}
+                value={has_take_profit && take_profit ? `${getCurrencySymbol(currency)}${take_profit}` : '-'}
                 status={has_error ? 'error' : 'neutral'}
             />
             <ActionSheet.Root

@@ -10,6 +10,7 @@ import {
     TradeParameterPopover,
     useTradeParameterPopover,
 } from 'AppV2/Components/TradeParameters/Shared';
+import { getCurrencySymbol } from 'AppV2/Utils/currency-utils';
 import { getStakePresets } from 'AppV2/Config/trade-parameter-presets';
 import useTradeError from 'AppV2/Hooks/useTradeError';
 import { mapContractTypeToStakePresetKey } from 'AppV2/Utils/trade-params-preset-utils';
@@ -126,7 +127,7 @@ const Stake = observer(({ is_minimized, is_automation }: TTradeParametersProps) 
                     key={`stake${is_minimized ? '-minimized' : ''}`}
                 />
             }
-            value={`${amount} ${getCurrencyDisplayCode(currency)}`}
+            value={`${getCurrencySymbol(currency)}${amount}`}
             is_minimized={is_minimized}
             disabled={has_open_accu_contract || is_market_closed}
             is_locked={is_automation_params_locked}

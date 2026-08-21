@@ -9,7 +9,9 @@ export const HEIGHT = {
     TRADE_TYPE_TAB: 48,
     MARKET_SELECTOR: 72,
     CHART_STATS: 44,
-    TRADE_PARAM_SHEET: 174,
+    // 8px top padding + params row (72) + Buy button block (72), plus the sheet's border. The
+    // sheet has no expand/collapse handle, so this is its only height.
+    TRADE_PARAM_SHEET: 158,
     DIGIT_INFO: 46,
     BOTTOM_NAV: 56,
 };

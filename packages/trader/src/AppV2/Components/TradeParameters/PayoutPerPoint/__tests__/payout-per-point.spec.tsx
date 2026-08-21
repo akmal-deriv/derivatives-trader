@@ -105,7 +105,7 @@ describe('PayoutPerPoint', () => {
         mockPayoutPerPoint();
 
         expect(screen.getByText(payout_per_point_label)).toBeInTheDocument();
-        expect(screen.getByRole('textbox')).toHaveValue('3 USD');
+        expect(screen.getByRole('textbox')).toHaveValue('$3');
     });
 
     it('disables trade param if is_market_closed === true', () => {

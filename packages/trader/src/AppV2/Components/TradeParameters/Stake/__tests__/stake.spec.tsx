@@ -107,9 +107,36 @@ describe('Stake', () => {
 
     it('renders trade param with "Stake" label and input with a value equal to the current stake amount value', () => {
         render(<MockedStake />);
-        const { amount, currency } = default_mock_store.modules.trade;
+        const { amount } = default_mock_store.modules.trade;
         expect(screen.getByText(stake_param_label)).toBeInTheDocument();
-        expect(screen.getByRole('textbox')).toHaveValue(`${amount} ${currency}`);
+        expect(screen.getByRole('textbox')).toHaveValue(`$${amount}`);
+    });
+
+    // Both branches prefix the currency symbol (`$10`) rather than suffixing the code (`10 USD`),
+    // so a truncated field still leads with the amount. Asserted separately because mobile and
+    // desktop each build the string in their own component.
+    describe('minimized mobile chip', () => {
+        beforeEach(() => {
+            // `Stake` picks the mobile/desktop variant from `modules.trade.root_store.ui.is_mobile`;
+            // mockStore doesn't wire `root_store`, so point it back at the root to mount `StakeMobile`.
+            default_mock_store.ui.is_mobile = true;
+            default_mock_store.modules.trade.root_store = default_mock_store;
+        });
+
+        it('prefixes the currency symbol instead of suffixing the code', () => {
+            render(<MockedStake />);
+
+            const { amount } = default_mock_store.modules.trade;
+            expect(screen.getByRole('textbox')).toHaveValue(`$${amount}`);
+        });
+
+        it('falls back to the currency code for a currency with no symbol', () => {
+            default_mock_store.modules.trade.currency = 'USDC';
+            render(<MockedStake />);
+
+            const { amount } = default_mock_store.modules.trade;
+            expect(screen.getByRole('textbox')).toHaveValue(`USDC${amount}`);
+        });
     });
 
     it('opens popover with chips if user clicks on "Stake" trade param (desktop)', async () => {
@@ -517,7 +544,8 @@ describe('Stake - Mobile header actions', () => {
 
     const openSheet = async (user: ReturnType<typeof userEvent.setup>) => {
         // The mobile field's onClick lives on the input, so click the value, not the <label> text.
-        await user.click(screen.getByDisplayValue('10 USD'));
+        // The chip renders the currency symbol before the amount (`$10`), not the code after it.
+        await user.click(screen.getByDisplayValue('$10'));
     };
 
     it('disables the header save action when the sheet opens (unchanged value)', async () => {

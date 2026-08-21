@@ -35,11 +35,7 @@ const BASIS_STAKE = 'stake';
 const BASIS_PAYOUT = 'payout';
 const BASIS_NAME = 'basis';
 
-type TPurchaseButtonProps = {
-    onPurchaseSuccess?: () => void;
-};
-
-const PurchaseButton = observer(({ onPurchaseSuccess }: TPurchaseButtonProps = {}) => {
+const PurchaseButton = observer(() => {
     const purchaseButtonRef = React.useRef(null);
     const { localize } = useTranslations();
     const { isMobile } = useDevice();
@@ -383,7 +379,6 @@ const PurchaseButton = observer(({ onPurchaseSuccess }: TPurchaseButtonProps = {
                                     }
                                     onPurchaseV2(trade_type, isMobile, (params, contract_id) => {
                                         addNotificationBannerCallback(params, contract_id, trade_type);
-                                        onPurchaseSuccess?.();
                                     });
                                 }}
                             >

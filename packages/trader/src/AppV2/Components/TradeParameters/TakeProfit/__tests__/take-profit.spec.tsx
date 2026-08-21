@@ -43,7 +43,7 @@ describe('TakeProfit', () => {
     it('renders TP trade parameter with correct take profit from trade store', () => {
         mockTakeProfit();
 
-        expect(screen.getByRole('textbox')).toHaveValue('5 USD');
+        expect(screen.getByRole('textbox')).toHaveValue('$5');
         expect(screen.getByText('Take profit')).toBeInTheDocument();
     });
 
