@@ -24,6 +24,22 @@ export const getMarketsOrder = (active_symbols: ActiveSymbols): string[] => {
         );
 };
 
+/**
+ * Decides whether a granularity coming from the chart's Time interval list must be dropped.
+ *
+ * SmartCharts renders every non-tick interval as disabled while only the tick chart type is
+ * allowed, but still fires `onGranularity` for those items (issue #1037), which would otherwise
+ * write a candle granularity to the store, LocalStore and the `interval` URL parameter while the
+ * chart keeps rendering ticks.
+ *
+ * @param granularity - Granularity from the chart; `0` is the tick granularity, values above 0 are
+ * candle intervals in seconds (see `Modules/SmartChart/Adapters/types.ts`)
+ * @param is_tick_chart_type_only - Whether the current trade type allows the tick chart type only
+ * @returns `true` when the granularity should be ignored
+ */
+export const shouldIgnoreGranularityChange = (granularity: number, is_tick_chart_type_only: boolean): boolean =>
+    is_tick_chart_type_only && granularity !== 0;
+
 // Chart configuration constants
 export const CHART_CONSTANTS = {
     // Timeout values

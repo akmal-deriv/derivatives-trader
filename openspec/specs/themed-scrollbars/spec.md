@@ -1,8 +1,11 @@
 # themed-scrollbars Specification
 
 ## Purpose
+
 TBD - created by archiving change scrollbar-component-is-displayed-incorrectly-in-firefox-on-web. Update Purpose after archive.
+
 ## Requirements
+
 ### Requirement: Firefox scrollbar matches themed WebKit appearance
 
 Scrollable surfaces that use the shared themed scrollbar SHALL render a thin, theme-colored scrollbar thumb in Firefox that matches the WebKit (Chrome/Safari) themed appearance in both light and dark themes. The Firefox track MUST be visually transparent (not filled with the primary surface color), so the scrollbar does not draw an opaque gutter that other browsers do not show.
@@ -58,4 +61,3 @@ AppV2 scroll areas that apply the shared themed-scrollbar look (market selection
 - **WHEN** a user opens a market-selection scroll panel with overflow content in Firefox
 - **THEN** the panel shows a thin themed scrollbar consistent with the WebKit-styled thumb on that panel
 - **AND** the track remains visually transparent
-

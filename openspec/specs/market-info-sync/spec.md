@@ -1,8 +1,11 @@
 # market-info-sync Specification
 
 ## Purpose
+
 TBD - created by archiving change market-info-page-displays-information-from-the-previously-selected-trade-type. Update Purpose after archive.
+
 ## Requirements
+
 ### Requirement: Browse trade type resyncs to the live store contract type
 
 The market-selector hook (`useMarketSelection`) SHALL keep its local browse trade type (`selected_trade_type`) synchronised with the trade store's current `contract_type`: whenever the store's `contract_type` changes, the browse trade type SHALL reset to the trade-type tab that owns the new `contract_type` (via `getTradeTypeForContractType`), falling back to the first available contract when the new `contract_type` maps to no tab.
@@ -67,4 +70,3 @@ When the trade store's `contract_type` changes, `useMarketSelection` SHALL clear
 
 - **WHEN** the user closes the Market Info page, switches trade type and symbol on the strip to Accumulators, reopens the selector, and opens the Market Info page
 - **THEN** the info screen renders for the currently selected Accumulators market, not the previously viewed market
-

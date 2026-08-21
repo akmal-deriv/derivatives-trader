@@ -12,7 +12,7 @@ import AccumulatorsChartElements from 'Modules/SmartChart/Components/Markers/acc
 import ToolbarWidgets from 'Modules/SmartChart/Components/toolbar-widgets';
 import useBarrierTouchDrag from 'Modules/SmartChart/Hooks/useBarrierTouchDrag';
 import { useSmartChartsAdapter } from 'Modules/SmartChart/Hooks/useSmartChartsAdapter';
-import { CHART_CONSTANTS, getMarketsOrder } from 'Modules/SmartChart/Utils/chart-utils';
+import { CHART_CONSTANTS, getMarketsOrder, shouldIgnoreGranularityChange } from 'Modules/SmartChart/Utils/chart-utils';
 import { useTraderStore } from 'Stores/useTraderStores';
 
 type TickSpotData = NonNullable<TTicksStreamResponse['tick']>;
@@ -89,7 +89,32 @@ const TradeChart = observer(() => {
         prev_contract_type,
     } = useTraderStore();
     const is_accumulator = isAccumulatorContract(contract_type);
+    // Single source of truth for "the chart may only show ticks": it drives the granularity and
+    // allowTickChartTypeOnly props below as well as the granularity guard, so the guard cannot
+    // drift from the intervals the chart renders as disabled.
+    const is_tick_chart_type_only = show_digits_stats || is_accumulator;
     const timeoutsMapRef = React.useRef<Map<number, NodeJS.Timeout>>(new Map());
+
+    // SmartCharts memoises the `toolbarWidget` render prop on the chart's first render and keeps the
+    // `onGranularity` callback it receives in its Timeperiod store, so the toolbar goes on calling the
+    // callback instance built at mount. A trade-type flag captured in that closure would therefore
+    // freeze at its mount value — blocking enabled intervals after leaving Digits/Accumulators and
+    // letting disabled ones through after switching to them. Holding the flag in a ref lets the
+    // callback read the current value on every invocation.
+    const is_tick_chart_type_only_ref = React.useRef(is_tick_chart_type_only);
+    is_tick_chart_type_only_ref.current = is_tick_chart_type_only;
+
+    // SmartCharts marks non-tick intervals as disabled while only the tick chart type is allowed,
+    // but its Timeperiod.onIntervalClick has no early return for that branch and still fires
+    // onGranularity (issue #1037). Dropping the value here keeps the store, LocalStore and the
+    // `interval` URL parameter in step with what the chart renders.
+    const handleGranularityChange = React.useCallback(
+        (new_granularity: number) => {
+            if (shouldIgnoreGranularityChange(new_granularity, is_tick_chart_type_only_ref.current)) return;
+            updateGranularity(new_granularity);
+        },
+        [updateGranularity]
+    );
 
     // SmartCharts only binds barrier dragging to mouse events, so touch devices need a bridge.
     useBarrierTouchDrag();
@@ -254,9 +279,9 @@ const TradeChart = observer(() => {
                 isMobile={isMobile}
                 isVerticalScrollEnabled={!isMobile}
                 maxTick={isMobile ? max_ticks : undefined}
-                granularity={show_digits_stats || is_accumulator ? 0 : granularity}
+                granularity={is_tick_chart_type_only ? 0 : granularity}
                 settings={settings}
-                allowTickChartTypeOnly={show_digits_stats || is_accumulator}
+                allowTickChartTypeOnly={is_tick_chart_type_only}
                 stateChangeListener={chartStateChange}
                 symbol={symbol}
                 // The redesigned market selector (MarketTabs) replaces the chart's native selector on
@@ -265,7 +290,9 @@ const TradeChart = observer(() => {
                 isConnectionOpened={is_socket_opened}
                 clearChart={false}
                 toolbarWidget={() => {
-                    return <ToolbarWidgets updateChartType={updateChartType} updateGranularity={updateGranularity} />;
+                    return (
+                        <ToolbarWidgets updateChartType={updateChartType} updateGranularity={handleGranularityChange} />
+                    );
                 }}
                 importedLayout={chart_layout}
                 onExportLayout={exportLayout}
