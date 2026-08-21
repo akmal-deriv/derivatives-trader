@@ -23,15 +23,19 @@ const useIsEuAccount = (): TUseIsEuAccount => {
 
     return useMemo(() => {
         if (!is_logged_in || !loginid) return { is_eu: false, is_ready: true };
-        if (isError) return { is_eu: false, is_ready: true };
-        if (!data) return { is_eu: false, is_ready: false };
 
-        const current_account = data.data?.find(account => account.account_id === loginid);
-        const group = current_account?.group;
-        return {
-            is_eu: !!group && EU_ACCOUNT_GROUPS.includes(group),
-            is_ready: true,
-        };
+        if (data) {
+            const current_account = data.data?.find(account => account.account_id === loginid);
+            const group = current_account?.group;
+            return {
+                is_eu: !!group && EU_ACCOUNT_GROUPS.includes(group),
+                is_ready: true,
+            };
+        }
+
+        // Nothing cached to read: fail open rather than pinning is_ready=false forever.
+        if (isError) return { is_eu: false, is_ready: true };
+        return { is_eu: false, is_ready: false };
     }, [data, isError, is_logged_in, loginid]);
 };
 

@@ -8,7 +8,7 @@ import { addComma, formatMoney, getCurrencyDisplayCode, isDemoAccountId } from '
 import { observer, useStore } from '@deriv/stores';
 import { Localize, useTranslations } from '@deriv-com/translations';
 import { useDevice } from '@deriv-com/ui';
-import { RefetchOptions, RefetchQueryFilters } from '@tanstack/react-query';
+import type { RefetchOptions, RefetchQueryFilters } from '@tanstack/react-query';
 
 import AccountInfoWrapper from './account-info-wrapper';
 import AccountSwitcher from './account-switcher';
@@ -57,6 +57,8 @@ const AccountInfo = observer(
         }, [is_dropdown_open, isMobile]);
 
         const toggleDropdown = () => {
+            // Refetch on the closed -> open transition only, so the account list is never stale
+            if (!is_dropdown_open) refetch?.();
             setIsDropdownOpen(!is_dropdown_open);
         };
 

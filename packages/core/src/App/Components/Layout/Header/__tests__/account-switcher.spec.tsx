@@ -12,7 +12,17 @@ jest.mock('@deriv/components', () => ({
             Skeleton
         </div>
     ),
-    Text: ({ children, size, color, weight }: any) => (
+    Text: ({
+        children,
+        size,
+        color,
+        weight,
+    }: {
+        children: React.ReactNode;
+        size?: string;
+        color?: string;
+        weight?: string;
+    }) => (
         <span data-testid='text' data-size={size} data-color={color} data-weight={weight}>
             {children}
         </span>
@@ -20,12 +30,12 @@ jest.mock('@deriv/components', () => ({
 }));
 
 jest.mock('@deriv/quill-icons', () => ({
-    StandaloneCircleExclamationRegularIcon: ({ iconSize, fill }: any) => (
+    StandaloneCircleExclamationRegularIcon: ({ iconSize, fill }: { iconSize?: string; fill?: string }) => (
         <div data-testid='warning-icon' data-icon-size={iconSize} data-fill={fill}>
             Warning Icon
         </div>
     ),
-    StandaloneArrowsRotateRegularIcon: ({ iconSize }: any) => (
+    StandaloneArrowsRotateRegularIcon: ({ iconSize }: { iconSize?: string }) => (
         <div data-testid='refresh-icon' data-icon-size={iconSize}>
             Refresh Icon
         </div>
@@ -47,7 +57,7 @@ const mockClientStore = {
 };
 
 jest.mock('@deriv/stores', () => ({
-    observer: (component: any) => component,
+    observer: (component: React.ComponentType<Record<string, unknown>>) => component,
     useStore: jest.fn(() => ({
         client: mockClientStore,
     })),
@@ -63,15 +73,27 @@ jest.mock('@deriv-com/ui', () => ({
 
 jest.mock('@deriv-com/quill-ui', () => ({
     ActionSheet: {
-        Root: ({ children, isOpen, onClose }: any) =>
+        Root: ({ children, isOpen, onClose }: { children: React.ReactNode; isOpen?: boolean; onClose?: () => void }) =>
             isOpen ? (
                 <div data-testid='action-sheet-root' onClick={onClose}>
                     {children}
                 </div>
             ) : null,
-        Portal: ({ children }: any) => <div data-testid='action-sheet-portal'>{children}</div>,
+        Portal: ({ children }: { children: React.ReactNode }) => (
+            <div data-testid='action-sheet-portal'>{children}</div>
+        ),
     },
-    Button: ({ children, onClick, className, label }: any) => (
+    Button: ({
+        children,
+        onClick,
+        className,
+        label,
+    }: {
+        children?: React.ReactNode;
+        onClick?: () => void;
+        className?: string;
+        label?: string;
+    }) => (
         <button data-testid='button' className={className} onClick={onClick}>
             {label}
             {children}
@@ -148,13 +170,13 @@ describe('AccountSwitcher', () => {
             expect(screen.getAllByText('Skeleton')).toHaveLength(2);
         });
 
-        it('should render error state when error is provided', () => {
+        it('should render error state when accounts array is empty', () => {
             render(
                 <AccountSwitcher
                     accounts={[]}
                     current_loginid='ROT90070611'
                     is_loading={false}
-                    error={new Error('Network error')}
+                    error={null}
                     is_open={true}
                 />
             );
@@ -164,13 +186,52 @@ describe('AccountSwitcher', () => {
             expect(screen.getByText('Refresh')).toBeInTheDocument();
         });
 
-        it('should render error state when accounts array is empty', () => {
+        it('should render the account rows, with no skeleton, when not loading and not errored', () => {
+            render(
+                <AccountSwitcher
+                    accounts={mockAccounts}
+                    current_loginid='ROT90070611'
+                    is_loading={false}
+                    error={null}
+                    is_open={true}
+                />
+            );
+
+            // This is the state the switcher is in while a *successful* refetch is in flight: the
+            // containers pass `is_loading={isLoading}`, which stays false over cached data, so the
+            // last-good rows keep rendering and the fresh values swap in when the refetch resolves.
+            expect(screen.getByTestId('dt_account_item_ROT90070611')).toBeInTheDocument();
+            expect(screen.getAllByText('Real account')).toHaveLength(2);
+            expect(screen.queryByTestId('skeleton')).not.toBeInTheDocument();
+            expect(screen.queryByText('Failed to load')).not.toBeInTheDocument();
+        });
+
+        it('should replace the cached list with the error state when a refetch fails', () => {
+            render(
+                <AccountSwitcher
+                    accounts={mockAccounts}
+                    current_loginid='ROT90070611'
+                    is_loading={false}
+                    error={new Error('Network error')}
+                    is_open={true}
+                />
+            );
+
+            // Stale balances are worse than no balances - the error wins over the cached list.
+            expect(screen.queryByTestId('dt_account_item_ROT90070611')).not.toBeInTheDocument();
+            expect(screen.queryByText(/10,000.00 USD/i)).not.toBeInTheDocument();
+            expect(screen.getByTestId('warning-icon')).toBeInTheDocument();
+            expect(screen.getByText('Failed to load')).toBeInTheDocument();
+            expect(screen.getByText('Refresh')).toBeInTheDocument();
+        });
+
+        it('should render the error state when the initial fetch fails', () => {
             render(
                 <AccountSwitcher
                     accounts={[]}
                     current_loginid='ROT90070611'
                     is_loading={false}
-                    error={null}
+                    error={new Error('Network error')}
                     is_open={true}
                 />
             );
@@ -188,7 +249,7 @@ describe('AccountSwitcher', () => {
                     accounts={[]}
                     current_loginid='ROT90070611'
                     is_loading={false}
-                    error={new Error('Network error')}
+                    error={null}
                     is_open={true}
                     onRefetch={onRefetchMock}
                 />

@@ -1,9 +1,9 @@
-import React from 'react';
-
 import { trackAnalyticsEvent } from '@deriv/shared';
 import { mockStore, StoreProvider } from '@deriv/stores';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+
+import AccountInfoMock from 'App/Components/Layout/Header/account-info';
 
 import { AccountActions } from '../account-actions';
 
@@ -22,6 +22,7 @@ const mockUseDerivativesAccount = jest.fn(() => ({
         ],
     },
     isLoading: false,
+    isFetching: false,
     error: null,
     refetch: jest.fn(),
 }));
@@ -53,7 +54,7 @@ jest.mock('../login-button', () => ({
 // Mock the dynamic import of AccountInfo
 jest.mock('App/Components/Layout/Header/account-info', () => ({
     __esModule: true,
-    default: () => <div data-testid='dt_account_info'>Account Info</div>,
+    default: jest.fn(() => <div data-testid='dt_account_info'>Account Info</div>),
 }));
 
 describe('AccountActions component', () => {
@@ -104,6 +105,7 @@ describe('AccountActions component', () => {
                 ],
             },
             isLoading: false,
+            isFetching: false,
             error: null,
             refetch: jest.fn(),
         });
@@ -145,6 +147,7 @@ describe('AccountActions component', () => {
                 data: [{ account_id: 'DOT90096855', account_type: 'demo', balance: '5000.00', currency: 'USD' }],
             },
             isLoading: false,
+            isFetching: false,
             error: null,
             refetch: jest.fn(),
         });
@@ -205,6 +208,7 @@ describe('AccountActions component', () => {
                 data: [{ account_id: 'DOT90096855', account_type: 'demo', balance: '5000.00', currency: 'USD' }],
             },
             isLoading: false,
+            isFetching: false,
             error: null,
             refetch: jest.fn(),
         });
@@ -249,6 +253,7 @@ describe('AccountActions component', () => {
                     data: [{ account_id: 'DOT90096855', account_type: 'demo', balance: '5000.00', currency: 'USD' }],
                 },
                 isLoading: false,
+                isFetching: false,
                 error: null,
                 refetch: jest.fn(),
             });
@@ -310,6 +315,7 @@ describe('AccountActions component', () => {
                     data: [{ account_id: 'DOT90096855', account_type: 'demo', balance: '5000.00', currency: 'USD' }],
                 },
                 isLoading: false,
+                isFetching: false,
                 error: null,
                 refetch: jest.fn(),
             });
@@ -341,6 +347,7 @@ describe('AccountActions component', () => {
             mockUseDerivativesAccount.mockReturnValue({
                 data: { data: [] },
                 isLoading: true,
+                isFetching: false,
                 error: null,
                 refetch: jest.fn(),
             });
@@ -365,6 +372,7 @@ describe('AccountActions component', () => {
                           ],
                 },
                 isLoading: currentIsLoading,
+                isFetching: false,
                 error: null,
                 refetch: mockRefetch,
             }));
@@ -382,6 +390,7 @@ describe('AccountActions component', () => {
                     ],
                 },
                 isLoading: false,
+                isFetching: false,
                 error: null,
                 refetch: mockRefetch,
             });
@@ -400,6 +409,7 @@ describe('AccountActions component', () => {
             mockUseDerivativesAccount.mockReturnValue({
                 data: { data: [] },
                 isLoading: true,
+                isFetching: false,
                 error: null,
                 refetch: jest.fn(),
             });
@@ -409,6 +419,53 @@ describe('AccountActions component', () => {
             const skeletons = screen.getAllByTestId('dt_skeleton');
             expect(skeletons[0]).toHaveStyle({ width: '120px', height: '32px' });
             expect(skeletons[1]).toHaveStyle({ width: '80px', height: '32px' });
+        });
+    });
+
+    describe('Refetch on open', () => {
+        it('should not put AccountInfo into a loading state while a refetch is in flight', async () => {
+            mockUseDerivativesAccount.mockReturnValue({
+                data: {
+                    data: [
+                        { account_id: 'CR123', account_type: 'real', balance: '10000.00', currency: 'USD' },
+                        { account_id: 'VRTC456', account_type: 'demo', balance: '5000.00', currency: 'USD' },
+                    ],
+                },
+                isLoading: false,
+                isFetching: true,
+                error: null,
+                refetch: jest.fn(),
+            });
+
+            renderWithStore();
+
+            await screen.findByTestId('dt_account_info');
+            // The open-triggered refetch must stay invisible - the cached list keeps rendering.
+            const lastCallProps = (AccountInfoMock as unknown as jest.Mock).mock.calls.at(-1)?.[0];
+            expect(lastCallProps).toMatchObject({ isLoading: false });
+        });
+
+        it('should not show the container header skeleton while only isFetching is true', async () => {
+            mockUseDerivativesAccount.mockReturnValue({
+                data: {
+                    data: [
+                        { account_id: 'CR123', account_type: 'real', balance: '10000.00', currency: 'USD' },
+                        { account_id: 'VRTC456', account_type: 'demo', balance: '5000.00', currency: 'USD' },
+                    ],
+                },
+                isLoading: false,
+                isFetching: true,
+                error: null,
+                refetch: jest.fn(),
+            });
+
+            renderWithStore();
+
+            await screen.findByTestId('dt_account_info');
+            expect(screen.queryByTestId('dt_skeleton')).not.toBeInTheDocument();
+            expect(screen.getByTestId('dt_core_header_acc-info-container')).not.toHaveClass(
+                'acc-info__container--loading'
+            );
         });
     });
 });

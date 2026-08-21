@@ -2,6 +2,7 @@ import { APIProvider } from '@deriv/api';
 import { formatMoney } from '@deriv/shared';
 import { mockStore, StoreProvider } from '@deriv/stores';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 
 import AccountInfo from '../account-info';
 
@@ -24,8 +25,10 @@ jest.mock('@deriv/quill-icons', () => ({
 
 jest.mock('@deriv-com/quill-ui', () => ({
     ActionSheet: {
-        Root: ({ children }: any) => <div data-testid='action-sheet-root'>{children}</div>,
-        Portal: ({ children }: any) => <div data-testid='action-sheet-portal'>{children}</div>,
+        Root: ({ children }: { children: React.ReactNode }) => <div data-testid='action-sheet-root'>{children}</div>,
+        Portal: ({ children }: { children: React.ReactNode }) => (
+            <div data-testid='action-sheet-portal'>{children}</div>
+        ),
     },
 }));
 
@@ -238,6 +241,33 @@ describe('AccountInfo component', () => {
 
             expect(screen.queryByTestId('dt_skeleton')).not.toBeInTheDocument();
             expect(screen.getByTestId('dt_acc_info')).toBeInTheDocument();
+        });
+    });
+
+    describe('Refetch on open', () => {
+        it('should call refetch exactly once when the trigger is opened', async () => {
+            const refetch = jest.fn();
+            renderWithProviders({ currency: 'USD', balance: 1000 }, { refetch });
+
+            await userEvent.click(screen.getByTestId('dt_acc_info'));
+
+            expect(refetch).toHaveBeenCalledTimes(1);
+        });
+
+        it('should not call refetch again when the trigger is closed', async () => {
+            const refetch = jest.fn();
+            renderWithProviders({ currency: 'USD', balance: 1000 }, { refetch });
+
+            await userEvent.click(screen.getByTestId('dt_acc_info'));
+            await userEvent.click(screen.getByTestId('dt_acc_info'));
+
+            expect(refetch).toHaveBeenCalledTimes(1);
+        });
+
+        it('should not throw when opened without a refetch prop', async () => {
+            renderWithProviders({ currency: 'USD', balance: 1000 }, { refetch: undefined });
+
+            await expect(userEvent.click(screen.getByTestId('dt_acc_info'))).resolves.not.toThrow();
         });
     });
 });

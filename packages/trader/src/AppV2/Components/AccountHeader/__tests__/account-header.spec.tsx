@@ -1,6 +1,7 @@
 import React from 'react';
 
 import { APIProvider } from '@deriv/api';
+import AccountSwitcherMock from '@deriv/core/src/App/Components/Layout/Header/account-switcher';
 import { redirectToLogin, trackAnalyticsEvent } from '@deriv/shared';
 import { mockStore, StoreProvider } from '@deriv/stores';
 import { render, screen } from '@testing-library/react';
@@ -23,6 +24,8 @@ jest.mock('@deriv/shared', () => ({
     }),
 }));
 
+const mockRefetch = jest.fn();
+
 const mockUseDerivativesAccount = jest.fn(() => ({
     data: {
         data: [
@@ -31,8 +34,9 @@ const mockUseDerivativesAccount = jest.fn(() => ({
         ],
     },
     isLoading: false,
+    isFetching: false,
     error: null,
-    refetch: jest.fn(),
+    refetch: mockRefetch,
 }));
 
 // Mock useMobileBridge hook
@@ -63,8 +67,10 @@ jest.mock('@deriv/quill-icons', () => ({
 
 jest.mock('@deriv-com/quill-ui', () => ({
     ActionSheet: {
-        Root: ({ children }: any) => <div data-testid='action-sheet-root'>{children}</div>,
-        Portal: ({ children }: any) => <div data-testid='action-sheet-portal'>{children}</div>,
+        Root: ({ children }: { children: React.ReactNode }) => <div data-testid='action-sheet-root'>{children}</div>,
+        Portal: ({ children }: { children: React.ReactNode }) => (
+            <div data-testid='action-sheet-portal'>{children}</div>
+        ),
     },
 }));
 
@@ -127,8 +133,9 @@ describe('AccountHeader', () => {
                 ],
             },
             isLoading: false,
+            isFetching: false,
             error: null,
-            refetch: jest.fn(),
+            refetch: mockRefetch,
         });
 
         // Mock window.location to prevent jsdom navigation errors
@@ -212,6 +219,7 @@ describe('AccountHeader', () => {
                     data: [{ account_id: 'DOT90096855', account_type: 'demo', balance: '5000.00', currency: 'USD' }],
                 },
                 isLoading: false,
+                isFetching: false,
                 error: null,
                 refetch: jest.fn(),
             });
@@ -336,7 +344,6 @@ describe('AccountHeader', () => {
                 });
 
                 expect(screen.getByText('0.00 USD')).toBeInTheDocument();
-                expect(screen.queryByText('0.00 USD')).toBeInTheDocument();
             });
 
             it('should display balance correctly when balance is comma-formatted string', () => {
@@ -509,6 +516,7 @@ describe('AccountHeader', () => {
                     data: [{ account_id: 'DOT90096855', account_type: 'demo', balance: '5000.00', currency: 'USD' }],
                 },
                 isLoading: false,
+                isFetching: false,
                 error: null,
                 refetch: jest.fn(),
             });
@@ -591,6 +599,7 @@ describe('AccountHeader', () => {
                         ],
                     },
                     isLoading: false,
+                    isFetching: false,
                     error: null,
                     refetch: jest.fn(),
                 });
@@ -653,6 +662,7 @@ describe('AccountHeader', () => {
                         ],
                     },
                     isLoading: false,
+                    isFetching: false,
                     error: null,
                     refetch: jest.fn(),
                 });
@@ -699,6 +709,7 @@ describe('AccountHeader', () => {
                         ],
                     },
                     isLoading: false,
+                    isFetching: false,
                     error: null,
                     refetch: jest.fn(),
                 });
@@ -733,6 +744,7 @@ describe('AccountHeader', () => {
                         ],
                     },
                     isLoading: false,
+                    isFetching: false,
                     error: null,
                     refetch: jest.fn(),
                 });
@@ -797,6 +809,7 @@ describe('AccountHeader', () => {
                         ],
                     },
                     isLoading: false,
+                    isFetching: false,
                     error: null,
                     refetch: jest.fn(),
                 });
@@ -832,6 +845,7 @@ describe('AccountHeader', () => {
                 mockUseDerivativesAccount.mockReturnValue({
                     data: { data: [] },
                     isLoading: true,
+                    isFetching: false,
                     error: null,
                     refetch: jest.fn(),
                 });
@@ -845,6 +859,7 @@ describe('AccountHeader', () => {
                 mockUseDerivativesAccount.mockReturnValue({
                     data: { data: [] },
                     isLoading: true,
+                    isFetching: false,
                     error: null,
                     refetch: jest.fn(),
                 });
@@ -871,6 +886,7 @@ describe('AccountHeader', () => {
                         ],
                     },
                     isLoading: false,
+                    isFetching: false,
                     error: null,
                     refetch: jest.fn(),
                 });
@@ -905,6 +921,66 @@ describe('AccountHeader', () => {
 
                 expect(screen.queryByTestId('dt_skeleton')).not.toBeInTheDocument();
                 expect(screen.getByText('Real account')).toBeInTheDocument();
+            });
+        });
+
+        describe('Refetch on open', () => {
+            it('should call refetch exactly once when the dropdown is opened', async () => {
+                renderComponent();
+
+                await userEvent.click(screen.getByText('Real account'));
+
+                expect(mockRefetch).toHaveBeenCalledTimes(1);
+            });
+
+            it('should not call refetch again when the dropdown is closed', async () => {
+                renderComponent();
+
+                await userEvent.click(screen.getByText('Real account'));
+                await userEvent.click(screen.getByText('Real account'));
+
+                expect(mockRefetch).toHaveBeenCalledTimes(1);
+            });
+
+            it('should not put AccountSwitcher into a loading state while a refetch is in flight', () => {
+                mockUseDerivativesAccount.mockReturnValue({
+                    data: {
+                        data: [
+                            { account_id: 'CR123', account_type: 'real', balance: '10000.00', currency: 'USD' },
+                            { account_id: 'VRTC456', account_type: 'demo', balance: '5000.00', currency: 'USD' },
+                        ],
+                    },
+                    isLoading: false,
+                    isFetching: true,
+                    error: null,
+                    refetch: mockRefetch,
+                });
+
+                renderComponent();
+
+                // The open-triggered refetch must stay invisible - the cached list keeps rendering.
+                const lastCallProps = (AccountSwitcherMock as unknown as jest.Mock).mock.calls.at(-1)?.[0];
+                expect(lastCallProps).toMatchObject({ is_loading: false });
+            });
+
+            it('should not skeleton the header trigger while only isFetching is true', () => {
+                mockUseDerivativesAccount.mockReturnValue({
+                    data: {
+                        data: [
+                            { account_id: 'CR123', account_type: 'real', balance: '10000.00', currency: 'USD' },
+                            { account_id: 'VRTC456', account_type: 'demo', balance: '5000.00', currency: 'USD' },
+                        ],
+                    },
+                    isLoading: false,
+                    isFetching: true,
+                    error: null,
+                    refetch: mockRefetch,
+                });
+
+                renderComponent();
+
+                expect(screen.getByText('10,000.00 USD')).toBeInTheDocument();
+                expect(screen.queryByTestId('dt_skeleton')).not.toBeInTheDocument();
             });
         });
     });

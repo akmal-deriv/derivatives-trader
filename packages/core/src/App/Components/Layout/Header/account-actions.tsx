@@ -99,6 +99,7 @@ const AccountActionsComponent = observer(() => {
         return (
             <div
                 id='dt_core_header_acc-info-container'
+                data-testid='dt_core_header_acc-info-container'
                 className={classNames('acc-info__container', {
                     'acc-info__container--logged-out': !is_logged_in,
                 })}
@@ -113,6 +114,7 @@ const AccountActionsComponent = observer(() => {
     return (
         <div
             id='dt_core_header_acc-info-container'
+            data-testid='dt_core_header_acc-info-container'
             className={classNames('acc-info__container', {
                 'acc-info__container--loading': shouldShowLoader,
             })}

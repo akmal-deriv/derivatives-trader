@@ -68,6 +68,15 @@ describe('useIsEuAccount', () => {
         expect(result.current).toEqual({ is_eu: false, is_ready: true });
     });
 
+    it('keeps is_eu=true when a refetch fails but the cached account data is still present', () => {
+        // React Query retains `data` and sets status='error' when a *refetch* fails. The account
+        // switcher refetches on every open, so this state is reachable mid-session; the cached
+        // group must win, or an EU account silently gets the non-EU UI.
+        mockAccounts([{ account_id: DEFAULT_LOGINID, group: EU_GROUP }], { isError: true });
+        const { result } = renderHook(() => useIsEuAccount());
+        expect(result.current).toEqual({ is_eu: true, is_ready: true });
+    });
+
     it('returns is_eu=false when the current account is not present in the response', () => {
         mockAccounts([{ account_id: 'SOMEONE_ELSE', group: EU_GROUP }]);
         const { result } = renderHook(() => useIsEuAccount());

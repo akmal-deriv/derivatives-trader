@@ -81,6 +81,8 @@ const AccountHeader = observer(
         }, [is_dropdown_open]);
 
         const toggleDropdown = () => {
+            // Refetch on the closed -> open transition only, so the account list is never stale
+            if (!is_dropdown_open) refetch();
             setIsDropdownOpen(!is_dropdown_open);
         };
 
