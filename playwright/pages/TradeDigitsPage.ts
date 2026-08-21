@@ -75,11 +75,20 @@ export abstract class TradeDigitsPage extends TradeParametersPage {
     }
 
     /**
-     * "Save" button inside the mobile Last digit prediction action sheet.
-     * Source: last-digit-prediction.tsx ActionSheet.Footer primaryAction "Save".
+     * Mobile Last digit prediction action sheet. Save/Close live in ActionSheet.Header.
+     * Source: last-digit-prediction.tsx
+     */
+    get digitPredictionSheet(): Locator {
+        return this.page
+            .locator('.quill-action-sheet--root')
+            .filter({ has: this.page.locator('.last-digit-prediction__selector') });
+    }
+
+    /**
+     * Save button in the mobile Last digit prediction action sheet header.
      */
     get digitSheetSaveButton(): Locator {
-        return this.page.locator('.quill-action-sheet--footer').getByRole('button', { name: 'Save' });
+        return this.actionSheetSaveButton(this.digitPredictionSheet);
     }
 
     /**
@@ -124,17 +133,22 @@ export abstract class TradeDigitsPage extends TradeParametersPage {
      * Hours) — the base `selectDuration()` cannot be reused because it always tries to click a unit
      * tab first. The picker itself also differs by viewport:
      * - Desktop: preset value chips (value-chips.tsx), matching `durationChip()`.
-     * - Mobile: a scroll-snap WheelPicker (duration-wheel-picker.tsx, `dt_duration_ticks_wheel`) with
-     *   no Save button — selecting a value commits immediately, so the sheet is dismissed via the
-     *   ActionSheet's backdrop overlay instead.
+     * - Mobile: scroll-snap WheelPicker (`dt_duration_ticks_wheel`); commit via header Save
+     *   (duration.tsx — dismiss no longer commits).
      *
      * @param value - Ticks value as rendered (e.g. '10 ticks', '1 tick')
      */
     async selectTicksDuration(value: string): Promise<void> {
+        const displayRegex = new RegExp(`^${value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`);
+        if (displayRegex.test((await this.durationField.inputValue()).trim())) {
+            return;
+        }
         await this.durationField.click();
         if (this.isMobile) {
             await this.selectWheelPickerOption('[data-testid="dt_duration_ticks_wheel"]', value);
-            await this.actionSheetOverlay.click();
+            await expect(this.durationContainer, 'Duration sheet should be open on mobile').toBeVisible();
+            await this.saveMobileSheet(this.durationContainer);
+            await expect(this.durationContainer, 'Duration sheet should close after Save').not.toBeVisible();
         } else {
             await this.durationChip(value).click();
         }
@@ -147,14 +161,19 @@ export abstract class TradeDigitsPage extends TradeParametersPage {
      * Select the last-digit prediction.
      * - Desktop: clicks the digit in the inline grid and asserts it becomes active.
      * - Mobile: opens the action sheet, clicks the digit, taps Save, and asserts the field value.
+     *   Save stays disabled when the draft matches the committed digit (last-digit-prediction.tsx),
+     *   so skip opening the sheet when the field already shows the target digit.
      *
      * @param digit - Digit label "0"–"9"
      */
     async selectDigit(digit: string): Promise<void> {
         if (this.isMobile) {
+            if ((await this.digitPredictionField.inputValue()).trim() === digit) {
+                return;
+            }
             await this.digitPredictionField.click();
             await this.digitButton(digit).click();
-            await this.digitSheetSaveButton.click();
+            await this.saveMobileSheet(this.digitPredictionSheet);
             await expect(
                 this.digitPredictionField,
                 `Last digit prediction field should show "${digit}" after saving`

@@ -52,11 +52,20 @@ export class TradeAutomationPage extends TradeParametersPage {
     }
 
     /**
+     * Mobile Strategy selector action sheet (while open).
+     */
+    get strategySheet(): Locator {
+        return this.page.locator('.quill-action-sheet--root:visible').filter({
+            has: this.page.locator('.automation-popover__content'),
+        });
+    }
+
+    /**
      * A strategy option inside the open Strategy selector. The two viewports render options with
      * different anchors, so branch on `isMobile`:
      * - Desktop: `SelectionListPopover` renders each option as `<button role="option">{label}</button>`.
      * - Mobile: the ActionSheet renders each option as `<button class="automation-popover__option">{label}</button>`
-     *   with no `option` role.
+     *   with no `option` role — selection is a draft until header Save commits it.
      * Source: TradeParameters/Shared/SelectionListPopover.tsx · StrategySelector/strategy-selector-mobile.tsx.
      *
      * @param label - The strategy display label, e.g. `'Martingale'` or `"D'Alembert"`.
@@ -64,8 +73,34 @@ export class TradeAutomationPage extends TradeParametersPage {
      */
     strategyOption(label: string): Locator {
         return this.isMobile
-            ? this.page.locator('.automation-popover__option', { hasText: label })
+            ? this.strategySheet.locator('.automation-popover__option', { hasText: label })
             : this.page.getByRole('option', { name: label });
+    }
+
+    /**
+     * ActionSheet header titles for automation numeric-input editors (mobile).
+     * Source: StakeMultiplier/stake-multiplier-mobile.tsx, ThresholdInput/threshold-input-mobile.tsx,
+     * MaxTradeStake/max-trade-stake-mobile.tsx.
+     */
+    private automationInputSheet(
+        title: 'Stake increment' | 'Stake multiplier' | 'Loss threshold' | 'Profit threshold' | 'Max. stake'
+    ): Locator {
+        return this.page.locator('.quill-action-sheet--root:visible').filter({
+            has: this.page.locator('.action-sheet-header-title', { hasText: title }),
+        });
+    }
+
+    /**
+     * Numeric input inside an open automation input sheet or desktop popover.
+     *
+     * @param sheetTitle - Mobile ActionSheet header title; ignored on desktop.
+     */
+    private automationInputField(
+        sheetTitle: 'Stake increment' | 'Stake multiplier' | 'Loss threshold' | 'Profit threshold' | 'Max. stake'
+    ): Locator {
+        return this.isMobile
+            ? this.automationInputSheet(sheetTitle).locator('.automation-popover__input-wrapper input')
+            : this.page.locator('.automation-popover:visible .automation-popover__input-wrapper input');
     }
 
     /**
@@ -88,8 +123,10 @@ export class TradeAutomationPage extends TradeParametersPage {
      * @param value - The preset numeric value to pick, e.g. `3`.
      * @returns Locator for that chip button.
      */
-    valueChip(value: number): Locator {
-        return this.page.getByRole('button', { name: `Select value ${value}`, exact: true });
+    valueChip(value: number, sheetTitle: 'Stake increment' | 'Stake multiplier' = 'Stake increment'): Locator {
+        return this.isMobile
+            ? this.automationInputSheet(sheetTitle).getByRole('button', { name: `Select value ${value}`, exact: true })
+            : this.page.getByRole('button', { name: `Select value ${value}`, exact: true });
     }
 
     /**
@@ -156,24 +193,11 @@ export class TradeAutomationPage extends TradeParametersPage {
     }
 
     /**
-     * Numeric input inside whichever threshold popover/action-sheet is currently open. Both
-     * viewports wrap it in `.automation-popover__input-wrapper` (source: threshold-input-*.tsx),
-     * and only one editor is open at a time, so a single selector serves both threshold fields.
+     * Save button that commits an automation input value on desktop popovers.
+     * Mobile callers should use `actionSheetSaveButton(automationInputSheet(title))`.
      */
-    get thresholdInput(): Locator {
-        return this.page.locator('.automation-popover__input-wrapper input');
-    }
-
-    /**
-     * Save button that commits a threshold value (shared by both threshold editors).
-     * - Desktop: `.automation-popover__save-button` (threshold-input-desktop.tsx).
-     * - Mobile: the ActionSheet footer "Save" button (threshold-input-mobile.tsx `ActionSheet.Footer`),
-     *   matching the barrier action-sheet pattern in `TradeParametersPage`.
-     */
-    get thresholdSaveButton(): Locator {
-        return this.isMobile
-            ? this.page.locator('.quill-action-sheet--footer').getByRole('button', { name: 'Save' })
-            : this.page.locator('.automation-popover__save-button');
+    get automationPopoverSaveButton(): Locator {
+        return this.page.locator('.automation-popover__save-button');
     }
 
     // ============================================
@@ -273,6 +297,9 @@ export class TradeAutomationPage extends TradeParametersPage {
      * @returns Promise that resolves once the Strategy field shows the selected label.
      */
     async selectStrategy(label: string): Promise<void> {
+        if ((await this.strategyField.inputValue()).trim() === label) {
+            return;
+        }
         await this.strategyField.click();
         await expect(
             this.strategyOption('Martingale'),
@@ -283,6 +310,14 @@ export class TradeAutomationPage extends TradeParametersPage {
             "D'Alembert should be offered in the strategy selector"
         ).toBeVisible();
         await this.strategyOption(label).click();
+        if (this.isMobile) {
+            await expect(
+                this.actionSheetSaveButton(this.strategySheet),
+                'Strategy Save should enable after choosing a different strategy'
+            ).toBeEnabled();
+            await this.saveMobileSheet(this.strategySheet);
+            await expect(this.strategySheet, 'Strategy sheet should close after Save').not.toBeVisible();
+        }
         await expect(this.strategyField, `Strategy field should show '${label}' after selection`).toHaveValue(label);
     }
 
@@ -294,12 +329,25 @@ export class TradeAutomationPage extends TradeParametersPage {
      * @returns Promise that resolves once the Stake increment field reflects the value.
      */
     async setStakeIncrement(value: number): Promise<void> {
+        const expectedRegex = new RegExp(`^${value}\\b`);
+        if (expectedRegex.test((await this.stakeIncrementField.inputValue()).trim())) {
+            return;
+        }
         await this.stakeIncrementField.click();
-        await this.valueChip(value).click();
+        const sheet = this.automationInputSheet('Stake increment');
+        await this.valueChip(value, 'Stake increment').click();
+        if (this.isMobile) {
+            await expect(
+                this.actionSheetSaveButton(sheet),
+                'Stake increment Save should enable after selecting a preset'
+            ).toBeEnabled();
+            await this.saveMobileSheet(sheet);
+            await expect(sheet, 'Stake increment sheet should close after Save').not.toBeVisible();
+        }
         await expect(
             this.stakeIncrementField,
             `Stake increment field should reflect '${value}' after selecting the chip`
-        ).toHaveValue(new RegExp(`^${value}\\b`));
+        ).toHaveValue(expectedRegex);
     }
 
     /**
@@ -310,15 +358,33 @@ export class TradeAutomationPage extends TradeParametersPage {
      * @param amount - Threshold in the account currency as a string.
      * @returns Promise that resolves once the field shows the saved value.
      */
-    private async setThreshold(field: Locator, amount: string): Promise<void> {
+    private async setThreshold(
+        field: Locator,
+        amount: string,
+        sheetTitle: 'Loss threshold' | 'Profit threshold'
+    ): Promise<void> {
+        const amountRegex = new RegExp(`^${amount.replace(/\./g, '\\.')}\\b`);
+        if (amountRegex.test((await field.inputValue()).trim())) {
+            return;
+        }
+        const sheet = this.automationInputSheet(sheetTitle);
+        const input = this.automationInputField(sheetTitle);
         await field.click();
-        await expect(this.thresholdInput, 'Threshold input should be visible after opening the field').toBeVisible();
-        await this.thresholdInput.fill(amount);
-        await this.thresholdSaveButton.click();
-        await expect(field, `Threshold field should reflect '${amount}' after saving`).toHaveValue(
-            // Escape every '.' (not just the first) so the literal amount is matched, not "any char".
-            new RegExp(`^${amount.replace(/\./g, '\\.')}\\b`)
-        );
+        await expect(input, 'Threshold input should be visible after opening the field').toBeVisible();
+        await input.fill(amount);
+        if (this.isMobile) {
+            await expect(async () => {
+                await expect(
+                    this.actionSheetSaveButton(sheet),
+                    'Threshold Save should enable after editing the draft'
+                ).toBeEnabled({ timeout: 2_000 });
+                await this.saveMobileSheet(sheet);
+            }).toPass({ timeout: 20_000 });
+            await expect(sheet, 'Threshold sheet should close after Save').not.toBeVisible();
+        } else {
+            await this.automationPopoverSaveButton.click();
+        }
+        await expect(field, `Threshold field should reflect '${amount}' after saving`).toHaveValue(amountRegex);
     }
 
     /**
@@ -329,7 +395,7 @@ export class TradeAutomationPage extends TradeParametersPage {
      * @returns Promise that resolves once the field shows the saved value.
      */
     async setLossThreshold(amount: string): Promise<void> {
-        await this.setThreshold(this.lossThresholdField, amount);
+        await this.setThreshold(this.lossThresholdField, amount, 'Loss threshold');
     }
 
     /**
@@ -342,7 +408,7 @@ export class TradeAutomationPage extends TradeParametersPage {
      * @returns Promise that resolves once the field shows the saved value.
      */
     async setProfitThreshold(amount: string): Promise<void> {
-        await this.setThreshold(this.profitThresholdField, amount);
+        await this.setThreshold(this.profitThresholdField, amount, 'Profit threshold');
     }
 
     // ============================================

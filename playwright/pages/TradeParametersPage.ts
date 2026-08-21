@@ -153,12 +153,19 @@ export class TradeParametersPage extends TradeBasePage {
     }
 
     /**
+     * Mobile take-profit action sheet (while open).
+     */
+    get takeProfitSheet(): Locator {
+        return this.page.locator('.quill-action-sheet--root').filter({ has: this.page.getByTestId('dt_tp_input') });
+    }
+
+    /**
      * Save button in the take-profit popover/action-sheet — viewport-aware.
-     * Desktop: `.take-profit-input-desktop__save-button`. Mobile: action-sheet footer "Save".
+     * Desktop: `.take-profit-input-desktop__save-button`. Mobile: ActionSheet.Header Save.
      */
     get takeProfitSaveButton(): Locator {
         return this.isMobile
-            ? this.page.locator('.quill-action-sheet--footer').getByRole('button', { name: 'Save' })
+            ? this.actionSheetSaveButton(this.takeProfitSheet)
             : this.page.locator('.take-profit-input-desktop__save-button');
     }
 
@@ -320,13 +327,19 @@ export class TradeParametersPage extends TradeBasePage {
 
     /**
      * Backdrop overlay behind a `type="modal"` (the default) Quill ActionSheet — mobile only.
-     * Clicking it calls the sheet's `onClose` (unless `disableCloseOnOverlay` is set), same as a
-     * real tap outside the sheet. Used to dismiss sheets that commit on selection with no Save
-     * button (e.g. the Ticks-only duration WheelPicker).
+     * Dismisses without committing; trade-param sheets now commit via the header Save action instead.
      * Source: @deriv-com/quill-ui ActionSheet.Portal — data-testid="dt-actionsheet-overlay".
      */
     get actionSheetOverlay(): Locator {
         return this.page.getByTestId('dt-actionsheet-overlay');
+    }
+
+    /**
+     * Mobile duration action sheet root (duration.tsx / container.tsx).
+     * Header Save commits the wheel selection; dismiss (X/overlay/drag) discards drafts.
+     */
+    get durationContainer(): Locator {
+        return this.page.locator('.duration-container');
     }
 
     /**
@@ -426,12 +439,12 @@ export class TradeParametersPage extends TradeBasePage {
     /**
      * Barrier type selector inside the popover/action-sheet.
      * Desktop: role="tab" buttons inside .barrier-popover__sidebar (VerticalTabSelector)
-     * Mobile: role="tab" buttons inside .barrier-params__tabs (horizontal-tab-selector)
+     * Mobile: role="tab" buttons inside the open barrier action sheet (HorizontalTabSelector)
      * Source: barrier-type-selector.tsx (desktop), barrier-input.tsx (mobile)
      */
     barrierTypeTab(type: 'Above spot' | 'Below spot' | 'Fixed barrier'): Locator {
         return this.isMobile
-            ? this.page.locator('.barrier-params__tabs').getByRole('tab', { name: type, exact: true })
+            ? this.barrierSheet.getByRole('tab', { name: type, exact: true })
             : this.page.locator('.barrier-popover__sidebar').getByRole('tab', { name: type });
     }
 
@@ -445,14 +458,19 @@ export class TradeParametersPage extends TradeBasePage {
     }
 
     /**
+     * Mobile barrier action sheet (while open).
+     */
+    get barrierSheet(): Locator {
+        return this.page.locator('.quill-action-sheet--root:has(.barrier-params)');
+    }
+
+    /**
      * Save button inside the barrier popover/action-sheet.
-     * Desktop: .barrier-content__save-button (.quill__color--secondary-black-white)
-     * Mobile: .quill-action-sheet--footer primary button (.quill__color--primary-black-white)
-     * Source: barrier-content-desktop.tsx + barrier-input.tsx
+     * Desktop: .barrier-content__save-button. Mobile: ActionSheet.Header Save.
      */
     get barrierSaveButton(): Locator {
         return this.isMobile
-            ? this.page.locator('.quill-action-sheet--footer').getByRole('button', { name: 'Save' })
+            ? this.actionSheetSaveButton(this.barrierSheet)
             : this.page.locator('.barrier-content__save-button');
     }
 
@@ -485,7 +503,7 @@ export class TradeParametersPage extends TradeBasePage {
      */
     get stakeSaveButton(): Locator {
         return this.isMobile
-            ? this.stakeContainer.getByRole('button', { name: 'Save' })
+            ? this.actionSheetSaveButton(this.stakeContainer)
             : this.page.getByRole('button', { name: 'Save' });
     }
 
@@ -644,43 +662,61 @@ export class TradeParametersPage extends TradeBasePage {
     ): Promise<void> {
         const { openInNewTab = false } = options;
 
-        if (openInNewTab) {
-            await this.marketSelectionPage.addMarketButton.click();
+        const activeTabText = await this.activeMarketTab.textContent();
+        const isAlreadySelected =
+            activeTabText?.includes(market) === true && activeTabText?.includes(tradeType) === true;
+
+        if (isAlreadySelected) {
+            // Defensive: a stray picker overlay from a previous action may still be open even though
+            // the market/trade-type tab already matches.
+            await this.marketSelectionPage.closeMarketSelectionPicker();
         } else {
-            await this.activeMarketTab.click();
-        }
-        await expect(
-            this.marketSelectionPage.marketSelectionPanel,
-            'Market-selection picker should be visible after opening'
-        ).toBeVisible();
+            if (openInNewTab) {
+                await this.marketSelectionPage.addMarketButton.click();
+            } else {
+                // Clicking the already-active tab opens the picker in replace mode — skip when unchanged.
+                await this.activeMarketTab.click();
+            }
+            await expect(
+                this.marketSelectionPage.marketSelectionPanel,
+                'Market-selection picker should be visible after opening'
+            ).toBeVisible();
 
-        if (this.isMobile) {
-            await this.marketSelectionPage.marketSelectionSearchButton.click();
-        }
-        await this.marketSelectionPage.marketSearchInput.fill(market);
-        // Vanillas (and other late-ordered types) sit below the fold in the grouped search list.
-        // Wait for that trade-type group to land (per-type symbol fetches resolve independently),
-        // then scroll it into the list's overflow container before clicking the row.
-        const searchGroup = this.marketSelectionPage.marketSearchResultsGroup(tradeType);
-        await expect(
-            searchGroup,
-            `Search results should include the '${tradeType}' group for '${market}'`
-        ).toBeAttached();
-        await searchGroup.evaluate(el => el.scrollIntoView({ block: 'center' }));
-        await this.marketSelectionPage.marketSearchResultRow(market, tradeType).click();
+            if (this.isMobile) {
+                await this.marketSelectionPage.marketSelectionSearchButton.click();
+            }
+            await this.marketSelectionPage.marketSearchInput.fill(market);
+            // Vanillas (and other late-ordered types) sit below the fold in the grouped search list.
+            // Wait for that trade-type group to land (per-type symbol fetches resolve independently),
+            // then scroll it into the list's overflow container before clicking the row.
+            const searchGroup = this.marketSelectionPage.marketSearchResultsGroup(tradeType);
+            await expect(
+                searchGroup,
+                `Search results should include the '${tradeType}' group for '${market}'`
+            ).toBeAttached();
+            await searchGroup.evaluate(el => el.scrollIntoView({ block: 'center' }));
+            await this.marketSelectionPage.marketSearchResultRow(market, tradeType).click();
 
-        await expect(
-            this.marketSelectionPage.marketSelectionPanel,
-            'Market-selection picker should close after selecting a market'
-        ).not.toBeAttached();
-        await expect(
-            this.activeMarketTab,
-            `Active market tab should reflect trade type '${tradeType}' after selection`
-        ).toContainText(tradeType);
-        await expect(
-            this.activeMarketTab,
-            `Active market tab should reflect market '${market}' after selection`
-        ).toContainText(market);
+            await expect(
+                this.marketSelectionPage.marketSelectionPanel,
+                'Market-selection picker should close after selecting a market'
+            ).not.toBeAttached();
+            await this.marketSelectionPage.closeMarketSelectionPicker();
+            if (!this.isMobile) {
+                await expect(
+                    this.marketSelectionPage.marketSelectionOverlay,
+                    'Market-selection overlay should be gone before continuing'
+                ).toHaveCount(0);
+            }
+            await expect(
+                this.activeMarketTab,
+                `Active market tab should reflect trade type '${tradeType}' after selection`
+            ).toContainText(tradeType);
+            await expect(
+                this.activeMarketTab,
+                `Active market tab should reflect market '${market}' after selection`
+            ).toContainText(market);
+        }
 
         await this.verifyParamsForTradeType(tradeType);
     }
@@ -711,10 +747,16 @@ export class TradeParametersPage extends TradeBasePage {
      * ```
      */
     async selectDuration(unit: string, formattedValue: string): Promise<void> {
-        await this.durationField.click();
-        await this.durationUnitTab(unit).click();
+        const unitLower = unit.toLowerCase();
 
-        if (unit.toLowerCase() === 'end time') {
+        if (unitLower === 'end time') {
+            const currentDuration = (await this.durationField.inputValue()).trim();
+            if (currentDuration === formattedValue) {
+                return;
+            }
+            await this.durationField.click();
+            await this.durationUnitTab(unit).click();
+
             // formattedValue format: "DD Mon YYYY HH:mm" (e.g. "25 Jun 2026 14:30")
             const endTimeMatch = formattedValue.match(/^(\d{1,2}) (\w+ \d{4}) (\d{2}):(\d{2})$/);
             if (!endTimeMatch) {
@@ -735,11 +777,10 @@ export class TradeParametersPage extends TradeBasePage {
             return;
         }
 
-        const unitLower = unit.toLowerCase();
         const isMobileTimeUnit = this.isMobile && ['seconds', 'minutes', 'hours'].includes(unitLower);
         const mobileTimeComponents = isMobileTimeUnit ? this.parseTimeComponents(unit, formattedValue) : undefined;
 
-        // Expected displayed value, computed once and reused by the Save retry and the final assertion.
+        // Expected displayed value, computed once and reused by the skip check, Save retry, and final assertion.
         // Mobile expands abbreviations to full words (e.g. "15 min" → "15 minutes") EXCEPT once the
         // combined hr/min/sec value includes an hour component, where the field switches to a zero-padded
         // clock format instead (e.g. "1 hr" → "01:00:00", "1h 30m" → "01:30:00") — see duration.tsx
@@ -755,6 +796,13 @@ export class TradeParametersPage extends TradeBasePage {
                   ? this.expandDurationForDisplay(formattedValue)
                   : formattedValue;
         const displayRegex = new RegExp(`^${displayValue.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`);
+
+        if (displayRegex.test((await this.durationField.inputValue()).trim())) {
+            return;
+        }
+
+        await this.durationField.click();
+        await this.durationUnitTab(unit).click();
 
         if (this.isMobile) {
             if (unitLower === 'ticks') {
@@ -789,8 +837,9 @@ export class TradeParametersPage extends TradeBasePage {
                     );
                 }
             }
-            // Both wheels commit on scroll with no Save button — dismiss via the sheet's backdrop.
-            await this.actionSheetOverlay.click();
+            await expect(this.durationContainer, 'Duration sheet should be open on mobile').toBeVisible();
+            await this.saveMobileSheet(this.durationContainer);
+            await expect(this.durationContainer, 'Duration sheet should close after Save').not.toBeVisible();
         } else {
             const chip = this.durationChip(formattedValue);
             if (await chip.isVisible()) {
@@ -825,6 +874,23 @@ export class TradeParametersPage extends TradeBasePage {
         await expect(this.durationField, `Duration field should show '${displayValue}' after selection`).toHaveValue(
             displayRegex
         );
+    }
+
+    /**
+     * Quill ActionSheet.Header Save — `dt-actionsheet-header-save-action` (scoped to the open sheet).
+     */
+    protected actionSheetSaveButton(sheet: Locator): Locator {
+        return sheet.getByTestId('dt-actionsheet-header-save-action');
+    }
+
+    /**
+     * Tap header Save on an open mobile ActionSheet. Call only after the draft value has changed —
+     * Save stays disabled while it matches the committed value (duration.tsx, strike.tsx, etc.).
+     */
+    protected async saveMobileSheet(sheet: Locator): Promise<void> {
+        const saveButton = this.actionSheetSaveButton(sheet);
+        await expect(saveButton, 'Action sheet Save should be enabled before committing').toBeEnabled();
+        await saveButton.click();
     }
 
     /**
@@ -927,14 +993,13 @@ export class TradeParametersPage extends TradeBasePage {
                 await this.stakePopoverInput.click();
                 await this.stakePopoverInput.clear();
                 await this.stakePopoverInput.pressSequentially(amount, { delay: 70 });
-                await expect(this.stakePopoverInput, `Stake input should show '${amount}'`).toHaveValue(amount, {
-                    timeout: 3_000,
-                });
+                await expect(this.stakePopoverInput, `Stake input should show '${amount}'`).toHaveValue(amount);
                 await expect(
                     this.stakeSaveButton,
                     'Stake save button should be enabled — confirms proposal validated'
-                ).toBeEnabled({ timeout: 3_000 });
+                ).toBeEnabled();
             }).toPass({ timeout: 20_000 });
+
             await this.stakeSaveButton.click();
             if (this.isMobile) {
                 await expect(this.stakeContainer, 'Stake action sheet should dismiss after saving').not.toBeVisible();
@@ -1119,24 +1184,52 @@ export class TradeParametersPage extends TradeBasePage {
      * value may differ from the input (especially on fast-ticking 1s indices, e.g. "5.11" → "+4.15").
      * Assert the sign/format the type implies, then return the accepted offset so callers can verify
      * the contract's barrier price against what the app actually used rather than the hardcoded input.
+     * Skips opening the editor when the field already shows the target offset (and type, if given).
      *
      * @param value - Numeric string without sign prefix, e.g. '3.51'
      * @param type  - Barrier type to select before typing. Omit to keep the current type.
      * @returns The barrier offset the app accepted, unsigned (e.g. '4.15').
      */
     async setBarrier(value: string, type?: 'Above spot' | 'Below spot' | 'Fixed barrier'): Promise<string> {
-        await this.barrierField.click();
-        if (type) {
-            await this.barrierTypeTab(type).click();
-            await expect(this.barrierTypeTab(type), `Barrier type "${type}" should be selected`).toHaveAttribute(
-                'aria-selected',
-                'true'
-            );
+        const fieldInput = this.barrierField.locator('input');
+        const current = (await fieldInput.inputValue()).trim();
+        const unsignedCurrent = current.replace(/^[+-]/, '');
+        if (unsignedCurrent === value && this.isBarrierCommittedAs(current, type)) {
+            return unsignedCurrent;
         }
-        await this.barrierInput.clear();
-        await this.barrierInput.fill(value);
-        await expect(this.barrierInput, `Barrier input should contain "${value}" before saving`).toHaveValue(value);
-        await this.barrierSaveButton.click();
+
+        await this.barrierField.click();
+        if (this.isMobile) {
+            await expect(this.barrierSheet, 'Barrier action sheet should open').toBeVisible();
+        }
+        if (type) {
+            const tab = this.barrierTypeTab(type);
+            if (this.isMobile) {
+                await expect(tab, `Barrier type tab "${type}" should be visible`).toBeVisible();
+                if ((await tab.getAttribute('aria-selected')) !== 'true') {
+                    await tab.click();
+                }
+            } else {
+                await tab.click();
+            }
+            await expect(tab, `Barrier type "${type}" should be selected`).toHaveAttribute('aria-selected', 'true');
+        }
+        const input = this.isMobile ? this.barrierSheet.locator('input[name="barrier_1"]') : this.barrierInput;
+        await input.clear();
+        await input.fill(value);
+        await expect(input, `Barrier input should contain "${value}" before saving`).toHaveValue(value);
+        if (this.isMobile) {
+            await expect(async () => {
+                await expect(
+                    this.barrierSaveButton,
+                    'Barrier Save should enable after proposal validates the draft'
+                ).toBeEnabled();
+                await this.saveMobileSheet(this.barrierSheet);
+            }).toPass({ timeout: 20_000 });
+            await expect(this.barrierSheet, 'Barrier sheet should close after Save').not.toBeVisible();
+        } else {
+            await this.barrierSaveButton.click();
+        }
         // The app snaps the barrier to the nearest market-valid offset, so the saved value can differ
         // from the input. Assert the sign/format the type implies, then return the accepted offset.
         const savedInput = this.barrierField.locator('input');
@@ -1149,6 +1242,23 @@ export class TradeParametersPage extends TradeBasePage {
         ).toHaveValue(new RegExp(`^${signPattern}\\d+(\\.\\d+)?$`));
         const acceptedValue = (await savedInput.inputValue()).trim();
         return acceptedValue.replace(/^[+-]/, '');
+    }
+
+    /**
+     * Whether the committed barrier field already reflects `value` and, when provided, `type`.
+     * Save stays disabled while the draft matches the committed barrier — skip opening the sheet.
+     */
+    private isBarrierCommittedAs(current: string, type?: 'Above spot' | 'Below spot' | 'Fixed barrier'): boolean {
+        if (!type) {
+            return true;
+        }
+        if (type === 'Above spot') {
+            return current.startsWith('+');
+        }
+        if (type === 'Below spot') {
+            return current.startsWith('-');
+        }
+        return !/^[+-]/.test(current);
     }
 
     // ============================================

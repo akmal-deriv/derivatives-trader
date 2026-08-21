@@ -42,7 +42,7 @@ test.describe('Trade — Matches/Differs', { tag: ['@desktop', '@mobile', '@trad
             durationValue: '10 ticks',
             stake: '10.00',
             currency: 'USD',
-            digit: '5',
+            digit: '2',
         });
     });
 
@@ -53,7 +53,7 @@ test.describe('Trade — Matches/Differs', { tag: ['@desktop', '@mobile', '@trad
             durationValue: '10 ticks',
             stake: '10.00',
             currency: 'USD',
-            digit: '5',
+            digit: '4',
         });
     });
 
@@ -69,7 +69,7 @@ test.describe('Trade — Matches/Differs', { tag: ['@desktop', '@mobile', '@trad
             durationValue: '10 ticks',
             stake: '10.00',
             currency: 'USD',
-            digit: '5',
+            digit: '6',
         });
     });
 
@@ -80,7 +80,7 @@ test.describe('Trade — Matches/Differs', { tag: ['@desktop', '@mobile', '@trad
             durationValue: '10 ticks',
             stake: '10.00',
             currency: 'USD',
-            digit: '5',
+            digit: '8',
         });
     });
 });

@@ -43,7 +43,7 @@ test.describe('Trade — Over/Under', { tag: ['@desktop', '@mobile', '@trade'] }
             durationValue: '10 ticks',
             stake: '10.00',
             currency: 'USD',
-            digit: '5',
+            digit: '1',
         });
     });
 
@@ -54,7 +54,7 @@ test.describe('Trade — Over/Under', { tag: ['@desktop', '@mobile', '@trade'] }
             durationValue: '10 ticks',
             stake: '10.00',
             currency: 'USD',
-            digit: '5',
+            digit: '3',
         });
     });
 
@@ -70,7 +70,7 @@ test.describe('Trade — Over/Under', { tag: ['@desktop', '@mobile', '@trade'] }
             durationValue: '10 ticks',
             stake: '10.00',
             currency: 'USD',
-            digit: '5',
+            digit: '9',
         });
     });
 
@@ -81,7 +81,7 @@ test.describe('Trade — Over/Under', { tag: ['@desktop', '@mobile', '@trade'] }
             durationValue: '10 ticks',
             stake: '10.00',
             currency: 'USD',
-            digit: '5',
+            digit: '7',
         });
     });
 });

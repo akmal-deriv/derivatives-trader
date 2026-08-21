@@ -64,10 +64,18 @@ export class TradeVanillasPage extends TradeParametersPage {
     }
 
     /**
-     * Save button in the mobile Strike action sheet footer.
+     * Open Strike action sheet (mobile). Save/Close live in ActionSheet.Header, not the footer.
+     * Source: strike.tsx ActionSheet.Header saveAction / closeAction
+     */
+    get strikeSheet(): Locator {
+        return this.page.locator('.quill-action-sheet--root:has(.strike__carousel)');
+    }
+
+    /**
+     * Save button in the mobile Strike action sheet header.
      */
     get strikeSaveButton(): Locator {
-        return this.page.locator('.quill-action-sheet--footer').getByRole('button', { name: 'Save' });
+        return this.actionSheetSaveButton(this.strikeSheet);
     }
 
     /**
@@ -123,6 +131,11 @@ export class TradeVanillasPage extends TradeParametersPage {
             this.strikePriceField,
             'Strike price field should be visible before selecting a strike'
         ).toBeVisible();
+
+        if (this.isMobile && (await this.strikePriceField.inputValue()).trim() === strike) {
+            return;
+        }
+
         await this.strikePriceField.click();
 
         if (this.isMobile) {
@@ -132,7 +145,7 @@ export class TradeVanillasPage extends TradeParametersPage {
                 this.strikePayoutPerPointLabel,
                 'Payout per point should be visible inside the mobile Strike sheet'
             ).toBeVisible();
-            await this.strikeSaveButton.click();
+            await this.saveMobileSheet(this.strikeSheet);
             await expect(this.strikeWheelWrapper, 'Strike sheet should close after Save').not.toBeVisible();
         } else {
             await expect(

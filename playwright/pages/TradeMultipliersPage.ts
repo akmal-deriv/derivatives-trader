@@ -44,7 +44,7 @@ export class TradeMultipliersPage extends TradeParametersPage {
      * Source: multiplier-desktop.tsx + multiplier.tsx
      */
     get multiplierField(): Locator {
-        return this.page.getByLabel('Multiplier').first();
+        return this.page.getByRole('textbox', { name: 'Multiplier' });
     }
 
     /**
@@ -310,16 +310,19 @@ export class TradeMultipliersPage extends TradeParametersPage {
      */
     riskManagementSaveButton(mode: 'tp_sl' | 'dc' = 'tp_sl'): Locator {
         if (this.isMobile) {
-            // Mobile TP/SL: Save button has class .risk-management__save-button, rendered inside
-            // .risk-management__tp-sl__wrapper (within the ActionSheet content — not hoisted to footer).
-            // Mobile DC: same picker container, scoped via .risk-management__picker.
-            return mode === 'dc'
-                ? this.page.locator('.risk-management__picker').getByRole('button', { name: 'Save' })
-                : this.page.locator('.risk-management__tp-sl__wrapper').getByRole('button', { name: 'Save' });
+            return this.actionSheetSaveButton(this.riskManagementSheet);
         }
         return mode === 'dc'
             ? this.page.locator('.deal-cancellation-desktop__footer').getByRole('button', { name: 'Save' })
             : this.page.locator('.risk-management-desktop__tp-sl-wrapper').getByRole('button', { name: 'Save' });
+    }
+
+    /**
+     * Mobile risk-management action sheet (while open).
+     * Source: risk-management-picker.tsx — header Save commits the active tab.
+     */
+    get riskManagementSheet(): Locator {
+        return this.page.locator('.quill-action-sheet--root:has(.risk-management__picker)');
     }
 
     /**
@@ -343,11 +346,18 @@ export class TradeMultipliersPage extends TradeParametersPage {
     }
 
     /**
-     * "Save" button inside the multiplier ActionSheet footer — mobile only.
-     * Source: multiplier-wheel-picker.tsx ActionSheet.Footer primaryAction
+     * Open Multiplier action sheet (mobile). Save/Close live in ActionSheet.Header.
+     * Source: multiplier.tsx ActionSheet.Header saveAction / closeAction
+     */
+    get multiplierSheet(): Locator {
+        return this.page.locator('.quill-action-sheet--root:has(.multiplier__wheel-picker)');
+    }
+
+    /**
+     * "Save" button in the multiplier ActionSheet header — mobile only.
      */
     get multiplierMobileSaveButton(): Locator {
-        return this.page.locator('.quill-action-sheet--footer').getByRole('button', { name: 'Save' });
+        return this.actionSheetSaveButton(this.multiplierSheet);
     }
 
     // ============================================
@@ -367,28 +377,35 @@ export class TradeMultipliersPage extends TradeParametersPage {
      * ```
      */
     async setMultiplier(value: string): Promise<void> {
-        await this.multiplierField.click();
-
         if (this.isMobile) {
+            await this.multiplierField.click();
+
             // Scroll-snap the wheel to the target value (waits for the range list to load first —
             // avoids the "option not found" race when the picker still shows its Skeleton).
             await this.selectWheelPickerOption('.multiplier__wheel-picker', value);
 
-            // Verify the field reflects the selection before saving
-            await expect(this.multiplierField, `Multiplier field should show '${value}' before saving`).toHaveValue(
-                value
-            );
-
-            await this.multiplierMobileSaveButton.click();
+            await this.saveMobileSheet(this.multiplierSheet);
             await expect(
                 this.page.locator('.multiplier__wheel-picker'),
                 'Multiplier action sheet should dismiss after saving'
             ).not.toBeVisible();
         } else {
-            await expect(
-                this.page.getByRole('listbox', { name: 'Selection options' }),
-                'Multiplier selection list should be visible after opening the popover'
-            ).toBeVisible();
+            const listbox = this.page.getByRole('listbox', { name: 'Selection options' });
+
+            // The market-selection overlay covers the trade form; dismiss it before opening the
+            // multiplier popover (otherwise the click closes the market picker or never reaches
+            // the Multiplier field).
+            await expect(async () => {
+                await this.marketSelectionPage.closeMarketSelectionPicker();
+                if (!(await listbox.isVisible())) {
+                    await this.multiplierField.click();
+                }
+                await expect(
+                    listbox,
+                    'Multiplier selection list should be visible after opening the popover'
+                ).toBeVisible();
+            }).toPass({ timeout: 15_000 });
+
             await this.multiplierOption(value).click();
         }
 

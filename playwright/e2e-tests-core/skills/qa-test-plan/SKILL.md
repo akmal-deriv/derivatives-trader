@@ -1,8 +1,8 @@
 ---
 name: qa-test-plan
 description: Given a GitHub issue in deriv-com/derivatives-trader, research the issue + its fix PR and post a reusable, GitHub-native manual QA test-plan checklist as a comment. Use when the user asks for a "test plan", "test checklist", or "checklist for testing" for a QA-tracked issue. Do NOT use for Playwright/e2e test authoring — use flow-to-playwright-dtrader / gap-to-playwright / src-to-flow instead.
-version: 1.0.0
-last_updated: 2026-08-17
+version: 1.1.0
+last_updated: 2026-08-21
 ---
 
 # QA Test Plan Generator
@@ -87,91 +87,106 @@ cat playwright/flows/<module>/catalog.md   # journey id → spec file + tags (@p
 
 ### 4. Build the plan from the diff + flows
 
-Write the plan around **what the diff actually changes**, enriched by the mapped flow's steps. Derive sections from:
+Write the plan around **what the diff actually changes**, enriched by the mapped flow when one fits. **Keep plans short** — QA should finish in one focused pass, not a full regression suite.
 
-- The issue's own reproduction steps → a "reproduce the original bug (confirm fixed)" section with pass/fail criteria.
-- The diff → the primary fix verification (the exact visual/behavior that should now be different).
-- What the diff **preserves** → regression sections (e.g. if `onClick` handlers are untouched, verify tap-to-open still works).
-- The mapped flow's step table → a "Related user journey" section with the authoritative expected results as checkboxes.
-- The flow's coverage status → a note on whether e2e backs this up (automated), or whether it's manual-only (documented gap / ❌ on the issue's platform) — so QA knows manual testing is the only safety net.
-- The PR's stated **out-of-scope** items → a section confirming they weren't accidentally touched (e.g. desktop component untouched).
-- Any **bot review nits** → an optional, clearly-marked non-blocking follow-up item.
+**Size targets (hard limits for the posted comment):**
 
-### 5. Structure (use this skeleton, adapt specifics to the change)
+| Change type                                         | Max checkboxes | Examples                                         |
+| --------------------------------------------------- | -------------- | ------------------------------------------------ |
+| **Small** (visual/polish, single component)         | **12–18**      | chevron removal, calendar whitespace, blur tweak |
+| **Medium** (one control/journey, mobile or desktop) | **18–28**      | duration picker, barrier sheet, market picker    |
+| **Large** (trade path, multi-platform, money/state) | **28–35**      | purchase flow, balance, contract lifecycle       |
 
-In order:
+If you exceed the limit, **cut 🟡/🟢 items first**, then merge sections — never drop 🔴/🟠.
 
-1. **Title** + Fix PR number + status (In QA) + change type.
-2. **Summary** — what was broken, root cause from the PR, what the fix does, in plain language. End with a **Scope** line (which files, mobile vs desktop, what's out of scope).
-3. **QA test link (from PR #X deploy)** — Cloudflare Branch Preview URL + Preview URL.
-4. **Entry / Exit criteria** — the QA Definition-of-Done gates (see step 4a below).
-5. **Environment & setup** — mobile/responsive, viewport sizes, browsers, confirm deployed commit vs production.
-6. **Steps to reach the affected screen** — from the issue's repro steps.
-7. **Primary fix verification (pass/fail)** — the specific thing the diff changes. Tag 🔴/🟠.
-8. **Functional / regression sections** — adapt to the change (e.g. "Tap-to-open behaviour", "Month navigation — height stability", "Maximize button appearance"). Tag each section 🔴/🟠/🟡/🟢.
-9. **Accessibility (a11y)** — see step 4b below; always present.
-10. **Related user journey (from `playwright/flows/...`)** — only when a flow maps (see step 3): the documented steps as checkboxes with the flow's Expected Result column as pass criteria; note coverage status (automated vs documented gap) and tags (`@production`/`@smoke`).
-11. **Cross-device / cross-browser** — Chrome Android, Safari iOS, devtools emulation, Samsung Internet, desktop narrow window.
-12. **Out-of-scope confirmation** — the component the PR explicitly did not touch.
-13. **Edge cases** — long strings, RTL/Arabic, dark/light theme, narrow viewport, rotate, small height.
-14. **Negative / defensive** — rapid tapping, background/resume, network latency, switching states.
-15. **Automated test (Playwright e2e only)** — for each mapped flow, give the **spec file** + **tags** from `catalog.md` and a runnable command (`npx playwright test <spec> --grep "<tag>"`); then **coverage status** — pull the ✅/❌ from `coverage.md` Section 1 for the affected platform(s). State explicitly whether e2e already covers this happy path (automated) or whether coverage is **lacking** (documented gap / ❌ on the issue's platform) so manual QA knows it's the only backstop. Do NOT list the PR's unit tests here. **`N/A` surface exception:** if the affected surface is status `N/A` in `_index.md` (e.g. SmartCharts canvas — "not automatable"), say "no e2e applies — manual-only" and **don't fabricate a runnable command**; point only at the _indirect_ flows that touch it (e.g. trade-buy journeys where "Barrier visible"/"Entry spot" is an expected result). Do not propose a `gap-to-playwright` follow-up for an `N/A` surface — it's not automatable by design.
-16. **Sign-off** — must-pass criteria, screenshot request, "move out of In QA".
-17. **Notes for tester** — the 1–2 things most likely to break and the single biggest risk (mandatory `>` blockquote).
+**What to derive (priority order):**
+
+1. Issue repro steps → **Confirm fix** (🔴) — 3–5 checkboxes max.
+2. PR diff → **Primary verification** (🔴) — the one thing that must look/behave differently.
+3. Diff **preserves** → **Regression** (🟠) — 2–4 checkboxes for tap-to-open, save/commit, sibling viewport — only what the diff could have broken.
+4. Mapped flow (if any) → **Journey spot-check** (🟠) — **3–5 steps max** from the flow table, not the whole journey. Link flow id; don't copy every step.
+5. PR **out-of-scope** → one short subsection (2 checkboxes) **only when the PR names an untouched sibling**.
+6. Bot review nits → one optional `- [ ]` under **Follow-ups (non-blocking)**.
+
+**Do NOT auto-include** cross-browser matrices, edge-case laundry lists, or negative/defensive sections unless the diff or issue explicitly warrants them (see optional modules below).
+
+### 5. Structure — focused skeleton
+
+**Always include (core plan):**
+
+1. **Title** — issue #, fix PR #, In QA, change type + size tier (Small/Medium/Large).
+2. **Summary** — broken → root cause → fix → **Scope** (platform, files, out of scope). ≤ 6 lines.
+3. **QA preview link** — Cloudflare Branch Preview URL from PR deploy comment only.
+4. **Must pass to sign off** — 3–5 bullets (not a long Entry/Exit matrix). Example:
+    - [ ] Original repro no longer occurs on **{issue platform}**
+    - [ ] Primary fix verified (section below)
+    - [ ] No 🔴 regression on the affected control/journey
+    - [ ] Screenshot attached if visual
+5. **Setup** — preview URL, platform/viewport from issue, demo or real account if relevant. **Merge** old "Environment" + "Steps to reach" into ≤ 4 checkboxes.
+6. **Confirm fix (🔴)** — from issue repro; pass/fail criteria tied to Expected Result.
+7. **Primary verification (🔴)** — diff-specific; 2–5 checkboxes with real selectors/CSS/labels from the diff.
+8. **Regression (🟠)** — preserved behaviour only; 2–4 checkboxes.
+9. **Automated test (e2e)** — one block: runnable `npx playwright test …` if coverage exists; otherwise "manual-only — no e2e on {platform}". No unit tests.
+10. **Notes for tester** — mandatory `>` blockquote: top 2 risks + what to skip if short on time.
+
+**Include only when triggered (optional modules — pick 0–2, never all):**
+
+| Module                       | When to include                                                                 | Max checkboxes                                                                                                                          |
+| ---------------------------- | ------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| **Journey spot-check (🟠)**  | Flow maps in `playwright/flows/`                                                | 3–5                                                                                                                                     |
+| **Out-of-scope (🟡)**        | PR lists untouched desktop/mobile sibling                                       | 2                                                                                                                                       |
+| **Accessibility (🟠/🔴)**    | Diff touches opacity/blur, tap target, icon removal, calendar grid, focus, ARIA | 3–5 targeted checks — **not** a generic WCAG laundry list                                                                               |
+| **Platform spot-check (🟡)** | Issue says "both" or fix is shared component                                    | 2–3: issue platform + **one** other (e.g. desktop if issue is mobile) — **not** Chrome Android + Safari iOS + Samsung + narrow + rotate |
+| **Edge / defensive (🟢)**    | Only if issue mentions flaky state (rapid tap, background, RTL, theme)          | 2–3 relevant items                                                                                                                      |
+
+**Removed from default skeleton** (fold into optional modules or Notes for tester):
+
+- Separate **Entry criteria** / **Exit criteria** sections → collapsed into **Must pass to sign off**
+- Standalone **Cross-device / cross-browser** section
+- Standalone **Edge cases** + **Negative / defensive** sections
+- Full flow step table pasted as checkboxes
 
 ### 5a. Risk tagging
 
-Tag every section header with a risk badge so QA spends time on what matters:
+Tag section headers with **one** badge. Only 🔴 and 🟠 sections get multi-item checklists; 🟡/🟢 sections are ≤ 2 items or a single prose line ("Optional: …").
 
-| Tag         | Meaning                                      | When to use                                                                               |
-| ----------- | -------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| 🔴 Critical | Core path / money / data loss / a11y blocker | The fix touches purchase, balance, contract state, or a WCAG-failing contrast/focus issue |
-| 🟠 High     | Likely regression with workaround            | The fix touches a primary user journey the flow covers; failure degrades trading          |
-| 🟡 Medium   | Edge cases / non-blocking                    | Off-path flows, rare states, cosmetic polish                                              |
-| 🟢 Low      | Cosmetic only                                | Pure visual, no journey impact                                                            |
+| Tag         | Meaning                       | Checklist budget    |
+| ----------- | ----------------------------- | ------------------- |
+| 🔴 Critical | Fix + original repro          | 3–8 items           |
+| 🟠 High     | Regression / journey          | 2–5 items           |
+| 🟡 Medium   | Out-of-scope, second platform | 0–2 items           |
+| 🟢 Low      | Optional polish               | prose only, or omit |
 
-Score each section Criticality × Likelihood. The **Primary fix verification** and **Accessibility** sections are 🔴 or 🟠 by default.
+**Primary fix verification** is always 🔴. **Accessibility** is 🔴 only when contrast/tap-target/focus changed; otherwise omit the module.
 
-### 5b. Entry / Exit criteria
+### 5b. Entry / Exit criteria (collapsed)
 
-State both explicitly near the top of the plan (structure item 4). These are the QA Definition-of-Done gates:
+Do **not** post separate Entry/Exit sections with 4+ checkboxes each. Fold into **Must pass to sign off** (structure item 4):
 
-**Entry (start QA only when):**
+- Entry implied: preview loads, tester on correct platform.
+- Exit: all 🔴/🟠 pass, acceptance criterion met, move out of In QA.
 
-- [ ] Fix PR deployed to a Cloudflare Pages preview (link above loads, correct commit)
-- [ ] PR CI / existing e2e green on the affected platform
-- [ ] The mapped flow's automated e2e (if any) passes on the issue's platform
-- [ ] Issue reproduction confirmed on production/current build (so you have a before state)
+If CI/e2e gate matters for this fix, add **one** checkbox: "PR CI green on affected platform".
 
-**Exit (QA is done only when):**
+### 5c. Accessibility (a11y) — conditional module
 
-- [ ] All 🔴 Critical and 🟠 High sections pass on the issue's platform
-- [ ] No new 🔴/🟠 defects open against this issue
-- [ ] Accessibility section passes (no new WCAG AA contrast or focus regressions)
-- [ ] The issue's stated Expected Result is verified (acceptance criterion)
-- [ ] Full regression on the affected platform green (or the missing coverage noted as manual-only)
+**Not always present.** Include the a11y module only when the diff touches one of:
 
-If exit criteria aren't met → do not move out of "In QA"; file a follow-up and keep the issue open.
+- Opacity / blur / transparency → contrast on light + dark background (1–2 checkboxes)
+- Icon removed / tap target changed → 44×44px + keyboard focus (1–2 checkboxes)
+- Calendar / grid → keyboard nav (1 checkbox)
+- New/changed interactive control → label/focus (1 checkbox)
 
-### 5c. Accessibility (a11y) section
-
-Always present — even for "purely visual" fixes, a11y is where regressions hide. Derive the specific checks from the diff:
-
-- **Opacity / transparency / blur change** (e.g. #1119 `blur 8px → 1px`) → **color contrast**: the glyph/icon stroke stays ≥ 4.5:1 (WCAG AA) over light AND dark chart backgrounds, busy content, and the disabled state. Contrast risk is the #1 a11y regression for transparency changes.
-- **Icon removal / tap-target change** (e.g. #1068 chevron removed) → **tap-target size** (≥ 44×44px on mobile), **keyboard reachability** (Tab reaches the field, visible focus ring), and **focus management** (when the picker opens, focus moves into it and returns on close).
-- **Calendar / grid changes** (e.g. #1076) → **keyboard arrow navigation** across the grid, **screen-reader announcement** of the focused date / month navigation, **role="grid"/gridcell** present, no focus trap.
-- **Any interactive control** → ARIA label/name not lost by the change, no new orphaned icon with no accessible name, visible focus indicator on the fixed control.
-
-Checklist the a11y section against: keyboard nav, focus management, ARIA roles/labels, color contrast, screen reader (VoiceOver/TalkBack on one real device), and the disabled state. Mark this section 🔴 if the fix touched contrast or tap-targets, 🟠 otherwise.
+Skip a11y entirely for backend-only or copy-only PRs with no UI interaction change.
 
 ### 6. Format rules
 
 - Every actionable item is a **GitHub checkbox**: `- [ ]`.
 - Use **bold** for field/control names the tester will look for.
-- Reference real values from the diff (test IDs like `dt_date_input`, exact CSS like `blur(8px) → blur(1px)`, exact component paths) — specificity makes the plan verifiable.
-- Tag every section header with its risk badge (🔴/🟠/🟡/🟢).
-- Keep it skimmable: section headers with `###`, no walls of text.
-- The **Notes for tester** block at the end is a `>` blockquote and is **mandatory**.
+- Reference real values from the diff (test IDs, CSS deltas, component paths) — but **prefer fewer, sharper checks** over exhaustive lists.
+- Tag 🔴/🟠 section headers with risk badges; optional modules may use 🟡/🟢 or no badge.
+- Keep it skimmable: **≤ 10 `###` sections** in the posted comment for Small/Medium plans.
+- **Notes for tester** is mandatory (`>` blockquote) and must say **what to deprioritize** if time-boxed.
 
 ### 7. Post the comment
 
@@ -191,12 +206,11 @@ gh api -X PATCH /repos/deriv-com/derivatives-trader/issues/comments/<comment_id>
 - **Don't write the plan from the issue body alone** — read the PR diff. The issue describes the symptom; the PR diff is the ground truth for what to test. The issue's "expected result" is sometimes vaguer than what the fix actually delivers.
 - **Don't invent the QA link** — it must come from the `cloudflare-workers-and-pages` bot comment on the PR.
 - **Don't omit the out-of-scope section** — regressions most often come from an untouched sibling component (e.g. the desktop version of the same control). Confirm it's unchanged.
-- **Don't paste a generic template** — adapt every section to the actual diff. A calendar-height fix, a chevron-removal fix, and a chart-button-transparency fix share the skeleton but not the specifics.
-- **Don't force a flow mapping where none fits** — pure component-polish bugs (calendar whitespace, chevron removal) have no dedicated flow; say "No documented flow covers this" and derive from the diff instead of shoehorning an unrelated journey.
-- **Don't skip the flows when they DO fit** — for trade-type/barrier/duration/market bugs, the flow's step table + Expected Result column is more authoritative than anything you'd invent. A solid plan layers the diff's visual fix _on top of_ the documented journey's expected results.
-- If a PR review bot flagged a **low-priority nit**, include it as an _optional, non-blocking_ item — never as a sign-off blocker.
-- **Don't skip the Accessibility section, even for "purely visual" fixes.** A blur/opacity change (#1119) is a contrast risk; an icon removal (#1068) is a tap-target/focus risk; a calendar resize (#1076) is a keyboard/screen-reader risk. These are the regressions a visual plan most often misses — a11y is where they hide.
-- **Don't leave Entry/Exit implicit.** A plan without exit criteria leaves "is QA done?" subjective — the explicit exit gates (all 🔴/🟠 pass, no new 🔴/🟠 defects, a11y clean, acceptance criterion verified) are what let QA move the issue out of "In QA" defensibly.
+- **Don't paste a generic template** — adapt every section to the actual diff, but **stay within the size tier** (§4). A calendar fix does not need cross-browser + edge cases + full Turbos journey.
+- **Don't force a flow mapping where none fits** — pure component-polish bugs have no dedicated flow; say so and keep the plan Small tier.
+- **Don't copy the whole flow step table** — link the flow id and spot-check 3–5 steps that exercise the changed control.
+- **Don't always include a11y, cross-browser, edge cases, and negative testing** — use optional modules (§5) only when the diff/issue triggers them.
+- **Don't duplicate sign-off** — one **Must pass to sign off** block replaces separate Entry, Exit, and Sign-off sections.
 - **The automated-test section is Playwright e2e only — not unit tests.** Give the runnable command (spec file + `--grep` tag) and the coverage status; don't list the PR's Jest/Vitest cases. A QA reviewer reading the issue needs to know which e2e to kick off, not which unit assertions the dev added.
 - **Always state coverage status explicitly, even when it's good news.** If the affected flow's platform column is ✅, say "e2e covers the happy path — manual QA focuses on the visual fix + edge cases". If it's ❌, say "no e2e on this platform — manual QA is the only backstop, treat the regression section as mandatory". Silent omission reads as "covered" when it isn't.
 - **When e2e coverage is lacking for the fix, suggest a follow-up.** If the issue's symptom (e.g. negative barrier overlap) isn't asserted in any flow, propose adding it — point at the `gap-to-playwright` skill (for a manual-gap-found flow) or `src-to-flow-dtrader` (if it's a new user journey), and mark it as an out-of-this-PR follow-up so it doesn't block sign-off. **But never propose a follow-up for an `N/A` surface** (e.g. SmartCharts canvas) — it's not automatable by design; say "no e2e applies — manual-only" and point only at the indirect flows that touch it. Don't fabricate a runnable e2e command for a surface that has none.

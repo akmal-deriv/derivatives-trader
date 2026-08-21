@@ -66,10 +66,18 @@ export class TradeAccumulatorsPage extends TradeParametersPage {
     }
 
     /**
-     * "Save" button inside the mobile growth-rate action sheet footer (if present).
+     * Mobile growth-rate action sheet. Save/Close live in ActionSheet.Header.
+     * Source: growth-rate.tsx ActionSheet.Header saveAction / closeAction
+     */
+    get growthRateSheet(): Locator {
+        return this.page.locator('.quill-action-sheet--root:has(.growth-rate__carousel)');
+    }
+
+    /**
+     * Save button in the mobile growth-rate action sheet header.
      */
     get growthRateSaveButton(): Locator {
-        return this.page.locator('.quill-action-sheet--footer').getByRole('button', { name: 'Save' });
+        return this.actionSheetSaveButton(this.growthRateSheet);
     }
 
     /**
@@ -93,16 +101,19 @@ export class TradeAccumulatorsPage extends TradeParametersPage {
      * Select the growth rate.
      * Desktop: opens the SelectionListPopover and clicks the matching option.
      * Mobile: opens the wheel-picker ActionSheet, selects the value, saves.
+     * Skips opening the editor when the field already shows the target value — Save stays
+     * disabled while the draft matches the committed growth rate.
      *
      * @param value - Growth rate label as rendered (e.g. '5%')
      */
     async setGrowthRate(value: string): Promise<void> {
+        if ((await this.growthRateField.inputValue()).trim() === value) {
+            return;
+        }
         await this.growthRateField.click();
         if (this.isMobile) {
             await this.selectWheelPickerOption('.growth-rate__wheel-picker', value);
-            if (await this.growthRateSaveButton.isVisible().catch(() => false)) {
-                await this.growthRateSaveButton.click();
-            }
+            await this.saveMobileSheet(this.growthRateSheet);
         } else {
             await expect(
                 this.page.getByRole('listbox', { name: 'Selection options' }),

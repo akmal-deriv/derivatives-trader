@@ -56,6 +56,17 @@ export class MarketSelectionPage extends TradeBasePage {
     }
 
     /**
+     * Desktop-only full-viewport backdrop for the market-selection InputPopover.
+     * Scoped to the overlay that wraps `.market-selection-desktop` so we never dismiss a
+     * trade-parameter popover overlay by mistake.
+     */
+    get marketSelectionOverlay(): Locator {
+        return this.page
+            .locator('.input-popover-overlay')
+            .filter({ has: this.page.locator('.market-selection-desktop') });
+    }
+
+    /**
      * Search-icon trigger that opens the dedicated mobile search page — desktop's search field is
      * already inline, so this is mobile-only chrome.
      * Source: market-selection-header.tsx aria-label='Search'
@@ -551,16 +562,50 @@ export class MarketSelectionPage extends TradeBasePage {
 
     /**
      * Close the market-selection picker without selecting a market. Mobile taps the header's
-     * Close (X) button; desktop clicks the popover's outside-click overlay (`InputPopover`
-     * renders a full-viewport `.input-popover-overlay` whose own click handler closes it — a
-     * corner position is used so the click doesn't land on the popover panel itself).
+     * Close (X) button; desktop clicks the InputPopover backdrop on the overlay element itself,
+     * positioned just to the right of the ~900px panel (chart area). `page.mouse.click()` at
+     * viewport coordinates misses the overlay because the chart sits above it in the hit-test stack.
      */
     async closeMarketSelectionPicker(): Promise<void> {
-        if (this.isMobile) {
-            await this.marketSelectionCloseButton.click();
-        } else {
-            await this.page.locator('.input-popover-overlay').click({ position: { x: 10, y: 10 } });
-        }
+        const panel = this.marketSelectionPanel;
+
+        await expect(async () => {
+            if ((await panel.count()) === 0) {
+                return;
+            }
+
+            if (this.isMobile) {
+                await this.marketSelectionCloseButton.click();
+            } else {
+                const overlay = this.marketSelectionOverlay;
+                await expect(overlay, 'Market-selection overlay should be visible while open').toBeVisible();
+
+                const panelBox = await panel.boundingBox();
+                const overlayBox = await overlay.boundingBox();
+                if (!panelBox || !overlayBox) {
+                    throw new Error('Cannot dismiss market-selection picker — overlay/panel box unavailable');
+                }
+
+                // Tap the overlay backdrop to the right of the panel (not on the panel — stopPropagation).
+                const clickX = Math.min(panelBox.x + panelBox.width + 40 - overlayBox.x, overlayBox.width - 10);
+                const clickY = Math.min(
+                    panelBox.y + Math.min(120, panelBox.height / 2) - overlayBox.y,
+                    overlayBox.height - 10
+                );
+                await overlay.click({ position: { x: clickX, y: clickY } });
+
+                // Playwright's pointer click can miss the overlay in the full trade-page stack; a DOM
+                // click on the overlay element reliably invokes InputPopover's onClose handler.
+                if ((await panel.count()) > 0) {
+                    await overlay.evaluate(element => (element as HTMLElement).click());
+                }
+            }
+
+            await expect(panel, 'Market-selection picker should close after dismiss').not.toBeAttached();
+            if (!this.isMobile) {
+                await expect(this.marketSelectionOverlay, 'Market-selection overlay should be removed').toHaveCount(0);
+            }
+        }).toPass({ timeout: 10_000 });
     }
 
     // ============================================
