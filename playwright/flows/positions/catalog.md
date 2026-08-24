@@ -143,7 +143,7 @@ test.describe('Positions — Empty open state', { tag: ['@positions', '@regressi
             'Empty heading should show "No open positions"'
         ).toBeVisible();
         await expect(
-            page.getByText('Your open positions will appear here.'),
+            page.getByText('Your active trades will appear here.'),
             'Empty description should be visible'
         ).toBeVisible();
     });

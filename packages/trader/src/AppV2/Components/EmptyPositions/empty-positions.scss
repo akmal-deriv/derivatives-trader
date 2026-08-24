@@ -18,5 +18,36 @@
         .icon {
             fill: var(--component-textIcon-normal-disabled);
         }
+
+        // The no-positions illustration (not the filtered-state glyph). The SVG
+        // paints in currentColor at its own 24% fill-opacity, so this tint
+        // resolves to the same "text colour at 24%" the mobile app renders.
+        // Sized in rem so it scales with the user's browser text-size
+        // preference; the app's root font-size is 62.5% (1rem = 10px), so
+        // 9.6rem is the design's 96px. The asset deliberately carries ONLY a
+        // viewBox (no width/height attributes) — svgo's preset-default strips
+        // the viewBox when the attributes duplicate it, and without a viewBox
+        // this box would CLIP the artwork instead of scaling it.
+        .icon--illustration {
+            margin-block-end: var(--core-spacing-400);
+            color: var(--component-textIcon-normal-default);
+
+            svg {
+                width: 9.6rem;
+                height: 9.6rem;
+            }
+        }
+    }
+
+    // "Start trading" — quill's md button is 32px with a 12px radius; the design
+    // (and the mobile app) specify a 40px fully-rounded pill, so size it here.
+    // Compounded with .quill-button because quill-ui sets the geometry from the
+    // single-class .quill-button__size--md — equal specificity to a bare
+    // .empty-positions__cta, which would leave the winner to stylesheet load
+    // order. Two classes beat one deterministically.
+    &__cta.quill-button {
+        margin-block-start: var(--core-spacing-1200);
+        height: var(--core-size-2000);
+        border-radius: var(--core-size-2000);
     }
 }

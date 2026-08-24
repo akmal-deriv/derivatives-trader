@@ -65,11 +65,11 @@
 
 **Prerequisites:** Logged-in account with no open contracts
 
-| #   | Step                  | Action                    | Expected Result                                                                                                       | Platform |
-| --- | --------------------- | ------------------------- | --------------------------------------------------------------------------------------------------------------------- | -------- |
-| 1   | Login & settle        | Follow shared login steps | Trade page visible                                                                                                    | Mobile   |
-| 2   | Navigate to positions | Navigate to `/positions`  | Positions page loads                                                                                                  | Mobile   |
-| 3   | Confirm empty state   | View page body            | `dt_empty_state_icon` visible; text "No open positions" visible; text "Your open positions will appear here." visible | Mobile   |
+| #   | Step                  | Action                    | Expected Result                                                                                                                                      | Platform |
+| --- | --------------------- | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| 1   | Login & settle        | Follow shared login steps | Trade page visible                                                                                                                                   | Mobile   |
+| 2   | Navigate to positions | Navigate to `/positions`  | Positions page loads                                                                                                                                 | Mobile   |
+| 3   | Confirm empty state   | View page body            | `dt_empty_state_icon` visible; text "No open positions" visible; text "Your active trades will appear here." visible; "Start trading" button visible | Mobile   |
 
 ---
 
