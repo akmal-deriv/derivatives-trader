@@ -2,10 +2,9 @@ name: Playwright Tests Healing
 run-name: ${{ github.event_name == 'workflow_dispatch' && format('Playwright Healing | lookback {0}h | counters {1} | create_pr {2}', inputs.lookback_hours || '24', inputs.run_counters || 'auto', inputs.create_pr) || 'Daily Playwright Auto Healing' }}
 
 on:
-  # TODO: re-enable once CLIENT_ID_GHAPP/PRIVATE_KEY_GHAPP are configured and a manual dry run passes.
-  # schedule:
-  #   # Runs at 5:30 AM MYT.
-  #   - cron: "30 21 * * *"
+  schedule:
+    # Runs at 5:30 AM MYT.
+    - cron: "30 21 * * *"
   workflow_dispatch:
     inputs:
       lookback_hours:
