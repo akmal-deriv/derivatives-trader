@@ -8,6 +8,7 @@ import { ActionSheet, Heading, Text } from '@deriv-com/quill-ui';
 import { Localize } from '@deriv-com/translations';
 import { useDevice } from '@deriv-com/ui';
 
+import { getCurrencySymbol } from 'AppV2/Utils/currency-utils';
 import { useTraderStore } from 'Stores/useTraderStores';
 
 const PayoutPerPointInfo = observer(() => {
@@ -63,7 +64,7 @@ const PayoutPerPointInfo = observer(() => {
                 )}
                 {payout_per_point ? (
                     <Text size='sm' className={clsx(is_market_closed && 'trade-params__text--disabled')}>
-                        {payout_per_point} {currency}
+                        {`${getCurrencySymbol(currency)}${payout_per_point}`}
                     </Text>
                 ) : (
                     <Skeleton width={100} height={14} />

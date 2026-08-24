@@ -1,11 +1,12 @@
 import React from 'react';
 
-import { getCurrencyDisplayCode, getDecimalPlaces } from '@deriv/shared';
+import { getDecimalPlaces } from '@deriv/shared';
 import { ActionSheet, Text, TextField, ToggleSwitch } from '@deriv-com/quill-ui';
 import { Localize, useTranslations } from '@deriv-com/translations';
 
 import { ActionSheetHeaderTitle } from 'AppV2/Components/ActionSheetHeaderTooltip';
 import { AutomationLockOverlay } from 'AppV2/Components/TradeParameters/Shared';
+import { getCurrencySymbol } from 'AppV2/Utils/currency-utils';
 import { createDecimalInputGuard, getDecimalInputMaxLength } from 'AppV2/Utils/decimal-input';
 
 type TMaxTradeStakeMobileProps = {
@@ -26,7 +27,7 @@ const MaxTradeStakeMobile = ({
     onSave,
 }: TMaxTradeStakeMobileProps) => {
     const { localize } = useTranslations();
-    const display_currency = getCurrencyDisplayCode(currency);
+    const currency_symbol = getCurrencySymbol(currency);
     const [is_open, setIsOpen] = React.useState(false);
     const [is_enabled, setIsEnabled] = React.useState(initialValue !== null);
     const [value, setValue] = React.useState(initialValue ? String(initialValue) : '');
@@ -98,7 +99,7 @@ const MaxTradeStakeMobile = ({
                     readOnly
                     disabled={disabled}
                     label={<Localize i18n_default_text='Max. stake' />}
-                    value={initialValue ? `${initialValue} ${display_currency}` : '-'}
+                    value={initialValue ? `${currency_symbol}${initialValue}` : '-'}
                     noStatusIcon
                     className='trade-params__option'
                     onClick={() => setIsOpen(true)}
@@ -130,7 +131,7 @@ const MaxTradeStakeMobile = ({
                             </div>
                             <div className='automation-popover__toggle-content'>
                                 <TextField
-                                    label={`${localize('Amount')} (${display_currency})`}
+                                    label={`${localize('Amount')} (${currency_symbol})`}
                                     value={value}
                                     onChange={handleChange}
                                     onBeforeInput={onBeforeInput}

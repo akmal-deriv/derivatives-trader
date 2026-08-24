@@ -1,7 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import { observer } from 'mobx-react-lite';
 
-import { getCurrencyDisplayCode } from '@deriv/shared';
 import { Localize } from '@deriv-com/translations';
 
 import { getCurrencySymbol } from 'AppV2/Utils/currency-utils';
@@ -15,16 +14,16 @@ import '../Shared/selection-list-popover.scss';
 const PayoutPerPointDesktop = observer(({ is_minimized }: TTradeParametersProps) => {
     const { currency, is_market_closed, payout_choices, payout_per_point, setPayoutPerPoint } = useTraderStore();
 
-    const currency_display_code = getCurrencyDisplayCode(currency);
+    const currency_symbol = getCurrencySymbol(currency);
     const payout_per_point_list = useMemo(
         () =>
             [...payout_choices]
                 .sort((a, b) => Number(a) - Number(b))
                 .map((payout: string) => ({
                     value: payout,
-                    label: `${payout} ${currency_display_code}`,
+                    label: `${currency_symbol}${payout}`,
                 })),
-        [payout_choices, currency_display_code]
+        [payout_choices, currency_symbol]
     );
 
     const handlePayoutSelect = useCallback(

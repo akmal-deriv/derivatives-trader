@@ -43,7 +43,7 @@ describe('PurchaseButtonContent', () => {
         render(<PurchaseButtonContent {...mock_props} info={{ has_error: true } as TInfo} />);
 
         expect(screen.getByText(localized_basis.payout)).toBeInTheDocument();
-        expect(screen.getByText(`- ${mock_props.currency}`)).toBeInTheDocument();
+        expect(screen.getByText('-')).toBeInTheDocument();
         expect(screen.queryByTestId('square-skeleton')).not.toBeInTheDocument();
     });
 
@@ -61,8 +61,7 @@ describe('PurchaseButtonContent', () => {
             'purchase-button__information__wrapper--disabled-placeholder'
         );
         expect(screen.getByText(localized_basis.payout)).toBeInTheDocument();
-        expect(screen.getByText(/19.23/)).toBeInTheDocument();
-        expect(screen.getByText(/USD/i)).toBeInTheDocument();
+        expect(screen.getByText('$19.23')).toBeInTheDocument();
     });
 
     it('should render Total cost for Multipliers when Deal Cancellation is enabled', () => {
@@ -80,8 +79,7 @@ describe('PurchaseButtonContent', () => {
         );
 
         expect(screen.getByText('Total cost')).toBeInTheDocument();
-        expect(screen.getByText(/10/)).toBeInTheDocument();
-        expect(screen.getByText(/USD/i)).toBeInTheDocument();
+        expect(screen.getByText('$10.00')).toBeInTheDocument();
     });
 
     it('should not render Total cost for Multipliers when Deal Cancellation is not set', () => {
@@ -111,8 +109,7 @@ describe('PurchaseButtonContent', () => {
         render(<PurchaseButtonContent {...mock_props} is_accumulator max_payout={6000} />);
 
         expect(screen.getByText(localized_basis.max_payout)).toBeInTheDocument();
-        expect(screen.getByText(/6,000/)).toBeInTheDocument();
-        expect(screen.getByText(/USD/i)).toBeInTheDocument();
+        expect(screen.getByText('$6,000.00')).toBeInTheDocument();
     });
 
     it('should render the standard payout (not Max payout) for an accumulator with an open contract', () => {

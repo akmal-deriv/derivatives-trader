@@ -2,18 +2,13 @@ import React from 'react';
 import { observer } from 'mobx-react-lite';
 
 import { TPriceProposalResponse, TSocketError } from '@deriv/api';
-import {
-    formatMoney,
-    getCurrencyDisplayCode,
-    getDecimalPlaces,
-    mapErrorMessage,
-    trackAnalyticsEvent,
-} from '@deriv/shared';
+import { getDecimalPlaces, mapErrorMessage, trackAnalyticsEvent } from '@deriv/shared';
 import { Button, TextField } from '@deriv-com/quill-ui';
 import { Localize, useTranslations } from '@deriv-com/translations';
 
 import useIsVirtualKeyboardOpen from 'AppV2/Hooks/useIsVirtualKeyboardOpen';
 import { useProposal } from 'AppV2/Hooks/useProposal';
+import { formatAmountWithSymbol, getCurrencySymbol } from 'AppV2/Utils/currency-utils';
 import { createDecimalInputGuard, getDecimalInputMaxLength } from 'AppV2/Utils/decimal-input';
 import { getPayoutInfo } from 'AppV2/Utils/trade-params-utils';
 import { getDisplayedContractTypes } from 'AppV2/Utils/trade-types-utils';
@@ -156,6 +151,7 @@ const StakeInput = observer(({ onClose, is_open }: TStakeInput) => {
     } = trade_store;
 
     const decimals = getDecimalPlaces(currency);
+    const currency_symbol = getCurrencySymbol(currency);
     const [state, dispatch] = React.useReducer(reducer, null, () => createInitialState(trade_store, decimals));
     const { proposal_request_values, stake_error, fe_stake_error, details } = state;
 
@@ -330,11 +326,10 @@ const StakeInput = observer(({ onClose, is_open }: TStakeInput) => {
         !!details.min_stake &&
         !!details.max_stake && (
             <Localize
-                i18n_default_text='Range: {{min_stake}} to {{max_stake}} {{currency}}'
+                i18n_default_text='Range: {{min_stake}} to {{max_stake}}'
                 values={{
-                    currency: getCurrencyDisplayCode(currency),
-                    min_stake: formatMoney(currency, +details.min_stake, true),
-                    max_stake: formatMoney(currency, +details.max_stake, true),
+                    min_stake: formatAmountWithSymbol(currency, +details.min_stake),
+                    max_stake: formatAmountWithSymbol(currency, +details.max_stake),
                 }}
             />
         );
@@ -438,7 +433,7 @@ const StakeInput = observer(({ onClose, is_open }: TStakeInput) => {
         <div className='stake-input-desktop__wrapper'>
             <TextField
                 id={input_id}
-                label={`${localize('Stake')} (${getCurrencyDisplayCode(currency)})`}
+                label={`${localize('Stake')} (${currency_symbol})`}
                 name='amount'
                 value={proposal_request_values.amount}
                 onChange={onInputChange}

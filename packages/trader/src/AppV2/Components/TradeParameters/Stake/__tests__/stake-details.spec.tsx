@@ -69,12 +69,12 @@ describe('StakeDetails multiplier info', () => {
         expect(screen.getByText('Stop out level')).not.toHaveClass('stake-content__info-label');
     });
 
-    it('renders the stop out level without a currency code', () => {
+    it('renders the stop out level without a currency symbol', () => {
         renderStakeDetails();
 
         expect(screen.getByText('Stop out level')).toBeInTheDocument();
         expect(screen.getByText('8160.12')).toBeInTheDocument();
-        expect(screen.queryByText('8160.12 USD')).not.toBeInTheDocument();
+        expect(screen.queryByText('$8160.12')).not.toBeInTheDocument();
     });
 
     it('re-reads the stop out level from the store rather than freezing the first value', () => {
@@ -102,10 +102,10 @@ describe('StakeDetails multiplier info', () => {
         expect(screen.queryByText('8160.12')).not.toBeInTheDocument();
     });
 
-    it('renders the stop out amount with a currency code', () => {
+    it('renders the stop out amount with a currency symbol', () => {
         renderStakeDetails();
 
-        expect(screen.getByText('10.00 USD')).toBeInTheDocument();
+        expect(screen.getByText('$10.00')).toBeInTheDocument();
     });
 
     it('does not render a commission row', () => {

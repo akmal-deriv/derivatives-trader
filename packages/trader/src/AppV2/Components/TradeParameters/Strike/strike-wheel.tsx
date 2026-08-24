@@ -80,13 +80,7 @@ const StrikeWheel = ({
                     <Localize i18n_default_text='Payout per point' />
                 </Text>
                 <Text size='sm' as='div' className='strike__payout__content'>
-                    {payout_per_point ? (
-                        <React.Fragment>
-                            {payout_per_point} {currency}
-                        </React.Fragment>
-                    ) : (
-                        <Skeleton width={90} height={14} />
-                    )}
+                    {payout_per_point ? `${currency}${payout_per_point}` : <Skeleton width={90} height={14} />}
                 </Text>
             </div>
         </ActionSheet.Content>

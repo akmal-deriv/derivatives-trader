@@ -1,18 +1,13 @@
 import React from 'react';
 import { observer } from 'mobx-react-lite';
 
-import {
-    formatMoney,
-    getCurrencyDisplayCode,
-    getDecimalPlaces,
-    mapErrorMessage,
-    trackAnalyticsEvent,
-} from '@deriv/shared';
+import { getDecimalPlaces, mapErrorMessage, trackAnalyticsEvent } from '@deriv/shared';
 import { Button, Text, TextField, ToggleSwitch } from '@deriv-com/quill-ui';
 import { Localize, useTranslations } from '@deriv-com/translations';
 
 import useIsVirtualKeyboardOpen from 'AppV2/Hooks/useIsVirtualKeyboardOpen';
 import { useProposal } from 'AppV2/Hooks/useProposal';
+import { formatAmountWithSymbol, getCurrencySymbol } from 'AppV2/Utils/currency-utils';
 import { useTraderStore } from 'Stores/useTraderStores';
 
 type TTakeProfitInputDesktop = {
@@ -216,11 +211,10 @@ const TakeProfitInputDesktop = observer(({ onClose, is_open }: TTakeProfitInputD
         if (state.min_value && state.max_value) {
             return (
                 <Localize
-                    i18n_default_text='Range: {{min_value}} to {{max_value}} {{currency}}'
+                    i18n_default_text='Range: {{min_value}} to {{max_value}}'
                     values={{
-                        currency: getCurrencyDisplayCode(currency),
-                        min_value: formatMoney(currency, +state.min_value, true),
-                        max_value: formatMoney(currency, +state.max_value, true),
+                        min_value: formatAmountWithSymbol(currency, +state.min_value),
+                        max_value: formatAmountWithSymbol(currency, +state.max_value),
                     }}
                 />
             );
@@ -244,7 +238,7 @@ const TakeProfitInputDesktop = observer(({ onClose, is_open }: TTakeProfitInputD
                 <TextField
                     id={input_id}
                     ref={input_ref}
-                    label={`${localize('Amount')} (${getCurrencyDisplayCode(currency)})`}
+                    label={`${localize('Amount')} (${getCurrencySymbol(currency)})`}
                     name='take_profit'
                     value={state.input_value}
                     onChange={onInputChange}

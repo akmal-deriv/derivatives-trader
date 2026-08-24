@@ -7,7 +7,7 @@ import TraderProviders from '../../../../../trader-providers';
 import AccumulatorsInformation from '../accumulators-information';
 
 const payout_text = 'Max. payout';
-const payout_value = '4,000.00 USD';
+const payout_value = '$4,000.00';
 
 describe('AccumulatorsInformation', () => {
     let default_mock_store: ReturnType<typeof mockStore>;

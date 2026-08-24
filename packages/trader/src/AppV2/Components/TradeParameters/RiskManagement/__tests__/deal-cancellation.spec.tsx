@@ -98,7 +98,7 @@ describe('DealCancellation', () => {
         mockDealCancellation();
 
         expect(screen.getByText('Deal cancellation fee')).toBeInTheDocument();
-        expect(screen.getByText(/0.82 USD/)).toBeInTheDocument();
+        expect(screen.getByText(/\$0.82/)).toBeInTheDocument();
     });
 
     it('shows a skeleton while the fee is loading (cancellation on, no fee yet)', () => {

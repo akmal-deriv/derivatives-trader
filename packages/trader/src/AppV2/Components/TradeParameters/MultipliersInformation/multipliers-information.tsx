@@ -2,12 +2,13 @@ import React from 'react';
 import clsx from 'clsx';
 import { observer } from 'mobx-react-lite';
 
-import { Money, Skeleton, TooltipPortal } from '@deriv/components';
+import { Skeleton, TooltipPortal } from '@deriv/components';
 import { clickAndKeyEventHandler, CONTRACT_TYPES } from '@deriv/shared';
 import { ActionSheet, Heading, Text } from '@deriv-com/quill-ui';
 import { Localize } from '@deriv-com/translations';
 import { useDevice } from '@deriv-com/ui';
 
+import { formatAmountWithSymbol } from 'AppV2/Utils/currency-utils';
 import { getDisplayedContractTypes } from 'AppV2/Utils/trade-types-utils';
 import { useTraderStore } from 'Stores/useTraderStores';
 
@@ -109,14 +110,14 @@ const MultipliersInformation = observer(() => {
                 {renderLabel('stop_out')}
                 {stop_out !== undefined && stop_out !== null ? (
                     <Text size='sm' className={clsx(is_market_closed && 'trade-params__text--disabled')}>
-                        <Money amount={Math.abs(stop_out)} show_currency currency={currency} />
+                        {formatAmountWithSymbol(currency, Math.abs(stop_out))}
                     </Text>
                 ) : (
                     <Skeleton width={100} height={14} />
                 )}
             </div>
 
-            {/* Stop out level - a price, not an amount, so no currency code */}
+            {/* Stop out level - a price, not an amount, so no currency symbol */}
             <div className='multipliers-information__row'>
                 {renderLabel('stop_out_level')}
                 {stop_out_level ? (

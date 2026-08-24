@@ -114,7 +114,7 @@ describe('MultipliersInformation', () => {
         mockMultipliersInformation();
 
         expect(screen.getByText(stop_out_label)).toBeInTheDocument();
-        expect(screen.getByText('10.50 USD')).toBeInTheDocument();
+        expect(screen.getByText('$10.50')).toBeInTheDocument();
         expect(screen.getByText(stop_out_level_label)).toBeInTheDocument();
         expect(screen.getByText('8160.12')).toBeInTheDocument();
     });
@@ -144,7 +144,7 @@ describe('MultipliersInformation', () => {
     it('renders the stop out level without a currency code', () => {
         mockMultipliersInformation();
 
-        expect(screen.queryByText('8160.12 USD')).not.toBeInTheDocument();
+        expect(screen.queryByText('$8160.12')).not.toBeInTheDocument();
     });
 
     it('renders a skeleton for the stop out level while the proposal has no barrier value yet', () => {
@@ -166,7 +166,7 @@ describe('MultipliersInformation', () => {
         mockMultipliersInformation();
 
         expect(screen.queryByText('Commission')).not.toBeInTheDocument();
-        expect(screen.queryByText('0.50 USD')).not.toBeInTheDocument();
+        expect(screen.queryByText('$0.50')).not.toBeInTheDocument();
     });
 
     it('uses absolute value for negative stop out amount', () => {
@@ -181,7 +181,7 @@ describe('MultipliersInformation', () => {
         };
         mockMultipliersInformation();
 
-        expect(screen.getByText('25.75 USD')).toBeInTheDocument();
+        expect(screen.getByText('$25.75')).toBeInTheDocument();
     });
 
     // The loss amount is the same on both sides, so any proposal can cover the selected one loading.
@@ -198,7 +198,7 @@ describe('MultipliersInformation', () => {
         };
         mockMultipliersInformation();
 
-        expect(screen.getByText('15.00 USD')).toBeInTheDocument();
+        expect(screen.getByText('$15.00')).toBeInTheDocument();
     });
 
     it('applies disabled class when market is closed', () => {
@@ -220,7 +220,7 @@ describe('MultipliersInformation', () => {
         default_mock_store.modules.trade.currency = 'EUR';
         mockMultipliersInformation();
 
-        expect(screen.getByText('10.50 EUR')).toBeInTheDocument();
+        expect(screen.getByText('€10.50')).toBeInTheDocument();
     });
 
     it('handles zero stop out value', () => {
@@ -235,7 +235,7 @@ describe('MultipliersInformation', () => {
         };
         mockMultipliersInformation();
 
-        expect(screen.getByText('0.00 USD')).toBeInTheDocument();
+        expect(screen.getByText('$0.00')).toBeInTheDocument();
     });
 
     describe('stop out tooltip', () => {

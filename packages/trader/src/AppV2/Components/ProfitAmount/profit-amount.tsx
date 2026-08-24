@@ -1,8 +1,6 @@
 import clsx from 'clsx';
 
-import { formatMoney } from '@deriv/shared';
-
-import { getCurrencySymbol } from 'AppV2/Utils/currency-utils';
+import { formatSignedAmountWithSymbol } from 'AppV2/Utils/currency-utils';
 
 import './profit-amount.scss';
 
@@ -20,10 +18,6 @@ export type TProfitAmountProps = {
  */
 const ProfitAmount = ({ amount, className, currency, 'data-testid': data_testid }: TProfitAmountProps) => {
     const value = Number(amount);
-    const formatted = formatMoney(currency ?? '', Math.abs(value), true);
-    let sign = '';
-    if (value > 0) sign = '+';
-    else if (value < 0) sign = '-';
 
     return (
         <span
@@ -33,7 +27,7 @@ const ProfitAmount = ({ amount, className, currency, 'data-testid': data_testid 
                 negative: value < 0,
             })}
         >
-            {`${sign}${getCurrencySymbol(currency)}${formatted}`}
+            {formatSignedAmountWithSymbol(currency, value, true)}
         </span>
     );
 };

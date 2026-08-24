@@ -1,11 +1,12 @@
 import React from 'react';
 
-import { getCurrencyDisplayCode, getDecimalPlaces } from '@deriv/shared';
+import { getDecimalPlaces } from '@deriv/shared';
 import { ActionSheet, TextField } from '@deriv-com/quill-ui';
 import { useTranslations } from '@deriv-com/translations';
 
 import { ActionSheetHeaderTitle } from 'AppV2/Components/ActionSheetHeaderTooltip';
 import { AutomationLockOverlay } from 'AppV2/Components/TradeParameters/Shared';
+import { getCurrencySymbol } from 'AppV2/Utils/currency-utils';
 import { createDecimalInputGuard, getDecimalInputMaxLength } from 'AppV2/Utils/decimal-input';
 
 type TThresholdInputMobileProps = {
@@ -26,7 +27,7 @@ const ThresholdInputMobile = ({
     onSave,
 }: TThresholdInputMobileProps) => {
     const { localize } = useTranslations();
-    const display_currency = getCurrencyDisplayCode(currency);
+    const currency_symbol = getCurrencySymbol(currency);
     const is_take_profit = threshold_type === 'take_profit';
     const [is_open, setIsOpen] = React.useState(false);
     const [value, setValue] = React.useState(String(initialValue));
@@ -74,7 +75,7 @@ const ThresholdInputMobile = ({
                     readOnly
                     disabled={disabled}
                     label={label}
-                    value={`${initialValue} ${display_currency}`}
+                    value={`${currency_symbol}${initialValue}`}
                     noStatusIcon
                     className='trade-params__option'
                     onClick={() => setIsOpen(true)}
@@ -93,7 +94,7 @@ const ThresholdInputMobile = ({
                     <ActionSheet.Content>
                         <div className='automation-popover__input-wrapper'>
                             <TextField
-                                label={`${label} (${display_currency})`}
+                                label={`${label} (${currency_symbol})`}
                                 value={value}
                                 onChange={handleChange}
                                 onBeforeInput={onBeforeInput}

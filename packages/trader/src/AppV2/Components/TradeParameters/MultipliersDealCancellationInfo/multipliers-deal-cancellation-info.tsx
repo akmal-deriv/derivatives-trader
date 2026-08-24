@@ -1,11 +1,12 @@
 import clsx from 'clsx';
 import { observer } from 'mobx-react-lite';
 
-import { Money, Skeleton } from '@deriv/components';
+import { Skeleton } from '@deriv/components';
 import { CONTRACT_TYPES } from '@deriv/shared';
 import { Text } from '@deriv-com/quill-ui';
 import { Localize } from '@deriv-com/translations';
 
+import { formatAmountWithSymbol } from 'AppV2/Utils/currency-utils';
 import { useTraderStore } from 'Stores/useTraderStores';
 
 const MultipliersDealCancellationInfo = observer(() => {
@@ -31,7 +32,7 @@ const MultipliersDealCancellationInfo = observer(() => {
                 </Text>
                 {deal_cancellation_fee ? (
                     <Text size='sm' as='div' className={clsx(is_market_closed && 'trade-params__text--disabled')}>
-                        <Money amount={deal_cancellation_fee} show_currency currency={currency} />
+                        {formatAmountWithSymbol(currency, deal_cancellation_fee)}
                     </Text>
                 ) : (
                     <Skeleton width={65} height={18} />

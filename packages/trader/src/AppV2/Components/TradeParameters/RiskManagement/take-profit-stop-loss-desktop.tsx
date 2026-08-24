@@ -1,18 +1,13 @@
 import React from 'react';
 import { observer } from 'mobx-react-lite';
 
-import {
-    formatMoney,
-    getCurrencyDisplayCode,
-    getDecimalPlaces,
-    mapErrorMessage,
-    trackAnalyticsEvent,
-} from '@deriv/shared';
+import { getDecimalPlaces, mapErrorMessage, trackAnalyticsEvent } from '@deriv/shared';
 import { Button, Text, TextField, ToggleSwitch, useSnackbar } from '@deriv-com/quill-ui';
 import { Localize, useTranslations } from '@deriv-com/translations';
 
 import useIsVirtualKeyboardOpen from 'AppV2/Hooks/useIsVirtualKeyboardOpen';
 import { useProposal } from 'AppV2/Hooks/useProposal';
+import { formatAmountWithSymbol, getCurrencySymbol } from 'AppV2/Utils/currency-utils';
 import { getSnackBarText } from 'AppV2/Utils/trade-params-utils';
 import { ExpandedProposal } from 'Stores/Modules/Trading/Helpers/proposal';
 import { useTraderStore } from 'Stores/useTraderStores';
@@ -54,6 +49,7 @@ const TakeProfitStopLossDesktop = observer(({ onClose, is_open }: TTakeProfitSto
     } = trade_store;
 
     const decimals = getDecimalPlaces(currency);
+    const currency_symbol = getCurrencySymbol(currency);
 
     // Use the current active contract type to look up validation params, not just the first key.
     // validation_params accumulates entries across contract type switches (e.g. CALL from Rise/Fall),
@@ -343,11 +339,10 @@ const TakeProfitStopLossDesktop = observer(({ onClose, is_open }: TTakeProfitSto
             if (state.min_value && state.max_value) {
                 return (
                     <Localize
-                        i18n_default_text='Range: {{min_value}} to {{max_value}} {{currency}}'
+                        i18n_default_text='Range: {{min_value}} to {{max_value}}'
                         values={{
-                            currency: getCurrencyDisplayCode(currency),
-                            min_value: formatMoney(currency, +state.min_value, true),
-                            max_value: formatMoney(currency, +state.max_value, true),
+                            min_value: formatAmountWithSymbol(currency, +state.min_value),
+                            max_value: formatAmountWithSymbol(currency, +state.max_value),
                         }}
                     />
                 );
@@ -375,7 +370,7 @@ const TakeProfitStopLossDesktop = observer(({ onClose, is_open }: TTakeProfitSto
                     <TextField
                         id={tp_input_id}
                         ref={tp_input_ref}
-                        label={localize('Amount')}
+                        label={`${localize('Amount')} (${currency_symbol})`}
                         name='take_profit'
                         value={tp_state.input_value}
                         onChange={onTpInputChange}
@@ -420,7 +415,7 @@ const TakeProfitStopLossDesktop = observer(({ onClose, is_open }: TTakeProfitSto
                     <TextField
                         id={sl_input_id}
                         ref={sl_input_ref}
-                        label={localize('Amount')}
+                        label={`${localize('Amount')} (${currency_symbol})`}
                         name='stop_loss'
                         value={sl_state.input_value}
                         onChange={onSlInputChange}

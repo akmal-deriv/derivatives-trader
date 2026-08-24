@@ -93,7 +93,7 @@ describe('TakeProfitDesktop', () => {
 
         await userEvent.click(screen.getByText('Take profit'));
 
-        expect(screen.getByLabelText('Amount (USD)')).toBeInTheDocument();
+        expect(screen.getByLabelText('Amount ($)')).toBeInTheDocument();
     });
 
     it('disables input when has_open_accu_contract is true', () => {
@@ -135,7 +135,7 @@ describe('TakeProfitDesktop', () => {
         render(<MockedTakeProfitDesktop />);
 
         await userEvent.click(screen.getByText('Take profit'));
-        expect(screen.getByLabelText('Amount (USD)')).toBeInTheDocument();
+        expect(screen.getByLabelText('Amount ($)')).toBeInTheDocument();
 
         await userEvent.click(screen.getByText('Save'));
 

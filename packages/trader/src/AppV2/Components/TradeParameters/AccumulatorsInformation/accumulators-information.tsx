@@ -2,12 +2,13 @@ import React from 'react';
 import clsx from 'clsx';
 import { observer } from 'mobx-react-lite';
 
-import { Money, Skeleton, TooltipPortal } from '@deriv/components';
+import { Skeleton, TooltipPortal } from '@deriv/components';
 import { clickAndKeyEventHandler, CONTRACT_TYPES } from '@deriv/shared';
 import { ActionSheet, Heading, Text } from '@deriv-com/quill-ui';
 import { Localize } from '@deriv-com/translations';
 import { useDevice } from '@deriv-com/ui';
 
+import { formatAmountWithSymbol } from 'AppV2/Utils/currency-utils';
 import { useTraderStore } from 'Stores/useTraderStores';
 
 type TInfoRow = {
@@ -105,7 +106,7 @@ const AccumulatorsInformation = observer(() => {
                 value={
                     maximum_payout ? (
                         <Text size='sm' className={clsx(is_market_closed && 'trade-params__text--disabled')}>
-                            <Money amount={maximum_payout} show_currency currency={currency} />
+                            {formatAmountWithSymbol(currency, maximum_payout)}
                         </Text>
                     ) : (
                         <Skeleton width={100} height={14} />

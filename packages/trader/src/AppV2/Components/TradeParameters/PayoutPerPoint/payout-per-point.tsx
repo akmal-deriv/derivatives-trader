@@ -3,7 +3,7 @@ import clsx from 'clsx';
 import { observer } from 'mobx-react-lite';
 
 import { Skeleton } from '@deriv/components';
-import { getCurrencyDisplayCode, isMobile } from '@deriv/shared';
+import { isMobile } from '@deriv/shared';
 import { ActionSheet, TextField } from '@deriv-com/quill-ui';
 import { Localize, useTranslations } from '@deriv-com/translations';
 
@@ -28,7 +28,7 @@ const PayoutPerPoint = observer(({ is_minimized }: TTradeParametersProps) => {
     const { localize } = useTranslations();
     const is_mobile = isMobile();
     const is_small_screen = isSmallScreen();
-    const currency_display_code = getCurrencyDisplayCode(currency);
+    const currency_symbol = getCurrencySymbol(currency);
     // Draft kept in state (not a ref) so the header check reacts to wheel changes.
     const [value, setValue] = React.useState<string | number>(payout_per_point);
     // Guards saving before the barrier proposal response arrives (shared with the wheel).
@@ -41,9 +41,9 @@ const PayoutPerPoint = observer(({ is_minimized }: TTradeParametersProps) => {
                 .sort((a, b) => Number(a) - Number(b))
                 .map((payout_per_point: string) => ({
                     value: payout_per_point,
-                    label: `${payout_per_point} ${currency_display_code}`,
+                    label: `${currency_symbol}${payout_per_point}`,
                 })),
-        [payout_choices, currency_display_code]
+        [payout_choices, currency_symbol]
     );
 
     const onClose = React.useCallback(() => {

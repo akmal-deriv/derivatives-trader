@@ -2,16 +2,11 @@ import React from 'react';
 import clsx from 'clsx';
 import { observer } from 'mobx-react-lite';
 
-import {
-    clickAndKeyEventHandler,
-    formatMoney,
-    getCurrencyDisplayCode,
-    getTradeTypeName,
-    TRADE_TYPES,
-} from '@deriv/shared';
+import { clickAndKeyEventHandler, formatMoney, getTradeTypeName, TRADE_TYPES } from '@deriv/shared';
 import { Text } from '@deriv-com/quill-ui';
 import { Localize } from '@deriv-com/translations';
 
+import { getCurrencySymbol } from 'AppV2/Utils/currency-utils';
 import { useTraderStore } from 'Stores/useTraderStores';
 import { TTradeStore } from 'Types';
 
@@ -60,6 +55,7 @@ const StakeDetails = observer(
         // the stop out *amount*, which scales with the stake and stays on `details`.
         const { root_store, stop_out_level } = useTraderStore();
         const is_mobile = root_store?.ui?.is_mobile;
+        const currency_symbol = getCurrencySymbol(currency);
 
         const [displayed_values, setDisplayedValues] = React.useState({
             is_first_payout_exceeded: false,
@@ -128,7 +124,7 @@ const StakeDetails = observer(
             {
                 is_displayed: !!details.max_payout && should_show_payout_details,
                 label: <Localize i18n_default_text='Max payout' />,
-                value: formatMoney(currency, +details.max_payout, true),
+                value: formatMoney(currency, +details.max_payout, true), // symbol added at render
             },
             {
                 contract_type: getTradeTypeName(contract_types[0], {
@@ -193,9 +189,9 @@ const StakeDetails = observer(
                             >
                                 {renderLabel(row)}
                                 <Text size='sm'>
-                                    {row.has_no_currency
+                                    {row.has_no_currency || row.value === '-'
                                         ? row.value
-                                        : `${row.value} ${getCurrencyDisplayCode(currency)}`}
+                                        : `${currency_symbol}${row.value}`}
                                 </Text>
                             </div>
                         )

@@ -1,7 +1,7 @@
 import React, { useCallback } from 'react';
 import { observer } from 'mobx-react-lite';
 
-import { getCurrencyDisplayCode, trackAnalyticsEvent } from '@deriv/shared';
+import { trackAnalyticsEvent } from '@deriv/shared';
 import { Localize } from '@deriv-com/translations';
 
 import { TabSelector } from 'AppV2/Components/InputPopover';
@@ -10,9 +10,9 @@ import {
     TradeParameterPopover,
     useTradeParameterPopover,
 } from 'AppV2/Components/TradeParameters/Shared';
-import { getCurrencySymbol } from 'AppV2/Utils/currency-utils';
 import { getStakePresets } from 'AppV2/Config/trade-parameter-presets';
 import useTradeError from 'AppV2/Hooks/useTradeError';
+import { getCurrencySymbol } from 'AppV2/Utils/currency-utils';
 import { mapContractTypeToStakePresetKey } from 'AppV2/Utils/trade-params-preset-utils';
 import { getDisplayedContractTypes } from 'AppV2/Utils/trade-types-utils';
 import { AutomationStoreContext } from 'Stores/useAutomationStore';
@@ -60,7 +60,7 @@ const StakePopoverContent: React.FC<{
             chipValues={chipValues || defaultChipValues}
             selectedValue={amount}
             onSelect={handleChipSelectAndClose}
-            formatValue={(val: number) => `${val} ${getCurrencyDisplayCode(currency)}`}
+            formatValue={(val: number) => `${getCurrencySymbol(currency)}${val}`}
             inputComponent={<StakeInputDesktop onClose={closePopover} is_open={is_open} />}
         />
     );

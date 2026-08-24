@@ -59,7 +59,7 @@ describe('MultipliersDealCancellationInfo', () => {
         const title = screen.getByText('DC fee');
         expect(title).toBeInTheDocument();
         expect(title).not.toHaveClass('trade-params__text--disabled');
-        expect(screen.getByText(/4.00 USD/)).toBeInTheDocument();
+        expect(screen.getByText(/\$4.00/)).toBeInTheDocument();
     });
 
     it('applies specific className if is_market_closed === true', () => {

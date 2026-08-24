@@ -24,6 +24,7 @@ import { useDevice } from '@deriv-com/ui';
 import RiskDisclosureModal from 'AppV2/Components/RiskDisclosureModal';
 import useContractsFor from 'AppV2/Hooks/useContractsFor';
 import { useRiskDisclosure } from 'AppV2/Hooks/useRiskDisclosure';
+import { getCurrencySymbol } from 'AppV2/Utils/currency-utils';
 import { ERROR_SNACKBAR_DURATION, SERVICE_ERROR } from 'AppV2/Utils/layout-utils';
 import { getTradeTypeTabsList } from 'AppV2/Utils/trade-params-utils';
 import { getDisplayedContractTypes } from 'AppV2/Utils/trade-types-utils';
@@ -290,7 +291,7 @@ const PurchaseButton = observer(() => {
                         label={
                             is_accu_sell_disabled
                                 ? `${cardLabels.CLOSE}`
-                                : `${cardLabels.CLOSE} ${current_stake} ${currency}`
+                                : `${cardLabels.CLOSE} ${getCurrencySymbol(currency)}${current_stake}`
                         }
                         fullWidth
                         isOpaque

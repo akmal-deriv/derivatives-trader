@@ -1,11 +1,11 @@
 import React from 'react';
 import clsx from 'clsx';
 
-import { Money } from '@deriv/components';
 import { getLocalizedBasis } from '@deriv/shared';
 import { CaptionText, Skeleton } from '@deriv-com/quill-ui';
 import { useTranslations } from '@deriv-com/translations';
 
+import { formatAmountWithSymbol } from 'AppV2/Utils/currency-utils';
 import { useTraderStore } from 'Stores/useTraderStores';
 
 type TPurchaseButtonContent = {
@@ -99,14 +99,9 @@ const PurchaseButtonContent = ({
                         color='quill-typography__color--prominent'
                     >
                         {amount ? (
-                            <Money
-                                amount={amount}
-                                currency={currency}
-                                should_format={!is_turbos && !is_vanilla}
-                                show_currency
-                            />
+                            formatAmountWithSymbol(currency, amount, !is_turbos && !is_vanilla)
                         ) : info.has_error ? (
-                            `- ${currency}`
+                            '-'
                         ) : (
                             // Renders a <span>, so it nests safely inside this <p>-based CaptionText.
                             <Skeleton.Square width={56} height={12} rounded />

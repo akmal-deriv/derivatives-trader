@@ -3,7 +3,7 @@ import clsx from 'clsx';
 import { observer } from 'mobx-react-lite';
 
 import { Skeleton } from '@deriv/components';
-import { getCurrencyDisplayCode, isEmptyObject, isMobile, TRADE_TYPES } from '@deriv/shared';
+import { isEmptyObject, isMobile, TRADE_TYPES } from '@deriv/shared';
 import { ActionSheet, TextField } from '@deriv-com/quill-ui';
 import { Localize, useTranslations } from '@deriv-com/translations';
 
@@ -11,6 +11,7 @@ import { ActionSheetHeaderTitle } from 'AppV2/Components/ActionSheetHeaderToolti
 import Carousel from 'AppV2/Components/Carousel';
 import CarouselHeader from 'AppV2/Components/Carousel/carousel-header';
 import TradeParamDefinition from 'AppV2/Components/TradeParamDefinition';
+import { getCurrencySymbol } from 'AppV2/Utils/currency-utils';
 import { isSmallScreen } from 'AppV2/Utils/trade-params-utils';
 import { useTraderStore } from 'Stores/useTraderStores';
 
@@ -97,7 +98,7 @@ const Strike = observer(({ is_minimized }: TTradeParametersProps) => {
             id: 1,
             component: (
                 <StrikeWheel
-                    currency={getCurrencyDisplayCode(currency)}
+                    currency={getCurrencySymbol(currency)}
                     onStrikePriceSelect={handleStrikeChange}
                     payout_per_point={payout_per_point}
                     strike_price_list={strike_price_list}

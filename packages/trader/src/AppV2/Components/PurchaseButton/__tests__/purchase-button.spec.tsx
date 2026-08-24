@@ -216,8 +216,7 @@ describe('PositionsContent', () => {
 
         // Content reflects the default (Rise/CALL) side's payout only, not both sides.
         expect(screen.getByText('Payout')).toBeInTheDocument();
-        expect(screen.getByText(/19.26/)).toBeInTheDocument();
-        expect(screen.getByText(/USD/i)).toBeInTheDocument();
+        expect(screen.getByText('$19.26')).toBeInTheDocument();
     });
 
     it('should render the skeleton (not the Buy button) while the initial chart load is pending', () => {
@@ -364,7 +363,7 @@ describe('PositionsContent', () => {
         default_mock_store.modules.trade.is_accumulator = true;
         mockPurchaseButton();
 
-        const sell_button = screen.getByText('Close 19.32 USD');
+        const sell_button = screen.getByText('Close $19.32');
         expect(sell_button).toBeInTheDocument();
         expect(default_mock_store.portfolio.onClickSell).not.toBeCalled();
 

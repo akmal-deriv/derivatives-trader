@@ -3,13 +3,7 @@ import debounce from 'lodash.debounce';
 import { observer } from 'mobx-react-lite';
 
 import { TPriceProposalResponse, TSocketError } from '@deriv/api';
-import {
-    formatMoney,
-    getCurrencyDisplayCode,
-    getDecimalPlaces,
-    mapErrorMessage,
-    trackAnalyticsEvent,
-} from '@deriv/shared';
+import { getDecimalPlaces, mapErrorMessage, trackAnalyticsEvent } from '@deriv/shared';
 import { ActionSheet, TextField } from '@deriv-com/quill-ui';
 import { Localize, useTranslations } from '@deriv-com/translations';
 
@@ -17,6 +11,7 @@ import { ValueChips } from 'AppV2/Components/InputPopover';
 import { getStakePresets } from 'AppV2/Config/trade-parameter-presets';
 import useIsVirtualKeyboardOpen from 'AppV2/Hooks/useIsVirtualKeyboardOpen';
 import { useProposal } from 'AppV2/Hooks/useProposal';
+import { formatAmountWithSymbol, getCurrencySymbol } from 'AppV2/Utils/currency-utils';
 import { createDecimalInputGuard, getDecimalInputMaxLength } from 'AppV2/Utils/decimal-input';
 import { mapContractTypeToStakePresetKey } from 'AppV2/Utils/trade-params-preset-utils';
 import { getPayoutInfo, getStakePresetValues } from 'AppV2/Utils/trade-params-utils';
@@ -348,15 +343,16 @@ const StakeInput = observer(
             // eslint-disable-next-line react-hooks/exhaustive-deps
         }, [response_2, error_2]);
 
+        const currency_symbol = getCurrencySymbol(currency);
+
         const getInputMessage = () =>
             !!details.min_stake &&
             !!details.max_stake && (
                 <Localize
-                    i18n_default_text='Range {{min_stake}} - {{max_stake}} {{currency}}'
+                    i18n_default_text='Range {{min_stake}} - {{max_stake}}'
                     values={{
-                        currency: getCurrencyDisplayCode(currency),
-                        min_stake: formatMoney(currency, +details.min_stake, true),
-                        max_stake: formatMoney(currency, +details.max_stake, true),
+                        min_stake: formatAmountWithSymbol(currency, +details.min_stake),
+                        max_stake: formatAmountWithSymbol(currency, +details.max_stake),
                     }}
                 />
             );
@@ -554,7 +550,7 @@ const StakeInput = observer(
                         decimals={decimals}
                         inputMode='decimal'
                         id={input_id}
-                        label={localize('Stake ({{currency}})', { currency: getCurrencyDisplayCode(currency) })}
+                        label={localize('Stake ({{currency}})', { currency: currency_symbol })}
                         maxLength={state.max_length}
                         message={fe_stake_error || (should_show_stake_error && stake_error) || getInputMessage()}
                         name='amount'
@@ -573,7 +569,7 @@ const StakeInput = observer(
                         values={preset_values}
                         selectedValue={Number(displayAmount)}
                         onSelect={onPresetSelect}
-                        formatValue={value => `${value} ${getCurrencyDisplayCode(currency)}`}
+                        formatValue={value => `${currency_symbol}${value}`}
                     />
                     <StakeDetails
                         contract_type={contract_type}

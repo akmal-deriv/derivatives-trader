@@ -1,10 +1,11 @@
 import clsx from 'clsx';
 
-import { Money, Skeleton } from '@deriv/components';
+import { Skeleton } from '@deriv/components';
 import { observer } from '@deriv/stores';
 import { Text } from '@deriv-com/quill-ui';
 import { Localize } from '@deriv-com/translations';
 
+import { formatAmountWithSymbol } from 'AppV2/Utils/currency-utils';
 import { getProposalInfoKey } from 'AppV2/Utils/trade-params-utils';
 import { useTraderStore } from 'Stores/useTraderStores';
 
@@ -21,10 +22,10 @@ const PayoutInfo = observer(() => {
             </Text>
             {payout ? (
                 <Text size='sm' className={clsx(is_market_closed && 'trade-params__text--disabled')}>
-                    <Money amount={payout} show_currency currency={currency} />
+                    {formatAmountWithSymbol(currency, payout)}
                 </Text>
             ) : has_error ? (
-                <Text size='sm'>- {currency}</Text>
+                <Text size='sm'>-</Text>
             ) : (
                 <Skeleton width={60} height={14} />
             )}

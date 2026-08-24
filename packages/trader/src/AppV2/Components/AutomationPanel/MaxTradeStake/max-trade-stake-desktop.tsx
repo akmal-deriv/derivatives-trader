@@ -1,10 +1,11 @@
 import React from 'react';
 
-import { getCurrencyDisplayCode, getDecimalPlaces } from '@deriv/shared';
+import { getDecimalPlaces } from '@deriv/shared';
 import { Button, Text, TextField, ToggleSwitch } from '@deriv-com/quill-ui';
 import { Localize, useTranslations } from '@deriv-com/translations';
 
 import { TradeParameterPopover, useTradeParameterPopover } from 'AppV2/Components/TradeParameters/Shared';
+import { getCurrencySymbol } from 'AppV2/Utils/currency-utils';
 import { createDecimalInputGuard, getDecimalInputMaxLength } from 'AppV2/Utils/decimal-input';
 
 type TMaxTradeStakeDesktopProps = {
@@ -75,7 +76,7 @@ const MaxTradeStakeContent = ({ currency, initialValue, initialStake, onSave }: 
             </div>
             <div className='automation-popover__toggle-content'>
                 <TextField
-                    label={`${localize('Amount')} (${getCurrencyDisplayCode(currency)})`}
+                    label={`${localize('Amount')} (${getCurrencySymbol(currency)})`}
                     value={value}
                     onChange={handleChange}
                     onKeyDown={handleKeyDown}
@@ -119,12 +120,12 @@ const MaxTradeStakeDesktop = ({
     disabled,
     onSave,
 }: TMaxTradeStakeDesktopProps) => {
-    const display_currency = getCurrencyDisplayCode(currency);
+    const currency_symbol = getCurrencySymbol(currency);
 
     return (
         <TradeParameterPopover
             label={<Localize i18n_default_text='Max. stake' />}
-            value={initialValue ? `${initialValue} ${display_currency}` : '-'}
+            value={initialValue ? `${currency_symbol}${initialValue}` : '-'}
             popover_classname='automation-popover'
             is_locked={disabled}
             description={

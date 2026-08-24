@@ -80,7 +80,7 @@ describe('TakeProfitInputDesktop', () => {
     it('renders input field with correct label', () => {
         render(<MockedTakeProfitInputDesktop />);
 
-        expect(screen.getByLabelText('Amount (USD)')).toBeInTheDocument();
+        expect(screen.getByLabelText('Amount ($)')).toBeInTheDocument();
     });
 
     it('initializes with take_profit value from store', () => {
@@ -138,7 +138,7 @@ describe('TakeProfitInputDesktop', () => {
         render(<MockedTakeProfitInputDesktop />);
 
         expect(screen.getByText(/Range:/)).toBeInTheDocument();
-        expect(screen.getByText(/0.01 to 5,000.00 USD/)).toBeInTheDocument();
+        expect(screen.getByText(/0.01 to \$5,000.00/)).toBeInTheDocument();
     });
 
     it('calls onChangeMultiple and onClose when Save is clicked', async () => {
@@ -238,6 +238,6 @@ describe('TakeProfitInputDesktop', () => {
 
         render(<MockedTakeProfitInputDesktop store={store} />);
 
-        expect(screen.getByText(/0.01 to 5,000.00 USD/)).toBeInTheDocument();
+        expect(screen.getByText(/0.01 to \$5,000.00/)).toBeInTheDocument();
     });
 });

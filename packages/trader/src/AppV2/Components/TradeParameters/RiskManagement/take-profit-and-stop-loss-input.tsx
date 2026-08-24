@@ -2,13 +2,14 @@ import React from 'react';
 import clsx from 'clsx';
 import { observer } from 'mobx-react-lite';
 
-import { getCurrencyDisplayCode, getDecimalPlaces, mapErrorMessage, trackAnalyticsEvent } from '@deriv/shared';
+import { getDecimalPlaces, mapErrorMessage, trackAnalyticsEvent } from '@deriv/shared';
 import { ActionSheet, CaptionText, Text, TextFieldWithSteppers, ToggleSwitch } from '@deriv-com/quill-ui';
 import { Localize, useTranslations } from '@deriv-com/translations';
 
 import ActionSheetHeaderTooltip from 'AppV2/Components/ActionSheetHeaderTooltip';
 import { useProposal } from 'AppV2/Hooks/useProposal';
 import useTradeError from 'AppV2/Hooks/useTradeError';
+import { getCurrencySymbol } from 'AppV2/Utils/currency-utils';
 import { focusAndOpenKeyboard } from 'AppV2/Utils/trade-params-utils';
 import { getDisplayedContractTypes } from 'AppV2/Utils/trade-types-utils';
 import { ExpandedProposal } from 'Stores/Modules/Trading/Helpers/proposal';
@@ -98,7 +99,7 @@ const TakeProfitAndStopLossInput = ({
     const focus_timeout = React.useRef<ReturnType<typeof setTimeout>>();
 
     const decimals = getDecimalPlaces(currency);
-    const currency_display_code = getCurrencyDisplayCode(currency);
+    const currency_symbol = getCurrencySymbol(currency);
     const Component = has_actionsheet_wrapper ? ActionSheet.Content : 'div';
 
     const min_value = validation_params[contract_types[0]]?.[type]?.min;
@@ -126,11 +127,10 @@ const TakeProfitAndStopLossInput = ({
     const input_message =
         info.min_value && info.max_value ? (
             <Localize
-                i18n_default_text='Range: {{min_value}} to {{max_value}} {{currency}}'
+                i18n_default_text='Range: {{min_value}} to {{max_value}}'
                 values={{
-                    currency: currency_display_code,
-                    min_value: info.min_value,
-                    max_value: info.max_value,
+                    min_value: `${currency_symbol}${info.min_value}`,
+                    max_value: `${currency_symbol}${info.max_value}`,
                 }}
             />
         ) : (
@@ -325,7 +325,7 @@ const TakeProfitAndStopLossInput = ({
                     regex={/[^0-9.,]/g}
                     status={fe_error_text || error_text ? 'error' : 'neutral'}
                     textAlignment='center'
-                    unitLeft={currency_display_code}
+                    unitLeft={currency_symbol}
                     variant='fill'
                     value={new_input_value ?? ''}
                     onBeforeInput={(e: React.FormEvent<HTMLInputElement>) => {

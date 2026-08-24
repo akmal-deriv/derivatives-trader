@@ -145,7 +145,7 @@ describe('Stake', () => {
         await userEvent.click(screen.getByText(stake_param_label));
 
         // Desktop uses popover with value chips, not ActionSheet
-        expect(screen.getByLabelText('Select value 10 USD')).toBeInTheDocument();
+        expect(screen.getByLabelText('Select value $10')).toBeInTheDocument();
         // Desktop popover doesn't show payout details in the same way as mobile
     });
 
@@ -155,7 +155,7 @@ describe('Stake', () => {
         await userEvent.click(screen.getByText(stake_param_label));
 
         // Desktop uses chips - click on a different value
-        await userEvent.click(screen.getByLabelText('Select value 20 USD'));
+        await userEvent.click(screen.getByLabelText('Select value $20'));
 
         expect(default_mock_store.modules.trade.onChange).toHaveBeenCalledWith({
             target: { name: 'amount', value: 20 },
@@ -236,7 +236,7 @@ describe('Stake', () => {
 
         await userEvent.click(screen.getByText(stake_param_label));
         // Desktop popover should open with chips
-        expect(screen.getByLabelText('Select value 10 USD')).toBeInTheDocument();
+        expect(screen.getByLabelText('Select value $10')).toBeInTheDocument();
     });
 
     it('shows error in case of a validation error (desktop)', async () => {
@@ -251,7 +251,7 @@ describe('Stake', () => {
         await userEvent.click(screen.getByText(stake_param_label));
 
         // Desktop popover should show chips - verify popover is open
-        expect(screen.getByLabelText('Select value 10 USD')).toBeInTheDocument();
+        expect(screen.getByLabelText('Select value $10')).toBeInTheDocument();
     });
 
     it('disables trade param if is_market_closed == true', () => {
@@ -345,9 +345,9 @@ describe('StakeInput', () => {
     it('renders the stake range and all preset chips valid for the contract limits', () => {
         renderStakeInput();
 
-        expect(screen.getByText('Range 0.35 - 50,000.00 USD')).toBeInTheDocument();
+        expect(screen.getByText('Range $0.35 - $50,000.00')).toBeInTheDocument();
         [1, 5, 10, 20, 50, 100].forEach(value =>
-            expect(screen.getByRole('button', { name: `Select value ${value} USD` })).toBeInTheDocument()
+            expect(screen.getByRole('button', { name: `Select value $${value}` })).toBeInTheDocument()
         );
     });
 
@@ -358,15 +358,15 @@ describe('StakeInput', () => {
         };
         renderStakeInput();
 
-        expect(screen.queryByRole('button', { name: 'Select value 1 USD' })).not.toBeInTheDocument();
-        expect(screen.getByRole('button', { name: 'Select value 5 USD' })).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Select value $1' })).not.toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Select value $5' })).toBeInTheDocument();
     });
 
     it('fills the input without committing when a preset is tapped', async () => {
         const user = userEvent.setup();
         renderStakeInput();
 
-        await user.click(screen.getByRole('button', { name: 'Select value 20 USD' }));
+        await user.click(screen.getByRole('button', { name: 'Select value $20' }));
 
         expect(screen.getByDisplayValue('20')).toBeInTheDocument();
         expect(default_mock_store.modules.trade.onChange).not.toHaveBeenCalled();
@@ -384,7 +384,7 @@ describe('StakeInput', () => {
             </TraderProviders>
         );
 
-        await user.click(screen.getByRole('button', { name: 'Select value 20 USD' }));
+        await user.click(screen.getByRole('button', { name: 'Select value $20' }));
 
         // The header host (stake-mobile) drives Save; the input publishes the commit handler + gate.
         const { onSave, is_save_disabled } = registerHeaderActions.mock.calls.at(-1)[0];
@@ -562,7 +562,7 @@ describe('Stake - Mobile header actions', () => {
         renderMobileStake();
 
         await openSheet(user);
-        await user.click(screen.getByRole('button', { name: 'Select value 20 USD' }));
+        await user.click(screen.getByRole('button', { name: 'Select value $20' }));
 
         expect(screen.getByRole('button', { name: /Save/i })).toBeEnabled();
     });
@@ -572,7 +572,7 @@ describe('Stake - Mobile header actions', () => {
         renderMobileStake();
 
         await openSheet(user);
-        await user.click(screen.getByRole('button', { name: 'Select value 20 USD' }));
+        await user.click(screen.getByRole('button', { name: 'Select value $20' }));
         await user.click(screen.getByRole('button', { name: /Save/i }));
 
         expect(default_mock_store.modules.trade.onChange).toHaveBeenCalledWith({
@@ -585,7 +585,7 @@ describe('Stake - Mobile header actions', () => {
         renderMobileStake();
 
         await openSheet(user);
-        await user.click(screen.getByRole('button', { name: 'Select value 20 USD' }));
+        await user.click(screen.getByRole('button', { name: 'Select value $20' }));
         await user.click(screen.getByTestId('dt-actionsheet-overlay'));
 
         expect(default_mock_store.modules.trade.onChange).not.toHaveBeenCalled();
@@ -715,7 +715,7 @@ describe('Stake - Mobile header actions', () => {
         renderMobileStake();
 
         await openSheet(user);
-        await user.click(screen.getByRole('button', { name: 'Select value 20 USD' }));
+        await user.click(screen.getByRole('button', { name: 'Select value $20' }));
 
         expect(screen.getByRole('button', { name: /Save/i })).toBeDisabled();
     });

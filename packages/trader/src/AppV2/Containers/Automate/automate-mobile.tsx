@@ -28,6 +28,7 @@ import useAutomationTicks from 'AppV2/Hooks/useAutomationTicks';
 import useContractsFor from 'AppV2/Hooks/useContractsFor';
 import useNonAutomatableSymbolSnackbar from 'AppV2/Hooks/useNonAutomatableSymbolSnackbar';
 import useRunControls from 'AppV2/Hooks/useRunControls';
+import { formatSignedAmountWithSymbol } from 'AppV2/Utils/currency-utils';
 import { isDigitTradeType } from 'AppV2/Utils/digits';
 import { getTradeTypeTabsList } from 'AppV2/Utils/trade-params-utils';
 import { useAutomationStore } from 'Stores/useAutomationStore';
@@ -241,11 +242,13 @@ const AutomateMobile = observer(() => {
                             </div>
                             <Text size='sm'>
                                 <Localize
-                                    i18n_default_text='Contracts: {{count}} | P/L: {{profit}} {{currency}}'
+                                    i18n_default_text='Contracts: {{count}} | P/L: {{profit}}'
                                     values={{
                                         count: automation_store.contracts_count,
-                                        profit: automation_store.net_profit.toFixed(2),
-                                        currency: display_currency,
+                                        profit: formatSignedAmountWithSymbol(
+                                            display_currency,
+                                            automation_store.net_profit
+                                        ),
                                     }}
                                 />
                             </Text>

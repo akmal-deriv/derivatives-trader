@@ -66,12 +66,12 @@ describe('<PayoutPerPointInfo />', () => {
 
         expect(screen.getByText(label)).toBeInTheDocument();
         expect(screen.getByTestId('dt_skeleton')).toBeInTheDocument();
-        expect(screen.queryByText('123 USD')).not.toBeInTheDocument();
+        expect(screen.queryByText('$123')).not.toBeInTheDocument();
     });
     it('displays the correct label, value and currency', () => {
         mockedPayoutPerPointInfo();
 
-        expect(screen.getByText('123 USD')).toBeInTheDocument();
+        expect(screen.getByText('$123')).toBeInTheDocument();
         expect(screen.getByText(label)).toBeInTheDocument();
         expect(screen.getByText(label)).not.toHaveClass('trade-params__text--disabled');
     });
@@ -105,6 +105,6 @@ describe('<PayoutPerPointInfo />', () => {
         mockedPayoutPerPointInfo();
 
         expect(screen.getByText(label)).toBeInTheDocument();
-        expect(screen.getByText('123 USD')).toBeInTheDocument();
+        expect(screen.getByText('$123')).toBeInTheDocument();
     });
 });

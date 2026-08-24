@@ -1,13 +1,13 @@
 import React from 'react';
 import { observer } from 'mobx-react-lite';
 
-import { Money } from '@deriv/components';
 import { Skeleton, Text, ToggleSwitch, useSnackbar, WheelPicker } from '@deriv-com/quill-ui';
 import { Localize, useTranslations } from '@deriv-com/translations';
 
 import ActionSheetHeaderTooltip from 'AppV2/Components/ActionSheetHeaderTooltip';
 import { useBlockSheetSwipe } from 'AppV2/Hooks/useBlockSheetSwipe';
 import { useProposal } from 'AppV2/Hooks/useProposal';
+import { formatAmountWithSymbol } from 'AppV2/Utils/currency-utils';
 import { addUnit, getSnackBarText, WHEEL_PICKER_HEIGHT } from 'AppV2/Utils/trade-params-utils';
 import { useTraderStore } from 'Stores/useTraderStores';
 
@@ -131,7 +131,7 @@ const DealCancellation = observer(({ closeActionSheet, onActionsChange }: TDealC
                         </Text>
                         {deal_cancellation_fee ? (
                             <Text color='quill-typography__color--subtle' size='sm' as='div'>
-                                <Money amount={deal_cancellation_fee} show_currency currency={currency} />
+                                {formatAmountWithSymbol(currency, deal_cancellation_fee)}
                             </Text>
                         ) : (
                             <Skeleton.Square width={65} height={18} rounded />

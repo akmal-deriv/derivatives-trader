@@ -1,10 +1,11 @@
 import React from 'react';
 
-import { getCurrencyDisplayCode, getDecimalPlaces } from '@deriv/shared';
+import { getDecimalPlaces } from '@deriv/shared';
 import { Button, Text, TextField } from '@deriv-com/quill-ui';
 import { useTranslations } from '@deriv-com/translations';
 
 import { TradeParameterPopover, useTradeParameterPopover } from 'AppV2/Components/TradeParameters/Shared';
+import { getCurrencySymbol } from 'AppV2/Utils/currency-utils';
 import { createDecimalInputGuard, getDecimalInputMaxLength } from 'AppV2/Utils/decimal-input';
 
 type TThresholdInputDesktopProps = {
@@ -53,7 +54,7 @@ const ThresholdInputContent = ({
     return (
         <div className='automation-popover__input-wrapper'>
             <TextField
-                label={`${label} (${getCurrencyDisplayCode(currency)})`}
+                label={`${label} (${getCurrencySymbol(currency)})`}
                 value={value}
                 onChange={handleChange}
                 onKeyDown={handleKeyDown}
@@ -93,13 +94,13 @@ const ThresholdInputDesktop = ({
     onSave,
 }: TThresholdInputDesktopProps) => {
     const { localize } = useTranslations();
-    const display_currency = getCurrencyDisplayCode(currency);
+    const currency_symbol = getCurrencySymbol(currency);
     const label = threshold_type === 'take_profit' ? localize('Profit threshold') : localize('Loss threshold');
 
     return (
         <TradeParameterPopover
             label={label}
-            value={`${initialValue} ${display_currency}`}
+            value={`${currency_symbol}${initialValue}`}
             popover_classname='automation-popover'
             is_locked={disabled}
             description={description ? <Text size='sm'>{description}</Text> : undefined}
