@@ -7,8 +7,25 @@ type MarketOrderMap = {
     [key: string]: number;
 };
 
-// Helper function to get submarket display name
-const getSubmarketDisplayName = (submarket: string) => {
+// Static curated market order. Language-independent, so it is safe to build once at module scope
+// and freeze — unknown markets fall back to a rank past this list (see `market_order` below).
+const marketSortingOrder = ['synthetic_index', 'forex', 'indices', 'cryptocurrency', 'commodities'];
+const marketOrderMap: MarketOrderMap = marketSortingOrder.reduce(
+    (acc: MarketOrderMap, market: string, index: number) => {
+        acc[market] = index;
+        return acc;
+    },
+    {}
+);
+
+const sortSymbols = (symbolsList: ActiveSymbols) => {
+    // A 0- or 1-element list is already sorted; skip the map build and decoration entirely.
+    if (symbolsList.length < 2) return symbolsList.slice();
+
+    // Build the localized submarket display-name map ONCE per call. It MUST NOT be hoisted to module
+    // scope: `localize()` resolves against the runtime-active language, and the user can switch
+    // language at runtime — a module-scope map would freeze the labels to whatever locale was active
+    // when this module first loaded.
     const submarket_display_names: Record<string, string> = {
         major_pairs: localize('Major pairs'),
         minor_pairs: localize('Minor pairs'),
@@ -40,27 +57,22 @@ const getSubmarketDisplayName = (submarket: string) => {
         basket_cryptocurrency: localize('Cryptocurrency basket'),
     };
 
-    return submarket_display_names[submarket] || submarket;
-};
-
-const sortSymbols = (symbolsList: ActiveSymbols) => {
-    const marketSortingOrder = ['synthetic_index', 'forex', 'indices', 'cryptocurrency', 'commodities'];
-    const marketOrderMap: MarketOrderMap = marketSortingOrder.reduce(
-        (acc: MarketOrderMap, market: string, index: number) => {
-            acc[market] = index;
-            return acc;
-        },
-        {}
-    );
-
-    return symbolsList.slice().sort((a, b) => {
-        const marketOrderA = marketOrderMap[a.market] !== undefined ? marketOrderMap[a.market] : symbolsList.length;
-        const marketOrderB = marketOrderMap[b.market] !== undefined ? marketOrderMap[b.market] : symbolsList.length;
-        if (marketOrderA !== marketOrderB) {
-            return marketOrderA - marketOrderB;
-        }
-        return getSubmarketDisplayName(a.submarket).localeCompare(getSubmarketDisplayName(b.submarket));
-    });
+    // Decorate each symbol with its precomputed sort keys so the comparator does no work per
+    // comparison. `market_order` preserves the exact "unknown market sorts after curated markets"
+    // fallback (rank = list length); `submarket_name` falls back to the raw submarket key.
+    return symbolsList
+        .map(symbol => ({
+            symbol,
+            market_order: marketOrderMap[symbol.market] ?? symbolsList.length,
+            submarket_name: submarket_display_names[symbol.submarket] || symbol.submarket,
+        }))
+        .sort((a, b) => {
+            if (a.market_order !== b.market_order) {
+                return a.market_order - b.market_order;
+            }
+            return a.submarket_name.localeCompare(b.submarket_name);
+        })
+        .map(({ symbol }) => symbol);
 };
 
 export default sortSymbols;

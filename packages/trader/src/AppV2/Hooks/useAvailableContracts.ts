@@ -2,8 +2,8 @@ import { useMemo } from 'react';
 
 import { getAvailableContracts, getOrderedAvailableContracts } from 'AppV2/Utils/trade-types-utils';
 
-import useAllTradeTypeSymbols from './useAllTradeTypeSymbols';
 import useNativeAppAllowedTradeTypes from './useNativeAppAllowedTradeTypes';
+import useTradeTypeAvailability from './useTradeTypeAvailability';
 
 /**
  * The trade types to offer this client, in display order.
@@ -23,18 +23,18 @@ import useNativeAppAllowedTradeTypes from './useNativeAppAllowedTradeTypes';
 const useAvailableContracts = () => {
     const nativeAppAllowedTradeTypes = useNativeAppAllowedTradeTypes();
     const all_trade_types = useMemo(() => getOrderedAvailableContracts(), []);
-    const { symbols_by_trade_type, isLoading } = useAllTradeTypeSymbols(all_trade_types, true);
+    const { available_trade_type_ids, isLoading } = useTradeTypeAvailability(all_trade_types);
 
     return useMemo(() => {
         const contracts = getAvailableContracts(nativeAppAllowedTradeTypes);
         // Fail open while the lookup is in flight — a brief permissive list beats an empty one.
         if (isLoading) return contracts;
 
-        const tradeable = contracts.filter(contract => symbols_by_trade_type.get(contract.id)?.length);
+        const tradeable = contracts.filter(contract => available_trade_type_ids.has(contract.id));
         // Also fail open if nothing at all came back (e.g. every request errored), rather than
         // presenting a client with no trade types.
         return tradeable.length ? tradeable : contracts;
-    }, [nativeAppAllowedTradeTypes, isLoading, symbols_by_trade_type]);
+    }, [nativeAppAllowedTradeTypes, isLoading, available_trade_type_ids]);
 };
 
 export default useAvailableContracts;

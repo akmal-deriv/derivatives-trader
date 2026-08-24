@@ -3,35 +3,32 @@ import { renderHook } from '@testing-library/react-hooks';
 
 import { CONTRACT_LIST } from 'AppV2/Utils/trade-types-utils';
 
-import useAllTradeTypeSymbols from '../useAllTradeTypeSymbols';
 import useAvailableContracts from '../useAvailableContracts';
 import useNativeAppAllowedTradeTypes from '../useNativeAppAllowedTradeTypes';
+import useTradeTypeAvailability from '../useTradeTypeAvailability';
 
 jest.mock('../useNativeAppAllowedTradeTypes', () => ({
     __esModule: true,
     default: jest.fn(() => undefined),
 }));
 
-jest.mock('../useAllTradeTypeSymbols', () => ({
+jest.mock('../useTradeTypeAvailability', () => ({
     __esModule: true,
     default: jest.fn(),
 }));
 
 /**
- * Server availability: a trade type is offered iff its symbol list is non-empty. The result is
- * cached so repeated renders get the same reference, matching the real hook — which memoizes its
- * map — so callers' own memoization can be asserted.
+ * Server availability: a trade type is offered iff it is in the available set. The result is cached
+ * so repeated renders get the same reference, matching the real hook — which memoizes its set — so
+ * callers' own memoization can be asserted.
  */
 const mockAvailability = ({ available_ids, isLoading = false }: { available_ids?: string[]; isLoading?: boolean }) => {
-    let cached: { symbols_by_trade_type: Map<string, unknown[]>; isLoading: boolean } | undefined;
+    let cached: { available_trade_type_ids: Set<string>; isLoading: boolean } | undefined;
 
-    (useAllTradeTypeSymbols as jest.Mock).mockImplementation((trade_types: { id: string }[]) => {
+    (useTradeTypeAvailability as jest.Mock).mockImplementation((trade_types: { id: string }[]) => {
         cached ??= {
-            symbols_by_trade_type: new Map(
-                trade_types.map(({ id }) => [
-                    id,
-                    !available_ids || available_ids.includes(id) ? [{ symbol: 'R_100' }] : [],
-                ])
+            available_trade_type_ids: new Set(
+                trade_types.filter(({ id }) => !available_ids || available_ids.includes(id)).map(({ id }) => id)
             ),
             isLoading,
         };
