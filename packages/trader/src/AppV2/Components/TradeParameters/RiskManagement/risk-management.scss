@@ -43,6 +43,11 @@ $FEE_HEIGHT: 2rem;
     &__wrapper {
         position: relative;
         padding-block-start: 0;
+
+        // Reserve the field + message row so the range/error text appearing doesn't shift the layout.
+        .quill-input__container {
+            min-height: 7.8rem;
+        }
     }
 
     &__accu-information {
@@ -143,7 +148,7 @@ $FEE_HEIGHT: 2rem;
         &__wrapper {
             display: flex;
             flex-direction: column;
-            gap: var(--core-spacing-800);
+            gap: var(--core-spacing-400);
             // Not on `&__picker`: that is shared with the DC tab, which wants no top gap.
             padding-block-start: var(--component-actionSheet-spacing-padding-md);
         }

@@ -3,7 +3,7 @@ import clsx from 'clsx';
 import { observer } from 'mobx-react-lite';
 
 import { getDecimalPlaces, mapErrorMessage, trackAnalyticsEvent } from '@deriv/shared';
-import { ActionSheet, CaptionText, Text, TextFieldWithSteppers, ToggleSwitch } from '@deriv-com/quill-ui';
+import { ActionSheet, CaptionText, Text, TextField, ToggleSwitch } from '@deriv-com/quill-ui';
 import { Localize, useTranslations } from '@deriv-com/translations';
 
 import ActionSheetHeaderTooltip from 'AppV2/Components/ActionSheetHeaderTooltip';
@@ -305,7 +305,7 @@ const TakeProfitAndStopLossInput = ({
                     </span>
                     <ToggleSwitch checked={is_enabled} onChange={onToggleSwitch} />
                 </div>
-                <TextFieldWithSteppers
+                <TextField
                     allowDecimals
                     customType='commaRemoval'
                     className='text-field--custom'
@@ -314,8 +314,8 @@ const TakeProfitAndStopLossInput = ({
                     data-testid={is_take_profit_input ? 'dt_tp_input' : 'dt_sl_input'}
                     inputMode='decimal'
                     id={type}
+                    label={`${localize('Amount')} (${currency_symbol})`}
                     message={is_enabled && (fe_error_text || error_text || input_message)}
-                    minusDisabled={Number(new_input_value) - 1 <= 0}
                     name={type}
                     noStatusIcon
                     onChange={onInputChange}
@@ -324,8 +324,7 @@ const TakeProfitAndStopLossInput = ({
                     ref={input_ref}
                     regex={/[^0-9.,]/g}
                     status={fe_error_text || error_text ? 'error' : 'neutral'}
-                    textAlignment='center'
-                    unitLeft={currency_symbol}
+                    textAlignment='left'
                     variant='fill'
                     value={new_input_value ?? ''}
                     onBeforeInput={(e: React.FormEvent<HTMLInputElement>) => {

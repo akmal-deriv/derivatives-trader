@@ -94,6 +94,18 @@ describe('TakeProfitAndStopLossInput', () => {
         expect(screen.queryByText(accu_content)).not.toBeInTheDocument();
     });
 
+    it('should render a plain filled amount field with no +/- stepper buttons', () => {
+        mockTakeProfitAndStopLossInput();
+
+        // TextFieldWithSteppers rendered quill-ui icon buttons for the +/- steppers; the plain
+        // TextField has none. The remaining buttons are the toggle switch and the label tooltip.
+        const stepper_buttons = screen
+            .getAllByRole('button')
+            .filter(button => button.className.includes('quill-icon-button'));
+        expect(stepper_buttons).toHaveLength(0);
+        expect(screen.getByTestId(tp_data_testid)).toBeInTheDocument();
+    });
+
     it('should render component with correct data for stop_loss type', () => {
         default_props.type = 'stop_loss';
         mockTakeProfitAndStopLossInput();

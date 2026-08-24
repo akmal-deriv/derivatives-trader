@@ -56,28 +56,39 @@ jest.mock('@deriv-com/quill-ui', () => ({
         onChange: (value: boolean) => void;
         disabled?: boolean;
     }) => <input type='checkbox' checked={checked} onChange={() => onChange(!checked)} disabled={disabled} />,
+    // After the stepper swap both the read-only display field and the editable amount field render as
+    // a plain TextField, so a single stub covers both call shapes (display: onClick/onFocus/disabled;
+    // editable: onChange/value/message/status/placeholder).
     TextField: ({
         value,
         onClick,
         onFocus,
-        disabled,
-    }: {
-        value: string;
-        onClick: () => void;
-        onFocus: () => void;
-        disabled: boolean;
-    }) => <input type='text' value={value} onClick={onClick} onFocus={onFocus} disabled={disabled} />,
-    TextFieldWithSteppers: ({
-        value,
         onChange,
+        disabled,
+        placeholder,
+        message,
         status,
     }: {
-        value: number;
-        onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+        value: string | number;
+        onClick?: () => void;
+        onFocus?: () => void;
+        onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+        disabled?: boolean;
+        placeholder?: string;
+        message?: React.ReactNode;
         status?: string;
     }) => (
         <div>
-            <input type='number' value={value} onChange={onChange} />
+            <input
+                type='text'
+                value={value}
+                onClick={onClick}
+                onFocus={onFocus}
+                onChange={onChange}
+                disabled={disabled}
+                placeholder={placeholder}
+            />
+            {message && <span>{message}</span>}
             {status === 'error' && <span>Error</span>}
         </div>
     ),
@@ -176,14 +187,14 @@ describe('RiskManagementItem component', () => {
     it('enables the header save action once the amount changes', async () => {
         renderComponent({ value: 10 });
         await userEvent.click(screen.getByRole('textbox'));
-        fireEvent.change(screen.getByRole('spinbutton'), { target: { value: '50' } });
+        fireEvent.change(screen.getByPlaceholderText('Amount'), { target: { value: '50' } });
         expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
     });
 
     it('commits the change when the header save action is tapped', async () => {
         renderComponent({ value: 10 });
         await userEvent.click(screen.getByRole('textbox'));
-        fireEvent.change(screen.getByRole('spinbutton'), { target: { value: '50' } });
+        fireEvent.change(screen.getByPlaceholderText('Amount'), { target: { value: '50' } });
         await userEvent.click(screen.getByRole('button', { name: 'Save' }));
         expect(mockUseContractDetails().contract.updateLimitOrder).toHaveBeenCalled();
     });
@@ -191,7 +202,7 @@ describe('RiskManagementItem component', () => {
     it('does not commit when the sheet is dismissed via the close action', async () => {
         renderComponent({ value: 10 });
         await userEvent.click(screen.getByRole('textbox'));
-        fireEvent.change(screen.getByRole('spinbutton'), { target: { value: '50' } });
+        fireEvent.change(screen.getByPlaceholderText('Amount'), { target: { value: '50' } });
         await userEvent.click(screen.getByRole('button', { name: 'Close' }));
         expect(mockUseContractDetails().contract.updateLimitOrder).not.toHaveBeenCalled();
     });
