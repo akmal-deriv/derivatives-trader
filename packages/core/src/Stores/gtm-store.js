@@ -52,7 +52,9 @@ export default class GTMStore extends BaseStore {
      */
     async pushDataLayer(data) {
         if (this.is_gtm_applicable && this.root_store?.client?.is_logged_in) {
-            BinarySocket?.wait('balance')?.then(() => {
+            // Gate on auth confirmation (is_authorize) — reconnect-proof, unlike the old
+            // expectResponse('balance') which was pinned to one connection instance.
+            BinarySocket?.waitForAuth?.().then(() => {
                 const gtm_object = { ...this.common_variables, ...data };
                 if (!gtm_object.event) return;
 

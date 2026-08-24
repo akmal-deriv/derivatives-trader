@@ -74,7 +74,9 @@ describe('initStore - stale session cleanup', () => {
 
         expect(mockCheckWhoAmI).toHaveBeenCalled();
         expect(mockClearAccountId).toHaveBeenCalled();
-        expect(mockRemoveCookies).toHaveBeenCalledWith('client_information', 'region');
+        // options_account_id must be cleared too — getAccountId() falls back to it and would
+        // repopulate localStorage with the stale session right after this cleanup.
+        expect(mockRemoveCookies).toHaveBeenCalledWith('client_information', 'region', 'options_account_id');
         // Session was invalidated — the client must NOT be flagged as logging in.
         expect(latestClient().setIsLoggingIn).not.toHaveBeenCalled();
     });

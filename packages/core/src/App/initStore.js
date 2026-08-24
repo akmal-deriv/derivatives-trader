@@ -78,12 +78,14 @@ export const initStore = async notification_messages => {
         const whoami_result = await checkWhoAmI();
 
         if (whoami_result.error?.code === 401) {
-            // Clear credentials before any WebSocket connection
+            // Clear credentials before any WebSocket connection. The options_account_id cookie
+            // MUST go too: getAccountId() falls back to it and would repopulate localStorage,
+            // booting a "logged in" session with dead cookies — which the WS server then refuses.
             clearAccountId();
             localStorage.removeItem('active_loginid');
             sessionStorage.removeItem('active_loginid');
             localStorage.removeItem('current_account');
-            removeCookies('client_information', 'region');
+            removeCookies('client_information', 'region', 'options_account_id');
         } else if (whoami_result.data?.identity?.external_id) {
             external_id = whoami_result.data.identity.external_id;
         }

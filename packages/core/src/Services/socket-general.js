@@ -1,4 +1,4 @@
-import { getPropertyValue, getSocketURL, mapErrorMessage } from '@deriv/shared';
+import { getAccountId, getPropertyValue, getSocketURL, mapErrorMessage } from '@deriv/shared';
 import { Analytics } from '@deriv-com/analytics';
 import { localize } from '@deriv-com/translations';
 
@@ -20,9 +20,20 @@ const BinarySocketGeneral = (() => {
     };
 
     const onConnectionError = () => {
-        localStorage.removeItem('active_loginid');
-        localStorage.removeItem('account_id');
+        // Repeated refused handshakes are the WS server's only signal for stale session cookies,
+        // but at the socket layer they are indistinguishable from plain network trouble (browsers
+        // expose no HTTP status for a failed WS handshake). handleWhoAmI is the one validation
+        // path (shared with the visibility/focus checks): it verifies over REST using the same
+        // session state the WS server validates and, on a confirmed 401, runs the canonical
+        // cleanUp() — which clears credentials including the options_account_id cookie and
+        // reconnects, resolving the socket URL to the public server. For plain network trouble
+        // it does nothing and the network monitor keeps retrying with backoff.
+        if (getAccountId()) {
+            client_store.handleWhoAmI();
+            return;
+        }
 
+        // Already on the public connection: no session involved — genuine connectivity problem.
         common_store.setError(true, {
             message: localize('Connection failed. Please refresh this page to continue.'),
         });
@@ -115,12 +126,20 @@ const BinarySocketGeneral = (() => {
                 if (msg_type === 'buy' || msg_type?.startsWith('auto_')) {
                     return;
                 }
-                client_store.logout();
+                if (getAccountId()) {
+                    client_store.logout();
+                }
                 break;
             }
             case 'InvalidToken': {
-                client_store.logout();
-                window.location.reload();
+                if (!getAccountId()) break;
+                // Give logout() a bounded window to clear the stale credentials, then reload
+                // regardless — its fetch has no timeout and can hang under exactly the flaky
+                // network this handles. A premature reload is safe: boot's whoami-401 cleanup
+                // clears the credentials (including the cookie) before any WS connection opens.
+                Promise.race([client_store.logout(), new Promise(resolve => setTimeout(resolve, 5000))]).finally(() =>
+                    window.location.reload()
+                );
                 break;
             }
             default:
@@ -137,9 +156,9 @@ const BinarySocketGeneral = (() => {
         common_store = store.common;
         gtm_store = store.gtm;
 
-        // Re-attach the balance cb on reconnect: `deriv_api` is recreated, so
-        // the prior subscription's callback chain is gone.
-        WS.setOnReconnect(subscribeBalance);
+        WS.setOnReconnect(() => {
+            if (getAccountId()) subscribeBalance();
+        });
 
         return {
             onDisconnect,

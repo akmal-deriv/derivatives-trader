@@ -288,15 +288,20 @@ export default class ClientStore extends BaseStore {
             // Set is_logging_in to true while we wait for authorization
             this.setIsLoggingIn(true);
 
-            // Wait for balance response which serves as authorization
-            // socket-general.js will handle the balance response and call authorizeAccount()
+            // Wait for auth confirmation: socket-general's authorizeAccount flips is_authorize on
+            // the first balance response, on whichever connection instance delivers it — unlike
+            // the old expectResponse('balance'), which was pinned to one instance and hung forever
+            // if that connection died before its balance arrived.
             try {
-                await BinarySocket.wait('balance');
+                await when(() => this.is_authorize, { timeout: 30000 });
             } catch (error) {
+                // Not confirmed within the window (dead network, refused handshakes, lost
+                // response). Let the one validation path decide: handleWhoAmI clears credentials
+                // only on a confirmed 401; plain network trouble keeps retrying via the network
+                // monitor while boot continues.
                 // eslint-disable-next-line no-console
-                console.error('[Auth] Balance timeout:', error);
-                // Clear invalid credentials and retry as public
-                clearAccountId();
+                console.error('[Auth] Authorization not confirmed within 30s:', error);
+                this.handleWhoAmI();
             }
         }
 
@@ -385,15 +390,24 @@ export default class ClientStore extends BaseStore {
     }
 
     /**
-     * Checks session validity via whoami service and handles cleanup if needed
+     * Checks session validity via whoami service and handles cleanup if needed.
+     * Guarded against overlap: visibility and focus both fire on a tab return, and the
+     * connection-error path can trigger it too — one validation at a time is enough.
      */
     async handleWhoAmI() {
-        const result = await checkWhoAmI();
+        if (this.is_whoami_in_flight) return;
+        this.is_whoami_in_flight = true;
 
-        // Only trigger cleanup if we get 401 error AND have account_id (expect to be logged in)
-        // This means user logged out from Deriv home. If no account_id, we're on public - ignore 401
-        if (result.error?.code === 401 && getAccountId()) {
-            await this.cleanUp();
+        try {
+            const result = await checkWhoAmI();
+
+            // Only trigger cleanup if we get 401 error AND have account_id (expect to be logged in)
+            // This means user logged out from Deriv home. If no account_id, we're on public - ignore 401
+            if (result.error?.code === 401 && getAccountId()) {
+                await this.cleanUp();
+            }
+        } finally {
+            this.is_whoami_in_flight = false;
         }
     }
 
@@ -546,6 +560,9 @@ export default class ClientStore extends BaseStore {
         this.external_id = null;
         this.current_account = null;
         this.setHasArchivedStatement(false);
+        // The session is gone — without this, is_authorize stays true forever after logout and
+        // auth gates (waitForAuth) would resolve stale-true.
+        this.setIsAuthorize(false);
 
         LocalStore.set('marked_notifications', JSON.stringify([]));
         localStorage.setItem('active_loginid', this.loginid);

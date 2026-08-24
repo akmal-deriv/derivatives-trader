@@ -1,5 +1,6 @@
 const DerivAPIBasic = require('@deriv/deriv-api/dist/DerivAPIBasic');
 const { getCompleteWebSocketURL, getAccountId, cloneObject, State } = require('@deriv/shared');
+const { when } = require('mobx');
 const SocketCache = require('./socket_cache');
 const APIMiddleware = require('./api_middleware');
 
@@ -14,9 +15,58 @@ const BinarySocketBase = (() => {
     let config = {};
     let is_disconnect_called = false;
     let is_connected_before = false;
-    let is_switching_socket = false;
     let reconnect_handlers = []; // Array to store multiple reconnection handlers
     let reconnect_attempt_count = 0; // Track number of reconnect attempts
+
+    // Consecutive connection failures (while apparently online and visible) before invoking
+    // onConnectionError. This is an auth heuristic by design: the WS server refuses the handshake
+    // when the session cookies are stale, so repeated refusals suggest an invalid session —
+    // onConnectionError then verifies via whoami before acting, since a refused handshake is
+    // indistinguishable from plain network trouble at this layer.
+    const MAX_CONSECUTIVE_CONNECTION_FAILURES = 3;
+
+    // Keep-alive proof-of-life: periodically ping and, if no inbound message of any kind arrives
+    // within the grace window, treat the socket as dead. A socket can report OPEN while being dead
+    // (proxy-dropped or OS-suspended), so the verdict comes from traffic, not readyState.
+    const KEEP_ALIVE_INTERVAL_MS = 30 * 1000;
+    const KEEP_ALIVE_GRACE_MS = 10 * 1000;
+    let received_message_since_ping = false;
+    let keep_alive_interval = null;
+    let keep_alive_grace_timeout = null;
+    // Connection-death signal, one per connection. APIMiddleware races every send's response
+    // promise against it and settles with a synthetic ConnectionLost error-response, so no
+    // request — buy, sell, api-hooks query, ping — can hang forever on a dead connection.
+    let signal_connection_death = null;
+    let connection_death = null;
+
+    const settlePendingRequests = () => {
+        if (signal_connection_death) {
+            signal_connection_death();
+            signal_connection_death = null;
+        }
+    };
+
+    const armConnectionDeath = () => {
+        // A new connection is taking over: everything still pending on the old one is dead.
+        settlePendingRequests();
+        connection_death = new Promise(resolve => {
+            signal_connection_death = resolve;
+        });
+    };
+
+    // Gate for actions that require an authorized session. Auth is established at the WS
+    // handshake (session cookies in the URL); the first balance response merely CONFIRMS it by
+    // flipping client_store.is_authorize. Waiting on that observable — instead of an
+    // expectResponse('balance') pinned to a connection instance that may die before its balance
+    // arrives — makes the gate reconnect-proof.
+    const waitForAuth = options => {
+        // Pre-init there is no store to observe (and nothing to wait on) — matches the legacy
+        // wait('balance') behavior of not gating before the socket layer is initialized.
+        if (!client_store) return Promise.resolve();
+        // `|| {}` keeps mobx on the promise-returning form — an explicit `undefined` second arg
+        // would be treated as an effect function.
+        return when(() => !!client_store.is_authorize, options || {});
+    };
 
     const getSocketUrl = (is_mock_server = false) => {
         if (is_mock_server) {
@@ -33,13 +83,53 @@ const BinarySocketBase = (() => {
     const blockRequest = value => deriv_api?.blockRequest(value);
 
     const close = () => {
-        binary_socket.close();
+        binary_socket?.close();
     };
 
     const closeAndOpenNewConnection = () => {
+        // The old connection's keep-alive must not probe (and tear down) the incoming handshake;
+        // the new socket's onOpen re-arms the loop.
+        stopKeepAlive();
+
+        // close() moves an OPEN/CONNECTING socket to CLOSING synchronously (and is a no-op on a
+        // CLOSED or never-created one). The outgoing socket's late close event is harmless: each
+        // connection's onClose acts only when its instance is still the current one.
         close();
-        is_switching_socket = true;
         openNewConnection();
+    };
+
+    // Send a keep-alive and arm the proof-of-life check. Any inbound message counts as proof of
+    // life, so a socket that is actively receiving is never torn down.
+    const sendKeepAlive = () => {
+        // Only probe a socket that reports OPEN — a CONNECTING handshake must be left to finish,
+        // and after a genuine close the reconnect is owned by the network monitor.
+        if (!hasReadyState(1)) return;
+
+        received_message_since_ping = false;
+        // The grace timeout, not this promise, decides the outcome — swallow the rejection that
+        // deriv-api emits if the socket dies while this request is pending.
+        deriv_api?.send({ time: 1 })?.catch(() => {});
+        clearTimeout(keep_alive_grace_timeout);
+        keep_alive_grace_timeout = setTimeout(() => {
+            if (!received_message_since_ping) {
+                // No reply of any kind: the socket is dead even though it reports OPEN. Close it for
+                // real (no switch counted) so onClose stops this loop and fires the 'close' wsEvent —
+                // the network monitor then owns the reconnect with its bounded backoff.
+                close();
+            }
+        }, KEEP_ALIVE_GRACE_MS);
+    };
+
+    const startKeepAlive = () => {
+        stopKeepAlive(); // Own a single fresh loop: clear any prior interval before arming a new one.
+        keep_alive_interval = setInterval(sendKeepAlive, KEEP_ALIVE_INTERVAL_MS);
+    };
+
+    const stopKeepAlive = () => {
+        clearInterval(keep_alive_interval);
+        clearTimeout(keep_alive_grace_timeout);
+        keep_alive_interval = null;
+        keep_alive_grace_timeout = null;
     };
 
     const hasReadyState = (...states) => binary_socket && states.some(s => binary_socket.readyState === s);
@@ -65,10 +155,15 @@ const BinarySocketBase = (() => {
         const mock_server_config = getMockServerConfig();
         const session_id = mock_server_config?.session_id || '';
 
-        if (!is_switching_socket) config.wsEvent('init');
+        // Suppress the 'init' status blink when this open is a deliberate replacement of a socket
+        // that is still mid-close-handshake (a switch), as opposed to a fresh/reconnect open.
+        if (!hasReadyState(2)) config.wsEvent('init');
 
         if (isClose()) {
             is_disconnect_called = false;
+            // Reject everything still pending on the previous connection before the new one
+            // takes over, and arm the death promise for the connection created below.
+            armConnectionDeath();
             binary_socket = new WebSocket(getSocketUrl(session_id));
 
             // Add error event listener for connection failures
@@ -76,11 +171,12 @@ const BinarySocketBase = (() => {
                 // eslint-disable-next-line no-console
                 console.error('WebSocket error:', error_event);
 
-                // Increment reconnect attempt counter
                 reconnect_attempt_count++;
 
-                // Throw error after 3 reconnect attempts
-                if (reconnect_attempt_count >= 3 && typeof config.onConnectionError === 'function') {
+                if (
+                    reconnect_attempt_count >= MAX_CONSECUTIVE_CONNECTION_FAILURES &&
+                    typeof config.onConnectionError === 'function'
+                ) {
                     config.onConnectionError(error_event);
                     reconnect_attempt_count = 0; // Reset counter after throwing error
                 }
@@ -89,33 +185,46 @@ const BinarySocketBase = (() => {
             deriv_api = new DerivAPIBasic({
                 connection: binary_socket,
                 storage: SocketCache,
-                middleware: new APIMiddleware(config),
+                // connection_death was just armed above for THIS connection — the middleware races
+                // every send against it, so a replaced instance's death can't touch the successor.
+                middleware: new APIMiddleware(config, connection_death),
             });
-        }
+            // Which instance the subscriptions below belong to — a replaced instance's late
+            // close event must not settle the CURRENT connection's pending requests.
+            const created_api = deriv_api;
 
-        deriv_api.onOpen().subscribe(() => {
-            config.wsEvent('open');
+            // Subscribe exactly once per `deriv_api` instance. `deriv_api` is only recreated inside
+            // this `isClose()` guard, so keeping the subscriptions here prevents them from stacking
+            // when openNewConnection() is called against a live socket.
+            deriv_api.onOpen().subscribe(() => {
+                config.wsEvent('open');
 
-            // Reset reconnect attempt counter on successful connection
-            reconnect_attempt_count = 0;
+                // Reset reconnect attempt counter on successful connection
+                reconnect_attempt_count = 0;
 
-            // Remove automatic authorization - server handles it via account_id
-            // Balance subscription will serve as auth confirmation
-            const account_id = getAccountId();
+                // Start the keep-alive proof-of-life loop for this connection.
+                startKeepAlive();
 
-            if (account_id) {
-                // Only reset authorization state on initial connection, not on reconnection
-                // On reconnection, user is still logged in and is_authorize should remain true
-                // This allows stores' reaction() to work correctly on reconnection
-                if (client_store && !is_connected_before) {
-                    client_store.setIsAuthorize(false);
+                // Remove automatic authorization - server handles it via account_id
+                // Balance subscription will serve as auth confirmation
+                const account_id = getAccountId();
+
+                if (account_id) {
+                    // Only reset authorization state on initial connection, not on reconnection
+                    // On reconnection, user is still logged in and is_authorize should remain true
+                    // This allows stores' reaction() to work correctly on reconnection
+                    if (client_store && !is_connected_before) {
+                        client_store.setIsAuthorize(false);
+                    }
+
+                    // Subscribe to balance immediately - this also confirms authorization
+                    subscribeBalance();
                 }
 
-                // Subscribe to balance immediately - this also confirms authorization
-                subscribeBalance();
-
-                // Call all reconnection handlers on reconnection (same timing as old system)
-                // Subscriptions will be queued by deriv-api until authorization completes
+                // Call all reconnection handlers on reconnection (same timing as old system).
+                // Subscriptions will be queued by deriv-api until authorization completes.
+                // Deliberately NOT gated on account_id: logged-out sessions use public endpoints
+                // (e.g. proposal) that need the same post-reconnect recovery.
                 if (is_connected_before && reconnect_handlers.length > 0) {
                     reconnect_handlers.forEach(handler => {
                         if (typeof handler === 'function') {
@@ -123,40 +232,53 @@ const BinarySocketBase = (() => {
                         }
                     });
                 }
-            }
 
-            if (typeof config.onOpen === 'function') {
-                config.onOpen(isReady());
-            }
+                if (typeof config.onOpen === 'function') {
+                    config.onOpen(isReady());
+                }
 
-            if (!is_connected_before) {
-                is_connected_before = true;
-            }
-        });
+                if (!is_connected_before) {
+                    is_connected_before = true;
+                }
+            });
 
-        deriv_api.onMessage().subscribe(({ data: response }) => {
-            const msg_type = response.msg_type;
-            State.set(['response', msg_type], cloneObject(response));
+            deriv_api.onMessage().subscribe(({ data: response }) => {
+                // Any inbound message is proof of life for the keep-alive check above.
+                received_message_since_ping = true;
 
-            config.wsEvent('message');
+                const msg_type = response.msg_type;
+                State.set(['response', msg_type], cloneObject(response));
 
-            if (typeof config.onMessage === 'function') {
-                config.onMessage(response);
-            }
-        });
+                config.wsEvent('message');
 
-        deriv_api.onClose().subscribe(() => {
-            if (!is_switching_socket) {
+                if (typeof config.onMessage === 'function') {
+                    config.onMessage(response);
+                }
+            });
+
+            deriv_api.onClose().subscribe(() => {
+                // Genuine-vs-stale is decided by INSTANCE IDENTITY: only the CURRENT connection's
+                // close is genuine. A replaced instance's close — however late it arrives,
+                // including a close queued across a tab freeze whose event only dispatches after
+                // the replacement already happened — must not settle the new connection's
+                // requests, stop its keep-alive, flag a disconnect, or fire a spurious 'close'
+                // event (which would schedule a needless reconnect). Its own pending requests
+                // were already settled when its successor was armed.
+                if (deriv_api !== created_api) return;
+
+                // The current connection is dead: reject its in-flight requests so callers can
+                // react instead of hanging, stop the keep-alive so no loop runs without a socket,
+                // and let the network monitor own the reconnect.
+                settlePendingRequests();
+                stopKeepAlive();
                 config.wsEvent('close');
-            } else {
-                is_switching_socket = false;
-            }
 
-            if (typeof config.onDisconnect === 'function' && !is_disconnect_called) {
-                config.onDisconnect();
-                is_disconnect_called = true;
-            }
-        });
+                if (typeof config.onDisconnect === 'function' && !is_disconnect_called) {
+                    config.onDisconnect();
+                    is_disconnect_called = true;
+                }
+            });
+        }
     };
 
     const excludeAuthorize = type => !(type === 'authorize' && !client_store.is_logged_in);
@@ -261,6 +383,8 @@ const BinarySocketBase = (() => {
         subscribeTicksHistory,
         subscribeTransaction,
         closeAndOpenNewConnection,
+        sendKeepAlive,
+        waitForAuth,
     };
 })();
 
@@ -296,11 +420,12 @@ const proxyForAuthorize = obj =>
                 return proxyForAuthorize(target[field]);
             }
             return (...args) => {
-                // Wait for balance response instead of authorize (balance serves as auth confirmation)
                 const account_id = getAccountId();
                 if (account_id) {
-                    // Wait for balance (which confirms authorization)
-                    return BinarySocketBase?.wait('balance')?.then(() => target[field](...args));
+                    // Gate on auth confirmation (is_authorize, flipped by the first balance
+                    // response) — reconnect-proof, unlike an expectResponse pinned to one
+                    // connection instance.
+                    return BinarySocketBase.waitForAuth().then(() => target[field](...args));
                 }
                 // Not logged in, execute without waiting
                 return target[field](...args);

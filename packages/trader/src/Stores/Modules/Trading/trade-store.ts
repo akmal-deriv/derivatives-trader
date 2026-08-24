@@ -1608,6 +1608,31 @@ export default class TradeStore extends BaseStore {
 
                     const last_digit = +this.last_digit;
                     if (response.error) {
+                        if (response.error.code === 'ConnectionLost') {
+                            // The connection died before the buy was answered — the trade may or
+                            // may not have executed server-side. Surface an outcome-unknown message
+                            // and keep the purchase button LOCKED (no enablePurchase): a retry
+                            // could double-purchase. reconnectHandler re-enables it once the
+                            // connection — and the portfolio subscription that shows the truth —
+                            // is back.
+                            this.root_store.common.setServicesError(
+                                {
+                                    type: response.msg_type,
+                                    code: response.error.code,
+                                    message: localize(
+                                        "Connection lost — we couldn't confirm this request. Please check your positions before retrying."
+                                    ),
+                                },
+                                this.is_dtrader_v2
+                            );
+                            this.proposal_info = {};
+                            this.forgetAllProposal();
+                            this.proposal_requests = {};
+                            this.purchase_info = response;
+                            this.is_purchasing_contract = false;
+                            this.endPurchaseAttempt();
+                            return;
+                        }
                         // invalidToken error will handle in socket-general.js
                         if (response.error.code !== 'InvalidToken') {
                             this.root_store.common.setServicesError(
@@ -2450,6 +2475,11 @@ export default class TradeStore extends BaseStore {
             if (!this.is_trade_component_mounted) {
                 return;
             }
+
+            // Release the ConnectionLost purchase lock: the connection is back, and the portfolio
+            // resubscription (fired by the same reconnect) surfaces whether the unconfirmed buy
+            // actually executed.
+            this.enablePurchase();
 
             try {
                 // Clear existing data

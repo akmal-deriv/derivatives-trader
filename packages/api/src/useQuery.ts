@@ -1,4 +1,5 @@
 import { useQuery as _useQuery } from '@tanstack/react-query';
+
 import type {
     TSocketAcceptableProps,
     TSocketEndpointNames,
@@ -7,6 +8,7 @@ import type {
     TSocketRequestQueryOptions,
     TSocketResponseData,
 } from '../types';
+
 import useAPI from './useAPI';
 import { getQueryKeys } from './utils';
 

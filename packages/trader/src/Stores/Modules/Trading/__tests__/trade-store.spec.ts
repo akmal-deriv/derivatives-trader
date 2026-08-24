@@ -479,6 +479,37 @@ describe('TradeStore', () => {
                 expect(mockRootStore.common.setServicesError).toHaveBeenCalled();
             });
 
+            it('keeps purchasing LOCKED after a ConnectionLost buy — the trade may have executed server-side', async () => {
+                tradeStore.is_trade_component_mounted = true;
+                tradeStore.is_purchase_enabled = true;
+                tradeStore.is_purchase_pending = true;
+                (buyContract as jest.Mock).mockResolvedValueOnce({
+                    msg_type: 'buy',
+                    echo_req: { buy: 'proposal-1', price: 10 },
+                    error: {
+                        code: 'ConnectionLost',
+                        message: 'The connection was lost before a response was received.',
+                    },
+                });
+
+                tradeStore.processPurchase('proposal-1', 10, 'CALL', false, undefined, true);
+                await flushMicrotasks();
+
+                // Spinner cleared, rest of the UI live…
+                expect(tradeStore.is_purchase_pending).toBe(false);
+                expect(tradeStore.is_purchasing_contract).toBe(false);
+                // …but the purchase button stays locked until reconnect surfaces the truth —
+                // an immediate retry could double-purchase.
+                expect(tradeStore.is_purchase_enabled).toBe(false);
+                expect(mockRootStore.common.setServicesError).toHaveBeenCalledWith(
+                    expect.objectContaining({
+                        code: 'ConnectionLost',
+                        message: expect.stringContaining('check your positions'),
+                    }),
+                    expect.anything()
+                );
+            });
+
             it('clears pending when the trade component has unmounted before the response arrives', async () => {
                 tradeStore.is_trade_component_mounted = false;
                 tradeStore.is_purchase_enabled = true;
