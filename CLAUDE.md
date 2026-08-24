@@ -173,7 +173,7 @@ Sass/ → src/sass/
 - TypeScript caches: delete `.tsbuildinfo` + restart TS server in VS Code if IDE shows stale errors
 - Mobile bridge detection: use `useMobileBridge().isMobileApp` to hide web-only UI (language selector, logout, support section)
 - Duration picker: calendar shows early close/late open red dots for markets with restricted hours (desktop hover only)
-- Purchase button: allows attempts with insufficient balance (shows error modal, doesn't disable button)
+- Purchase button: allows attempts with insufficient balance (shows error modal, doesn't disable button). The modal itself keeps the existing mapped/backend message unconditionally (unchanged). The mobile/desktop stake inputs separately show a balance-aware hint (`getInsufficientBalanceMessage` in `AppV2/Utils/insufficient-balance-utils.tsx`) while drafting a stake above the balance. The two breakpoints diverge on Save: the mobile action sheet's header Save is disabled while the hint is showing (`stake-input.tsx`'s `is_save_disabled`/`onSave` both gate on `balance_hint`); the desktop modal's footer Save stays enabled, matching Buy's inform-don't-disable stance.
 - SmartCharts version: `@deriv-com/smartcharts-champion@1.9.6` with `keepPreviousData` strategy for symbol switches
 
 # Repo etiquette

@@ -4,6 +4,7 @@ import { observer } from 'mobx-react-lite';
 
 import { TPriceProposalResponse, TSocketError } from '@deriv/api';
 import { getDecimalPlaces, mapErrorMessage, trackAnalyticsEvent } from '@deriv/shared';
+import { useStore } from '@deriv/stores';
 import { ActionSheet, TextField } from '@deriv-com/quill-ui';
 import { Localize, useTranslations } from '@deriv-com/translations';
 
@@ -13,6 +14,7 @@ import useIsVirtualKeyboardOpen from 'AppV2/Hooks/useIsVirtualKeyboardOpen';
 import { useProposal } from 'AppV2/Hooks/useProposal';
 import { formatAmountWithSymbol, getCurrencySymbol } from 'AppV2/Utils/currency-utils';
 import { createDecimalInputGuard, getDecimalInputMaxLength } from 'AppV2/Utils/decimal-input';
+import { getInsufficientBalanceMessage, parseAmount } from 'AppV2/Utils/insufficient-balance-utils';
 import { mapContractTypeToStakePresetKey } from 'AppV2/Utils/trade-params-preset-utils';
 import { getPayoutInfo, getStakePresetValues } from 'AppV2/Utils/trade-params-utils';
 import { getDisplayedContractTypes } from 'AppV2/Utils/trade-types-utils';
@@ -153,7 +155,11 @@ const StakeInput = observer(
         const { localize } = useTranslations();
         const trade_store = useTraderStore();
         const {
+            client: { balance, currency: account_currency },
+        } = useStore();
+        const {
             amount,
+            basis,
             contract_type,
             currency,
             symbol,
@@ -482,7 +488,8 @@ const StakeInput = observer(
                 is_fetching_1 ||
                 (should_send_multiple_proposals && is_fetching_2) ||
                 (should_show_stake_error && stake_error) ||
-                fe_stake_error
+                fe_stake_error ||
+                balance_hint
             )
                 return;
             if (displayAmount === '') {
@@ -505,10 +512,30 @@ const StakeInput = observer(
             onClose();
         };
 
+        // The drafted amount is only the sum being charged while `basis` is `stake` — on `payout`
+        // basis (kept for Rise/Fall by `PurchaseButton`, and persisted) it is a target payout, so
+        // comparing it against the balance would warn about a trade the user can afford. Anything
+        // other than `stake` therefore stays silent and leaves the gate at Buy as the authority.
+        const parsed_balance = parseAmount(balance);
+        // A zero/negative balance is surfaced here too (the helper's empty-balance branch), not just
+        // Buy: an unaffordable preset must show something rather than nothing while the balance is 0.
+        const balance_hint =
+            basis === 'stake' && Number.isFinite(parsed_balance)
+                ? getInsufficientBalanceMessage({
+                      balance,
+                      stake: displayAmount,
+                      currency: account_currency,
+                      fallback: null,
+                  })
+                : null;
+
         const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
             if (e.key === 'Enter') {
                 const isSaveDisabled =
-                    is_loading_proposal || !!fe_stake_error || !!(should_show_stake_error && stake_error);
+                    is_loading_proposal ||
+                    !!fe_stake_error ||
+                    !!(should_show_stake_error && stake_error) ||
+                    !!balance_hint;
                 if (!isSaveDisabled) {
                     onSave();
                 }
@@ -523,12 +550,14 @@ const StakeInput = observer(
         const is_validating = displayAmount !== String(proposal_request_values.amount ?? '') || is_loading_proposal;
 
         // The former footer disable conditions AND-ed with a dirty gate: the header check stays disabled
-        // while the drafted stake still equals the committed store value (dismiss = discard).
+        // while the drafted stake still equals the committed store value (dismiss = discard). The
+        // balance hint also gates Save — an unaffordable stake shouldn't be committable from here.
         const is_save_disabled =
             !displayAmount ||
             is_validating ||
             !!fe_stake_error ||
             !!(should_show_stake_error && stake_error) ||
+            !!balance_hint ||
             displayAmount === String(amount ?? '');
 
         // Mobile: publish the commit handler + gate to the sheet host (page 0 `StakeSheetHeader`) so the
@@ -552,14 +581,23 @@ const StakeInput = observer(
                         id={input_id}
                         label={localize('Stake ({{currency}})', { currency: currency_symbol })}
                         maxLength={state.max_length}
-                        message={fe_stake_error || (should_show_stake_error && stake_error) || getInputMessage()}
+                        message={
+                            fe_stake_error ||
+                            (should_show_stake_error && stake_error) ||
+                            balance_hint ||
+                            getInputMessage()
+                        }
                         name='amount'
                         noStatusIcon
                         onChange={onInputChange}
                         onBeforeInput={onBeforeInputChange}
                         onKeyDown={handleKeyDown}
                         regex={/[^0-9.,]/g}
-                        status={fe_stake_error || (should_show_stake_error && stake_error) ? 'error' : 'neutral'}
+                        status={
+                            fe_stake_error || (should_show_stake_error && stake_error) || balance_hint
+                                ? 'error'
+                                : 'neutral'
+                        }
                         textAlignment='left'
                         value={displayAmount}
                         variant='fill'

@@ -3,6 +3,7 @@ import { observer } from 'mobx-react-lite';
 
 import { TPriceProposalResponse, TSocketError } from '@deriv/api';
 import { getDecimalPlaces, mapErrorMessage, trackAnalyticsEvent } from '@deriv/shared';
+import { useStore } from '@deriv/stores';
 import { Button, TextField } from '@deriv-com/quill-ui';
 import { Localize, useTranslations } from '@deriv-com/translations';
 
@@ -10,6 +11,7 @@ import useIsVirtualKeyboardOpen from 'AppV2/Hooks/useIsVirtualKeyboardOpen';
 import { useProposal } from 'AppV2/Hooks/useProposal';
 import { formatAmountWithSymbol, getCurrencySymbol } from 'AppV2/Utils/currency-utils';
 import { createDecimalInputGuard, getDecimalInputMaxLength } from 'AppV2/Utils/decimal-input';
+import { getInsufficientBalanceMessage, parseAmount } from 'AppV2/Utils/insufficient-balance-utils';
 import { getPayoutInfo } from 'AppV2/Utils/trade-params-utils';
 import { getDisplayedContractTypes } from 'AppV2/Utils/trade-types-utils';
 import { ExpandedProposal, getProposalInfo } from 'Stores/Modules/Trading/Helpers/proposal';
@@ -137,6 +139,10 @@ const StakeInput = observer(({ onClose, is_open }: TStakeInput) => {
     const { localize } = useTranslations();
     const trade_store = useTraderStore();
     const {
+        client: { balance, currency: account_currency },
+    } = useStore();
+    const {
+        basis,
         contract_type,
         currency,
         barrier_1,
@@ -429,6 +435,23 @@ const StakeInput = observer(({ onClose, is_open }: TStakeInput) => {
         }
     };
 
+    // The drafted amount is only the sum being charged while `basis` is `stake` — on `payout`
+    // basis (kept for Rise/Fall by `PurchaseButton`, and persisted) it is a target payout, so
+    // comparing it against the balance would warn about a trade the user can afford. Anything
+    // other than `stake` therefore stays silent and leaves the gate at Buy as the authority.
+    const parsed_balance = parseAmount(balance);
+    // A zero/negative balance is surfaced here too (the helper's empty-balance branch), not just
+    // Buy: an unaffordable draft must show something rather than nothing while the balance is 0.
+    const balance_hint =
+        basis === 'stake' && Number.isFinite(parsed_balance)
+            ? getInsufficientBalanceMessage({
+                  balance,
+                  stake: proposal_request_values.amount,
+                  currency: account_currency,
+                  fallback: null,
+              })
+            : null;
+
     return (
         <div className='stake-input-desktop__wrapper'>
             <TextField
@@ -447,8 +470,12 @@ const StakeInput = observer(({ onClose, is_open }: TStakeInput) => {
                 decimals={decimals}
                 regex={/[^0-9.,]/g}
                 maxLength={state.max_length}
-                message={fe_stake_error || (should_show_stake_error && stake_error) || getInputMessage()}
-                status={fe_stake_error || (should_show_stake_error && stake_error) ? 'error' : 'neutral'}
+                message={
+                    fe_stake_error || (should_show_stake_error && stake_error) || balance_hint || getInputMessage()
+                }
+                status={
+                    fe_stake_error || (should_show_stake_error && stake_error) || balance_hint ? 'error' : 'neutral'
+                }
                 noStatusIcon
                 data-testid='dt_stake_input_desktop'
             />

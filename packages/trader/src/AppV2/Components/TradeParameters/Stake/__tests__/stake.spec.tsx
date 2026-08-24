@@ -413,6 +413,145 @@ describe('StakeInput', () => {
 
         expect(registerHeaderActions.mock.calls.at(-1)[0].is_save_disabled).toBe(true);
     });
+
+    describe('Balance-aware hint', () => {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const { useProposal } = require('AppV2/Hooks/useProposal');
+
+        beforeEach(() => {
+            default_mock_store.client.balance = '4.00';
+            default_mock_store.client.currency = 'USD';
+        });
+
+        afterEach(() => {
+            useProposal.mockReturnValue({ data: mockProposalData, error: null, isFetching: false });
+        });
+
+        it('shows the balance hint when tapping an unaffordable preset, styled as an error', async () => {
+            const user = userEvent.setup();
+            renderStakeInput();
+
+            await user.click(screen.getByRole('button', { name: 'Select value $10' }));
+
+            // The balance hint is shown when tapping an unaffordable preset.
+            // The TextField component automatically styles this as an error based on its status prop.
+            expect(screen.getByText('You only have 4.00 USD left. Try a lower stake.')).toBeInTheDocument();
+        });
+
+        it('shows no hint and keeps the range hint, styled as neutral, for an affordable drafted amount', async () => {
+            const user = userEvent.setup();
+            renderStakeInput();
+
+            const input = screen.getByDisplayValue('10');
+            await user.clear(input);
+            await user.type(input, '4');
+
+            expect(screen.queryByText(/left\. Try a lower stake\./)).not.toBeInTheDocument();
+            // The range hint is shown when the drafted amount is affordable.
+            // The TextField component automatically styles this as neutral based on its status prop.
+            expect(screen.getByText('Range $0.35 - $50,000.00')).toBeInTheDocument();
+
+            await user.clear(input);
+            await user.type(input, '1');
+
+            expect(screen.queryByText(/left\. Try a lower stake\./)).not.toBeInTheDocument();
+            expect(screen.getByText('Range $0.35 - $50,000.00')).toBeInTheDocument();
+        });
+
+        it('blocks Save for an unaffordable stake and unblocks once it is affordable again', async () => {
+            const onClose = jest.fn();
+            const registerHeaderActions = jest.fn();
+            const user = userEvent.setup();
+            render(
+                <TraderProviders store={default_mock_store}>
+                    <ModulesProvider store={default_mock_store}>
+                        <StakeInput onClose={onClose} is_open registerHeaderActions={registerHeaderActions} />
+                    </ModulesProvider>
+                </TraderProviders>
+            );
+
+            // Balance is 4; 20 is above both the balance and the initial committed amount (10).
+            await user.click(screen.getByRole('button', { name: 'Select value $20' }));
+
+            const { onSave, is_save_disabled } = registerHeaderActions.mock.calls.at(-1)[0];
+            expect(is_save_disabled).toBe(true);
+
+            // Calling the commit handler directly (bypassing the disabled header button) must
+            // still be a no-op: the balance hint gates the commit itself, not just the button.
+            onSave();
+            expect(default_mock_store.modules.trade.onChange).not.toHaveBeenCalled();
+            expect(onClose).not.toHaveBeenCalled();
+
+            // Tapping an affordable preset clears the hint and re-enables Save (preset taps validate
+            // immediately, unlike typing, so this avoids waiting on the input's debounce).
+            await user.click(screen.getByRole('button', { name: 'Select value $1' }));
+
+            expect(registerHeaderActions.mock.calls.at(-1)[0].is_save_disabled).toBe(false);
+        });
+
+        it('lets a front-end format error outrank the balance hint', async () => {
+            const user = userEvent.setup();
+            renderStakeInput();
+
+            const input = screen.getByDisplayValue('10');
+            await user.type(input, '.');
+
+            expect(screen.getByText('Should be a valid number.')).toBeInTheDocument();
+            expect(screen.queryByText(/left\. Try a lower stake\./)).not.toBeInTheDocument();
+        });
+
+        it('lets a proposal stake_error outrank the balance hint', async () => {
+            useProposal.mockReturnValue({
+                data: undefined,
+                error: { message: 'Please enter a stake amount that is at least 0.35.', details: { field: 'stake' } },
+                isFetching: false,
+            });
+
+            renderStakeInput();
+
+            expect(screen.getByText('Please enter a stake amount that is at least 0.35.')).toBeInTheDocument();
+            expect(screen.queryByText(/left\. Try a lower stake\./)).not.toBeInTheDocument();
+        });
+
+        it('shows no hint when the balance is unknown', async () => {
+            default_mock_store.client.balance = undefined;
+            const user = userEvent.setup();
+            renderStakeInput();
+
+            await user.click(screen.getByRole('button', { name: 'Select value $10' }));
+
+            expect(screen.queryByText(/You only have/)).not.toBeInTheDocument();
+            expect(screen.getByText('Range $0.35 - $50,000.00')).toBeInTheDocument();
+        });
+
+        it('shows the empty-balance hint when tapping a preset on a zero balance, styled as an error', async () => {
+            default_mock_store.client.balance = '0.00';
+            const user = userEvent.setup();
+            renderStakeInput();
+
+            await user.click(screen.getByRole('button', { name: 'Select value $10' }));
+
+            // The empty-balance hint is shown when balance is zero.
+            // The TextField component automatically styles this as an error based on its status prop.
+            expect(screen.getByText('Balance is empty. Deposit funds to buy this contract.')).toBeInTheDocument();
+        });
+
+        // 'multiplier' here is the Lookback trade types' declared basis (LB_CALL/LB_PUT/LB_HIGH_LOW), not the
+        // Multiplier product — that declares basis: ['stake'] and so takes the hint's stake branch.
+        it.each(['payout', 'multiplier', ''])(
+            'shows no hint on %p basis, where the drafted amount is not the charge',
+            async basis => {
+                default_mock_store.modules.trade.basis = basis;
+                const user = userEvent.setup();
+                renderStakeInput();
+
+                await user.click(screen.getByRole('button', { name: 'Select value $10' }));
+
+                expect(screen.queryByText(/You only have/)).not.toBeInTheDocument();
+                expect(screen.getByText('Range $0.35 - $50,000.00')).toBeInTheDocument();
+            }
+        );
+    });
 });
 
 describe('StakeInputDesktop', () => {
@@ -493,6 +632,84 @@ describe('StakeInputDesktop', () => {
         // Typing '4' appends a second decimal digit — this must NOT be blocked
         await user.type(stake_input, '4');
         expect(stake_input).toHaveValue('5.34');
+    });
+
+    describe('Balance-aware hint', () => {
+        beforeEach(() => {
+            default_mock_store.client.balance = '4.00';
+            default_mock_store.client.currency = 'USD';
+        });
+
+        it('shows the hint for an unaffordable drafted amount, styled as an error', async () => {
+            const user = userEvent.setup();
+            renderStakeInputDesktop();
+
+            const input = screen.getByDisplayValue('10');
+            await user.clear(input);
+            await user.type(input, '10');
+
+            // The balance hint is shown when drafting an unaffordable stake.
+            // The TextField component automatically styles this as an error based on its status prop.
+            expect(screen.getByText('You only have 4.00 USD left. Try a lower stake.')).toBeInTheDocument();
+        });
+
+        it('shows no hint, styled as neutral, for an affordable drafted amount', async () => {
+            const user = userEvent.setup();
+            renderStakeInputDesktop();
+
+            const input = screen.getByDisplayValue('10');
+            await user.clear(input);
+            await user.type(input, '4');
+
+            expect(screen.queryByText(/left\. Try a lower stake\./)).not.toBeInTheDocument();
+            // The range hint is shown when the drafted amount is affordable.
+            // The TextField component automatically styles this as neutral based on its status prop.
+            expect(screen.getByText('Range: $0.35 to $50,000.00')).toBeInTheDocument();
+        });
+
+        it('shows no hint when the balance is unknown', async () => {
+            default_mock_store.client.balance = undefined;
+            const user = userEvent.setup();
+            renderStakeInputDesktop();
+
+            const input = screen.getByDisplayValue('10');
+            await user.clear(input);
+            await user.type(input, '10');
+
+            expect(screen.queryByText(/You only have/)).not.toBeInTheDocument();
+        });
+
+        it('shows the empty-balance hint when drafting a stake on a zero balance, styled as an error', async () => {
+            default_mock_store.client.balance = '0.00';
+            const user = userEvent.setup();
+            renderStakeInputDesktop();
+
+            const input = screen.getByDisplayValue('10');
+            await user.clear(input);
+            await user.type(input, '10');
+
+            // The empty-balance hint is shown when balance is zero.
+            // The TextField component automatically styles this as an error based on its status prop.
+            expect(screen.getByText('Balance is empty. Deposit funds to buy this contract.')).toBeInTheDocument();
+        });
+
+        // 'multiplier' here is the Lookback trade types' declared basis (LB_CALL/LB_PUT/LB_HIGH_LOW), not the
+        // Multiplier product — that declares basis: ['stake'] and so takes the hint's stake branch.
+        it.each(['payout', 'multiplier', ''])(
+            'shows no hint on %p basis, where the drafted amount is not the charge',
+            async basis => {
+                default_mock_store.modules.trade.basis = basis;
+                const user = userEvent.setup();
+                renderStakeInputDesktop();
+
+                const input = screen.getByDisplayValue('10');
+                await user.clear(input);
+                await user.type(input, '10');
+
+                expect(screen.queryByText(/You only have/)).not.toBeInTheDocument();
+                expect(screen.getByText('Range: $0.35 to $50,000.00')).toBeInTheDocument();
+            }
+        );
     });
 });
 

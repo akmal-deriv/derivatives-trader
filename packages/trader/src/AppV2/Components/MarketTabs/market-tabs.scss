@@ -106,6 +106,8 @@
     // cue and the amount whole, which leaves the tab unidentifiable. The ellipsis itself is the
     // desktop `&__text > *` rule below, which truncates both label lines the same way.
     &__subtitle {
+        display: inline-flex;
+        align-items: center;
         color: var(--component-textIcon-normal-default);
     }
 
@@ -310,7 +312,6 @@
         // a crowded strip stays readable as "which market, which trade type", which is what a tab
         // is for. It also keeps the line inside the tab, so nothing paints over its neighbour.
         &__text > * {
-            display: block;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;

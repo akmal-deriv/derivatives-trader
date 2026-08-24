@@ -135,6 +135,54 @@ describe('ServiceErrorSheet', () => {
         expect(default_mock_store.common.resetServicesError).toHaveBeenCalled();
     });
 
+    describe('Backend error message is shown as-is, without balance-aware substitution', () => {
+        it('shows the backend message on desktop regardless of balance', () => {
+            default_mock_store.client.balance = 0;
+            render(mockTrade());
+
+            expect(screen.getByText('Insufficient balance')).toBeInTheDocument();
+            expect(
+                screen.getByText('Your account balance (0.00 USD) is insufficient to buy this contract (10.00 USD).')
+            ).toBeInTheDocument();
+            expect(screen.queryByText('Balance is empty. Deposit funds to buy this contract.')).not.toBeInTheDocument();
+        });
+
+        it('shows the backend message on desktop when balance is below the stake', () => {
+            default_mock_store.client.balance = '4.00';
+            default_mock_store.modules.trade.amount = 10;
+            render(mockTrade());
+
+            expect(screen.getByText('Insufficient balance')).toBeInTheDocument();
+            expect(
+                screen.getByText('Your account balance (0.00 USD) is insufficient to buy this contract (10.00 USD).')
+            ).toBeInTheDocument();
+            expect(screen.queryByText('You only have 4.00 USD left. Try a lower stake.')).not.toBeInTheDocument();
+        });
+
+        it('shows the backend message on mobile regardless of balance', () => {
+            default_mock_store.ui.is_mobile = true;
+            default_mock_store.client.balance = 0;
+            render(mockTrade());
+
+            expect(
+                screen.getByText('Your account balance (0.00 USD) is insufficient to buy this contract (10.00 USD).')
+            ).toBeInTheDocument();
+            expect(screen.queryByText('Balance is empty. Deposit funds to buy this contract.')).not.toBeInTheDocument();
+        });
+
+        it('shows the backend message on mobile when balance is below the stake', () => {
+            default_mock_store.ui.is_mobile = true;
+            default_mock_store.client.balance = '4.00';
+            default_mock_store.modules.trade.amount = 10;
+            render(mockTrade());
+
+            expect(
+                screen.getByText('Your account balance (0.00 USD) is insufficient to buy this contract (10.00 USD).')
+            ).toBeInTheDocument();
+            expect(screen.queryByText('You only have 4.00 USD left. Try a lower stake.')).not.toBeInTheDocument();
+        });
+    });
+
     describe('Bridge events', () => {
         it('should call sendBridgeEvent with trading:transfer when "Deposit now" is clicked', async () => {
             render(mockTrade());
