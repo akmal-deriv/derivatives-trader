@@ -33,6 +33,14 @@
         align-items: center;
     }
 
+    // Design calls for a paler disabled pill than quill's 0.48 `--opacity-disabled`. Chained with
+    // quill's own colour class for (0,3,0) specificity so it wins whatever the stylesheet order —
+    // same load-order hazard as the payout-colour rule below.
+    &.quill__color--primary-purchase:disabled,
+    &.quill__color--primary-sell:disabled {
+        opacity: var(--core-opacity-300);
+    }
+
     &__information {
         &__wrapper {
             width: 100%;
@@ -107,6 +115,18 @@
 
         .quill-button {
             border-radius: 28px;
+        }
+
+        // `isOpaque` makes quill wrap the button in a hard-coded white pill, so its translucent
+        // disabled fill always composites over white — pale mint/pink even in dark theme. The
+        // design wants the 24% tint to sit on the page surface instead (dark maroon/green in dark
+        // theme), so drop the white base. Scoped with `:has()` to disabled buy/sell only: the
+        // enabled and loading fills are opaque, and the accumulator Close pill keeps quill's look.
+        .quill-button__white-bg-wrapper:has(
+            .quill__color--primary-purchase:disabled,
+            .quill__color--primary-sell:disabled
+        ) {
+            background-color: transparent;
         }
     }
 
