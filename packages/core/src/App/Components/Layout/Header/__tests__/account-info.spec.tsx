@@ -150,6 +150,56 @@ describe('AccountInfo component', () => {
         expect(accountTypeLabel).toBeInTheDocument();
     });
 
+    // Characterization tests: the `color` props asserted here are already correct today, so none of
+    // these ever went red. They pin the props half of the colour contract — the half jsdom *can*
+    // see, because `Text` writes the requested colour into an inline `--text-color` custom property.
+    // The stylesheet half, where the bug lived, is asserted in account-info-colors.spec.ts.
+    describe('header text colours', () => {
+        const textColorOf = (element: HTMLElement) => element.style.getPropertyValue('--text-color');
+
+        it('renders the demo account balance in the primary text colour', () => {
+            renderWithProviders({ loginid: DEMO_ACCOUNT_ID, currency: 'USD', balance: 5000 });
+
+            expect(textColorOf(screen.getByTestId('dt_balance'))).toBe('var(--color-text-primary)');
+        });
+
+        it('renders the real account balance in the same primary text colour', () => {
+            const { unmount } = renderWithProviders({ loginid: DEMO_ACCOUNT_ID, currency: 'USD', balance: 5000 });
+            const demo_balance_color = textColorOf(screen.getByTestId('dt_balance'));
+            unmount();
+
+            renderWithProviders({ loginid: REAL_ACCOUNT_ID, currency: 'USD', balance: 10000 });
+            const real_balance_color = textColorOf(screen.getByTestId('dt_balance'));
+
+            // Switching account type must not change the balance colour — only the label's does.
+            expect(real_balance_color).toBe('var(--color-text-primary)');
+            expect(real_balance_color).toBe(demo_balance_color);
+        });
+
+        it('keeps the account-type label colour-coded by account type, distinct from the balance', () => {
+            const { unmount } = renderWithProviders({ loginid: DEMO_ACCOUNT_ID, currency: 'USD', balance: 5000 });
+
+            const demo_label_color = textColorOf(screen.getByText('Demo account'));
+            expect(demo_label_color).toBe('var(--color-text-tertiary)');
+            expect(demo_label_color).not.toBe(textColorOf(screen.getByTestId('dt_balance')));
+            unmount();
+
+            renderWithProviders({ loginid: REAL_ACCOUNT_ID, currency: 'USD', balance: 10000 });
+
+            const real_label_color = textColorOf(screen.getByText('Real account'));
+            expect(real_label_color).toBe('var(--color-text-secondary-alternate)');
+            expect(real_label_color).not.toBe(textColorOf(screen.getByTestId('dt_balance')));
+        });
+
+        it('renders the "No currency assigned" placeholder in the primary text colour', () => {
+            renderWithProviders({ loginid: DEMO_ACCOUNT_ID, currency: undefined, balance: undefined });
+
+            const placeholder = screen.getByText('No currency assigned');
+            expect(placeholder).toBe(screen.getByTestId('dt_balance'));
+            expect(textColorOf(placeholder)).toBe('var(--color-text-primary)');
+        });
+    });
+
     describe('Demo-only account behavior', () => {
         it('should hide chevron icon for demo-only accounts', () => {
             renderWithProviders(
