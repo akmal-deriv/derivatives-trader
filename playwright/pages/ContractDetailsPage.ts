@@ -60,6 +60,60 @@ export class ContractDetailsPage extends TradeBasePage {
     }
 
     /**
+     * Deal Cancellation button — "Cancel" + remaining time, while the cancellation window is open.
+     * - Mobile: AppV2 footer — `.contract-details-footer--container`
+     * - Desktop: `#dt_contract_drawer` card footer — `button.dc-btn--cancel`
+     *   (`id="dc_contract_card_{id}_cancel_button"`)
+     */
+    get dealCancellationButton(): Locator {
+        return this.isMobile
+            ? this.page
+                  .locator('.contract-details-footer--container')
+                  .getByRole('button', { name: /^Cancel(?:\s+\d{2}:\d{2})?$/ })
+            : this.contractCard.locator('.dc-btn--cancel');
+    }
+
+    /**
+     * Live mm:ss countdown inside the Cancel button.
+     * Source: RemainingTime — `.dc-remaining-time` (desktop: block `div`; mobile: `span`)
+     */
+    get dealCancellationRemainingTime(): Locator {
+        return this.dealCancellationButton.locator('.dc-remaining-time');
+    }
+
+    /**
+     * Remaining Deal Cancellation time shown in the mobile contract details risk-management card.
+     * Source: DealCancellationRemainingTime — data-testid="dt_deal_cancellation_badge".
+     */
+    get dealCancellationBadge(): Locator {
+        return this.page.getByTestId('dt_deal_cancellation_badge');
+    }
+
+    /**
+     * Desktop audit-grid row for Deal Cancellation.
+     * Source: data-testid="dt_cancellation_label"
+     */
+    get dealCancellationAuditRow(): Locator {
+        return this.page.getByTestId('dt_cancellation_label');
+    }
+
+    /**
+     * Desktop audit-grid label inside the cancellation row.
+     * Open: "Deal cancellation (active)". After cancel the live UI uses "Deal cancellation"
+     * (sold before the DC window expired — contract-details.tsx getLabel).
+     */
+    get dealCancellationAuditLabel(): Locator {
+        return this.dealCancellationAuditRow.locator('.contract-audit__label');
+    }
+
+    /**
+     * Desktop audit-grid fee value inside the cancellation row (`dt_span`).
+     */
+    get dealCancellationAuditValue(): Locator {
+        return this.dealCancellationAuditRow.getByTestId('dt_span');
+    }
+
+    /**
      * Mobile Order Details table — wraps all key-value rows.
      */
     get mobileOrderDetails(): Locator {
@@ -439,6 +493,15 @@ export class ContractDetailsPage extends TradeBasePage {
     }
 
     /**
+     * Pencil toggle that opens the TP/SL editor on the desktop Multipliers card.
+     * While Deal Cancellation is active it is non-interactive: either `disabled` or
+     * `.dc-contract-card-dialog-toggle--disabled` (toggle-card-dialog.tsx).
+     */
+    get multTpSlEditToggle(): Locator {
+        return this.contractCard.locator('button.dc-contract-card-dialog-toggle');
+    }
+
+    /**
      * "TP & SL History" tab in the contract audit tabs.
      * Source: `.dc-tabs__list--contract-audit__tabs li` with text "TP & SL History"
      */
@@ -617,9 +680,55 @@ export class ContractDetailsPage extends TradeBasePage {
             .toBe(true);
     }
 
+    /**
+     * Cancel an open Multipliers contract while its Deal Cancellation window is active.
+     * The action is enabled only while the live contract is losing, so wait for that valid state.
+     */
+    async cancelDealCancellationContract(): Promise<void> {
+        await expect(
+            this.dealCancellationButton,
+            'Deal Cancellation button should become enabled while the contract is cancellable'
+        ).toBeEnabled({ timeout: 240_000 });
+        await this.dealCancellationButton.click();
+        await expect(
+            this.dealCancellationButton,
+            'Deal Cancellation button should disappear after the contract is cancelled'
+        ).not.toBeVisible({ timeout: 60_000 });
+    }
+
     // ============================================
     // VERIFICATIONS
     // ============================================
+
+    /**
+     * Verify the open contract details expose an active Deal Cancellation timer and action.
+     */
+    async verifyDealCancellationAvailable(): Promise<void> {
+        if (this.isMobile) {
+            await expect(
+                this.dealCancellationBadge,
+                'Deal Cancellation timer badge should be visible on the open contract details'
+            ).toBeVisible();
+        } else {
+            await expect(
+                this.dealCancellationAuditRow,
+                'Desktop audit grid should show the Deal cancellation row'
+            ).toBeVisible();
+            await expect(
+                this.dealCancellationAuditLabel,
+                'Desktop contract details should show Deal cancellation (active)'
+            ).toHaveText('Deal cancellation (active)');
+            await expect(
+                this.dealCancellationAuditValue,
+                'Deal cancellation (active) should show the fee amount'
+            ).not.toBeEmpty();
+        }
+        await expect(this.dealCancellationButton, 'Deal Cancellation Cancel button should be visible').toBeVisible();
+        await expect(
+            this.dealCancellationRemainingTime,
+            'Deal Cancellation button should show a live mm:ss countdown'
+        ).toHaveText(/^\d{2}:\d{2}$/);
+    }
 
     /**
      * Compute the expected barrier price from the entry spot and the configured offset.
@@ -1535,6 +1644,8 @@ export class ContractDetailsPage extends TradeBasePage {
      * @param stake       - Stake as displayed, e.g. "20.00"
      * @param multiplier  - Multiplier as displayed, e.g. "x200"
      * @param buyDate     - UTC date captured before buy, e.g. "2026-07-07"
+     * @param dealCancellationBuyPrice - Buy-button Total cost when Deal Cancellation is active
+     *          (displayed as Stake). Omit when DC is not set.
      * @returns Object containing the extracted `buyId` (reference ID), `entrySpot` (entry price),
      *          and `commission` (captured here so the closed details page can assert the same value).
      */
@@ -1546,7 +1657,8 @@ export class ContractDetailsPage extends TradeBasePage {
         multiplier: string,
         buyDate: string,
         takeProfit?: string | null,
-        stopLoss?: string | null
+        stopLoss?: string | null,
+        dealCancellationBuyPrice?: string
     ): Promise<{ buyId: string; entrySpot: string; commission: string }> {
         return this.isMobile
             ? this.verifyMultipliersContractDetailsMobile(
@@ -1556,7 +1668,8 @@ export class ContractDetailsPage extends TradeBasePage {
                   multiplier,
                   buyDate,
                   takeProfit,
-                  stopLoss
+                  stopLoss,
+                  dealCancellationBuyPrice
               )
             : this.verifyMultipliersContractDetailsDesktop(
                   market,
@@ -1566,7 +1679,8 @@ export class ContractDetailsPage extends TradeBasePage {
                   multiplier,
                   buyDate,
                   takeProfit,
-                  stopLoss
+                  stopLoss,
+                  dealCancellationBuyPrice
               );
     }
 
@@ -1583,8 +1697,10 @@ export class ContractDetailsPage extends TradeBasePage {
      * @param buyDate          - UTC date captured before buy, e.g. "2026-07-07"
      * @param profitLossAmount - P&L from the closed positions card, e.g. "+1.26 USD"
      * @param entrySpot        - Entry spot captured from the open contract details page
-     * @param stopOut          - Stop out amount captured before buy, e.g. "5.40 USD"
+     * @param stopOut          - Stop out amount captured before buy, numeric (e.g. "20.00").
+     *                           Mobile Order Details still renders Money as "-20.00 USD".
      * @param commission       - Commission captured from the open contract details page, e.g. "0.15 USD"
+     * @param dealCancellationBuyPrice - Buy-button Total cost when Deal Cancellation was used.
      * @returns Sell reference ID string
      */
     async verifyClosedMultipliersContractDetailsPage(
@@ -1600,7 +1716,8 @@ export class ContractDetailsPage extends TradeBasePage {
         stopOut: string,
         commission: string,
         takeProfit?: string | null,
-        stopLoss?: string | null
+        stopLoss?: string | null,
+        dealCancellationBuyPrice?: string
     ): Promise<string> {
         return this.isMobile
             ? this.verifyClosedMultipliersContractDetailsMobile(
@@ -1615,7 +1732,8 @@ export class ContractDetailsPage extends TradeBasePage {
                   stopOut,
                   commission,
                   takeProfit,
-                  stopLoss
+                  stopLoss,
+                  dealCancellationBuyPrice
               )
             : this.verifyClosedMultipliersContractDetailsDesktop(
                   market,
@@ -1629,7 +1747,8 @@ export class ContractDetailsPage extends TradeBasePage {
                   entrySpot,
                   commission,
                   takeProfit,
-                  stopLoss
+                  stopLoss,
+                  dealCancellationBuyPrice
               );
     }
 
@@ -1641,7 +1760,8 @@ export class ContractDetailsPage extends TradeBasePage {
         multiplier: string,
         buyDate: string,
         takeProfit?: string | null,
-        stopLoss?: string | null
+        stopLoss?: string | null,
+        dealCancellationBuyPrice?: string
     ): Promise<{ buyId: string; entrySpot: string; commission: string }> {
         // Header
         await expect(
@@ -1663,10 +1783,26 @@ export class ContractDetailsPage extends TradeBasePage {
             stake
         );
         await expect(this.contractCardItem('Contract value:'), 'Contract value should have a value').not.toBeEmpty();
-        await expect(this.contractCardItem('Deal cancel. fee:'), 'Deal cancel. fee should be "-" (not set)').toHaveText(
-            '-'
-        );
-        await expect(this.contractCardItem('Stake:'), `Stake should be "${stake}"`).toContainText(stake);
+        let dealCancelFee = '';
+        if (dealCancellationBuyPrice) {
+            await expect(
+                this.contractCardItem('Deal cancel. fee:'),
+                'Deal cancel. fee should show a fee amount while Deal Cancellation is active'
+            ).not.toHaveText('-');
+            dealCancelFee = parseFloat(
+                (await this.contractCardItem('Deal cancel. fee:').innerText()).replace(/,/g, '').replace(/[^\d.]/g, '')
+            ).toFixed(2);
+            await expect(
+                this.contractCardItem('Stake:'),
+                `Stake should equal the pre-purchase Total cost "${dealCancellationBuyPrice}"`
+            ).toContainText(dealCancellationBuyPrice);
+        } else {
+            await expect(
+                this.contractCardItem('Deal cancel. fee:'),
+                'Deal cancel. fee should be "-" (not set)'
+            ).toHaveText('-');
+            await expect(this.contractCardItem('Stake:'), `Stake should be "${stake}"`).toContainText(stake);
+        }
         if (takeProfit) {
             await expect(this.contractCardItem('Take profit:'), `Take profit should show "${takeProfit}"`).toHaveText(
                 takeProfit
@@ -1682,6 +1818,12 @@ export class ContractDetailsPage extends TradeBasePage {
             );
         } else {
             await expect(this.contractCardItem('Stop loss:'), 'Stop loss should be "-" (not set)').toHaveText('-');
+        }
+        if (dealCancellationBuyPrice) {
+            await expect(
+                this.multTpSlEditToggle,
+                'TP/SL edit should be disabled while Deal Cancellation is active'
+            ).toHaveClass(/dc-contract-card-dialog-toggle--disabled/);
         }
         await expect(
             this.contractCardItem('Total profit/loss:'),
@@ -1702,10 +1844,21 @@ export class ContractDetailsPage extends TradeBasePage {
         const buyIdText = (await this.contractDetailsReferenceID.innerText()).trim();
         const buyId = buyIdText.replace(' (Buy)', '');
 
-        // Audit grid — Commission (Multipliers-specific). Rendered here from the API — capture it now
-        // to assert the same value on the closed contract details page later.
+        // Audit grid — Commission (Multipliers-specific)
         await expect(this.multContractDetailsCommission, 'Commission should have a value from the API').not.toBeEmpty();
         const commission = (await this.multContractDetailsCommission.innerText()).trim();
+
+        // Audit grid — Deal cancellation (active), rendered directly under Commission
+        if (dealCancelFee) {
+            await expect(
+                this.dealCancellationAuditLabel,
+                'Audit grid under Commission should show Deal cancellation (active)'
+            ).toHaveText('Deal cancellation (active)');
+            await expect(
+                this.dealCancellationAuditValue,
+                `Deal cancellation (active) fee should be "${dealCancelFee}"`
+            ).toContainText(dealCancelFee);
+        }
 
         // Audit grid — Start time
         await expect(this.contractDetailsStartTimeLabel, 'Start time label should be "Start time"').toHaveText(
@@ -1783,7 +1936,8 @@ export class ContractDetailsPage extends TradeBasePage {
         multiplier: string,
         buyDate: string,
         takeProfit?: string | null,
-        stopLoss?: string | null
+        stopLoss?: string | null,
+        dealCancellationBuyPrice?: string
     ): Promise<{ buyId: string; entrySpot: string; commission: string }> {
         // Header
         await expect(
@@ -1799,9 +1953,11 @@ export class ContractDetailsPage extends TradeBasePage {
             this.mobileContractTradeType,
             `Mobile contract card should show "Multipliers ${direction}"`
         ).toHaveText(`Multipliers ${direction}`);
-        await expect(this.mobileContractCardStake, `Mobile contract card should show stake "${stake} USD"`).toHaveText(
-            `${stake} USD`
-        );
+        const displayedStake = dealCancellationBuyPrice ?? stake;
+        await expect(
+            this.mobileContractCardStake,
+            `Mobile contract card should show stake "${displayedStake} USD"`
+        ).toHaveText(`${displayedStake} USD`);
         await expect(this.mobileContractProfit, 'Mobile profit/loss should have a value').not.toBeEmpty();
 
         // Contract card — TP/SL badges (visible only when the respective param is active)
@@ -1837,6 +1993,16 @@ export class ContractDetailsPage extends TradeBasePage {
             this.mobileRiskManagementSlToggle,
             `SL toggle should be ${stopLoss ? 'on' : 'off'}`
         ).toHaveAttribute('aria-pressed', stopLoss ? 'true' : 'false');
+        if (dealCancellationBuyPrice) {
+            await expect(
+                this.mobileRiskManagementTpToggle,
+                'TP toggle should be disabled while Deal Cancellation is active'
+            ).toBeDisabled();
+            await expect(
+                this.mobileRiskManagementSlToggle,
+                'SL toggle should be disabled while Deal Cancellation is active'
+            ).toBeDisabled();
+        }
         if (takeProfit) {
             await expect(this.mobileRiskManagementTpInput, `TP input should show "${takeProfit} USD"`).toHaveValue(
                 `${takeProfit} USD`
@@ -1861,7 +2027,9 @@ export class ContractDetailsPage extends TradeBasePage {
         ).toContainText(multiplier);
 
         // Order Details — Stake
-        await expect(this.mobileOrderDetailsValue('Stake'), `Stake should contain "${stake}"`).toContainText(stake);
+        await expect(this.mobileOrderDetailsValue('Stake'), `Stake should contain "${displayedStake}"`).toContainText(
+            displayedStake
+        );
 
         // Order Details — Commission. Rendered here from the API — capture it now to assert the same
         // value on the closed page later.
@@ -1870,6 +2038,13 @@ export class ContractDetailsPage extends TradeBasePage {
             'Commission should have a value from the API'
         ).not.toBeEmpty();
         const commission = (await this.mobileOrderDetailsValue('Commission').innerText()).trim();
+
+        if (dealCancellationBuyPrice) {
+            await expect(
+                this.mobileOrderDetailsValue('Deal cancellation fees'),
+                'Deal cancellation fees should show an active fee'
+            ).toContainText('(active)');
+        }
 
         // Order Details — Take profit (when set)
         if (takeProfit) {
@@ -1965,7 +2140,8 @@ export class ContractDetailsPage extends TradeBasePage {
         entrySpot: string,
         commission: string,
         takeProfit?: string | null,
-        stopLoss?: string | null
+        stopLoss?: string | null,
+        dealCancellationBuyPrice?: string
     ): Promise<string> {
         // Header
         await expect(
@@ -1990,10 +2166,33 @@ export class ContractDetailsPage extends TradeBasePage {
         await expect(this.contractCardItem('Contract cost:'), `Contract cost should be "${stake}"`).toContainText(
             stake
         );
-        await expect(
-            this.contractCardItem('Total profit/loss:'),
-            `Total profit/loss should contain "${profitLossNumeric}"`
-        ).toContainText(profitLossNumeric);
+        let dealCancelFee = '';
+        if (dealCancellationBuyPrice) {
+            await expect(
+                this.contractCardItem('Deal cancel. fee:'),
+                'Deal cancel. fee should show the fee after Deal Cancellation'
+            ).not.toHaveText('-');
+            dealCancelFee = parseFloat(
+                (await this.contractCardItem('Deal cancel. fee:').innerText()).replace(/,/g, '').replace(/[^\d.]/g, '')
+            ).toFixed(2);
+            await expect(
+                this.contractCardItem('Stake:'),
+                `Stake should equal the pre-purchase Total cost "${dealCancellationBuyPrice}"`
+            ).toContainText(dealCancellationBuyPrice);
+            await expect(
+                this.contractCardItem('Contract value:'),
+                'After cancel, contract value should equal the refunded contract cost'
+            ).toContainText(stake);
+            await expect(
+                this.contractCardItem('Total profit/loss:'),
+                `Total profit/loss should equal the kept Deal cancel. fee "${dealCancelFee}"`
+            ).toContainText(dealCancelFee);
+        } else {
+            await expect(
+                this.contractCardItem('Total profit/loss:'),
+                `Total profit/loss should contain "${profitLossNumeric}"`
+            ).toContainText(profitLossNumeric);
+        }
         if (takeProfit) {
             await expect(this.contractCardItem('Take profit:'), `Take profit should show "${takeProfit}"`).toHaveText(
                 takeProfit
@@ -2011,10 +2210,14 @@ export class ContractDetailsPage extends TradeBasePage {
             await expect(this.contractCardItem('Stop loss:'), 'Stop loss should be "-" (not set)').toHaveText('-');
         }
 
-        // Close button absent (contract settled)
+        // Close / Cancel buttons absent (contract settled)
         await expect(
             this.multContractDetailsCloseButton,
             'Close button should not be visible on a closed Multipliers contract'
+        ).not.toBeVisible();
+        await expect(
+            this.dealCancellationButton,
+            'Cancel button should not be visible on a closed Multipliers contract'
         ).not.toBeVisible();
 
         // Audit grid — Reference ID (buy + sell)
@@ -2033,6 +2236,18 @@ export class ContractDetailsPage extends TradeBasePage {
             this.multContractDetailsCommission,
             `Commission should match open-contract value "${commission}"`
         ).toHaveText(commission);
+
+        if (dealCancelFee) {
+            // Sold inside the DC window: getLabel() returns "Deal cancellation" (not "(executed)").
+            await expect(
+                this.dealCancellationAuditLabel,
+                'Audit grid under Commission should show Deal cancellation'
+            ).toHaveText('Deal cancellation');
+            await expect(
+                this.dealCancellationAuditValue,
+                `Deal cancellation fee should be "${dealCancelFee}"`
+            ).toContainText(dealCancelFee);
+        }
 
         // Audit grid — Start time
         await expect(this.contractDetailsStartTimeLabel, 'Start time label should be "Start time"').toHaveText(
@@ -2073,7 +2288,8 @@ export class ContractDetailsPage extends TradeBasePage {
         stopOut: string,
         commission: string,
         takeProfit?: string | null,
-        stopLoss?: string | null
+        stopLoss?: string | null,
+        dealCancellationBuyPrice?: string
     ): Promise<string> {
         // Header
         await expect(
@@ -2122,13 +2338,23 @@ export class ContractDetailsPage extends TradeBasePage {
             this.mobileOrderDetailsValue('Multiplier'),
             `Multiplier should contain "${multiplier}"`
         ).toContainText(multiplier);
-        await expect(this.mobileOrderDetailsValue('Stake'), `Stake should contain "${stake}"`).toContainText(stake);
+        const displayedStake = dealCancellationBuyPrice ?? stake;
+        await expect(this.mobileOrderDetailsValue('Stake'), `Stake should contain "${displayedStake}"`).toContainText(
+            displayedStake
+        );
 
         // Order Details — Commission should match the value captured from the open contract details page
         await expect(
             this.mobileOrderDetailsValue('Commission'),
             `Commission should match open-contract value "${commission}"`
         ).toContainText(commission);
+
+        if (dealCancellationBuyPrice) {
+            await expect(
+                this.mobileOrderDetailsValue('Deal cancellation fees'),
+                'Deal cancellation fees should still show the fee after cancel'
+            ).not.toBeEmpty();
+        }
 
         // Order Details — Take profit / Stop loss
         if (takeProfit) {

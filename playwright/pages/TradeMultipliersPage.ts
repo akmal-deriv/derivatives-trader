@@ -12,6 +12,7 @@ import { ContractDetailsPage } from './ContractDetailsPage';
  *  - Risk management label locator
  *  - Up / Down purchase buttons
  *  - buyUpAndVerify / buyDownAndVerify — full 7-step verification chain
+ *  - buyUpAndVerifyWithDC / buyDownAndVerifyWithDC — Deal Cancellation buy → cancel chain
  *
  * @example
  * ```typescript
@@ -58,6 +59,16 @@ export class TradeMultipliersPage extends TradeParametersPage {
     }
 
     /**
+     * Total cost shown on the Buy button while Deal Cancellation is active.
+     * Includes stake + commission + DC fee (purchase-button-content.tsx).
+     * The wrapper holds two direct `<span>` children: the "Total cost" label then the amount,
+     * rendered symbol-prefixed ("$24.93") by `formatAmountWithSymbol` — no `dt_span`.
+     */
+    get multipliersTotalCost(): Locator {
+        return this.page.getByTestId('dt_purchase_button_wrapper').locator('> span').last();
+    }
+
+    /**
      * Direction segment button inside the segmented control.
      * Source: segmented-control-single — two <button class="item"> elements: "Up" and "Down".
      *
@@ -69,8 +80,9 @@ export class TradeMultipliersPage extends TradeParametersPage {
 
     /**
      * Stop out value (the loss amount) — viewport-aware.
-     * - Desktop: always visible on the landing page, `.multipliers-information__row` > `dt_span`
-     *   (the amount is rendered via <Money>, which wraps it in `data-testid="dt_span"`).
+     * - Desktop: always visible on the landing page, `.multipliers-information__row`; the amount is
+     *   a symbol-prefixed plain string ("$19.86") via `formatAmountWithSymbol`, so it is the row's
+     *   last text node rather than a Money `dt_span`.
      * - Mobile: no landing-page equivalent — only rendered inside the Stake action sheet's details
      *   rows (stake-details.tsx) while it's open; value is the row's last text node.
      * The label is matched exactly so this row is not confused with the "Stop out level" row.
@@ -85,7 +97,8 @@ export class TradeMultipliersPage extends TradeParametersPage {
             : this.page
                   .locator('.multipliers-information__row')
                   .filter({ has: this.page.getByText('Stop out', { exact: true }) })
-                  .getByTestId('dt_span');
+                  .locator('p')
+                  .last();
     }
 
     /**
@@ -461,6 +474,13 @@ export class TradeMultipliersPage extends TradeParametersPage {
         stopLoss?: string;
         dealCancellation?: '5 min' | '10 min' | '15 min' | '30 min' | '60 min';
     }): Promise<void> {
+        if (dealCancellation) {
+            const dcMinutes = dealCancellation.replace(' min', '');
+            if ((await this.riskManagementField.inputValue()).trim() === `DC: ${dcMinutes} minutes`) {
+                return;
+            }
+        }
+
         await this.riskManagementField.click();
 
         if (this.isMobile) {
@@ -475,8 +495,8 @@ export class TradeMultipliersPage extends TradeParametersPage {
                 if (!isPressed) {
                     await this.dcToggleMobile.click();
                 }
-                await this.dcChipMobile(dealCancellation).click();
-                await this.riskManagementSaveButton('dc').click();
+                await this.selectWheelPickerOption('.deal-cancellation__wheel-picker', dealCancellation);
+                await this.saveMobileSheet(this.riskManagementSheet);
             } else {
                 await this.tpSlTabMobile.click();
                 if (takeProfit !== undefined) {
@@ -547,6 +567,10 @@ export class TradeMultipliersPage extends TradeParametersPage {
                     await this.dcToggleDesktop.click();
                 }
                 await this.dcChipDesktop(dealCancellation).click();
+                await expect(
+                    this.riskManagementSaveButton('dc'),
+                    'Deal cancellation Save should enable after changing the draft'
+                ).toBeEnabled();
                 await this.riskManagementSaveButton('dc').click();
             } else {
                 await this.tpSlTabDesktop.click();
@@ -580,22 +604,23 @@ export class TradeMultipliersPage extends TradeParametersPage {
         }
 
         // After the panel closes, verify the Risk management field reflects the saved value.
-        // Both TP and SL set: "TP: 10 USD / SL: 9 USD"; only one: "TP: 10 USD" or "SL: 9 USD".
+        // Amounts prefix the currency symbol (risk-management.tsx getRiskManagementText):
+        // both: "TP: $10 / SL: $9"; only one: "TP: $10" or "SL: $10".
         if (takeProfit !== undefined && stopLoss !== undefined) {
             await expect(
                 this.riskManagementField,
-                `Risk management field should show "TP: ${takeProfit} USD / SL: ${stopLoss} USD" after saving`
-            ).toHaveValue(`TP: ${takeProfit} USD / SL: ${stopLoss} USD`);
+                `Risk management field should show "TP: $${takeProfit} / SL: $${stopLoss}" after saving`
+            ).toHaveValue(`TP: $${takeProfit} / SL: $${stopLoss}`);
         } else if (takeProfit !== undefined) {
             await expect(
                 this.riskManagementField,
-                `Risk management field should show "TP: ${takeProfit} USD" after saving`
-            ).toHaveValue(`TP: ${takeProfit} USD`);
+                `Risk management field should show "TP: $${takeProfit}" after saving`
+            ).toHaveValue(`TP: $${takeProfit}`);
         } else if (stopLoss !== undefined) {
             await expect(
                 this.riskManagementField,
-                `Risk management field should show "SL: ${stopLoss} USD" after saving`
-            ).toHaveValue(`SL: ${stopLoss} USD`);
+                `Risk management field should show "SL: $${stopLoss}" after saving`
+            ).toHaveValue(`SL: $${stopLoss}`);
         } else if (dealCancellation) {
             const dcMinutes = dealCancellation.replace(' min', '');
             await expect(
@@ -607,10 +632,11 @@ export class TradeMultipliersPage extends TradeParametersPage {
 
     /**
      * Read the Stop out amount pre-buy, from the MultipliersInformation rows (desktop: trade-page
-     * landing panel; mobile: Stake action sheet details rows — stake-details.tsx — so the sheet is
-     * opened and re-saved, a no-op for the already-committed amount). The value is populated from the
-     * proposal response, which can lag under load; `not.toBeEmpty()` auto-retries, so a generous
-     * budget is used instead of the default window.
+     * landing panel; mobile: Stake action sheet details rows — stake-details.tsx). Reopening the
+     * sheet is a no-op: the draft already equals the committed stake, so header Save stays disabled
+     * (`stake-input.tsx` dirty gate). Dismiss with Close. The values are populated from the proposal
+     * response, which can lag under load; `not.toBeEmpty()` auto-retries, so a generous budget is used
+     * instead of the default window.
      *
      * The "Stop out level" row is asserted to be present here but its value is not captured — it is
      * not asserted on the closed contract details page. Commission is not present on the trade panel;
@@ -619,10 +645,7 @@ export class TradeMultipliersPage extends TradeParametersPage {
     private async readStopOut(): Promise<{ stopOut: string }> {
         if (this.isMobile) {
             await this.stakeField.click();
-            await expect(
-                this.stakeSaveButton,
-                'Stake save button should be enabled — confirms the reopened sheet has a fresh proposal'
-            ).toBeEnabled({ timeout: 15_000 });
+            await expect(this.stakeContainer, 'Stake action sheet should open').toBeVisible();
         }
 
         // Stop out and Stop out level are populated from the proposal response, which can lag under
@@ -633,10 +656,12 @@ export class TradeMultipliersPage extends TradeParametersPage {
         await expect(this.stopOutLevelValue, 'Stop out level should be visible and non-empty').not.toBeEmpty({
             timeout: 15_000,
         });
-        const stopOut = (await this.stopOutValue.innerText()).trim();
+        // Trade params render `$20.00`; closed mobile Order Details still uses Money (`-20.00 USD`).
+        // Keep the numeric amount so `toContainText` matches either surface.
+        const stopOut = (await this.stopOutValue.innerText()).replace(/,/g, '').replace(/[^\d.]/g, '');
 
         if (this.isMobile) {
-            await this.stakeSaveButton.click();
+            await this.stakeCloseButton.click();
             await expect(this.stakeContainer, 'Stake action sheet should dismiss after closing').not.toBeVisible();
         }
         return { stopOut };
@@ -645,6 +670,230 @@ export class TradeMultipliersPage extends TradeParametersPage {
     // ============================================
     // FULL FLOW METHODS
     // ============================================
+
+    /**
+     * Flow 9.7 — buy an Up Multipliers contract with Deal Cancellation, then cancel it.
+     *
+     * Cancellation is a structural exception vs `buyUpAndVerify`: the contract is cancelled from
+     * details (not closed from Positions), and Reports is skipped because there is no P/L sell row.
+     */
+    async buyUpAndVerifyWithDC({
+        accountType,
+        market,
+        multiplier,
+        stake,
+        currency,
+        dealCancellation,
+    }: {
+        accountType: 'real' | 'demo';
+        market: string;
+        multiplier: string;
+        stake: string;
+        currency: string;
+        dealCancellation: '5 min' | '10 min' | '15 min' | '30 min' | '60 min';
+    }): Promise<void> {
+        // 0. Trade on the account type requested by the test — the account created in beforeAll is real by default.
+        await this.switchToAccountType(accountType);
+
+        // 1. Configure Deal Cancellation and buy
+        await this.selectMarketAndTradeType(market, 'Multipliers');
+        await this.clickUpDownOption('Up');
+        await this.setStake(stake);
+        await this.setMultiplier(multiplier);
+        await this.setRiskManagement({ dealCancellation });
+        await expect(
+            this.purchaseButton,
+            'Buy button should show Total cost while Deal Cancellation is active'
+        ).toContainText('Total cost');
+        await expect(
+            this.multipliersTotalCost,
+            'Total cost should show a numeric amount before buying'
+        ).not.toBeEmpty();
+        const totalCost = parseFloat(
+            (await this.multipliersTotalCost.innerText()).replace(/,/g, '').replace(/[^\d.]/g, '')
+        ).toFixed(2);
+        const { stopOut } = await this.readStopOut();
+        const balanceBefore = await this.getBalance();
+        const buyDate = this.getCurrentDate();
+        await this.clickMultipliersBuy();
+
+        // 2. Verify contract card appears in Positions and balance deducted
+        await this.positionsPage.verifyOpenPositionsVisible();
+        await this.verifyBalanceAfterContractPurchase(balanceBefore, totalCost);
+        await this.positionsPage.verifyMultipliersContractCardDetails(market, 'Multipliers Up', currency, totalCost, {
+            dealCancellation,
+        });
+
+        // 3. Capture balance before cancel
+        const balanceBeforeClose = await this.getBalance();
+
+        // 4. Open contract details — verify, cancel Deal Cancellation, then close details
+        await this.goToPositions();
+        await this.positionsPage.openFirstContract();
+        const { buyId, entrySpot, commission } = await this.contractDetailsPage.verifyMultipliersContractDetailsPage(
+            market,
+            'Up',
+            currency,
+            stake,
+            multiplier,
+            buyDate,
+            undefined,
+            undefined,
+            totalCost
+        );
+        await this.contractDetailsPage.verifyDealCancellationAvailable();
+        await this.contractDetailsPage.cancelDealCancellationContract();
+        await this.contractDetailsPage.closeContractDetails();
+
+        // 5. Verify closed contract in the Closed tab and contract details
+        await this.goToPositions();
+        await this.positionsPage.clickClosedTab();
+        const contractProfitLossAmount = await this.positionsPage.verifyClosedPositionsTab(
+            market,
+            'Multipliers Up',
+            currency,
+            totalCost
+        );
+        await this.positionsPage.openFirstContract();
+        await this.contractDetailsPage.verifyClosedMultipliersContractDetailsPage(
+            market,
+            'Up',
+            currency,
+            stake,
+            multiplier,
+            buyId,
+            buyDate,
+            contractProfitLossAmount,
+            entrySpot,
+            stopOut,
+            commission,
+            undefined,
+            undefined,
+            totalCost
+        );
+        await this.contractDetailsPage.closeContractDetails();
+
+        // 6. Verify final balance reflects contract P/L
+        const balanceAfterClose = await this.getBalance();
+        await this.verifyBalanceAfterContractClose(
+            balanceBeforeClose,
+            totalCost,
+            contractProfitLossAmount,
+            balanceAfterClose
+        );
+    }
+
+    /**
+     * Flow 9.8 — buy a Down Multipliers contract with Deal Cancellation, then cancel it.
+     *
+     * Cancellation is a structural exception vs `buyDownAndVerify`: the contract is cancelled from
+     * details (not closed from Positions), and Reports is skipped because there is no P/L sell row.
+     */
+    async buyDownAndVerifyWithDC({
+        accountType,
+        market,
+        multiplier,
+        stake,
+        currency,
+        dealCancellation,
+    }: {
+        accountType: 'real' | 'demo';
+        market: string;
+        multiplier: string;
+        stake: string;
+        currency: string;
+        dealCancellation: '5 min' | '10 min' | '15 min' | '30 min' | '60 min';
+    }): Promise<void> {
+        // 0. Trade on the account type requested by the test — the account created in beforeAll is real by default.
+        await this.switchToAccountType(accountType);
+
+        // 1. Configure Deal Cancellation and buy
+        await this.selectMarketAndTradeType(market, 'Multipliers');
+        await this.clickUpDownOption('Down');
+        await this.setStake(stake);
+        await this.setMultiplier(multiplier);
+        await this.setRiskManagement({ dealCancellation });
+        await expect(
+            this.purchaseButton,
+            'Buy button should show Total cost while Deal Cancellation is active'
+        ).toContainText('Total cost');
+        await expect(
+            this.multipliersTotalCost,
+            'Total cost should show a numeric amount before buying'
+        ).not.toBeEmpty();
+        const totalCost = parseFloat(
+            (await this.multipliersTotalCost.innerText()).replace(/,/g, '').replace(/[^\d.]/g, '')
+        ).toFixed(2);
+        const { stopOut } = await this.readStopOut();
+        const balanceBefore = await this.getBalance();
+        const buyDate = this.getCurrentDate();
+        await this.clickMultipliersBuy();
+
+        // 2. Verify contract card appears in Positions and balance deducted
+        await this.positionsPage.verifyOpenPositionsVisible();
+        await this.verifyBalanceAfterContractPurchase(balanceBefore, totalCost);
+        await this.positionsPage.verifyMultipliersContractCardDetails(market, 'Multipliers Down', currency, totalCost, {
+            dealCancellation,
+        });
+
+        // 3. Capture balance before cancel
+        const balanceBeforeClose = await this.getBalance();
+
+        // 4. Open contract details — verify, cancel Deal Cancellation, then close details
+        await this.goToPositions();
+        await this.positionsPage.openFirstContract();
+        const { buyId, entrySpot, commission } = await this.contractDetailsPage.verifyMultipliersContractDetailsPage(
+            market,
+            'Down',
+            currency,
+            stake,
+            multiplier,
+            buyDate,
+            undefined,
+            undefined,
+            totalCost
+        );
+        await this.contractDetailsPage.verifyDealCancellationAvailable();
+        await this.contractDetailsPage.cancelDealCancellationContract();
+        await this.contractDetailsPage.closeContractDetails();
+
+        // 5. Verify closed contract in the Closed tab and contract details
+        await this.goToPositions();
+        await this.positionsPage.clickClosedTab();
+        const contractProfitLossAmount = await this.positionsPage.verifyClosedPositionsTab(
+            market,
+            'Multipliers Down',
+            currency,
+            totalCost
+        );
+        await this.positionsPage.openFirstContract();
+        await this.contractDetailsPage.verifyClosedMultipliersContractDetailsPage(
+            market,
+            'Down',
+            currency,
+            stake,
+            multiplier,
+            buyId,
+            buyDate,
+            contractProfitLossAmount,
+            entrySpot,
+            stopOut,
+            commission,
+            undefined,
+            undefined,
+            totalCost
+        );
+        await this.contractDetailsPage.closeContractDetails();
+
+        // 6. Verify final balance reflects contract P/L
+        const balanceAfterClose = await this.getBalance();
+        await this.verifyBalanceAfterContractClose(
+            balanceBeforeClose,
+            totalCost,
+            contractProfitLossAmount,
+            balanceAfterClose
+        );
+    }
 
     /**
      * Full Multipliers Up contract flow: configure → buy → verify positions, reports,

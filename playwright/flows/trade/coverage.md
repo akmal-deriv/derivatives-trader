@@ -1,6 +1,6 @@
 # Trade Journey Coverage
 
-**Analysis date:** 2026-08-17
+**Analysis date:** 2026-08-24
 
 ---
 
@@ -31,8 +31,8 @@
 | Flow 9.4  | Multipliers with TP — buy Down → close                 | ✅      | ✅     |       |
 | Flow 9.5  | Multipliers with SL — buy Up → close                   | ✅      | ✅     |       |
 | Flow 9.6  | Multipliers with SL — buy Down → close                 | ✅      | ✅     |       |
-| Flow 9.7  | Multipliers with Deal Cancellation — buy Up → cancel   | ❌      | ❌     |       |
-| Flow 9.8  | Multipliers with Deal Cancellation — buy Down → cancel | ❌      | ❌     |       |
+| Flow 9.7  | Multipliers with Deal Cancellation — buy Up → cancel   | ✅      | ✅     |       |
+| Flow 9.8  | Multipliers with Deal Cancellation — buy Down → cancel | ✅      | ✅     |       |
 | Flow 10.1 | Turbos without TP — buy Up → verify in positions       | ✅      | ✅     |       |
 | Flow 10.2 | Turbos without TP — buy Down → verify in positions     | ✅      | ✅     |       |
 | Flow 10.3 | Turbos with TP — buy Up → verify TP set in positions   | ✅      | ✅     |       |

@@ -1,7 +1,7 @@
 # 🗺️ Trade Journey Catalog — Technical Reference
 
 > Source of truth: `packages/trader/src/AppV2/Containers/Trade/` · `packages/trader/src/AppV2/Components/TradeParameters/` · `packages/trader/src/AppV2/Components/PurchaseButton/`
-> Last updated: 2026-08-17
+> Last updated: 2026-08-24
 
 ---
 
@@ -566,7 +566,7 @@ test.describe('Trade — Multipliers', { tag: ['@desktop', '@mobile', '@trade'] 
 
 > **Flow 9.1** = `VERIFY Buy "Up" Multipliers Contract and Close (without TP/SL)` · **Flow 9.2** = `VERIFY Buy "Down" Multipliers Contract and Close (without TP/SL)`
 >
-> Both tests delegate to `buyUpAndVerify` / `buyDownAndVerify` on `TradeMultipliersPage`, which implement the full 17-step chain: configure → buy → positions → reports (open) → contract details (open, captures `buyId` + `entrySpot`) → close → closed positions tab → contract details (closed, asserts commission, stop out level, entry/exit details) → balance → reports (closed trade table + statement).
+> Both tests delegate to `buyUpAndVerify` / `buyDownAndVerify` on `TradeMultipliersPage`, which implement the full 17-step chain: configure → buy → positions → reports (open) → contract details (open, captures `buyId` + `entrySpot`) → close → closed positions tab → contract details (closed, asserts commission, Stop out level as `-N.NN USD` containing the numeric pre-buy `stopOut`, entry/exit details) → balance → reports (closed trade table + statement).
 > Commission and stop out are captured pre-buy from the info panel and asserted exactly in the closed contract details.
 > Mobile entry/exit detail dates render as `DD Mon YYYY`; the helper derives this format internally from the ISO `buyDate`.
 >
@@ -717,52 +717,65 @@ test.describe('Trade — Multipliers', { tag: ['@desktop', '@mobile', '@trade'] 
 
 ```typescript
 test.describe('Trade — Multipliers with Deal Cancellation', { tag: ['@trade', '@desktop', '@mobile'] }, () => {
-    test.beforeEach(async ({ loginPage, tradePage, page }) => {
-        await loginPage.login();
-        await tradePage.goto();
-        await NavigationUtils.waitForDerivApiSettled(page);
-        await tradePage.selectMarketAndTradeType('Jump 10 Index', 'Multipliers');
+    test.describe.configure({ mode: 'serial' });
+
+    test('VERIFY Buy "Up" Multipliers Contract With Deal Cancellation and Cancel (Demo Account)', async ({
+        tradeMultipliersPage,
+    }) => {
+        await tradeMultipliersPage.buyUpAndVerifyWithDC({
+            accountType: 'demo',
+            market: 'Volatility 75 Index',
+            multiplier: 'x300',
+            stake: '20.00',
+            currency: 'USD',
+            dealCancellation: '5 min',
+        });
     });
 
-    test('VERIFY buy Up multiplier contract with deal cancellation and cancel', async ({ tradePage, page }) => {
-        await tradePage.setStake('20.00');
-        await tradePage.setMultiplier('x10');
-        await tradePage.openRiskManagement();
-        await tradePage.selectDealCancellation();
-        await tradePage.saveRiskManagement();
-        await tradePage.clickUp();
-        await expect(
-            page.locator('.trade-notification--purchase'),
-            'Purchase notification should appear'
-        ).toBeVisible();
-        await expect(page.getByTestId('dt_deal_cancellation_badge'), 'DC timer badge should be visible').toBeVisible();
-        await tradePage.gotoPositions();
-        await NavigationUtils.waitForDerivApiSettled(page);
-        await tradePage.openFirstContract();
-        await page.getByRole('button', { name: /Cancel/ }).click();
+    test('VERIFY Buy "Up" Multipliers Contract With Deal Cancellation and Cancel (Real Account)', async ({
+        tradeMultipliersPage,
+    }) => {
+        await tradeMultipliersPage.buyUpAndVerifyWithDC({
+            accountType: 'real',
+            market: 'Volatility 75 Index',
+            multiplier: 'x300',
+            stake: '20.00',
+            currency: 'USD',
+            dealCancellation: '5 min',
+        });
     });
 
-    test('VERIFY buy Down multiplier contract with deal cancellation and cancel', async ({ tradePage, page }) => {
-        await tradePage.setStake('21.00');
-        await tradePage.setMultiplier('x10');
-        await tradePage.openRiskManagement();
-        await tradePage.selectDealCancellation();
-        await tradePage.saveRiskManagement();
-        await tradePage.clickDown();
-        await expect(
-            page.locator('.trade-notification--purchase'),
-            'Purchase notification should appear'
-        ).toBeVisible();
-        await expect(page.getByTestId('dt_deal_cancellation_badge'), 'DC timer badge should be visible').toBeVisible();
-        await tradePage.gotoPositions();
-        await NavigationUtils.waitForDerivApiSettled(page);
-        await tradePage.openFirstContract();
-        await page.getByRole('button', { name: /Cancel/ }).click();
+    test('VERIFY Buy "Down" Multipliers Contract With Deal Cancellation and Cancel (Demo Account)', async ({
+        tradeMultipliersPage,
+    }) => {
+        await tradeMultipliersPage.buyDownAndVerifyWithDC({
+            accountType: 'demo',
+            market: 'Volatility 75 Index',
+            multiplier: 'x300',
+            stake: '21.00',
+            currency: 'USD',
+            dealCancellation: '10 min',
+        });
+    });
+
+    test('VERIFY Buy "Down" Multipliers Contract With Deal Cancellation and Cancel (Real Account)', async ({
+        tradeMultipliersPage,
+    }) => {
+        await tradeMultipliersPage.buyDownAndVerifyWithDC({
+            accountType: 'real',
+            market: 'Volatility 75 Index',
+            multiplier: 'x300',
+            stake: '21.00',
+            currency: 'USD',
+            dealCancellation: '10 min',
+        });
     });
 });
 ```
 
-> **Flow 9.7** = `VERIFY buy Up multiplier contract with deal cancellation and cancel` · **Flow 9.8** = `VERIFY buy Down multiplier contract with deal cancellation and cancel`
+> `buyUpAndVerifyWithDC` / `buyDownAndVerifyWithDC` cover (in order): switch account type → select Multipliers → Up/Down → `setStake` → `setMultiplier` → `setRiskManagement({ dealCancellation })` → assert Buy shows **"Total cost"** → capture `multipliersTotalCost` (numeric, stripped from `$N.NN`) → `readStopOut()` (numeric; mobile Stake sheet dismissed with Close) → `clickMultipliersBuy()` → open card + balance deducted by Total cost → open details (`verifyMultipliersContractDetailsPage` with Total cost as stake display + DC fee; TP/SL disabled) → `verifyDealCancellationAvailable()` → `cancelDealCancellationContract()` → Closed tab → closed details (`verifyClosedMultipliersContractDetailsPage`; Stop out level still `-N.NN USD`). Reports/Statement are skipped.
+>
+> **Flow 9.7** = `VERIFY Buy "Up" Multipliers Contract With Deal Cancellation and Cancel` · **Flow 9.8** = `VERIFY Buy "Down" Multipliers Contract With Deal Cancellation and Cancel` — each as `(Demo Account)` / `(Real Account)`
 
 ---
 
@@ -955,24 +968,25 @@ test.describe('Trade — Closed Market', { tag: ['@trade', '@desktop', '@mobile'
 
 ### Unique parameter locator map per trade type
 
-| Trade type        | Unique param                                                        | Locator strategy                                       |
-| ----------------- | ------------------------------------------------------------------- | ------------------------------------------------------ |
-| Rise/Fall         | Allow equals                                                        | `getByText('Allow equals')` — toggle, no testid        |
-| Higher/Lower      | Barrier                                                             | `getByText('Barrier')` — label, no testid              |
-| Touch/No Touch    | Barrier                                                             | `getByText('Barrier')`                                 |
-| Matches/Differs   | Last digit prediction                                               | `getByTestId('dt_digit_stats_percentage').first()`     |
-| Over/Under        | Last digit prediction                                               | `getByTestId('dt_digit_stats_percentage').first()`     |
-| Accumulators      | Growth rate                                                         | `getByText('Growth rate')`                             |
-| Accumulators      | Take profit                                                         | Mobile: `dt_tp_input`; Desktop: `dt_take_profit_input` |
-| Multipliers       | Multiplier                                                          | `getByText('Multiplier')` — label, no testid           |
-| Multipliers       | Risk management                                                     | `getByText('Risk management')`                         |
-| Multipliers TP    | TP input                                                            | Mobile: `dt_tp_input`; Desktop: `dt_tp_input_desktop`  |
-| Multipliers SL    | SL input                                                            | Mobile: `dt_sl_input`; Desktop: `dt_sl_input_desktop`  |
-| Multipliers DC    | Deal cancellation badge                                             | `getByTestId('dt_deal_cancellation_badge')`            |
-| Turbos            | Payout per point                                                    | `getByText('Payout per point')`                        |
-| Turbos            | Barrier info panel                                                  | `getByText('Barrier')` (info panel below params)       |
-| Vanillas          | Strike price                                                        | `getByText('Strike price')`                            |
-| Stake (all types) | Mobile: `dt_input_with_steppers`; Desktop: `dt_stake_input_desktop` |
+| Trade type        | Unique param                                                                                                                                  | Locator strategy                                                         |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| Rise/Fall         | Allow equals                                                                                                                                  | `getByText('Allow equals')` — toggle, no testid                          |
+| Higher/Lower      | Barrier                                                                                                                                       | `getByText('Barrier')` — label, no testid                                |
+| Touch/No Touch    | Barrier                                                                                                                                       | `getByText('Barrier')`                                                   |
+| Matches/Differs   | Last digit prediction                                                                                                                         | `getByTestId('dt_digit_stats_percentage').first()`                       |
+| Over/Under        | Last digit prediction                                                                                                                         | `getByTestId('dt_digit_stats_percentage').first()`                       |
+| Accumulators      | Growth rate                                                                                                                                   | `getByText('Growth rate')`                                               |
+| Accumulators      | Take profit                                                                                                                                   | Mobile: `dt_tp_input`; Desktop: `dt_take_profit_input`                   |
+| Multipliers       | Multiplier                                                                                                                                    | `getByText('Multiplier')` — label, no testid                             |
+| Multipliers       | Risk management                                                                                                                               | `getByText('Risk management')`                                           |
+| Multipliers TP    | TP input                                                                                                                                      | Mobile: `dt_tp_input`; Desktop: `dt_tp_input_desktop`                    |
+| Multipliers SL    | SL input                                                                                                                                      | Mobile: `dt_sl_input`; Desktop: `dt_sl_input_desktop`                    |
+| Multipliers DC    | Deal cancellation badge                                                                                                                       | `getByTestId('dt_deal_cancellation_badge')`                              |
+| Buy (payout / DC) | Purchase-button amount (`$N.NN`)                                                                                                              | `dt_purchase_button_wrapper` → `locator('> span').last()` — no `dt_span` |
+| Turbos            | Payout per point                                                                                                                              | `getByText('Payout per point')`                                          |
+| Turbos            | Barrier info panel                                                                                                                            | `getByText('Barrier')` (info panel below params)                         |
+| Vanillas          | Strike price                                                                                                                                  | `getByText('Strike price')`                                              |
+| Stake (all types) | Chips `Select value $N`; Custom: `dt_stake_input_desktop` + `.stake-input-desktop__save-button`; Mobile: `dt_stake_input` + header Save/Close |
 
 ### Which trade types require manual close vs auto-expiry
 
@@ -993,6 +1007,18 @@ All state is driven by WebSocket. Always call after `page.goto()` and after navi
 ### Notification banner locator
 
 No `data-testid` on the purchase notification banner. Use CSS class `'.trade-notification--purchase'` on the icon wrapper inside the banner — set during `addNotificationBannerCallback` in `purchase-button.tsx`.
+
+### Purchase button amount is `$N.NN` — no Money `dt_span`
+
+`purchase-button-content.tsx` renders the basis label and amount as two direct `<span>` children of `dt_purchase_button_wrapper` via `formatAmountWithSymbol` (e.g. `$24.93`). There is no nested `dt_span`. Use `locator('> span').last()` (`purchaseButtonPayout` / `multipliersTotalCost`). `clickBuy()` strips the symbol and returns the numeric string (`24.93`) for card/report assertions. While the proposal is in flight the amount span can contain a nested Skeleton — direct-child scoping keeps the locator on the value slot.
+
+Desktop Multipliers **Stop out** (`multipliers-information.tsx`) uses the same `$N.NN` pattern: the row's last `<p>`, not `dt_span`. Stop out level is still a bare price.
+
+**Contract details still use Money (`-20.00 USD`), not `$`.** `readStopOut()` therefore stores the numeric amount (`20.00`) and closed mobile Order Details "Stop out level" is asserted with `toContainText` against that number.
+
+### Stake chips are `$N` — desktop Quick picks auto-commit
+
+Preset chips use `aria-label="Select value $20"` (not `"Select value 20.00 USD"`). Desktop (`stake-desktop.tsx`): **Quick picks** / **Custom** tabs. Tapping a chip commits and closes the popover — Quick picks has no Save. Custom shows `dt_stake_input_desktop` and footer Save (`.stake-input-desktop__save-button`). Mobile: chips only draft; header Save commits, and stays disabled while the draft equals the committed stake — dismiss an unchanged reopen with Close (`dt-actionsheet-header-close-action`).
 
 ### Purchase button does not disable on insufficient balance
 

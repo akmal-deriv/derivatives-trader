@@ -415,13 +415,18 @@ export class TradeParametersPage extends TradeBasePage {
     }
 
     /**
-     * Preset chip in the stake popover — aria-label pattern: "Select value X USD".
-     * Source: value-chips.tsx inside stake-desktop.tsx / stake-mobile.tsx
+     * Preset chip in the stake popover / mobile sheet.
+     * aria-label is symbol-prefixed (`Select value $20`) via `formatValue` in stake-desktop.tsx /
+     * stake-input.tsx — not `"Select value 20.00 USD"`. Whole-number amounts (`20.00`) match the
+     * integer chip (`$20`); non-preset amounts (e.g. `10.50`) will not find a chip.
      *
-     * @param amount - Amount as a number string (e.g. '10' for the "10 USD" chip)
+     * Desktop: tapping a chip commits and closes the popover (`handleChipSelectAndClose`).
+     * Mobile: tapping a chip only drafts; header Save still has to commit.
      */
     stakeChip(amount: string): Locator {
-        return this.page.getByRole('button', { name: `Select value ${amount} USD` });
+        const numeric = parseFloat(amount);
+        const chipAmount = Number.isInteger(numeric) ? String(numeric) : amount;
+        return this.page.getByRole('button', { name: `Select value $${chipAmount}` });
     }
 
     /**
@@ -475,20 +480,24 @@ export class TradeParametersPage extends TradeBasePage {
     }
 
     /**
-     * Manual input toggle button (second item in the segmented control) inside the stake popover —
-     * desktop only. Switches the popover from the preset-chips view to the text-input view.
-     * Mobile's action sheet (stake-input.tsx) renders the TextField and preset chips together in one
-     * view with no toggle, so this control doesn't exist there — `setStake()` skips it on mobile.
-     * Source: `.stake-popover` wraps `TabSelector` → `SegmentedControlSingleChoice`.
+     * Desktop Stake popover "Custom" tab — second item in Quick picks / Custom.
+     * Source: tab-selector.tsx inside `.stake-popover`. Switches from chips to `StakeInputDesktop`.
+     * Mobile has chips and the text field on one sheet, so `setStake()` skips this.
      */
     get stakeManualInputToggle(): Locator {
-        return this.page.locator('.stake-popover .segmented-control-single .item:nth-child(2)');
+        return this.page.locator('.stake-popover').getByRole('button', { name: 'Custom' });
+    }
+
+    /**
+     * Desktop Stake popover root (`.stake-popover`). Chip select auto-closes it.
+     */
+    get stakePopover(): Locator {
+        return this.page.locator('.stake-popover');
     }
 
     /**
      * Stake amount input inside the stake popover/action sheet.
-     * - Desktop: dt_stake_input_desktop (stake-input-desktop.tsx) — visible only after switching to
-     *   manual input mode via stakeManualInputToggle.
+     * - Desktop: dt_stake_input_desktop (stake-input-desktop.tsx) — visible only on the Custom tab.
      * - Mobile: dt_stake_input (stake-input.tsx) — always visible alongside the preset chips.
      */
     get stakePopoverInput(): Locator {
@@ -498,13 +507,24 @@ export class TradeParametersPage extends TradeBasePage {
     }
 
     /**
-     * Save button inside the stake popover/action sheet — closes the popover and commits the value.
-     * Both desktop (stake-input-desktop.tsx) and mobile (stake-input.tsx) render a "Save" button.
+     * Save button inside the stake popover/action sheet — commits a changed draft.
+     * - Mobile: header Save (`dt-actionsheet-header-save-action`). Stays disabled while the draft
+     *   equals the committed stake; use `stakeCloseButton` to dismiss a no-op reopen.
+     * - Desktop: footer Save on the Custom tab only (`.stake-input-desktop__save-button`). Quick
+     *   picks has no Save — chips commit and close the popover.
      */
     get stakeSaveButton(): Locator {
         return this.isMobile
             ? this.actionSheetSaveButton(this.stakeContainer)
-            : this.page.getByRole('button', { name: 'Save' });
+            : this.stakePopover.locator('.stake-input-desktop__save-button');
+    }
+
+    /**
+     * Mobile Stake sheet Close (X) — `dt-actionsheet-header-close-action`. Discards an unchanged
+     * draft; does not require Save to be enabled.
+     */
+    get stakeCloseButton(): Locator {
+        return this.actionSheetCloseButton(this.stakeContainer);
     }
 
     /**
@@ -569,11 +589,12 @@ export class TradeParametersPage extends TradeBasePage {
 
     /**
      * Payout value on the purchase button — present only for trade types that have a payout (e.g. Rise/Fall).
-     * Source: purchase-button.tsx data-testid="dt_purchase_button_wrapper" > dt_span
-     * Text format: "19.28 USD"
+     * The wrapper holds two direct `<span>` children: the basis label then the amount.
+     * Source: purchase-button-content.tsx — `formatAmountWithSymbol` renders a plain string (no `dt_span`).
+     * Text format: "$19.28"
      */
     get purchaseButtonPayout(): Locator {
-        return this.page.getByTestId('dt_purchase_button_wrapper').getByTestId('dt_span');
+        return this.page.getByTestId('dt_purchase_button_wrapper').locator('> span').last();
     }
 
     // ============================================
@@ -877,6 +898,13 @@ export class TradeParametersPage extends TradeBasePage {
     }
 
     /**
+     * Quill ActionSheet.Header Close — `dt-actionsheet-header-close-action` (scoped to the open sheet).
+     */
+    protected actionSheetCloseButton(sheet: Locator): Locator {
+        return sheet.getByTestId('dt-actionsheet-header-close-action');
+    }
+
+    /**
      * Tap header Save on an open mobile ActionSheet. Call only after the draft value has changed —
      * Save stays disabled while it matches the committed value (duration.tsx, strike.tsx, etc.).
      */
@@ -954,8 +982,9 @@ export class TradeParametersPage extends TradeBasePage {
 
     /**
      * Set the stake amount.
-     * Opens the stake popover, clears the existing value, types the new amount,
-     * clicks Save to commit and close, then verifies the trigger reflects the value.
+     * Desktop Quick picks: a matching chip commits immediately and closes the popover.
+     * Desktop Custom / mobile: type the amount and click Save. Mobile header Save stays disabled
+     * until the draft differs from the committed value.
      *
      * @param amount - The stake amount as a string (e.g. '10.00')
      *
@@ -977,10 +1006,13 @@ export class TradeParametersPage extends TradeBasePage {
                 ).toBeEnabled({ timeout: 10_000 });
                 await this.stakeSaveButton.click();
                 await expect(this.stakeContainer, 'Stake action sheet should dismiss after saving').not.toBeVisible();
+            } else {
+                await expect(this.stakePopover, 'Stake popover should close after picking a chip').not.toBeVisible();
             }
         } else {
             if (!this.isMobile) {
                 await this.stakeManualInputToggle.click();
+                await expect(this.stakePopoverInput, 'Custom stake input should be visible').toBeVisible();
             }
             await expect(async () => {
                 await this.stakePopoverInput.click();
@@ -996,6 +1028,11 @@ export class TradeParametersPage extends TradeBasePage {
             await this.stakeSaveButton.click();
             if (this.isMobile) {
                 await expect(this.stakeContainer, 'Stake action sheet should dismiss after saving').not.toBeVisible();
+            } else {
+                await expect(
+                    this.stakePopover,
+                    'Stake popover should close after saving Custom stake'
+                ).not.toBeVisible();
             }
         }
 
@@ -1149,7 +1186,8 @@ export class TradeParametersPage extends TradeBasePage {
             this.purchaseButtonPayout,
             'Payout value should appear on buy button before clicking'
         ).toBeVisible();
-        const payoutText = (await this.purchaseButtonPayout.innerText()).replace(/\s+[A-Z]+$/, '').trim();
+        // The amount is rendered as "$19.28" (symbol-prefixed) — return just the numeric part
+        const payoutText = (await this.purchaseButtonPayout.innerText()).replace(/[^\d.,]/g, '').trim();
         await this.purchaseButton.click();
         return payoutText;
     }
