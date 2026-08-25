@@ -45,6 +45,7 @@ jobs:
       run_counters: ${{ inputs.run_counters || '' }}
       create_pr: ${{ github.event_name == 'schedule' || inputs.create_pr }}
       testdino_project_id: ${{ vars.TESTDINO_PROJECT_ID }}
+      testdino_org_id: ${{ vars.TESTDINO_ORG_ID }}
       # Leave empty to skip branch filtering — this repo's default branch is
       # "master", not "main", and hardcoding a branch name here previously
       # caused every TestDino run to be filtered out (0 candidates found).
