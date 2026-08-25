@@ -127,7 +127,8 @@ export class TradeParametersPage extends TradeBasePage {
     }
 
     /**
-     * Take profit field trigger (readOnly TextField, value "-" or "20.00 USD").
+     * Take profit field trigger (readOnly TextField, value "-" or "$20.00" — the amount is
+     * symbol-prefixed via `getCurrencySymbol`).
      * Shared by trade types that use the standalone TakeProfit widget (Accumulators, Turbos).
      * Source: take-profit.tsx / take-profit-desktop.tsx — label "Take profit".
      */
@@ -136,11 +137,25 @@ export class TradeParametersPage extends TradeBasePage {
     }
 
     /**
-     * Overlay covering the disabled take-profit input; clicking it enables take profit.
-     * Present on both viewports while TP is off. Source: dt_take_profit_overlay.
+     * Overlay covering the disabled take-profit input; clicking it flips the toggle on.
+     * Rendered on both viewports only while TP is off, then unmounts. Source: dt_take_profit_overlay.
      */
     get takeProfitOverlay(): Locator {
         return this.page.getByTestId('dt_take_profit_overlay');
+    }
+
+    /**
+     * Take profit on/off toggle — the authoritative state signal (`aria-pressed`), since the overlay
+     * unmounts and the input's `disabled` flag both merely follow it.
+     * Both viewports render quill's `ToggleSwitch`, which emits `<button class="toggle-switch">` and
+     * drops any `data-testid` passed to it — so `dt_take_profit_toggle` (set in
+     * take-profit-input-desktop.tsx) never reaches the DOM. Scope by container class instead:
+     * mobile `.take-profit__content` (the sheet), desktop `.take-profit-input-desktop__header`.
+     */
+    get takeProfitToggle(): Locator {
+        return this.isMobile
+            ? this.takeProfitSheet.locator('.take-profit__content button.toggle-switch')
+            : this.page.locator('.take-profit-input-desktop__header button.toggle-switch');
     }
 
     /**
@@ -153,15 +168,18 @@ export class TradeParametersPage extends TradeBasePage {
     }
 
     /**
-     * Mobile take-profit action sheet (while open).
+     * Mobile take-profit action sheet (while open) — `take-profit.tsx` renders the shared
+     * `TakeProfitAndStopLossInput`, so it is identified by that input's testid.
      */
     get takeProfitSheet(): Locator {
         return this.page.locator('.quill-action-sheet--root').filter({ has: this.page.getByTestId('dt_tp_input') });
     }
 
     /**
-     * Save button in the take-profit popover/action-sheet — viewport-aware.
-     * Desktop: `.take-profit-input-desktop__save-button`. Mobile: ActionSheet.Header Save.
+     * Save in the take-profit popover/action-sheet — viewport-aware.
+     * Mobile: ActionSheet.Header Save (`dt-actionsheet-header-save-action`); there is no footer button,
+     * and it stays disabled until the draft is dirty and the proposal has validated it.
+     * Desktop: footer `.take-profit-input-desktop__save-button`.
      */
     get takeProfitSaveButton(): Locator {
         return this.isMobile
@@ -322,7 +340,7 @@ export class TradeParametersPage extends TradeBasePage {
      * @param formattedValue - The formatted chip label as rendered (e.g. '5 ticks', '15 sec', '1 min')
      */
     durationChip(formattedValue: string): Locator {
-        return this.page.getByRole('button', { name: `Select value ${formattedValue}` });
+        return this.page.getByRole('button', { name: `Select value ${formattedValue}`, exact: true });
     }
 
     /**
@@ -422,11 +440,14 @@ export class TradeParametersPage extends TradeBasePage {
      *
      * Desktop: tapping a chip commits and closes the popover (`handleChipSelectAndClose`).
      * Mobile: tapping a chip only drafts; header Save still has to commit.
+     *
+     * `exact` is required — accessible-name matching is substring-based, so "Select value $10" would
+     * also match the "$100" chip.
      */
     stakeChip(amount: string): Locator {
         const numeric = parseFloat(amount);
         const chipAmount = Number.isInteger(numeric) ? String(numeric) : amount;
-        return this.page.getByRole('button', { name: `Select value $${chipAmount}` });
+        return this.page.getByRole('button', { name: `Select value $${chipAmount}`, exact: true });
     }
 
     /**
@@ -594,7 +615,7 @@ export class TradeParametersPage extends TradeBasePage {
      * Text format: "$19.28"
      */
     get purchaseButtonPayout(): Locator {
-        return this.page.getByTestId('dt_purchase_button_wrapper').locator('> span').last();
+        return this.purchaseButton.locator('> span').last();
     }
 
     // ============================================
@@ -1142,52 +1163,73 @@ export class TradeParametersPage extends TradeBasePage {
 
     /**
      * Enable Take profit and set its amount, for trade types using the standalone TakeProfit widget
-     * (Accumulators, Turbos). Opens the Take profit field, enables it via the overlay, fills the amount,
-     * saves, and asserts the trigger field reflects the amount (e.g. "20.00 USD").
+     * (Accumulators, Turbos). Opens the Take profit field, toggles TP on via the overlay, fills the
+     * amount, saves, and asserts the trigger field reflects it (e.g. "$20.00").
      *
-     * The Save handler is a no-op until the backend validates the amount, so an immediate click leaves
-     * the sheet open. This retries Save until it commits, re-filling the input each attempt in case the
-     * action sheet re-rendered (e.g. after a validation error) and reset the field between retries.
+     * While TP is off the amount input is `disabled` behind a full-cover overlay button
+     * (`take-profit-and-stop-loss-input.tsx` / `take-profit-input-desktop.tsx`), and Save is gated on
+     * the proposal validating the draft — mobile additionally keeps it disabled until the draft differs
+     * from the committed value. Each of those states is therefore awaited through an assertion rather
+     * than probed with a one-shot `isVisible()`, which raced the action sheet's mount and left TP off.
      *
      * @param amount - Take profit amount as a string (e.g. '20.00')
      */
     async setTakeProfit(amount: string): Promise<void> {
         await this.takeProfitField.click();
-        if (await this.takeProfitOverlay.isVisible().catch(() => false)) {
-            await this.takeProfitOverlay.click();
+        if (this.isMobile) {
+            await expect(this.takeProfitSheet, 'Take profit action sheet should open').toBeVisible();
         }
-        const expectedValue = new RegExp(amount.replace(/\./g, '\\.'));
+
+        // The overlay unmounts only once the toggle commits, so retry the tap until it reads as on.
         await expect(async () => {
-            if (await this.takeProfitInput.isVisible().catch(() => false)) {
-                await this.takeProfitInput.fill(amount).catch(() => {});
+            if (await this.takeProfitOverlay.isVisible()) {
+                await this.takeProfitOverlay.click();
             }
-            if (await this.takeProfitSaveButton.isVisible().catch(() => false)) {
-                await this.takeProfitSaveButton.click().catch(() => {});
-            }
-            await expect(this.takeProfitField, `Take profit field should show '${amount}' after saving`).toHaveValue(
-                expectedValue,
+            await expect(this.takeProfitToggle, 'Take profit toggle should be on').toHaveAttribute(
+                'aria-pressed',
+                'true',
                 { timeout: 2_000 }
             );
-        }).toPass({ timeout: 20_000 });
+        }).toPass({ timeout: 15_000 });
+        await expect(this.takeProfitInput, 'Take profit input should be editable once the toggle is on').toBeEnabled();
+
+        await this.takeProfitInput.fill(amount);
+        await expect(this.takeProfitInput, `Take profit input should show '${amount}'`).toHaveValue(amount);
+        await expect(
+            this.takeProfitSaveButton,
+            'Take profit Save should enable once the proposal validates the drafted amount'
+        ).toBeEnabled({ timeout: 15_000 });
+        await this.takeProfitSaveButton.click();
+
+        await expect(this.takeProfitField, `Take profit field should show '${amount}' after saving`).toHaveValue(
+            new RegExp(amount.replace(/\./g, '\\.'))
+        );
     }
 
     /**
-     * Click the purchase / buy button to submit the trade.
-     * Waits for the button to be enabled before clicking.
+     * Click the purchase / buy button to submit the trade, returning the payout it advertised.
+     *
+     * The returned value is asserted as-is by every downstream surface — the Reports open-positions
+     * row and the open/closed contract details — so it must be the fully priced amount, never a
+     * partial render. The amount slot stays visible while its Skeleton is in flight, and renders "-"
+     * on a proposal error, so the priced format (`$19.28`) is asserted rather than mere visibility;
+     * `toHaveText` retries until the proposal lands. The symbol is then stripped so the numeric string
+     * matches how Reports and the contract card render it.
+     *
+     * @returns The payout as a bare number string, e.g. "19.28"
      *
      * @example
      * ```typescript
-     * await tradeParametersPage.clickBuy();
+     * const payout = await tradeParametersPage.clickBuy();
      * ```
      */
     async clickBuy(): Promise<string> {
         await expect(this.purchaseButton, 'Purchase button should be enabled before buying').toBeEnabled();
         await expect(
             this.purchaseButtonPayout,
-            'Payout value should appear on buy button before clicking'
-        ).toBeVisible();
-        // The amount is rendered as "$19.28" (symbol-prefixed) — return just the numeric part
-        const payoutText = (await this.purchaseButtonPayout.innerText()).replace(/[^\d.,]/g, '').trim();
+            'Buy button should show a priced payout (e.g. "$19.28") before clicking'
+        ).toHaveText(/^\D*[\d,]+\.\d+$/);
+        const payoutText = (await this.purchaseButtonPayout.innerText()).replace(/,/g, '').replace(/[^\d.]/g, '');
         await this.purchaseButton.click();
         return payoutText;
     }

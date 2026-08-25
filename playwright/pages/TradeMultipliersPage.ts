@@ -65,7 +65,7 @@ export class TradeMultipliersPage extends TradeParametersPage {
      * rendered symbol-prefixed ("$24.93") by `formatAmountWithSymbol` — no `dt_span`.
      */
     get multipliersTotalCost(): Locator {
-        return this.page.getByTestId('dt_purchase_button_wrapper').locator('> span').last();
+        return this.purchaseButton.locator('> span').last();
     }
 
     /**
@@ -292,7 +292,7 @@ export class TradeMultipliersPage extends TradeParametersPage {
     dcChipDesktop(duration: '5 min' | '10 min' | '15 min' | '30 min' | '60 min'): Locator {
         return this.page
             .locator('.deal-cancellation-desktop__chips')
-            .getByRole('button', { name: `Select value ${duration}` });
+            .getByRole('button', { name: `Select value ${duration}`, exact: true });
     }
 
     /**
