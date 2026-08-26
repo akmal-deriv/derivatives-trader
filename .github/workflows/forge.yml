@@ -13,14 +13,40 @@ name: Forge — issue to PR
 # Verify commands live in spec-to-pr.config.json (not auto-detected: the default
 # `npm test` runs stylelint + eslint + jest across every workspace, which does
 # not fit the token lifetime).
+#
+# Two ways in, one code path:
+#   • `forge` label on an issue        — the human flow.
+#   • workflow_dispatch                — the Slack flow (deriv-com/forge-agent).
+#     The bot passes the Slack thread so the SHIP/report step can answer there
+#     directly. That handoff is deliberate: a run takes 30-55 minutes and the bot
+#     may restart in that window, so it must not be the thing holding the thread.
 
 on:
   issues:
     types: [labeled]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: "Issue number to work on"
+        required: true
+        type: string
+      slack_channel:
+        description: "Slack channel id to report back to (optional)"
+        required: false
+        type: string
+      slack_thread_ts:
+        description: "Slack thread ts to reply into (optional)"
+        required: false
+        type: string
+      requested_by:
+        description: "Slack user id that asked for this, for the audit trail"
+        required: false
+        type: string
 
 jobs:
   forge:
-    if: github.event.label.name == 'forge'
+    # Label path fires only for `forge`; the dispatch path is always intentional.
+    if: github.event_name == 'workflow_dispatch' || github.event.label.name == 'forge'
 
     # The LiteLLM gateway sits behind a Cloudflare WAF that challenges generic
     # GitHub-hosted IPs — on ubuntu-latest the agent fails with
@@ -40,12 +66,22 @@ jobs:
     timeout-minutes: 55
 
     concurrency:
-      group: forge-${{ github.event.issue.number }}
+      group: forge-${{ github.event.inputs.issue_number || github.event.issue.number }}
       cancel-in-progress: false
 
     permissions:
       contents: read
       issues: write
+
+    # Resolved once so every step below is trigger-agnostic. The issue URL is
+    # built from the number rather than read from the event, because
+    # `github.event.issue` does not exist on a workflow_dispatch.
+    env:
+      ISSUE_NUMBER: ${{ github.event.inputs.issue_number || github.event.issue.number }}
+      ISSUE_URL: ${{ github.server_url }}/${{ github.repository }}/issues/${{ github.event.inputs.issue_number || github.event.issue.number }}
+      SLACK_CHANNEL: ${{ github.event.inputs.slack_channel }}
+      SLACK_THREAD_TS: ${{ github.event.inputs.slack_thread_ts }}
+      REQUESTED_BY: ${{ github.event.inputs.requested_by }}
 
     steps:
       # ---- token --------------------------------------------------------
@@ -61,20 +97,15 @@ jobs:
           permission-issues: write
           permission-pull-requests: write
 
-      # ---- authorize ----------------------------------------------------
-      - name: Verify the labeller is a collaborator
-        env:
-          GH_TOKEN: ${{ steps.repo-token.outputs.token }}
-          ACTOR: ${{ github.event.sender.login }}
-        run: |
-          set -euo pipefail
-          if ! gh api "repos/${GITHUB_REPOSITORY}/collaborators/${ACTOR}" --silent 2>/dev/null; then
-            echo "::error::${ACTOR} is not a collaborator on ${GITHUB_REPOSITORY} — refusing to run."
-            exit 1
-          fi
-          echo "Authorized: ${ACTOR}"
+      # No authorization gate, by design. Forge only opens a PR — it cannot merge
+      # or edit anything, the repo is private (so anyone who can see the issue
+      # already has repo access), and every result goes through normal review and
+      # CI. A collaborator check would also reject the Slack path outright, since
+      # `sender` there is the Forge App, not the person who asked.
+      #
+      # The real exposure is spend (LLM tokens + CI minutes). If that ever bites,
+      # a rate limit is the right lever, not an allowlist.
 
-      # Minted only after authorization, so an unauthorized label costs nothing.
       - name: Mint token to read the spec-to-pr engine
         id: engine-token
         uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1.12.0
@@ -90,15 +121,22 @@ jobs:
         id: claim
         env:
           GH_TOKEN: ${{ steps.repo-token.outputs.token }}
-          ISSUE: ${{ github.event.issue.number }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           set -euo pipefail
-          # Consume the trigger label so re-applying it re-runs Forge.
-          gh issue edit "$ISSUE" --repo "$GITHUB_REPOSITORY" \
+          # Swap the trigger label for the in-flight one. On the dispatch path
+          # `forge` is usually not applied at all — removing a label that exists
+          # in the repo but not on the issue is a no-op, so one command covers
+          # both entry points, and the board still shows `forge:running` either way.
+          gh issue edit "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" \
             --remove-label "forge" --add-label "forge:running"
-          URL=$(gh issue comment "$ISSUE" --repo "$GITHUB_REPOSITORY" \
-            --body "🔨 **Forge** picked this up — [watch the run]($RUN_URL).")
+
+          VIA=""
+          if [ "${GITHUB_EVENT_NAME:-}" = "workflow_dispatch" ]; then
+            VIA=" _(requested from Slack)_"
+          fi
+          URL=$(gh issue comment "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" \
+            --body "🔨 **Forge** picked this up — [watch the run]($RUN_URL).$VIA")
           # .../issues/12#issuecomment-345 -> 345, so we can edit this comment later.
           echo "comment_id=${URL##*issuecomment-}" >> "$GITHUB_OUTPUT"
 
@@ -265,7 +303,7 @@ jobs:
           ANTHROPIC_AUTH_TOKEN: ${{ secrets.FORGE_API_KEY }}
           GH_TOKEN: ${{ steps.repo-token.outputs.token }}
           GITHUB_TOKEN: ${{ steps.repo-token.outputs.token }}
-          ISSUE_URL: ${{ github.event.issue.html_url }}
+          # ISSUE_URL comes from the job env so both triggers resolve identically.
         run: |
           set -o pipefail
           git config --global user.name  "forge[bot]"
@@ -288,11 +326,17 @@ jobs:
         if: always()
         env:
           GH_TOKEN: ${{ steps.repo-token.outputs.token }}
-          ISSUE: ${{ github.event.issue.number }}
           COMMENT_ID: ${{ steps.claim.outputs.comment_id }}
           PR_URL: ${{ steps.forge.outputs.pr_url }}
           OUTCOME: ${{ steps.forge.outcome }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          # Forge's Slack bot token — the same `xoxb-` token deriv-com/forge-agent
+          # uses, so the "PR opened" message comes from the same bot that said
+          # "on it" and the thread reads as one conversation.
+          #
+          # Only needed on the Slack path. Absent ⇒ the Slack post is skipped and
+          # the label flow behaves exactly as before.
+          SLACK_BOT_TOKEN: ${{ secrets.FORGE_SLACK_BOT_TOKEN }}
         run: |
           set -uo pipefail
 
@@ -317,12 +361,59 @@ jobs:
           # Best-effort: never fail the job on reporting.
           if [ -n "${COMMENT_ID:-}" ]; then
             gh api --method PATCH "repos/${GITHUB_REPOSITORY}/issues/comments/${COMMENT_ID}" \
-              -f body="$BODY" --silent || gh issue comment "$ISSUE" --repo "$GITHUB_REPOSITORY" --body "$BODY" || true
+              -f body="$BODY" --silent || gh issue comment "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --body "$BODY" || true
           else
-            gh issue comment "$ISSUE" --repo "$GITHUB_REPOSITORY" --body "$BODY" || true
+            gh issue comment "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --body "$BODY" || true
           fi
 
-          # `forge` is also removed here in case we failed before the claim step
-          # (e.g. authorization) — otherwise re-labelling can't retrigger.
-          gh issue edit "$ISSUE" --repo "$GITHUB_REPOSITORY" \
+          # `forge` is also removed here in case we failed before the claim step —
+          # otherwise re-labelling can't retrigger.
+          gh issue edit "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" \
             --remove-label "forge" --remove-label "forge:running" --add-label "$LABEL" || true
+
+          # ---- answer the Slack thread ------------------------------------
+          # Only the Slack path supplies these. The workflow posts the OUTCOME
+          # only — forge-agent already posted "on it" with the run link, so a
+          # second start message would just be noise.
+          #
+          # The log tail deliberately does NOT go to Slack: it can be 3 KB of
+          # agent output, and the GitHub comment above already carries it behind
+          # a <details> fold in a private repo. Slack gets a link instead.
+          if [ -z "${SLACK_CHANNEL:-}" ] || [ -z "${SLACK_THREAD_TS:-}" ]; then
+            echo "No Slack thread on this run — skipping the Slack post."
+            exit 0
+          fi
+          if [ -z "${SLACK_BOT_TOKEN:-}" ]; then
+            echo "::warning::Slack thread was supplied but SLACK_BOT_TOKEN is not set — the requester will get no reply in Slack."
+            exit 0
+          fi
+
+          # Notify the person who asked, when we know who that was.
+          WHO=""
+          [ -n "${REQUESTED_BY:-}" ] && WHO="<@${REQUESTED_BY}> "
+          ISSUE_LINK="<${ISSUE_URL}|#${ISSUE_NUMBER}>"
+
+          if [ "$OUTCOME" = "success" ] && [ -n "${PR_URL:-}" ]; then
+            SLACK_TEXT="${WHO}✅ *Forge opened a PR* for ${ISSUE_LINK} — <${PR_URL}|review it here>. The design doc and plan are committed in the PR."
+          else
+            SLACK_TEXT="${WHO}❌ *Forge failed* on ${ISSUE_LINK} — <${RUN_URL}|see the run log>. The error is also on the issue. Ask me to retry when you're ready."
+          fi
+
+          # jq builds the JSON so text containing quotes/newlines can't break it.
+          RESPONSE=$(jq -n \
+            --arg channel "$SLACK_CHANNEL" \
+            --arg thread_ts "$SLACK_THREAD_TS" \
+            --arg text "$SLACK_TEXT" \
+            '{channel: $channel, thread_ts: $thread_ts, text: $text}' \
+            | curl -sS -X POST https://slack.com/api/chat.postMessage \
+                -H "Authorization: Bearer ${SLACK_BOT_TOKEN}" \
+                -H 'Content-type: application/json; charset=utf-8' \
+                --data @- || echo '{"ok":false,"error":"curl_failed"}')
+
+          # Slack answers 200 with {"ok":false,...} on failure, so the HTTP status
+          # alone proves nothing — check the body.
+          if [ "$(printf '%s' "$RESPONSE" | jq -r '.ok')" = "true" ]; then
+            echo "Posted the outcome to Slack."
+          else
+            echo "::warning::Slack post failed: $(printf '%s' "$RESPONSE" | jq -r '.error // "unknown"')"
+          fi
