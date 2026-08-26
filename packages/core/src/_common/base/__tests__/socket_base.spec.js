@@ -191,20 +191,74 @@ describe('BinarySocketBase pending-request settlement', () => {
         expect(ws_event).toHaveBeenCalledWith('close');
     });
 
-    it('flags a disconnect only for the current connection, never for a replaced instance`s late close', () => {
+    it('flags the disconnect once when a connection is replaced, not again on its late close', () => {
         const on_disconnect = jest.fn();
         BinarySocket.setOnDisconnect(on_disconnect);
 
         sockets[0].readyState = 3;
         BinarySocket.openNewConnection();
 
-        // Old instance's late close: no disconnect flag (it would flip is_socket_opened false
-        // while the new connection is healthy, pausing e.g. the chart feed).
-        api_instances[0].callbacks.close();
-        expect(on_disconnect).not.toHaveBeenCalled();
+        // The replacement itself is the disconnect: the outgoing instance's close event is
+        // identity-gated out, so reporting has to happen here or not at all.
+        expect(on_disconnect).toHaveBeenCalledTimes(1);
 
-        // Current connection's genuine close: disconnect flagged.
+        // Old instance's late close adds nothing — it must not re-flag under a healthy successor.
+        api_instances[0].callbacks.close();
+        expect(on_disconnect).toHaveBeenCalledTimes(1);
+
+        // The new connection's own genuine close is its own disconnect.
         api_instances[1].callbacks.close();
+        expect(on_disconnect).toHaveBeenCalledTimes(2);
+    });
+
+    it('reports a disconnect on an account switch so the chart rebuilds its tick streams', () => {
+        // Regression: SmartCharts re-issues ticks_history only on an isConnectionOpened
+        // false -> true transition (common_store.is_socket_opened, driven by onDisconnect/onOpen).
+        // switchAccount() calls closeAndOpenNewConnection(), which replaces the connection
+        // synchronously — the outgoing socket's close event dispatches a task later, by which
+        // point the identity gate discards it. Without a disconnect at the swap, is_socket_opened
+        // never dips, the chart keeps a stream on the dead connection and freezes.
+        const on_disconnect = jest.fn();
+        BinarySocket.setOnDisconnect(on_disconnect);
+
+        sockets[0].readyState = 1; // OPEN — a live connection, as during a real account switch
+        BinarySocket.closeAndOpenNewConnection();
+
+        expect(api_instances).toHaveLength(2);
+        expect(on_disconnect).toHaveBeenCalledTimes(1);
+
+        // The old socket's close event arrives after the swap and changes nothing.
+        api_instances[0].callbacks.close();
+        expect(on_disconnect).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not report a disconnect for the initial connection (no predecessor)', () => {
+        jest.resetModules();
+        sockets = [];
+        api_instances.length = 0;
+
+        const Fresh = require('../socket_base');
+        const on_disconnect = jest.fn();
+        Fresh.init({
+            options: { wsEvent: jest.fn(), isOnline: () => true, onDisconnect: on_disconnect },
+            client: {},
+        });
+        Fresh.openNewConnection();
+
+        expect(on_disconnect).not.toHaveBeenCalled();
+    });
+
+    it('does not double-report when a closed connection that already reported is replaced', () => {
+        const on_disconnect = jest.fn();
+        BinarySocket.setOnDisconnect(on_disconnect);
+
+        // Genuine close first: the current connection reports its own disconnect.
+        api_instances[0].callbacks.close();
+        expect(on_disconnect).toHaveBeenCalledTimes(1);
+
+        // The network monitor then rebuilds it — already reported, so no second notification.
+        sockets[0].readyState = 3;
+        BinarySocket.openNewConnection();
         expect(on_disconnect).toHaveBeenCalledTimes(1);
     });
 });

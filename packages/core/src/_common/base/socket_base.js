@@ -54,6 +54,16 @@ const BinarySocketBase = (() => {
         });
     };
 
+    // Report the loss of the current connection exactly once. `is_disconnect_called` is reset per
+    // connection in openNewConnection, so a socket that already reported its own close cannot
+    // report again when it is later replaced.
+    const notifyDisconnect = () => {
+        if (typeof config.onDisconnect === 'function' && !is_disconnect_called) {
+            config.onDisconnect();
+            is_disconnect_called = true;
+        }
+    };
+
     // Gate for actions that require an authorized session. Auth is established at the WS
     // handshake (session cookies in the URL); the first balance response merely CONFIRMS it by
     // flipping client_store.is_authorize. Waiting on that observable — instead of an
@@ -160,6 +170,19 @@ const BinarySocketBase = (() => {
         if (!hasReadyState(2)) config.wsEvent('init');
 
         if (isClose()) {
+            // The outgoing connection is being replaced. Its own close event is identity-gated out
+            // below — correctly, a replaced instance must never touch its successor — but that gate
+            // also swallows the disconnect signal whenever the event has not been delivered yet:
+            // an account switch (close() + openNewConnection() run synchronously, the close event
+            // dispatches a task later), a CLOSING socket rebuilt by the network monitor, or a
+            // CLOSED socket whose close is still queued after a tab freeze.
+            //
+            // Consumers keyed on connect/disconnect transitions still need to see it. SmartCharts
+            // rebuilds its tick streams only on isConnectionOpened false -> true (driven by
+            // common_store.is_socket_opened), so without this the chart stays bound to the dead
+            // connection's stream and never re-requests ticks_history.
+            if (deriv_api) notifyDisconnect();
+
             is_disconnect_called = false;
             // Reject everything still pending on the previous connection before the new one
             // takes over, and arm the death promise for the connection created below.
@@ -273,10 +296,7 @@ const BinarySocketBase = (() => {
                 stopKeepAlive();
                 config.wsEvent('close');
 
-                if (typeof config.onDisconnect === 'function' && !is_disconnect_called) {
-                    config.onDisconnect();
-                    is_disconnect_called = true;
-                }
+                notifyDisconnect();
             });
         }
     };
