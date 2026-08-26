@@ -2,6 +2,7 @@ import React from 'react';
 import { observer } from 'mobx-react-lite';
 
 import { formatMoney, getCurrencyDisplayCode, getDecimalPlaces } from '@deriv/shared';
+import { useStore } from '@deriv/stores';
 import { ActionSheet, TextFieldWithSteppers } from '@deriv-com/quill-ui';
 import { Localize, useTranslations } from '@deriv-com/translations';
 
@@ -149,6 +150,9 @@ const calculateMaxLength = (amount: number | string, decimals: number): number =
 
 const StakeInput = observer(({ onClose, is_open }: TStakeInput) => {
     const { localize } = useTranslations();
+    const {
+        client: { balance, is_logged_in },
+    } = useStore();
     const trade_store = useTraderStore();
     const {
         contract_type,
@@ -167,6 +171,14 @@ const StakeInput = observer(({ onClose, is_open }: TStakeInput) => {
     const decimals = getDecimalPlaces(currency);
     const [state, dispatch] = React.useReducer(reducer, null, () => createInitialState(trade_store, decimals));
     const { proposal_request_values, stake_error, fe_stake_error, details } = state;
+
+    // Derived at render so it covers a pre-filled over-balance stake and live balance updates
+    const insufficient_balance_error =
+        is_logged_in &&
+        Number.isFinite(Number(balance)) &&
+        Number(proposal_request_values.amount || 0) > Number(balance)
+            ? localize('Your stake exceeds your available balance.')
+            : '';
 
     const contract_types = React.useMemo(
         () => getDisplayedContractTypes(trade_types, contract_type, trade_type_tab),
@@ -370,7 +382,8 @@ const StakeInput = observer(({ onClose, is_open }: TStakeInput) => {
             is_fetching_1 ||
             (should_send_multiple_proposals && is_fetching_2) ||
             (should_show_stake_error && stake_error) ||
-            fe_stake_error
+            fe_stake_error ||
+            insufficient_balance_error
         )
             return;
         if (proposal_request_values.amount === '') {
@@ -399,7 +412,12 @@ const StakeInput = observer(({ onClose, is_open }: TStakeInput) => {
                     inputMode='decimal'
                     id={input_id}
                     maxLength={state.max_length}
-                    message={fe_stake_error || (should_show_stake_error && stake_error) || getInputMessage()}
+                    message={
+                        fe_stake_error ||
+                        insufficient_balance_error ||
+                        (should_show_stake_error && stake_error) ||
+                        getInputMessage()
+                    }
                     minusDisabled={Number(proposal_request_values.amount) - 1 <= 0}
                     name='amount'
                     noStatusIcon
@@ -407,7 +425,11 @@ const StakeInput = observer(({ onClose, is_open }: TStakeInput) => {
                     onBeforeInput={onBeforeInputChange}
                     placeholder={localize('Amount')}
                     regex={/[^0-9.,]/g}
-                    status={fe_stake_error || (should_show_stake_error && stake_error) ? 'error' : 'neutral'}
+                    status={
+                        fe_stake_error || insufficient_balance_error || (should_show_stake_error && stake_error)
+                            ? 'error'
+                            : 'neutral'
+                    }
                     textAlignment='center'
                     unitLeft={getCurrencyDisplayCode(currency)}
                     value={proposal_request_values.amount}

@@ -190,6 +190,20 @@ describe('PositionsContent', () => {
         expect(default_mock_store.modules.trade.onPurchase).not.toBeCalled();
     });
 
+    it('should disable the buttons if there are trade parameter validation errors and proposal_info is empty', async () => {
+        default_mock_store.modules.trade.validation_errors = {
+            amount: ['Your stake exceeds your available balance.'],
+        };
+        default_mock_store.modules.trade.proposal_info = {};
+        mockPurchaseButton();
+
+        const purchase_buttons = screen.getAllByRole('button');
+        purchase_buttons.forEach(button => expect(button).toBeDisabled());
+
+        await userEvent.click(purchase_buttons[0]);
+        expect(default_mock_store.modules.trade.onPurchaseV2).not.toBeCalled();
+    });
+
     it('should call onPurchaseV2 function if user clicks on purchase button and it is not disabled', async () => {
         mockPurchaseButton();
         const purchase_button = screen.getAllByRole('button')[0];

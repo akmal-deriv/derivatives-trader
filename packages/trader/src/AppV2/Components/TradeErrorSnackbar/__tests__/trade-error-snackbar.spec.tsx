@@ -78,6 +78,51 @@ describe('TradeErrorSnackbar', () => {
         expect(mockAddSnackbar).toHaveBeenCalled();
     });
 
+    it('calls useSnackbar for a store validation error even when should_show_snackbar is false', () => {
+        // Rise/Fall has two subtypes and no tabs, and a store validation error empties proposal_info,
+        // so the per-subtype suppression gate is closed. The error still has to reach the user.
+        const insufficient_balance_error = 'Your stake exceeds your available balance.';
+        default_mock_store.modules.trade.contract_type = TRADE_TYPES.RISE_FALL;
+        default_mock_store.modules.trade.trade_type_tab = '';
+        default_mock_store.modules.trade.trade_types = {
+            [CONTRACT_TYPES.CALL]: 'Higher',
+            [CONTRACT_TYPES.PUT]: 'Lower',
+        };
+        default_mock_store.modules.trade.proposal_info = {};
+        default_mock_store.modules.trade.validation_errors.amount = [insufficient_balance_error];
+        default_mock_props = { error_fields: ['stake', 'amount'], should_show_snackbar: false };
+
+        render(mockTradeErrorSnackbar());
+
+        expect(mockAddSnackbar).toHaveBeenCalledWith(
+            expect.objectContaining({ message: insufficient_balance_error, status: 'fail' })
+        );
+    });
+
+    it('does not call useSnackbar for a subtype-scoped proposal error when should_show_snackbar is false', () => {
+        default_mock_store.modules.trade.contract_type = TRADE_TYPES.RISE_FALL;
+        default_mock_store.modules.trade.trade_type_tab = '';
+        default_mock_store.modules.trade.trade_types = {
+            [CONTRACT_TYPES.CALL]: 'Higher',
+            [CONTRACT_TYPES.PUT]: 'Lower',
+        };
+        default_mock_store.modules.trade.proposal_info = {
+            [CONTRACT_TYPES.CALL]: {
+                has_error: true,
+                has_error_details: false,
+                error_code: 'ContractBuyValidationError',
+                error_field: 'amount',
+                message: "Please enter a stake amount that's at least 0.35.",
+            },
+            [CONTRACT_TYPES.PUT]: { has_error: false, message: '', payout: 19.51 },
+        };
+        default_mock_props = { error_fields: ['stake', 'amount'], should_show_snackbar: false };
+
+        render(mockTradeErrorSnackbar());
+
+        expect(mockAddSnackbar).not.toHaveBeenCalled();
+    });
+
     it('does not call useSnackbar if error field in proposal does not matches the passed error_fields', () => {
         default_mock_store.modules.trade.proposal_info = {
             TURBOSLONG: {

@@ -1,8 +1,8 @@
-import { configure } from 'mobx';
+import { configure, observable, runInAction } from 'mobx';
 import moment from 'moment';
 
 import { ActiveSymbols } from '@deriv/api-types';
-import { TRADE_TYPES } from '@deriv/shared';
+import { initFormErrorMessages, TRADE_TYPES } from '@deriv/shared';
 import { mockStore } from '@deriv/stores';
 
 import { TRootStore } from 'Types';
@@ -771,6 +771,75 @@ describe('TradeStore', () => {
                 ] as ActiveSymbols;
                 expect(tradeStore.is_synthetics_available).toBe(false);
             });
+        });
+    });
+
+    describe('Stake vs Balance Validation', () => {
+        const insufficient_balance_message = 'Your stake exceeds your available balance.';
+
+        beforeAll(() => {
+            // The Validator resolves prebuild rules ('req', 'number', ...) only after this init runs
+            initFormErrorMessages({
+                address: () => '',
+                empty_address: () => '',
+                empty_barrier: () => '',
+                maxNumber: () => '',
+            } as unknown as Parameters<typeof initFormErrorMessages>[0]);
+        });
+        // BaseStore registers validation rules in a setTimeout(..., 0), so let that macrotask run first
+        const flushValidationRulesSetup = () => new Promise(resolve => setTimeout(resolve, 0));
+        const createStoreWithObservableClient = async (balance: string) => {
+            // The reaction under test tracks client.balance, so the mocked client must be observable
+            mockRootStore.client = observable({
+                ...mockRootStore.client,
+                is_logged_in: true,
+                balance,
+            }) as TRootStore['client'];
+            const store = new TradeStore({ root_store: mockRootStore });
+            await flushValidationRulesSetup();
+            return store;
+        };
+
+        it('should set amount validation error when stake exceeds balance and clear it when balance rises', async () => {
+            const store = await createStoreWithObservableClient('0.77');
+
+            store.amount = 4;
+            expect(store.validation_errors.amount).toEqual([insufficient_balance_message]);
+
+            runInAction(() => {
+                mockRootStore.client.balance = '100';
+            });
+            expect(store.validation_errors.amount).toEqual([]);
+        });
+
+        it('should set amount validation error when balance drops below an already-set stake', async () => {
+            const store = await createStoreWithObservableClient('100');
+
+            store.amount = 4;
+            expect(store.validation_errors.amount ?? []).toEqual([]);
+
+            runInAction(() => {
+                mockRootStore.client.balance = '0.77';
+            });
+            expect(store.validation_errors.amount).toEqual([insufficient_balance_message]);
+        });
+
+        it('should clear the amount validation error on logout so the logged-out trade page stays usable', async () => {
+            const store = await createStoreWithObservableClient('0.77');
+
+            store.amount = 4;
+            expect(store.validation_errors.amount).toEqual([insufficient_balance_message]);
+
+            // client.cleanUp() clears loginid (which flips is_logged_in) before current_account (which
+            // holds the balance), so the two observables change in separate mutations, in this order
+            runInAction(() => {
+                mockRootStore.client.is_logged_in = false;
+            });
+            runInAction(() => {
+                mockRootStore.client.balance = undefined;
+            });
+
+            expect(store.validation_errors.amount).toEqual([]);
         });
     });
 });

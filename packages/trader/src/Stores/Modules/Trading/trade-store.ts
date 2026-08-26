@@ -698,6 +698,18 @@ export default class TradeStore extends BaseStore {
                 }
             }
         );
+        reaction(
+            // is_logged_in is tracked too: on logout loginid is cleared before current_account, so the
+            // login state flips first and a stale insufficient-balance error would otherwise survive
+            () => [this.root_store.client.balance, this.root_store.client.is_logged_in],
+            () => {
+                const had_error = !!this.validation_errors.amount?.length;
+                this.validateAllProperties();
+                const has_error = !!this.validation_errors.amount?.length;
+                // re-request only on error-state transitions to wipe or restore the proposal subscription
+                if (had_error !== has_error) this.debouncedProposal();
+            }
+        );
     }
 
     get is_symbol_in_active_symbols() {

@@ -66,6 +66,7 @@ const PurchaseButton = observer(() => {
         symbol,
         trade_type_tab,
         trade_types,
+        validation_errors,
     } = useTraderStore();
 
     const [is_sell_button_visible, setIsSellButtonVisibile] = React.useState(is_accumulator && has_open_accu_contract);
@@ -118,6 +119,7 @@ const PurchaseButton = observer(() => {
     const cardLabels = getCardLabelsV2();
     const is_modal_error = checkIsServiceModalError({ services_error });
     const is_accu_sell_disabled = !is_valid_to_sell || active_accu_contract?.is_sell_requested;
+    const has_trade_param_errors = Object.values(validation_errors).some(errors => errors.length > 0);
 
     const getButtonType = (index: number, trade_type: string) => {
         const tab_index = getTradeTypeTabsList(contract_type).findIndex(tab => tab.contract_type === trade_type);
@@ -216,7 +218,10 @@ const PurchaseButton = observer(() => {
                         const is_single_button = contract_types.length === 1;
                         const is_loading = loading_button_index === index;
                         const is_disabled =
-                            !is_trade_enabled_v2 || info.has_error || (!!purchase_info.error && !is_modal_error);
+                            !is_trade_enabled_v2 ||
+                            info.has_error ||
+                            has_trade_param_errors ||
+                            (!!purchase_info.error && !is_modal_error);
 
                         return (
                             <React.Fragment key={trade_type}>

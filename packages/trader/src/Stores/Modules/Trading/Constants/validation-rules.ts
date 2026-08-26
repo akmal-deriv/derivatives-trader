@@ -19,6 +19,20 @@ export const getValidationRules = (): TValidationRules => ({
         rules: [
             ['req', { message: localize('Amount is a required field.') }],
             ['number', { min: 0, type: 'float' }],
+            [
+                'custom',
+                {
+                    func: (value: string | TTradeStore['amount'], options, store) => {
+                        const balance = Number(store?.root_store?.client?.balance);
+                        // when the balance is unknown, the server remains the guard
+                        if (!Number.isFinite(balance)) return true;
+                        return Number(value) <= balance;
+                    },
+                    condition: (store: TTradeStore) =>
+                        !!store?.root_store?.client?.is_logged_in && store?.basis !== 'payout',
+                    message: localize('Your stake exceeds your available balance.'),
+                },
+            ],
         ],
     },
     barrier_1: {

@@ -82,6 +82,36 @@ describe('getValidationRules', () => {
         );
     });
 
+    it('should contain a rule for amount that rejects a stake above the available balance', () => {
+        const store_with_balance = {
+            ...mocked_store,
+            basis: 'stake',
+            root_store: { client: { is_logged_in: true, balance: '0.77' } },
+        } as unknown as TTradeStore;
+        const store_without_balance = {
+            ...mocked_store,
+            basis: 'stake',
+            root_store: { client: { is_logged_in: true, balance: undefined } },
+        } as unknown as TTradeStore;
+        const balance_rule = validation_rules.amount.rules?.[2][1] as TExtendedRuleOptions;
+
+        // Your stake exceeds your available balance.:
+        expect(balance_rule.func?.('4', { min: 0, max: 10 }, store_with_balance, undefined)).toBe(false);
+        expect(balance_rule.func?.('0.77', { min: 0, max: 10 }, store_with_balance, undefined)).toBe(true);
+        expect(balance_rule.func?.('4', { min: 0, max: 10 }, store_without_balance, undefined)).toBe(true);
+
+        expect(balance_rule.condition(store_with_balance)).toBe(true);
+        expect(
+            balance_rule.condition({
+                ...store_with_balance,
+                root_store: { client: { is_logged_in: false, balance: '0.77' } },
+            } as unknown as TTradeStore)
+        ).toBe(false);
+        expect(balance_rule.condition({ ...store_with_balance, basis: 'payout' } as unknown as TTradeStore)).toBe(
+            false
+        );
+    });
+
     it('should contain rules for barrier_1', () => {
         expect(validation_rules).toHaveProperty('barrier_1');
 

@@ -238,4 +238,72 @@ describe('Stake', () => {
 
         expect(screen.getByRole('textbox')).toBeDisabled();
     });
+
+    it('marks the Stake trade param as errored for a store validation error on Rise/Fall', () => {
+        // Rise/Fall shows two subtypes and a store validation error empties proposal_info, so the
+        // single-subtype suppression must not swallow the red outline.
+        default_mock_store.modules.trade.proposal_info = {};
+        default_mock_store.modules.trade.validation_errors = {
+            amount: ['Your stake exceeds your available balance.'],
+        };
+        const { container } = render(<MockedStake />);
+
+        // The errored state is a wrapper class only — the field passes noStatusIcon and quill exposes
+        // no role, testid or aria attribute for it, so the class is the only observable signal.
+        // eslint-disable-next-line testing-library/no-container, testing-library/no-node-access
+        expect(container.querySelector('.quill-input__wrapper__variant--fill--error')).toBeInTheDocument();
+    });
+
+    it('keeps the Stake trade param neutral when only one Rise/Fall subtype has a proposal error', () => {
+        default_mock_store.modules.trade.proposal_info = {
+            [CONTRACT_TYPES.CALL]: {
+                has_error: true,
+                error_field: 'amount',
+                message: "Please enter a stake amount that's at least 0.35.",
+            },
+            [CONTRACT_TYPES.PUT]: { has_error: false, message: '', payout: 19.51 },
+        };
+        const { container } = render(<MockedStake />);
+
+        // eslint-disable-next-line testing-library/no-container, testing-library/no-node-access
+        expect(container.querySelector('.quill-input__wrapper__variant--fill--error')).not.toBeInTheDocument();
+    });
+
+    it('shows insufficient balance error and blocks Save if stake exceeds the available balance', async () => {
+        const insufficient_balance_error = 'Your stake exceeds your available balance.';
+        default_mock_store.client.is_logged_in = true;
+        default_mock_store.client.balance = '0.77';
+        (useDtraderQuery as jest.Mock).mockReturnValue({ data: { proposal: {}, error: {} } });
+        render(<MockedStake />);
+
+        await userEvent.click(screen.getByText(stake_param_label));
+        const input = screen.getByPlaceholderText(input_placeholder);
+        await userEvent.clear(input);
+        await userEvent.type(input, '4');
+
+        expect(screen.getByText(insufficient_balance_error)).toBeInTheDocument();
+
+        await userEvent.click(screen.getByRole('button', { name: save_button_label }));
+        expect(default_mock_store.modules.trade.onChange).not.toHaveBeenCalled();
+    });
+
+    it('does not show insufficient balance error if stake equals the available balance', async () => {
+        const insufficient_balance_error = 'Your stake exceeds your available balance.';
+        default_mock_store.client.is_logged_in = true;
+        default_mock_store.client.balance = '4';
+        (useDtraderQuery as jest.Mock).mockReturnValue({ data: { proposal: {}, error: {} } });
+        render(<MockedStake />);
+
+        await userEvent.click(screen.getByText(stake_param_label));
+        const input = screen.getByPlaceholderText(input_placeholder);
+        await userEvent.clear(input);
+        await userEvent.type(input, '4');
+
+        expect(screen.queryByText(insufficient_balance_error)).not.toBeInTheDocument();
+
+        await userEvent.click(screen.getByRole('button', { name: save_button_label }));
+        expect(default_mock_store.modules.trade.onChange).toHaveBeenCalledWith({
+            target: { name: 'amount', value: '4' },
+        });
+    });
 });

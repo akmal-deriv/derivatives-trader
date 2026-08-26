@@ -21,7 +21,10 @@ const useTradeError = ({ error_fields }: { error_fields: TErrorFields[] }) => {
 
         const message = proposal_error_message ?? validation_errors?.[field]?.[0] ?? '';
 
-        return { is_error_matching_field, message };
+        // is_validation_error tells consumers the error came from the store rules rather than from a
+        // proposal response. Store errors apply to every contract subtype at once and they wipe
+        // proposal_info, so the per-subtype snackbar suppression must not hide them.
+        return { is_error_matching_field, is_validation_error: !!validation_has_error, message };
     };
 
     const error = error_fields
@@ -29,7 +32,7 @@ const useTradeError = ({ error_fields }: { error_fields: TErrorFields[] }) => {
         .find(result => result.is_error_matching_field); // Find the first match
 
     // If an error was found, return the error; otherwise return no error
-    return error || { is_error_matching_field: false, message: '' };
+    return error || { is_error_matching_field: false, is_validation_error: false, message: '' };
 };
 
 export default useTradeError;

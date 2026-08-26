@@ -26,15 +26,19 @@ const Stake = observer(({ is_minimized }: TTradeParametersProps) => {
         trade_type_tab,
         proposal_info,
     } = useTraderStore();
-    const { is_error_matching_field: has_error } = useTradeError({ error_fields: ['stake', 'amount'] });
+    const { is_error_matching_field: has_error, is_validation_error } = useTradeError({
+        error_fields: ['stake', 'amount'],
+    });
 
     const [is_open, setIsOpen] = React.useState(false);
 
     const contract_types = getDisplayedContractTypes(trade_types, contract_type, trade_type_tab);
     const is_all_types_with_errors = contract_types.every(item => proposal_info?.[item]?.has_error);
 
-    // Showing snackbar for all cases, except when it is Rise/Fall or Digits and only one subtype has error
-    const should_show_snackbar = contract_types.length === 1 || is_multiplier || is_all_types_with_errors;
+    // Showing snackbar for all cases, except when it is Rise/Fall or Digits and only one subtype has error.
+    // A store validation error is not subtype-scoped (and it empties proposal_info), so it bypasses that gate.
+    const should_show_snackbar =
+        contract_types.length === 1 || is_multiplier || is_all_types_with_errors || is_validation_error;
 
     const onClose = React.useCallback(() => setIsOpen(false), []);
 
