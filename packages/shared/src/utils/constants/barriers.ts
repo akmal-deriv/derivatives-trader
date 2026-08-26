@@ -37,8 +37,11 @@ export const DEFAULT_SHADES = {
 export const BARRIER_COLORS = {
     GREEN: '#008832',
     RED: '#e6190e',
-    ORANGE: '#ff6444',
+    ORANGE: '#f55f0a',
     BLUE: '#2c9aff',
+    WHITE: '#ffffff',
+    BLACK: '#181C25',
+    GRAY: '#CED0D6',
 };
 
 export const BARRIER_LINE_STYLES = {

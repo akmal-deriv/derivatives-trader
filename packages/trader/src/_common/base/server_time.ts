@@ -1,11 +1,10 @@
-import moment from 'moment';
-
+import { type Dayjs } from '@deriv/shared';
 import { TCoreStores } from '@deriv/stores/types';
 import { PromiseUtils } from '@deriv-com/utils';
 
 const ServerTime = (() => {
     let clock_started = false;
-    const pending = PromiseUtils.createPromise<moment.Moment>();
+    const pending = PromiseUtils.createPromise<Dayjs>();
     let common_store: TCoreStores['common'];
 
     const init = (store: TCoreStores['common']) => {

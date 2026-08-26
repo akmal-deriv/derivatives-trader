@@ -1,0 +1,17 @@
+// ---- Empty state (e.g. Favourites tab with no favourites) ----
+
+.market-empty-state {
+    display: flex;
+    flex: 1;
+    height: 100%;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--core-spacing-400, 8px);
+    padding: var(--core-spacing-800, 16px);
+    text-align: center;
+
+    &__description {
+        max-width: 260px;
+    }
+}

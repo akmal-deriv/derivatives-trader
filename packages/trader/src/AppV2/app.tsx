@@ -1,20 +1,21 @@
 import React from 'react';
+import { when } from 'mobx';
 
 import { ReportsStoreProvider } from '@deriv/reports/src/Stores/useReportsStores';
-import { routes } from '@deriv/shared';
+import { trackAnalyticsEvent } from '@deriv/shared';
 import type { TCoreStores } from '@deriv/stores/types';
 import { NotificationsProvider, SnackbarProvider } from '@deriv-com/quill-ui';
 
-import initStore from 'App/init-store';
+import initStore from 'Stores/init-store';
 import ModulesProvider from 'Stores/Providers/modules-providers';
 import type { TWebSocket } from 'Types';
 
-import { sendDtraderV2OpenToAnalytics } from '../Analytics';
 import TraderProviders from '../trader-providers';
 
+import AutomationStopSnackbar from './Components/AutomationPanel/automation-stop-snackbar';
 import ServicesErrorSnackbar from './Components/ServicesErrorSnackbar';
+import AppShell from './Containers/AppShell/app-shell';
 import Notifications from './Containers/Notifications';
-import Router from './Routes/router';
 
 import 'Sass/app.scss';
 
@@ -27,10 +28,34 @@ type Apptypes = {
 
 const App = ({ passthrough }: Apptypes) => {
     const root_store = initStore(passthrough.root_store, passthrough.WS);
+    const analyticsCalledRef = React.useRef(false);
 
     React.useEffect(() => {
         return () => root_store.ui.setPromptHandler(false);
     }, [root_store]);
+
+    React.useEffect(() => {
+        // Prevent duplicate analytics calls if component remounts
+        if (analyticsCalledRef.current) {
+            return;
+        }
+
+        // Wait for auth to resolve before firing the event so account_type is correct.
+        // For non-logged-in users, is_logging_in is already false so when() fires immediately.
+        // For logged-in users, is_logging_in is true until auth completes.
+        const dispose = when(
+            () => !root_store.client.is_logging_in,
+            () => {
+                analyticsCalledRef.current = true;
+                trackAnalyticsEvent('ce_dtrader_app_v2', {
+                    action: 'open',
+                });
+            }
+        );
+
+        return dispose;
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     React.useLayoutEffect(() => {
         const head = document.head;
@@ -46,13 +71,6 @@ const App = ({ passthrough }: Apptypes) => {
         return () => dtrader_links_clone?.forEach(link => head.removeChild(link));
     }, []);
 
-    React.useEffect(() => {
-        if (window.location.pathname === routes.index) {
-            sendDtraderV2OpenToAnalytics();
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [window.location.pathname]);
-
     return (
         <TraderProviders store={root_store}>
             <ReportsStoreProvider>
@@ -60,8 +78,9 @@ const App = ({ passthrough }: Apptypes) => {
                     <NotificationsProvider>
                         <SnackbarProvider>
                             <Notifications />
-                            <Router />
+                            <AppShell />
                             <ServicesErrorSnackbar />
+                            <AutomationStopSnackbar />
                         </SnackbarProvider>
                     </NotificationsProvider>
                 </ModulesProvider>

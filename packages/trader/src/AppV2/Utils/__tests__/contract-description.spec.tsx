@@ -12,6 +12,11 @@ import {
 } from '../contract-description-utils';
 import { CONTRACT_LIST } from '../trade-types-utils';
 
+jest.mock('@deriv/stores', () => ({
+    ...jest.requireActual('@deriv/stores'),
+    useStore: () => ({ ui: { is_dark_mode_on: false } }),
+}));
+
 jest.mock('@lottiefiles/dotlottie-react', () => ({
     DotLottieReact: jest.fn(() => <div>DotLottieReact</div>),
 }));
@@ -29,7 +34,9 @@ describe('getTermDefinition', () => {
         );
 
         expect(
-            screen.getByText('You can choose a growth rate with values of 1%, 2%, 3%, 4%, and 5%.')
+            screen.getByText(
+                'The growth rate determines the rate at which your stake will grow with each successful tick.'
+            )
         ).toBeInTheDocument();
     });
 

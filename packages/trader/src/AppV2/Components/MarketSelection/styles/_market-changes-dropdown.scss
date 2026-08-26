@@ -1,0 +1,72 @@
+// ---- Changes (window) dropdown ----
+
+.market-changes-dropdown {
+    &__trigger {
+        display: inline-flex;
+        align-items: center;
+        padding: var(--core-spacing-200, 4px);
+        background: transparent;
+        cursor: pointer;
+        color: var(--component-textIcon-normal-default);
+
+        &:disabled {
+            cursor: default;
+            opacity: 0.32;
+        }
+    }
+
+    &__popover {
+        position: fixed;
+        transform: translateX(-100%);
+        // Above the desktop market-selection InputPopover (overlay 1000 / panel 1001).
+        z-index: 1100;
+        display: flex;
+        flex-direction: column;
+        min-width: 206px;
+        padding: var(--core-spacing-200, 4px);
+        border-radius: var(--core-borderRadius-400, 8px);
+        background: var(--component-dropdownList-bg);
+        box-shadow: 0 4px 16px var(--core-color-opacity-black-200, rgba(0, 0, 0, 0.16));
+    }
+
+    &__sheet {
+        display: flex;
+        flex-direction: column;
+        padding: var(--core-spacing-200, 4px) var(--core-spacing-800, 16px) var(--core-spacing-800, 16px);
+
+        &-title {
+            color: var(--component-textIcon-normal-prominent, #181c25);
+        }
+    }
+
+    &__option {
+        display: flex;
+        height: 4.8rem;
+        align-items: center;
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        text-align: start;
+        padding: 0 var(--core-spacing-800, 16px);
+        margin: 1px 0;
+        border-radius: var(--core-borderRadius-200, 4px);
+
+        &:hover,
+        &--selected {
+            background: var(--component-dropdownItem-bg-selected, #000);
+
+            .quill-typography {
+                color: var(--component-dropdownItem-label-color-selectedWhite, #fff);
+            }
+        }
+    }
+}
+
+// In the category-list header (tablet + desktop), offset the trigger from the panel's right edge so
+// it aligns with the rows' meta cluster instead of sitting flush against it. List-only — the
+// info-screen chart trigger (no list header) is unaffected; mobile doesn't need the offset.
+.market-selection-list__group-header .market-changes-dropdown__trigger {
+    @include tablet-or-desktop-screen {
+        margin-inline-end: 10.2rem;
+    }
+}

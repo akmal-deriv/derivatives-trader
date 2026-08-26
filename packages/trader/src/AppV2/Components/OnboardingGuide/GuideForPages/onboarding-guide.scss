@@ -1,6 +1,6 @@
 .guide-tooltip {
     &__wrapper {
-        background-color: var(--component-textIcon-normal-prominent);
+        background-color: var(--core-color-solid-slate-1200);
         border-radius: var(--core-borderRadius-400);
         padding: var(--core-size-800);
         display: flex;
@@ -8,7 +8,20 @@
         flex-direction: column;
         align-items: flex-start;
         min-width: var(--core-size-4300);
+        // Cap the width so long translated copy can't fill the viewport (react-floater defaults to
+        // max-width: 100%), which Popper's preventOverflow would then shift off the left edge.
+        max-width: min(calc(100vw - 2 * var(--core-spacing-800)), 380px);
+        box-sizing: border-box;
+        overflow-wrap: break-word;
         transition: transform 0.5s ease-in;
+
+        // Mobile full-page-selector step: a bottom-pinned callout that spans the width (minus side
+        // margins) so the copy reads as a short, wide rectangle instead of a narrow, square card.
+        &--bottom {
+            min-width: 0;
+            width: calc(100vw - 2 * var(--core-spacing-800));
+            max-width: none;
+        }
 
         @keyframes slide-in-tooltip {
             from {
@@ -21,19 +34,17 @@
 
         animation: slide-in-tooltip var(--core-motion-duration-100) linear;
 
-        &-scroll {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            position: relative;
-            width: 100vw;
-            height: 100vh;
-            padding-top: calc(100vh - 224px);
-
-            &-text {
-                color: var(--component-textIcon-static-prominentDark);
-            }
+        [dir='rtl'] & {
+            direction: rtl;
         }
+
+        .theme--dark & {
+            background-color: var(--core-color-solid-slate-50);
+        }
+    }
+
+    &__body {
+        width: 100%;
     }
 
     &__button {
@@ -59,42 +70,37 @@
         inset-inline-start: var(--core-spacing-500);
         inset-block-end: var(--core-spacing-500);
     }
+}
 
-    @keyframes bounce {
-        0%,
-        100% {
-            transform: translateY(0);
-        }
-        50% {
-            transform: translateY(-10px);
+.onboarding-guide {
+    &__intro-body {
+        display: flex;
+        flex-direction: column;
+        gap: var(--core-spacing-1200);
+        text-align: start;
+
+        [dir='rtl'] & {
+            text-align: end;
         }
     }
 
-    &--bounce {
-        height: var(--core-spacing-3200);
-        width: var(--core-spacing-2400);
-        fill: var(--component-textIcon-static-prominentDark);
-        animation: bounce var(--core-motion-duration-400) ease-in-out var(--core-motion-duration-100) infinite;
+    &__intro-title {
+        font-size: var(--core-fontSize-300);
+        font-weight: var(--core-fontWeight-bold);
+        line-height: var(--core-lineHeight-500);
+        color: var(--component-textIcon-normal-prominent);
+        margin: 0;
+    }
+
+    &__intro-description {
+        font-size: var(--core-fontSize-100);
+        line-height: var(--core-lineHeight-300);
+        color: var(--component-textIcon-normal-default);
+        margin: 0;
     }
 }
 
-.guide {
-    &__player {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-
-        &__wrapper {
-            position: relative;
-            width: 100%;
-            padding-top: 56.25%; // 16:9 aspect ratio (9/16 = 0.5625 or 56.25%)
-            overflow: hidden;
-
-            &--is-loading {
-                padding-top: unset;
-            }
-        }
-    }
+.onboarding-guide__intro .quill-modal__button-wrapper .quill-button,
+.quill-action-sheet--root:has(.onboarding-guide__intro-body) .quill-modal__button-wrapper .quill-button {
+    border-radius: var(--component-button-border-radius-xl);
 }

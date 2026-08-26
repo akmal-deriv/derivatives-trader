@@ -3,7 +3,13 @@ import { withRouter } from 'react-router';
 import classNames from 'classnames';
 
 import { DataList, DataTable, usePrevious } from '@deriv/components';
-import { extractInfoFromShortcode, formatDate, getContractPath, getUnsupportedContracts } from '@deriv/shared';
+import {
+    extractInfoFromShortcode,
+    formatDate,
+    getContractPath,
+    getUnsupportedContracts,
+    initMoment,
+} from '@deriv/shared';
 import { observer, useStore } from '@deriv/stores';
 import { Analytics } from '@deriv-com/analytics';
 import { Localize, useTranslations } from '@deriv-com/translations';
@@ -47,9 +53,10 @@ export const getRowAction = (row_obj: { [key: string]: unknown }) => {
 
 const ProfitTable = observer(({ component_icon }: TProfitTable) => {
     const { localize } = useTranslations();
-    const { client } = useStore();
+    const { client, common } = useStore();
     const { profit_table } = useReportsStore();
     const { currency } = client;
+    const { current_language } = common;
     const {
         data,
         date_from,
@@ -64,42 +71,26 @@ const ProfitTable = observer(({ component_icon }: TProfitTable) => {
         onUnmount,
         totals,
     } = profit_table;
-    const prev_date_from = usePrevious(date_from);
-    const prev_date_to = usePrevious(date_to);
-    const { isDesktop } = useDevice();
+    const { isMobile } = useDevice();
+
+    React.useEffect(() => {
+        initMoment(current_language);
+    }, [current_language]);
 
     React.useEffect(() => {
         onMount();
-        Analytics.trackEvent('ce_reports_form', {
-            action: 'choose_report_type',
-            form_name: 'default',
-            subform_name: 'trade_table_form',
-            start_date_filter: formatDate(date_from, 'DD/MM/YYYY', false),
-            end_date_filter: formatDate(date_to, 'DD/MM/YYYY', false),
-        });
+
         return () => {
             onUnmount();
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    React.useEffect(() => {
-        if (prev_date_from !== undefined && prev_date_to !== undefined) {
-            Analytics.trackEvent('ce_reports_form', {
-                action: 'filter_dates',
-                form_name: 'default',
-                subform_name: 'trade_table_form',
-                start_date_filter: formatDate(date_from, 'DD/MM/YYYY', false),
-                end_date_filter: formatDate(date_to, 'DD/MM/YYYY', false),
-            });
-        }
-    }, [date_to, date_from]);
-
     if (error) return <p>{error}</p>;
 
     const filter_component = <CompositeCalendar onChange={handleDateChange} from={date_from} to={date_to} />;
 
-    const columns: TGetProfitTableColumnsTemplate = getProfitTableColumnsTemplate(currency, data.length, isDesktop);
+    const columns: TGetProfitTableColumnsTemplate = getProfitTableColumnsTemplate(currency, data.length, !isMobile);
 
     const columns_map = Object.fromEntries(columns.map(column => [column.col_index, column])) as Record<
         TGetProfitTableColumnsTemplate[number]['col_index'],
@@ -147,7 +138,7 @@ const ProfitTable = observer(({ component_icon }: TProfitTable) => {
                     />
                 </div>
                 <div className='data-list__row'>
-                    <DataList.Cell row={row} column={columns_map.purchase_time as TDataListCell['column']} />
+                    <DataList.Cell row={row} column={columns_map.purchase_time_unix as TDataListCell['column']} />
                     <DataList.Cell
                         className='data-list__row-cell--amount'
                         row={row}
@@ -155,7 +146,7 @@ const ProfitTable = observer(({ component_icon }: TProfitTable) => {
                     />
                 </div>
                 <div className='data-list__row'>
-                    <DataList.Cell row={row} column={columns_map.sell_time as TDataListCell['column']} />
+                    <DataList.Cell row={row} column={columns_map.sell_time_unix as TDataListCell['column']} />
                     <DataList.Cell
                         className='data-list__row-cell--amount'
                         row={row}
@@ -187,7 +178,7 @@ const ProfitTable = observer(({ component_icon }: TProfitTable) => {
                     />
                 ) : (
                     <div className='reports__content'>
-                        {isDesktop ? (
+                        {!isMobile ? (
                             <DataTable
                                 className='profit-table'
                                 data_source={data}

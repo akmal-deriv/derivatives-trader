@@ -12,6 +12,19 @@
 }
 
 /*
+ * Pill-shaped segmented control (shape only, no colors) — shared by the Rise/Fall
+ * trade-type selector and the Quick picks/Custom popover toggle so they stay in sync.
+ */
+@mixin pill-segmented-control {
+    border-radius: 2.4rem;
+
+    button {
+        border-radius: 2.4rem;
+        transition: all 0.2s ease;
+    }
+}
+
+/*
  * SASS interpolation
  */
 // Requires the calc-interpolation function which can also be used independently
@@ -113,17 +126,17 @@
     @if $size {
         font-size: $size;
     }
-    @if $colour {
-        color: $colour;
+    @if $align {
+        text-align: $align;
     }
     @if $weight {
         font-weight: $weight;
     }
+    @if $colour {
+        color: $colour;
+    }
     @if $tt {
         text-transform: $tt;
-    }
-    @if $align {
-        text-align: $align;
     }
     @if $size == 1.6rem {
         line-height: map-get($map: $LINEHEIGHTS, $key: 'large');

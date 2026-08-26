@@ -1,9 +1,12 @@
 import React from 'react';
-import Loadable from 'react-loadable';
-import Routes from 'Containers/routes';
-import ReportsProviders from './reports-providers';
-import 'Sass/app.scss';
+
 import type { TCoreStores } from '@deriv/stores/types';
+
+import Routes from 'Containers/routes';
+
+import ReportsProviders from './reports-providers';
+
+import 'Sass/app.scss';
 
 type TAppProps = {
     passthrough: {
@@ -11,10 +14,15 @@ type TAppProps = {
     };
 };
 
-const TradeModals = Loadable({
-    loader: () => import(/* webpackChunkName: "trade-modals", webpackPrefetch: true */ './Components/Modals'),
-    loading: () => null,
-});
+const TradeModalsLazy = React.lazy(
+    () => import(/* webpackChunkName: "trade-modals", webpackPrefetch: true */ './Components/Modals')
+);
+
+const TradeModals = () => (
+    <React.Suspense fallback={null}>
+        <TradeModalsLazy />
+    </React.Suspense>
+);
 
 const App = ({ passthrough }: TAppProps) => {
     return (

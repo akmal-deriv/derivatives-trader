@@ -1,8 +1,10 @@
 import React from 'react';
-import { screen, render } from '@testing-library/react';
-import AuthorizationRequiredModal from '../authorization-required-modal';
+
 import { redirectToLogin, redirectToSignUp } from '@deriv/shared';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+
+import AuthorizationRequiredModal from '../authorization-required-modal';
 
 type TModal = React.FC<{
     children: React.ReactNode;
@@ -45,6 +47,15 @@ jest.mock('@deriv/shared', () => ({
     redirectToSignUp: jest.fn(),
 }));
 
+jest.mock('@deriv/stores', () => ({
+    ...jest.requireActual('@deriv/stores'),
+    useStore: jest.fn(() => ({
+        common: {
+            current_language: 'EN',
+        },
+    })),
+}));
+
 describe('<AuthorizationRequiredModal />', () => {
     const mocked_props = {
         is_visible: true,
@@ -60,15 +71,15 @@ describe('<AuthorizationRequiredModal />', () => {
         expect(screen.getByText('Log in')).toBeInTheDocument();
         expect(screen.getByText(/create free account/i)).toBeInTheDocument();
     });
-    it('redirectToLogin should be called when Log in button is clicked', () => {
+    it('redirectToLogin should be called when Log in button is clicked', async () => {
         render(<AuthorizationRequiredModal {...mocked_props} />);
-        userEvent.click(screen.getByText('Log in'));
-        expect(redirectToLogin).toHaveBeenCalled();
+        await userEvent.click(screen.getByText('Log in'));
+        expect(redirectToLogin).toHaveBeenCalledWith('EN');
     });
-    it('redirectToSignUp should be called when Log in button is clicked', () => {
+    it('redirectToSignUp should be called when Log in button is clicked', async () => {
         render(<AuthorizationRequiredModal {...mocked_props} />);
-        userEvent.click(screen.getByText(/create free account/i));
-        expect(redirectToSignUp).toHaveBeenCalled();
+        await userEvent.click(screen.getByText(/create free account/i));
+        expect(redirectToSignUp).toHaveBeenCalledWith('EN');
     });
     it('should return null when is_visible is false', () => {
         mocked_props.is_visible = false;

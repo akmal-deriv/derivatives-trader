@@ -15,14 +15,13 @@ describe('AccumulatorsProfitLossTooltip', () => {
         alignment: 'right',
         className: 'profit-loss-tooltip',
         currency: 'USD',
-        current_spot: 6468.95,
+        current_spot: '6468.95',
         current_spot_time: 1666091856,
         high_barrier: '6469.10',
         is_sold: 0,
-        profit: 0.15,
+        profit: '0.15',
         should_show_profit_text: true,
     };
-    const profit_text = 'Total profit/loss:';
 
     it('should render AccumulatorsProfitLossText if contract is not sold', () => {
         render(<AccumulatorsProfitLossTooltip {...props} />);
@@ -34,22 +33,15 @@ describe('AccumulatorsProfitLossTooltip', () => {
 
         expect(screen.queryByText('AccumulatorsProfitLossText')).not.toBeInTheDocument();
     });
-    it('should render AccumulatorsProfitLossTooltip when contract is sold', () => {
-        jest.useFakeTimers();
-
+    it('should not render anything when contract is sold', () => {
         render(
             <AccumulatorsProfitLossTooltip
                 {...props}
                 is_sold={1}
-                exit_tick={props.current_spot}
-                exit_tick_time={props.current_spot_time}
+                {...{ exit_spot: props.current_spot, exit_spot_time: props.current_spot_time }}
             />
         );
 
-        const spot_el = screen.getByTestId('dt_accumulator_tooltip_spot');
-        expect(spot_el).toBeInTheDocument();
-        expect(spot_el).toHaveClass('profit-loss-tooltip__spot-circle');
-        expect(screen.getByText(profit_text)).toBeInTheDocument();
-        expect(screen.getByText('0.15 USD')).toBeInTheDocument();
+        expect(screen.queryByText('AccumulatorsProfitLossText')).not.toBeInTheDocument();
     });
 });

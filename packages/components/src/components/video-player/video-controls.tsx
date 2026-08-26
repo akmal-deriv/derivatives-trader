@@ -1,27 +1,27 @@
 import React from 'react';
 import classNames from 'classnames';
-import { StandalonePauseFillIcon, StandalonePlayFillIcon } from '@deriv/quill-icons';
-import Text from '../text';
-import { formatDurationTime } from '@deriv/shared';
-import VolumeControl from './volume-control';
-import PlaybackRateControl from './playback-rate-control';
 import clsx from 'clsx';
+
+import { StandalonePauseFillIcon, StandalonePlayFillIcon } from '@deriv/quill-icons';
+import { formatDurationTime } from '@deriv/shared';
+
+import Text from '../text';
+
+import PlaybackRateControl from './playback-rate-control';
 
 type TVideoControls = {
     block_controls?: boolean;
     current_time?: number;
     dragStartHandler: (e: React.MouseEvent<HTMLSpanElement> | React.TouchEvent<HTMLSpanElement>) => void;
     has_enlarged_dot?: boolean;
-    hide_volume_control?: boolean;
     is_animated?: boolean;
     is_ended?: boolean;
     is_playing?: boolean;
     is_mobile?: boolean;
-    is_muted?: boolean;
+    is_rtl?: boolean;
     is_v2?: boolean;
     increased_drag_area?: boolean;
     onRewind: (e: React.MouseEvent<HTMLDivElement> | React.KeyboardEvent<HTMLDivElement>) => void;
-    onVolumeChange: (new_value: number) => void;
     onPlaybackRateChange: (new_value: number) => void;
     onUserActivity: () => void;
     progress_bar_filled_ref: React.RefObject<HTMLDivElement>;
@@ -30,9 +30,7 @@ type TVideoControls = {
     playback_rate: number;
     show_controls?: boolean;
     togglePlay: (e: React.MouseEvent<HTMLButtonElement> | React.KeyboardEvent<HTMLButtonElement>) => void;
-    toggleMute: (new_value: boolean) => void;
     video_duration?: number;
-    volume?: number;
 };
 
 const VideoControls = ({
@@ -40,16 +38,14 @@ const VideoControls = ({
     current_time,
     dragStartHandler,
     has_enlarged_dot,
-    hide_volume_control = false,
     is_animated,
     is_ended,
     is_playing,
     is_mobile,
-    is_muted,
+    is_rtl = false,
     is_v2 = false,
     increased_drag_area,
     onRewind,
-    onVolumeChange,
     onPlaybackRateChange,
     progress_bar_filled_ref,
     progress_bar_ref,
@@ -57,9 +53,7 @@ const VideoControls = ({
     playback_rate,
     show_controls,
     togglePlay,
-    toggleMute,
     video_duration,
-    volume,
     onUserActivity,
 }: TVideoControls) => {
     const [is_drag_dot_visible, setIsDragDotVisible] = React.useState(false);
@@ -86,16 +80,6 @@ const VideoControls = ({
                     })}
                 >
                     <div className='controls__right--v2'>
-                        {!hide_volume_control && (
-                            <VolumeControl
-                                onVolumeChange={onVolumeChange}
-                                volume={volume}
-                                is_mobile={is_mobile}
-                                is_muted={is_muted}
-                                toggleMute={toggleMute}
-                                is_v2
-                            />
-                        )}
                         <PlaybackRateControl
                             onPlaybackRateChange={onPlaybackRateChange}
                             is_mobile={is_mobile}
@@ -117,6 +101,7 @@ const VideoControls = ({
             )}
             <div
                 className={clsx('player__controls__progress-bar', { 'player__controls__progress-bar--v2': is_v2 })}
+                style={{ transform: is_rtl ? 'scaleX(-1)' : 'scaleX(1)' }}
                 onClick={onRewind}
                 onKeyDown={onRewind}
                 onMouseOver={() => setIsDragDotVisible(true)}
@@ -170,15 +155,6 @@ const VideoControls = ({
                         </div>
                     </div>
                     <div className='player__controls__bottom-bar'>
-                        {!hide_volume_control && (
-                            <VolumeControl
-                                onVolumeChange={onVolumeChange}
-                                volume={volume}
-                                is_mobile={is_mobile}
-                                is_muted={is_muted}
-                                toggleMute={toggleMute}
-                            />
-                        )}
                         <PlaybackRateControl
                             onPlaybackRateChange={onPlaybackRateChange}
                             is_mobile={is_mobile}

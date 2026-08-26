@@ -3,34 +3,71 @@ import clsx from 'clsx';
 import { observer } from 'mobx-react-lite';
 
 import { Skeleton } from '@deriv/components';
-import { getCurrencyDisplayCode } from '@deriv/shared';
-import { Localize } from '@deriv-com/translations';
+import { isMobile } from '@deriv/shared';
 import { ActionSheet, TextField } from '@deriv-com/quill-ui';
+import { Localize, useTranslations } from '@deriv-com/translations';
 
+import { ActionSheetHeaderTitle } from 'AppV2/Components/ActionSheetHeaderTooltip';
 import Carousel from 'AppV2/Components/Carousel';
 import CarouselHeader from 'AppV2/Components/Carousel/carousel-header';
 import TradeParamDefinition from 'AppV2/Components/TradeParamDefinition';
+import { getCurrencySymbol } from 'AppV2/Utils/currency-utils';
 import { isSmallScreen } from 'AppV2/Utils/trade-params-utils';
 import { useTraderStore } from 'Stores/useTraderStores';
 
 import { TTradeParametersProps } from '../trade-parameters';
 
+import PayoutPerPointDesktop from './payout-per-point-desktop';
 import PayoutPerPointWheel from './payout-per-point-wheel';
 
 const PayoutPerPoint = observer(({ is_minimized }: TTradeParametersProps) => {
     const [is_open, setIsOpen] = React.useState(false);
+    const [carousel_index, setCarouselIndex] = React.useState(0);
     const { barrier_1, currency, is_market_closed, payout_choices, payout_per_point, setPayoutPerPoint } =
         useTraderStore();
+    const { localize } = useTranslations();
+    const is_mobile = isMobile();
     const is_small_screen = isSmallScreen();
-    const currency_display_code = getCurrencyDisplayCode(currency);
-    const payout_per_point_list = [...payout_choices]
-        .sort((a, b) => Number(a) - Number(b))
-        .map((payout_per_point: string) => ({
-            value: payout_per_point,
-            label: `${payout_per_point} ${currency_display_code}`,
-        }));
+    const currency_symbol = getCurrencySymbol(currency);
+    // Draft kept in state (not a ref) so the header check reacts to wheel changes.
+    const [value, setValue] = React.useState<string | number>(payout_per_point);
+    // Guards saving before the barrier proposal response arrives (shared with the wheel).
+    const is_api_response_received_ref = React.useRef(false);
+    // Memoised: a new array identity makes quill's wheel reset its list, re-centre itself and write a
+    // value back to the parent — mid-scroll that fights the user and can commit a stale value.
+    const payout_per_point_list = React.useMemo(
+        () =>
+            [...payout_choices]
+                .sort((a, b) => Number(a) - Number(b))
+                .map((payout_per_point: string) => ({
+                    value: payout_per_point,
+                    label: `${currency_symbol}${payout_per_point}`,
+                })),
+        [payout_choices, currency_symbol]
+    );
 
-    const onClose = React.useCallback(() => setIsOpen(false), []);
+    const onClose = React.useCallback(() => {
+        setIsOpen(false);
+        setCarouselIndex(0);
+    }, []);
+
+    // Re-initialise the draft from the committed value on open — this is what makes dismiss = discard.
+    React.useEffect(() => {
+        if (is_open) {
+            setValue(payout_per_point);
+            is_api_response_received_ref.current = false;
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [is_open]);
+
+    const handleSave = () => {
+        // Prevent from saving if user clicks before BE validation
+        if (!is_api_response_received_ref.current) return;
+        setPayoutPerPoint(String(value));
+        onClose();
+    };
+
+    const is_save_disabled = String(value) === String(payout_per_point);
 
     const action_sheet_content = [
         {
@@ -38,12 +75,11 @@ const PayoutPerPoint = observer(({ is_minimized }: TTradeParametersProps) => {
             component: (
                 <PayoutPerPointWheel
                     barrier={barrier_1}
-                    current_payout_per_point={payout_per_point}
                     is_open={is_open}
-                    onPayoutPerPointSelect={
-                        setPayoutPerPoint as React.ComponentProps<typeof PayoutPerPointWheel>['onPayoutPerPointSelect']
-                    }
-                    onClose={onClose}
+                    is_api_response_received_ref={is_api_response_received_ref}
+                    onDetailClick={setCarouselIndex}
+                    value={value}
+                    setValue={setValue}
                     payout_per_point_list={payout_per_point_list}
                 />
             ),
@@ -53,7 +89,7 @@ const PayoutPerPoint = observer(({ is_minimized }: TTradeParametersProps) => {
             component: (
                 <TradeParamDefinition
                     description={
-                        <Localize i18n_default_text='The amount you choose to receive at expiry for every point of change between the final price and the barrier.' />
+                        <Localize i18n_default_text="This is the corresponding price level based on the payout per point you've selected. If this barrier is ever breached, your contract would be terminated." />
                     }
                 />
             ),
@@ -68,6 +104,12 @@ const PayoutPerPoint = observer(({ is_minimized }: TTradeParametersProps) => {
             </div>
         );
 
+    // Render desktop version with InputPopover for non-mobile devices
+    if (!is_mobile) {
+        return <PayoutPerPointDesktop is_minimized={is_minimized} />;
+    }
+
+    // Render mobile version with ActionSheet
     return (
         <React.Fragment>
             <TextField
@@ -82,7 +124,7 @@ const PayoutPerPoint = observer(({ is_minimized }: TTradeParametersProps) => {
                 onClick={() => setIsOpen(true)}
                 readOnly
                 variant='fill'
-                value={`${payout_per_point} ${currency_display_code}`}
+                value={`${getCurrencySymbol(currency)}${payout_per_point}`}
             />
             <ActionSheet.Root
                 isOpen={is_open}
@@ -91,15 +133,42 @@ const PayoutPerPoint = observer(({ is_minimized }: TTradeParametersProps) => {
                 expandable={false}
                 shouldBlurOnClose={is_open}
             >
-                <ActionSheet.Portal shouldCloseOnDrag>
+                <ActionSheet.Portal showHandlebar={false} shouldDetectSwipingOnContainer shouldCloseOnDrag>
+                    {carousel_index === 0 ? (
+                        // Picker page: header owns the close/save actions and the description tooltip.
+                        <ActionSheet.Header
+                            title={
+                                <ActionSheetHeaderTitle
+                                    title={<Localize i18n_default_text='Payout per point' />}
+                                    description={
+                                        <Localize i18n_default_text='The amount you choose to receive at expiry for every point of change between the final price and the barrier.' />
+                                    }
+                                    label={localize('Payout per point')}
+                                />
+                            }
+                            closeAction={{ ariaLabel: localize('Close') }}
+                            saveAction={{ onAction: handleSave, ariaLabel: localize('Save') }}
+                            isSaveActionDisabled={is_save_disabled}
+                            shouldCloseOnSaveActionClick={false}
+                        />
+                    ) : (
+                        // Barrier content-row detail page: plain title + back arrow, no save/close actions.
+                        <CarouselHeader
+                            current_index={carousel_index}
+                            onNextClick={() => setCarouselIndex(0)}
+                            onPrevClick={() => setCarouselIndex(0)}
+                            title={<Localize i18n_default_text='Barrier' />}
+                        />
+                    )}
                     <Carousel
                         classname={clsx(
                             'payout-per-point__carousel',
                             is_small_screen && 'payout-per-point__carousel--small'
                         )}
-                        header={CarouselHeader}
+                        current_index={carousel_index}
+                        setCurrentIndex={setCarouselIndex}
+                        onPreviousButtonClick={() => setCarouselIndex(0)}
                         pages={action_sheet_content}
-                        title={<Localize i18n_default_text='Payout per point' />}
                     />
                 </ActionSheet.Portal>
             </ActionSheet.Root>

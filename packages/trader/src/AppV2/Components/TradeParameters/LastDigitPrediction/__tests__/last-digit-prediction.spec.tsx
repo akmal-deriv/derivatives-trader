@@ -66,16 +66,33 @@ describe('LastDigitPrediction', () => {
 
         expect(screen.getByRole('dialog')).toHaveAttribute('data-state', 'open');
     });
-    it('calls onChange function if user opens ActionSheet, selects another digit and clicks on "Save" button', async () => {
+    it('disables the header save action on open and enables it after a different digit is selected', async () => {
+        render(mockLastDigitPrediction({ is_minimized: true }));
+
+        await userEvent.click(screen.getByRole('textbox'));
+        expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+
+        await userEvent.click(screen.getByRole('button', { name: '7' }));
+        expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
+    });
+
+    it('calls onChange function if user opens ActionSheet, selects another digit and taps the header save action', async () => {
         render(mockLastDigitPrediction({ is_minimized: true }));
 
         await userEvent.click(screen.getByRole('textbox'));
 
-        const digit_button_seven = screen.getByRole('button', { name: '7' });
-        const save_button = screen.getByRole('button', { name: 'Save' });
-
-        await userEvent.click(digit_button_seven);
-        await userEvent.click(save_button);
+        await userEvent.click(screen.getByRole('button', { name: '7' }));
+        await userEvent.click(screen.getByRole('button', { name: 'Save' }));
         expect(default_mock_store.modules.trade.onChange).toBeCalled();
+    });
+
+    it('does not commit when the sheet is dismissed via the overlay after selecting a digit', async () => {
+        render(mockLastDigitPrediction({ is_minimized: true }));
+
+        await userEvent.click(screen.getByRole('textbox'));
+        await userEvent.click(screen.getByRole('button', { name: '7' }));
+        await userEvent.click(screen.getByTestId('dt-actionsheet-overlay'));
+
+        expect(default_mock_store.modules.trade.onChange).not.toBeCalled();
     });
 });

@@ -1,19 +1,15 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
 import { Router } from 'react-router-dom';
-import { History, createMemoryHistory } from 'history';
-import Reports from '../reports';
-import { Analytics } from '@deriv-com/analytics';
-import { StoreProvider, mockStore } from '@deriv/stores';
-import { TStores } from '@deriv/stores/types';
-import userEvent from '@testing-library/user-event';
-import { useDevice } from '@deriv-com/ui';
+import { createMemoryHistory, History } from 'history';
 
-jest.mock('@deriv-com/analytics', () => ({
-    Analytics: {
-        trackEvent: jest.fn(),
-    },
-}));
+import { trackAnalyticsEvent } from '@deriv/shared';
+import { mockStore, StoreProvider } from '@deriv/stores';
+import { TStores } from '@deriv/stores/types';
+import { useDevice } from '@deriv-com/ui';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+
+import Reports from '../reports';
 
 jest.mock('@deriv-com/ui', () => ({
     useDevice: jest.fn(),
@@ -24,7 +20,12 @@ jest.mock('@deriv/shared', () => ({
     getSelectedRoute: jest.fn(({ routes, pathname }) => {
         return routes.find((route: { path: string }) => route.path === pathname) || routes[0];
     }),
+    trackAnalyticsEvent: jest.fn(),
 }));
+
+// Mock window.location.href for redirect tests
+delete (window as any).location;
+window.location = { href: '', search: '' } as any;
 
 const mockSelectNative = jest.fn();
 const mockVerticalTab = jest.fn();
@@ -82,7 +83,6 @@ const mock = {
         is_logging_in: false,
     },
     common: {
-        is_from_derivgo: false,
         routeBackInApp: jest.fn(),
     },
     ui: {
@@ -149,27 +149,6 @@ describe('Reports', () => {
         });
         renderReports(store, history);
         expect(screen.getByText(Loading)).toBeInTheDocument();
-    });
-
-    test('tracks Analytics events on open and close', () => {
-        const history = createMemoryHistory();
-        const { unmount } = render(
-            <StoreProvider store={store}>
-                <Router history={history}>
-                    <Reports history={history} location={history.location} routes={routes} />
-                </Router>
-            </StoreProvider>
-        );
-
-        expect(Analytics.trackEvent).toHaveBeenCalledWith(
-            'ce_reports_form',
-            expect.objectContaining({ action: 'open' })
-        );
-        unmount();
-        expect(Analytics.trackEvent).toHaveBeenCalledWith(
-            'ce_reports_form',
-            expect.objectContaining({ action: 'close' })
-        );
     });
 
     test('navigates to a different route on select change', async () => {
@@ -253,5 +232,543 @@ describe('Reports', () => {
                 ]),
             })
         );
+    });
+
+    describe('Redirect functionality', () => {
+        beforeEach(() => {
+            // Reset window.location before each test
+            window.location.href = '';
+            window.location.search = '';
+        });
+
+        describe('Valid redirects - Allowed domains', () => {
+            test('redirects to deriv.com domain', async () => {
+                const history = createMemoryHistory({
+                    initialEntries: ['/?redirect=dtrader.deriv.com'],
+                });
+
+                renderReports(store, history);
+                await userEvent.click(screen.getByTestId(onCloseClick));
+
+                expect(window.location.href).toBe('https://dtrader.deriv.com');
+            });
+
+            test('redirects to deriv.be domain', async () => {
+                const history = createMemoryHistory({
+                    initialEntries: ['/?redirect=dtrader.deriv.be'],
+                });
+
+                renderReports(store, history);
+                await userEvent.click(screen.getByTestId(onCloseClick));
+
+                expect(window.location.href).toBe('https://dtrader.deriv.be');
+            });
+
+            test('redirects to deriv.me domain', async () => {
+                const history = createMemoryHistory({
+                    initialEntries: ['/?redirect=dtrader.deriv.me'],
+                });
+
+                renderReports(store, history);
+                await userEvent.click(screen.getByTestId(onCloseClick));
+
+                expect(window.location.href).toBe('https://dtrader.deriv.me');
+            });
+
+            test('redirects to subdomain of allowed domain', async () => {
+                const history = createMemoryHistory({
+                    initialEntries: ['/?redirect=staging-dtrader.deriv.com'],
+                });
+
+                renderReports(store, history);
+                await userEvent.click(screen.getByTestId(onCloseClick));
+
+                expect(window.location.href).toBe('https://staging-dtrader.deriv.com');
+            });
+
+            test('redirects to preview deployment domain', async () => {
+                const history = createMemoryHistory({
+                    initialEntries: ['/?redirect=feature-branch.derivatives-bot.pages.dev'],
+                });
+
+                renderReports(store, history);
+                await userEvent.click(screen.getByTestId(onCloseClick));
+
+                expect(window.location.href).toBe('https://feature-branch.derivatives-bot.pages.dev');
+            });
+
+            test('redirects to main branch preview deployment', async () => {
+                const history = createMemoryHistory({
+                    initialEntries: ['/?redirect=main.derivatives-bot.pages.dev'],
+                });
+
+                renderReports(store, history);
+                await userEvent.click(screen.getByTestId(onCloseClick));
+
+                expect(window.location.href).toBe('https://main.derivatives-bot.pages.dev');
+            });
+
+            test('redirects to encoded URL when redirect parameter is encoded', async () => {
+                const history = createMemoryHistory({
+                    initialEntries: ['/?redirect=dtrader.deriv.com%2Fbot'],
+                });
+
+                renderReports(store, history);
+                await userEvent.click(screen.getByTestId(onCloseClick));
+
+                expect(window.location.href).toBe('https://dtrader.deriv.com/bot');
+            });
+
+            test('adds https protocol when missing', async () => {
+                const history = createMemoryHistory({
+                    initialEntries: ['/?redirect=dtrader.deriv.com'],
+                });
+
+                renderReports(store, history);
+                await userEvent.click(screen.getByTestId(onCloseClick));
+
+                expect(window.location.href).toBe('https://dtrader.deriv.com');
+            });
+        });
+
+        describe('Security - XSS Protection', () => {
+            test('blocks javascript: protocol URLs', async () => {
+                const mockRouteBackInApp = jest.fn();
+                store = mockStore({
+                    ...mock,
+                    common: {
+                        ...mock.common,
+                        routeBackInApp: mockRouteBackInApp,
+                    },
+                });
+
+                const history = createMemoryHistory({
+                    initialEntries: ['/?redirect=javascript:alert(document.cookie)'],
+                });
+
+                renderReports(store, history);
+                await userEvent.click(screen.getByTestId(onCloseClick));
+
+                expect(mockRouteBackInApp).toHaveBeenCalled();
+                expect(window.location.href).toBe('');
+            });
+
+            test('blocks javascript: protocol with mixed case', async () => {
+                const mockRouteBackInApp = jest.fn();
+                store = mockStore({
+                    ...mock,
+                    common: {
+                        ...mock.common,
+                        routeBackInApp: mockRouteBackInApp,
+                    },
+                });
+
+                const history = createMemoryHistory({
+                    initialEntries: ['/?redirect=JaVaScRiPt:alert(1)'],
+                });
+
+                renderReports(store, history);
+                await userEvent.click(screen.getByTestId(onCloseClick));
+
+                expect(mockRouteBackInApp).toHaveBeenCalled();
+                expect(window.location.href).toBe('');
+            });
+
+            test('blocks encoded javascript: URLs', async () => {
+                const mockRouteBackInApp = jest.fn();
+                store = mockStore({
+                    ...mock,
+                    common: {
+                        ...mock.common,
+                        routeBackInApp: mockRouteBackInApp,
+                    },
+                });
+
+                const history = createMemoryHistory({
+                    initialEntries: ['/?redirect=javascript%3Aalert%28%27xss%27%29'],
+                });
+
+                renderReports(store, history);
+                await userEvent.click(screen.getByTestId(onCloseClick));
+
+                expect(mockRouteBackInApp).toHaveBeenCalled();
+                expect(window.location.href).toBe('');
+            });
+
+            test('blocks data: protocol URLs', async () => {
+                const mockRouteBackInApp = jest.fn();
+                store = mockStore({
+                    ...mock,
+                    common: {
+                        ...mock.common,
+                        routeBackInApp: mockRouteBackInApp,
+                    },
+                });
+
+                const history = createMemoryHistory({
+                    initialEntries: ['/?redirect=data:text/html,<script>alert(1)</script>'],
+                });
+
+                renderReports(store, history);
+                await userEvent.click(screen.getByTestId(onCloseClick));
+
+                expect(mockRouteBackInApp).toHaveBeenCalled();
+                expect(window.location.href).toBe('');
+            });
+
+            test('blocks vbscript: protocol URLs', async () => {
+                const mockRouteBackInApp = jest.fn();
+                store = mockStore({
+                    ...mock,
+                    common: {
+                        ...mock.common,
+                        routeBackInApp: mockRouteBackInApp,
+                    },
+                });
+
+                const history = createMemoryHistory({
+                    initialEntries: ['/?redirect=vbscript:msgbox(1)'],
+                });
+
+                renderReports(store, history);
+                await userEvent.click(screen.getByTestId(onCloseClick));
+
+                expect(mockRouteBackInApp).toHaveBeenCalled();
+                expect(window.location.href).toBe('');
+            });
+
+            test('blocks URLs with leading whitespace', async () => {
+                const mockRouteBackInApp = jest.fn();
+                store = mockStore({
+                    ...mock,
+                    common: {
+                        ...mock.common,
+                        routeBackInApp: mockRouteBackInApp,
+                    },
+                });
+
+                const history = createMemoryHistory({
+                    initialEntries: ['/?redirect=%20javascript:alert(1)'],
+                });
+
+                renderReports(store, history);
+                await userEvent.click(screen.getByTestId(onCloseClick));
+
+                expect(mockRouteBackInApp).toHaveBeenCalled();
+                expect(window.location.href).toBe('');
+            });
+
+            test('blocks file: protocol URLs', async () => {
+                const mockRouteBackInApp = jest.fn();
+                store = mockStore({
+                    ...mock,
+                    common: {
+                        ...mock.common,
+                        routeBackInApp: mockRouteBackInApp,
+                    },
+                });
+
+                const history = createMemoryHistory({
+                    initialEntries: ['/?redirect=file:///etc/passwd'],
+                });
+
+                renderReports(store, history);
+                await userEvent.click(screen.getByTestId(onCloseClick));
+
+                expect(mockRouteBackInApp).toHaveBeenCalled();
+                expect(window.location.href).toBe('');
+            });
+
+            test('blocks blob: protocol URLs', async () => {
+                const mockRouteBackInApp = jest.fn();
+                store = mockStore({
+                    ...mock,
+                    common: {
+                        ...mock.common,
+                        routeBackInApp: mockRouteBackInApp,
+                    },
+                });
+
+                const history = createMemoryHistory({
+                    initialEntries: ['/?redirect=blob:https://example.com/malicious'],
+                });
+
+                renderReports(store, history);
+                await userEvent.click(screen.getByTestId(onCloseClick));
+
+                expect(mockRouteBackInApp).toHaveBeenCalled();
+                expect(window.location.href).toBe('');
+            });
+
+            test('blocks double-encoded javascript: URLs', async () => {
+                const mockRouteBackInApp = jest.fn();
+                store = mockStore({
+                    ...mock,
+                    common: {
+                        ...mock.common,
+                        routeBackInApp: mockRouteBackInApp,
+                    },
+                });
+
+                const history = createMemoryHistory({
+                    initialEntries: ['/?redirect=javascript%253Aalert(1)'],
+                });
+
+                renderReports(store, history);
+                await userEvent.click(screen.getByTestId(onCloseClick));
+
+                expect(mockRouteBackInApp).toHaveBeenCalled();
+                expect(window.location.href).toBe('');
+            });
+
+            test('blocks triple-encoded javascript: URLs', async () => {
+                const mockRouteBackInApp = jest.fn();
+                store = mockStore({
+                    ...mock,
+                    common: {
+                        ...mock.common,
+                        routeBackInApp: mockRouteBackInApp,
+                    },
+                });
+
+                const history = createMemoryHistory({
+                    initialEntries: ['/?redirect=javascript%25253Aalert(1)'],
+                });
+
+                renderReports(store, history);
+                await userEvent.click(screen.getByTestId(onCloseClick));
+
+                expect(mockRouteBackInApp).toHaveBeenCalled();
+                expect(window.location.href).toBe('');
+            });
+        });
+
+        describe('Security - Open Redirect Protection', () => {
+            test('blocks redirect to unauthorized external domain', async () => {
+                const mockRouteBackInApp = jest.fn();
+                store = mockStore({
+                    ...mock,
+                    common: {
+                        ...mock.common,
+                        routeBackInApp: mockRouteBackInApp,
+                    },
+                });
+
+                const history = createMemoryHistory({
+                    initialEntries: ['/?redirect=malicious-site.com'],
+                });
+
+                renderReports(store, history);
+                await userEvent.click(screen.getByTestId(onCloseClick));
+
+                expect(mockRouteBackInApp).toHaveBeenCalled();
+                expect(window.location.href).toBe('');
+            });
+
+            test('blocks redirect to phishing site mimicking deriv domain', async () => {
+                const mockRouteBackInApp = jest.fn();
+                store = mockStore({
+                    ...mock,
+                    common: {
+                        ...mock.common,
+                        routeBackInApp: mockRouteBackInApp,
+                    },
+                });
+
+                const history = createMemoryHistory({
+                    initialEntries: ['/?redirect=deriv.com.phishing.com'],
+                });
+
+                renderReports(store, history);
+                await userEvent.click(screen.getByTestId(onCloseClick));
+
+                expect(mockRouteBackInApp).toHaveBeenCalled();
+                expect(window.location.href).toBe('');
+            });
+
+            test('blocks redirect to unauthorized preview domain', async () => {
+                const mockRouteBackInApp = jest.fn();
+                store = mockStore({
+                    ...mock,
+                    common: {
+                        ...mock.common,
+                        routeBackInApp: mockRouteBackInApp,
+                    },
+                });
+
+                const history = createMemoryHistory({
+                    initialEntries: ['/?redirect=derivatives-bot.pages.dev'],
+                });
+
+                renderReports(store, history);
+                await userEvent.click(screen.getByTestId(onCloseClick));
+
+                expect(mockRouteBackInApp).toHaveBeenCalled();
+                expect(window.location.href).toBe('');
+            });
+
+            test('blocks redirect with invalid preview domain pattern', async () => {
+                const mockRouteBackInApp = jest.fn();
+                store = mockStore({
+                    ...mock,
+                    common: {
+                        ...mock.common,
+                        routeBackInApp: mockRouteBackInApp,
+                    },
+                });
+
+                const history = createMemoryHistory({
+                    initialEntries: ['/?redirect=malicious.derivatives-bot.pages.dev.evil.com'],
+                });
+
+                renderReports(store, history);
+                await userEvent.click(screen.getByTestId(onCloseClick));
+
+                expect(mockRouteBackInApp).toHaveBeenCalled();
+                expect(window.location.href).toBe('');
+            });
+
+            test('blocks URLs with user credentials (phishing protection)', async () => {
+                const mockRouteBackInApp = jest.fn();
+                store = mockStore({
+                    ...mock,
+                    common: {
+                        ...mock.common,
+                        routeBackInApp: mockRouteBackInApp,
+                    },
+                });
+
+                const history = createMemoryHistory({
+                    initialEntries: ['/?redirect=https://user:pass@evil.com'],
+                });
+
+                renderReports(store, history);
+                await userEvent.click(screen.getByTestId(onCloseClick));
+
+                expect(mockRouteBackInApp).toHaveBeenCalled();
+                expect(window.location.href).toBe('');
+            });
+
+            test('blocks URLs with username only', async () => {
+                const mockRouteBackInApp = jest.fn();
+                store = mockStore({
+                    ...mock,
+                    common: {
+                        ...mock.common,
+                        routeBackInApp: mockRouteBackInApp,
+                    },
+                });
+
+                const history = createMemoryHistory({
+                    initialEntries: ['/?redirect=https://deriv.com@evil.com'],
+                });
+
+                renderReports(store, history);
+                await userEvent.click(screen.getByTestId(onCloseClick));
+
+                expect(mockRouteBackInApp).toHaveBeenCalled();
+                expect(window.location.href).toBe('');
+            });
+
+            test('handles protocol-relative URLs correctly', async () => {
+                const history = createMemoryHistory({
+                    initialEntries: ['/?redirect=//dtrader.deriv.com'],
+                });
+
+                renderReports(store, history);
+                await userEvent.click(screen.getByTestId(onCloseClick));
+
+                expect(window.location.href).toBe('https://dtrader.deriv.com');
+            });
+
+            test('blocks extremely long URLs (DoS protection)', async () => {
+                const mockRouteBackInApp = jest.fn();
+                store = mockStore({
+                    ...mock,
+                    common: {
+                        ...mock.common,
+                        routeBackInApp: mockRouteBackInApp,
+                    },
+                });
+
+                const longUrl = `dtrader.deriv.com/${'a'.repeat(3000)}`;
+                const history = createMemoryHistory({
+                    initialEntries: [`/?redirect=${longUrl}`],
+                });
+
+                renderReports(store, history);
+                await userEvent.click(screen.getByTestId(onCloseClick));
+
+                expect(mockRouteBackInApp).toHaveBeenCalled();
+                expect(window.location.href).toBe('');
+            });
+        });
+
+        describe('Error handling', () => {
+            test('handles malformed URLs gracefully', async () => {
+                const mockRouteBackInApp = jest.fn();
+                store = mockStore({
+                    ...mock,
+                    common: {
+                        ...mock.common,
+                        routeBackInApp: mockRouteBackInApp,
+                    },
+                });
+
+                const history = createMemoryHistory({
+                    initialEntries: ['/?redirect=ht!tp://invalid'],
+                });
+
+                renderReports(store, history);
+                await userEvent.click(screen.getByTestId(onCloseClick));
+
+                expect(mockRouteBackInApp).toHaveBeenCalled();
+                expect(window.location.href).toBe('');
+            });
+
+            test('calls routeBackInApp when no redirect parameter is present', async () => {
+                const mockRouteBackInApp = jest.fn();
+                store = mockStore({
+                    ...mock,
+                    common: {
+                        ...mock.common,
+                        routeBackInApp: mockRouteBackInApp,
+                    },
+                });
+                const history = createMemoryHistory({
+                    initialEntries: ['/'],
+                });
+
+                renderReports(store, history);
+                await userEvent.click(screen.getByTestId(onCloseClick));
+
+                expect(mockRouteBackInApp).toHaveBeenCalled();
+                expect(window.location.href).toBe('');
+            });
+        });
+
+        describe('Component behavior', () => {
+            test('captures redirect parameter on component mount', () => {
+                const history = createMemoryHistory({
+                    initialEntries: ['/?redirect=dtrader.deriv.com'],
+                });
+
+                renderReports(store, history);
+
+                // The component should render without errors when redirect parameter is present
+                expect(screen.getByTestId(onCloseClick)).toBeInTheDocument();
+            });
+
+            test('handles navigation without redirect parameter', () => {
+                const history = createMemoryHistory({
+                    initialEntries: ['/'],
+                });
+
+                renderReports(store, history);
+
+                // The component should render normally without redirect parameter
+                expect(screen.getByTestId(onCloseClick)).toBeInTheDocument();
+            });
+        });
     });
 });

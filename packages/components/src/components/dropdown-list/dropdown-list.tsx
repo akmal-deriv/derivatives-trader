@@ -1,18 +1,20 @@
 import React from 'react';
-import classNames from 'classnames';
 import ReactDOM from 'react-dom';
 import { CSSTransition } from 'react-transition-group';
-import ThemedScrollbars from '../themed-scrollbars/themed-scrollbars';
-import { ResidenceList } from '@deriv/api-types';
+import classNames from 'classnames';
 
-export type TItem =
-    | string
-    | (ResidenceList[0] & {
-          component?: React.ReactNode;
-          group?: string;
-          text?: string;
-          value?: string;
-      });
+import ThemedScrollbars from '../themed-scrollbars/themed-scrollbars';
+
+export type TDropdownItem = {
+    component?: React.ReactNode;
+    group?: string;
+    text?: string;
+    value?: string;
+    disabled?: string;
+    [key: string]: any; // Allow additional properties for flexibility
+};
+
+export type TItem = string | TDropdownItem;
 
 type TListItem = {
     is_active: boolean;
@@ -161,6 +163,7 @@ const DropdownList = (props: TDropDownList) => {
         not_found_text,
         portal_id,
     } = props;
+    const nodeRef = React.useRef(null);
 
     if (list_items?.length && typeof list_items[0] !== 'string' && typeof list_items[0] !== 'object') {
         throw Error('Dropdown received wrong data structure');
@@ -180,8 +183,18 @@ const DropdownList = (props: TDropDownList) => {
                 exit: 'dc-dropdown-list--exit',
             }}
             unmountOnExit
+            nodeRef={nodeRef}
         >
-            <div style={style} className='dc-dropdown-list' ref={list_wrapper_ref}>
+            <div
+                ref={node => {
+                    (nodeRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
+                    if (list_wrapper_ref) {
+                        (list_wrapper_ref as React.MutableRefObject<HTMLDivElement | null>).current = node;
+                    }
+                }}
+                style={style}
+                className='dc-dropdown-list'
+            >
                 <ThemedScrollbars height={list_height || '220px'} refSetter={dropdown_ref} onScroll={onScrollStop}>
                     {is_object ? (
                         Object.keys(list_items).map((items, idx) => (

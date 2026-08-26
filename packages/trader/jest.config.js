@@ -5,7 +5,6 @@ module.exports = {
     moduleNameMapper: {
         ...baseConfigForPackages.moduleNameMapper,
         '^_common/(.*)$': '<rootDir>/src/_common/$1',
-        '^App/(.*)$': '<rootDir>/src/App/$1',
         '^AppV2/(.*)$': '<rootDir>/src/AppV2/$1',
         '^Assets/(.*)$': '<rootDir>/src/Assets/$1',
         '^Constants/(.*)$': '<rootDir>/src/Constants/$1',

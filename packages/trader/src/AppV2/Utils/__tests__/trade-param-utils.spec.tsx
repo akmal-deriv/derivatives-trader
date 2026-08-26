@@ -1,7 +1,6 @@
-import React, { ReactElement } from 'react';
-import moment from 'moment';
+import React from 'react';
 
-import { CONTRACT_TYPES, TRADE_TYPES } from '@deriv/shared';
+import { CONTRACT_TYPES, dayjs, TRADE_TYPES } from '@deriv/shared';
 import { mockStore } from '@deriv/stores';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -10,13 +9,23 @@ import { getProposalInfo } from 'Stores/Modules/Trading/Helpers/proposal';
 
 import {
     addUnit,
+    clampTimeWheelSelection,
+    DURATION_TAB,
     focusAndOpenKeyboard,
     getDatePickerStartDate,
-    getOptionPerUnit,
+    getDefaultDuration,
+    getDurationFromTimeWheelSelection,
+    getDurationTab,
     getPayoutInfo,
     getProposalRequestObject,
     getSmallestDuration,
     getSnackBarText,
+    getStakePresetValues,
+    getTicksWheelOptions,
+    getTickWheelRange,
+    getTimeWheelColumnRange,
+    getTimeWheelSelectionFromDuration,
+    getTimeWheelVisibleUnits,
     getTradeParams,
     getTradeTypeTabsList,
     isDigitContractWinning,
@@ -26,6 +35,7 @@ import {
 describe('getTradeParams', () => {
     it('should return correct object with keys for Rise/Fall', () => {
         expect(getTradeParams()[TRADE_TYPES.RISE_FALL]).toEqual({
+            trade_type_tabs: true,
             duration: true,
             stake: true,
             allow_equals: true,
@@ -34,17 +44,21 @@ describe('getTradeParams', () => {
 
     it('should return correct object with keys for Multipliers if symbol does not start with "cry"', () => {
         expect(getTradeParams()[TRADE_TYPES.MULTIPLIER]).toEqual({
+            trade_type_tabs: true,
             multiplier: true,
             stake: true,
             risk_management: true,
+            multipliers_info: true,
         });
     });
 
     it('should return correct object with keys for Multipliers if symbol starts with "cry"', () => {
         expect(getTradeParams('crypto')[TRADE_TYPES.MULTIPLIER]).toEqual({
+            trade_type_tabs: true,
             multiplier: true,
             stake: true,
             risk_management: true,
+            multipliers_info: true,
             expiration: true,
         });
     });
@@ -102,6 +116,7 @@ describe('isDigitContractWinning', () => {
 
 describe('focusAndOpenKeyboard', () => {
     it('should apply focus to the passed ReactElement', async () => {
+        const user = userEvent.setup({ delay: null });
         jest.useFakeTimers();
 
         const MockComponent = () => {
@@ -124,7 +139,7 @@ describe('focusAndOpenKeyboard', () => {
         const input = screen.getByRole('spinbutton');
         expect(input).not.toHaveFocus();
 
-        await userEvent.click(screen.getByText('Focus'));
+        await user.click(screen.getByText('Focus'));
 
         jest.runAllTimers();
 
@@ -304,50 +319,35 @@ describe('getSnackBarText', () => {
     });
 });
 
-describe('getOptionPerUnit', () => {
-    const renderOptions = (options: { value: number; label: React.ReactNode }[]) => {
-        return options.map(option => {
-            if (React.isValidElement(option.label)) {
-                const { container } = render(option.label as ReactElement);
-                return container.textContent;
-            }
-            return '';
-        });
-    };
-
-    const duration_min_max = {
-        intraday: { min: 900, max: 3600 },
-        tick: { min: 5, max: 10 },
-        daily: { min: 86400, max: 31536000 },
-    };
-
-    test('returns correct options for minutes (m)', () => {
-        const result = getOptionPerUnit('m', duration_min_max);
-        const view = renderOptions(result[0]);
-        expect(result).toHaveLength(1);
-        expect(view).toEqual([...Array(45)].map((_, i) => `${i + 15} min`));
+describe('getTickWheelRange', () => {
+    it('should clamp the contract tick limits to the wheel bounds 1..10', () => {
+        expect(getTickWheelRange({ tick: { min: 5, max: 10 } })).toEqual({ min: 5, max: 10 });
+        expect(getTickWheelRange({ tick: { min: 0, max: 25 } })).toEqual({ min: 1, max: 10 });
     });
 
-    test('returns correct options for days (d)', () => {
-        const result = getOptionPerUnit('d', duration_min_max);
-        const view = renderOptions(result[0]);
-        expect(result).toHaveLength(1);
-        expect(view).toEqual([...Array(365)].map((_, i) => `${i + 1} days`));
+    it('should fall back to 1..10 when tick limits are missing', () => {
+        expect(getTickWheelRange({})).toEqual({ min: 1, max: 10 });
+    });
+});
+
+describe('getTicksWheelOptions', () => {
+    it('should return labelled options across the full tick range', () => {
+        const options = getTicksWheelOptions({ tick: { min: 1, max: 10 } });
+        expect(options).toHaveLength(10);
+        expect(options[0]).toEqual({ value: 1, label: '1 tick' });
+        expect(options[9]).toEqual({ value: 10, label: '10 ticks' });
     });
 
-    test('returns correct options for ticks (t)', () => {
-        const result = getOptionPerUnit('t', duration_min_max);
-        const view = renderOptions(result[0]);
-        expect(result).toHaveLength(1);
-        expect(view).toEqual([...Array(6)].map((_, i) => `${i + 5} ticks`));
-    });
-
-    test('returns correct options for ticks (t) when 5 ticks are required', () => {
-        const modifiedDuration = { ...duration_min_max, tick: { min: 1, max: 10 } };
-        const result = getOptionPerUnit('t', modifiedDuration);
-        const view = renderOptions(result[0]);
-        expect(result).toHaveLength(1);
-        expect(view).toEqual([...Array(10)].map((_, i) => `${i + 1} ${i + 1 > 1 ? 'ticks' : 'tick'}`));
+    it('should start from the contract minimum', () => {
+        const options = getTicksWheelOptions({ tick: { min: 5, max: 10 } });
+        expect(options.map(({ label }) => label)).toEqual([
+            '5 ticks',
+            '6 ticks',
+            '7 ticks',
+            '8 ticks',
+            '9 ticks',
+            '10 ticks',
+        ]);
     });
 });
 
@@ -389,6 +389,67 @@ describe('getSmallestDuration', () => {
         const result = getSmallestDuration(obj, durationUnits);
         expect(result).toBeNull();
     });
+
+    it('should return seconds for a sub-minute intraday minimum when no tick unit exists', () => {
+        const obj = { intraday: { min: 30 } };
+        const no_tick_units = durationUnits.filter(({ value }) => value !== 't');
+        const result = getSmallestDuration(obj, no_tick_units);
+        expect(result).toEqual({ value: 30, unit: 's' });
+    });
+
+    it('should round a non-whole-unit minimum up so the integer duration stays valid', () => {
+        // 90s min: 1.5m would be truncated to 1m (below minimum) by the proposal's parseInt.
+        const obj = { intraday: { min: 90 } };
+        const result = getSmallestDuration(
+            obj,
+            durationUnits.filter(({ value }) => value !== 't')
+        );
+        expect(result).toEqual({ value: 2, unit: 'm' });
+    });
+});
+
+describe('getDefaultDuration', () => {
+    const tick_units = [
+        { value: 't', text: 'Ticks' },
+        { value: 'm', text: 'Minutes' },
+    ];
+    const tick_min_max = { tick: { min: 1, max: 10 }, intraday: { min: 60, max: 86400 } };
+
+    it('returns the configured tick default for Rise/Fall when the symbol supports it', () => {
+        expect(getDefaultDuration(TRADE_TYPES.RISE_FALL, tick_min_max, tick_units)).toEqual({ value: 5, unit: 't' });
+    });
+
+    it('returns 10 ticks for Higher/Lower', () => {
+        expect(getDefaultDuration(TRADE_TYPES.HIGH_LOW, tick_min_max, tick_units)).toEqual({ value: 10, unit: 't' });
+    });
+
+    it('returns 10 ticks for Touch/No Touch', () => {
+        expect(getDefaultDuration(TRADE_TYPES.TOUCH, tick_min_max, tick_units)).toEqual({ value: 10, unit: 't' });
+    });
+
+    it('returns 2 ticks for all Digits sub-types', () => {
+        expect(getDefaultDuration(TRADE_TYPES.MATCH_DIFF, tick_min_max, tick_units)).toEqual({ value: 2, unit: 't' });
+        expect(getDefaultDuration(TRADE_TYPES.EVEN_ODD, tick_min_max, tick_units)).toEqual({ value: 2, unit: 't' });
+        expect(getDefaultDuration(TRADE_TYPES.OVER_UNDER, tick_min_max, tick_units)).toEqual({ value: 2, unit: 't' });
+    });
+
+    it('returns 1 minute for Vanillas', () => {
+        expect(getDefaultDuration(TRADE_TYPES.VANILLA.CALL, tick_min_max, tick_units)).toEqual({ value: 1, unit: 'm' });
+    });
+
+    it('returns 10 ticks for Turbos', () => {
+        expect(getDefaultDuration(TRADE_TYPES.TURBOS.LONG, tick_min_max, tick_units)).toEqual({ value: 10, unit: 't' });
+    });
+
+    it('falls back to the smallest duration when the preferred unit is unavailable', () => {
+        const no_tick_units = [{ value: 'm', text: 'Minutes' }];
+        const min_max = { intraday: { min: 900, max: 86400 } }; // 15 min minimum, no ticks
+        expect(getDefaultDuration(TRADE_TYPES.RISE_FALL, min_max, no_tick_units)).toEqual({ value: 15, unit: 'm' });
+    });
+
+    it('falls back to the smallest duration for an unmapped contract type', () => {
+        expect(getDefaultDuration(TRADE_TYPES.ACCUMULATOR, tick_min_max, tick_units)).toEqual({ value: 1, unit: 't' });
+    });
 });
 
 describe('getDatePickerStartDate', () => {
@@ -403,23 +464,25 @@ describe('getDatePickerStartDate', () => {
     ];
 
     beforeAll(() => {
-        jest.spyOn(global.Date, 'now').mockImplementation(() => new Date('2024-10-08T08:00:00Z').getTime());
+        // dayjs calls `new Date()` internally rather than `Date.now()`, so a `Date.now` spy
+        // alone won't freeze its clock. `jest.useFakeTimers().setSystemTime(...)` freezes both.
+        jest.useFakeTimers().setSystemTime(new Date('2024-10-08T08:00:00Z'));
     });
 
     afterAll(() => {
-        jest.restoreAllMocks();
+        jest.useRealTimers();
     });
 
     it('should return the minimum date considering intraday duration', () => {
         const start_time = null;
-        const result = getDatePickerStartDate(durationUnits, moment(), start_time, duration_min_max);
+        const result = getDatePickerStartDate(durationUnits, dayjs(), start_time, duration_min_max);
         expect(result).toBeInstanceOf(Date);
         expect(result.toISOString()).toContain('2024-10-08');
     });
 
     it('should set the correct time when a start time is provided', () => {
         const start_time = '12:30:00';
-        const result = getDatePickerStartDate(durationUnits, moment(), start_time, duration_min_max);
+        const result = getDatePickerStartDate(durationUnits, dayjs(), start_time, duration_min_max);
         expect(result).toBeInstanceOf(Date);
         expect(result.getHours()).toBe(12);
         expect(result.getMinutes()).toBe(30);
@@ -427,7 +490,7 @@ describe('getDatePickerStartDate', () => {
 
     it('should add min duration to the current time when no intraday duration exists', () => {
         const nonIntradayUnits = [{ value: 'd', text: 'Days' }];
-        const result = getDatePickerStartDate(nonIntradayUnits, moment(), null, duration_min_max);
+        const result = getDatePickerStartDate(nonIntradayUnits, dayjs(), null, duration_min_max);
         expect(result).toBeInstanceOf(Date);
         expect(result.toISOString()).toContain('2024-10-09');
     });
@@ -505,6 +568,10 @@ describe('getProposalRequestObject', () => {
                     currency: 'USD',
                     contract_type: TRADE_TYPES.TURBOS.LONG,
                     symbol: '1HZ100V',
+                    duration: 5,
+                    duration_unit: 'm',
+                    expiry_type: 'duration',
+                    payout_per_point: 5,
                 },
             },
         });
@@ -526,6 +593,8 @@ describe('getProposalRequestObject', () => {
             contract_type: TRADE_TYPES.TURBOS.LONG,
             currency: 'USD',
             underlying_symbol: '1HZ100V',
+            duration: 5,
+            duration_unit: 'm',
             payout_per_point: 5,
             limit_order: { take_profit: 5 },
         });
@@ -542,6 +611,8 @@ describe('getProposalRequestObject', () => {
             contract_type: TRADE_TYPES.TURBOS.LONG,
             currency: 'USD',
             underlying_symbol: '1HZ100V',
+            duration: 5,
+            duration_unit: 'm',
             payout_per_point: 5,
             limit_order: undefined,
         });
@@ -694,5 +765,190 @@ describe('getPayoutInfo', () => {
             max_payout: 5000,
             error: 'Minimum stake of 0.35 and maximum payout of 5000.00. Current payout is 31263.39.',
         });
+    });
+});
+
+describe('getDurationTab', () => {
+    it('should return the End time tab when an expiry time is set', () => {
+        expect(getDurationTab('s', true)).toBe(DURATION_TAB.END_TIME);
+    });
+
+    it('should return the End time tab for the days unit', () => {
+        expect(getDurationTab('d')).toBe(DURATION_TAB.END_TIME);
+    });
+
+    it('should return the Ticks tab for the ticks unit', () => {
+        expect(getDurationTab('t')).toBe(DURATION_TAB.TICKS);
+    });
+
+    it('should return the Time tab for intraday units', () => {
+        expect(getDurationTab('s')).toBe(DURATION_TAB.TIME);
+        expect(getDurationTab('m')).toBe(DURATION_TAB.TIME);
+        expect(getDurationTab('h')).toBe(DURATION_TAB.TIME);
+    });
+});
+
+describe('getTimeWheelVisibleUnits', () => {
+    it('should return h, m and s in coarse-to-fine order when all are available', () => {
+        expect(
+            getTimeWheelVisibleUnits([{ value: 's' }, { value: 't' }, { value: 'm' }, { value: 'h' }, { value: 'd' }])
+        ).toEqual(['h', 'm', 's']);
+    });
+
+    it('should exclude units that are not available', () => {
+        expect(getTimeWheelVisibleUnits([{ value: 'm' }, { value: 'h' }, { value: 'd' }])).toEqual(['h', 'm']);
+        expect(getTimeWheelVisibleUnits([{ value: 't' }, { value: 'd' }])).toEqual([]);
+    });
+
+    it('should return an empty array for an empty or missing list', () => {
+        expect(getTimeWheelVisibleUnits([])).toEqual([]);
+        expect(getTimeWheelVisibleUnits()).toEqual([]);
+    });
+});
+
+describe('getTimeWheelColumnRange', () => {
+    const all_units = ['h', 'm', 's'];
+    const intraday = { min: 15, max: 86400 };
+
+    it('should allow the full hour range since finer columns can reach the minimum', () => {
+        expect(getTimeWheelColumnRange('h', all_units, intraday, [0, 0, 15])).toEqual({ min: 0, max: 24 });
+    });
+
+    it('should restrict seconds to the intraday minimum when hours and minutes are 0', () => {
+        expect(getTimeWheelColumnRange('s', all_units, intraday, [0, 0, 15])).toEqual({ min: 15, max: 59 });
+    });
+
+    it('should allow all seconds once a coarser column already covers the minimum', () => {
+        expect(getTimeWheelColumnRange('s', all_units, intraday, [0, 1, 0])).toEqual({ min: 0, max: 59 });
+        expect(getTimeWheelColumnRange('s', all_units, intraday, [1, 0, 0])).toEqual({ min: 0, max: 59 });
+    });
+
+    it('should collapse minutes and seconds to 0 at the maximum hour', () => {
+        expect(getTimeWheelColumnRange('m', all_units, intraday, [24, 0, 0])).toEqual({ min: 0, max: 0 });
+        expect(getTimeWheelColumnRange('s', all_units, intraday, [24, 0, 0])).toEqual({ min: 0, max: 0 });
+    });
+
+    it('should raise the minimum hour when finer columns cannot reach the intraday minimum', () => {
+        // 1 hr 59 min 59 sec = 7199s < 7200s, so 2 hours is the lowest reachable hour
+        expect(getTimeWheelColumnRange('h', all_units, { min: 7200, max: 86400 }, [0, 0, 0])).toEqual({
+            min: 2,
+            max: 24,
+        });
+    });
+
+    it('should restrict minutes to the intraday minimum when seconds are unavailable', () => {
+        const units = ['h', 'm'];
+        expect(getTimeWheelColumnRange('m', units, { min: 900, max: 86400 }, [0, 15])).toEqual({ min: 15, max: 59 });
+        expect(getTimeWheelColumnRange('m', units, { min: 900, max: 86400 }, [1, 0])).toEqual({ min: 0, max: 59 });
+    });
+
+    it('should cap minutes by the intraday maximum for sub-hour contracts', () => {
+        expect(getTimeWheelColumnRange('h', all_units, { min: 15, max: 3600 }, [0, 0, 15])).toEqual({ min: 0, max: 1 });
+        expect(getTimeWheelColumnRange('m', all_units, { min: 15, max: 3600 }, [1, 0, 0])).toEqual({ min: 0, max: 0 });
+        expect(getTimeWheelColumnRange('m', all_units, { min: 15, max: 3600 }, [0, 0, 15])).toEqual({
+            min: 0,
+            max: 59,
+        });
+    });
+});
+
+describe('clampTimeWheelSelection', () => {
+    const all_units = ['h', 'm', 's'];
+    const intraday = { min: 15, max: 86400 };
+
+    it('should snap a selection below the minimum up to the smallest valid combination', () => {
+        expect(clampTimeWheelSelection(all_units, intraday, [0, 0, 0])).toEqual([0, 0, 15]);
+    });
+
+    it('should snap a selection above the maximum down to the largest valid combination', () => {
+        expect(clampTimeWheelSelection(all_units, intraday, [25, 30, 30])).toEqual([24, 0, 0]);
+    });
+
+    it('should keep a valid selection unchanged', () => {
+        expect(clampTimeWheelSelection(all_units, intraday, [1, 30, 45])).toEqual([1, 30, 45]);
+    });
+
+    it('should zero out hidden units', () => {
+        expect(clampTimeWheelSelection(['m', 's'], { min: 15, max: 3540 }, [2, 30, 45])).toEqual([0, 30, 45]);
+    });
+});
+
+describe('getDurationFromTimeWheelSelection', () => {
+    it('should map selections with seconds to a seconds duration', () => {
+        expect(getDurationFromTimeWheelSelection([0, 0, 45])).toEqual({ duration: 45, duration_unit: 's' });
+        expect(getDurationFromTimeWheelSelection([0, 2, 15])).toEqual({ duration: 135, duration_unit: 's' });
+        expect(getDurationFromTimeWheelSelection([1, 0, 30])).toEqual({ duration: 3630, duration_unit: 's' });
+    });
+
+    it('should map selections without seconds to a minutes duration, including whole hours', () => {
+        expect(getDurationFromTimeWheelSelection([0, 30, 0])).toEqual({ duration: 30, duration_unit: 'm' });
+        expect(getDurationFromTimeWheelSelection([1, 30, 0])).toEqual({ duration: 90, duration_unit: 'm' });
+        expect(getDurationFromTimeWheelSelection([2, 0, 0])).toEqual({ duration: 120, duration_unit: 'm' });
+    });
+
+    it('should send whole hours as hours when minutes are not an offered unit', () => {
+        const hours_only = [{ value: 'h' }, { value: 'd' }];
+        expect(getDurationFromTimeWheelSelection([3, 0, 0], hours_only)).toEqual({ duration: 3, duration_unit: 'h' });
+
+        const with_minutes = [{ value: 'm' }, { value: 'h' }, { value: 'd' }];
+        expect(getDurationFromTimeWheelSelection([3, 0, 0], with_minutes)).toEqual({
+            duration: 180,
+            duration_unit: 'm',
+        });
+    });
+});
+
+describe('getTimeWheelSelectionFromDuration', () => {
+    it('should split a seconds duration into hours, minutes and seconds', () => {
+        expect(getTimeWheelSelectionFromDuration(45, 's')).toEqual([0, 0, 45]);
+        expect(getTimeWheelSelectionFromDuration(5445, 's')).toEqual([1, 30, 45]);
+    });
+
+    it('should split a minutes duration into hours and minutes', () => {
+        expect(getTimeWheelSelectionFromDuration(30, 'm')).toEqual([0, 30, 0]);
+        expect(getTimeWheelSelectionFromDuration(90, 'm')).toEqual([1, 30, 0]);
+    });
+
+    it('should map an hours duration to whole hours', () => {
+        expect(getTimeWheelSelectionFromDuration(2, 'h')).toEqual([2, 0, 0]);
+    });
+
+    it('should fall back to zeros for non-time units', () => {
+        expect(getTimeWheelSelectionFromDuration(5, 't')).toEqual([0, 0, 0]);
+        expect(getTimeWheelSelectionFromDuration(1, 'd')).toEqual([0, 0, 0]);
+    });
+});
+
+describe('getStakePresetValues', () => {
+    const base = [1, 5, 10, 20, 50, 100];
+
+    it('should return base presets unchanged when limits are missing', () => {
+        expect(getStakePresetValues(base)).toEqual(base);
+        expect(getStakePresetValues(base, 0, 0)).toEqual(base);
+        expect(getStakePresetValues(base, '1', undefined)).toEqual(base);
+    });
+
+    it('should keep all base presets when they fit the limits', () => {
+        expect(getStakePresetValues(base, 1, 50000)).toEqual(base);
+    });
+
+    it('should drop presets below the market minimum', () => {
+        expect(getStakePresetValues(base, 5, 50000)).toEqual([5, 10, 20, 50, 100]);
+    });
+
+    it('should prepend the market minimum when it invalidates the lower presets without matching one', () => {
+        expect(getStakePresetValues(base, 3, 50000)).toEqual([3, 5, 10, 20, 50, 100]);
+    });
+
+    it('should drop presets above the market maximum', () => {
+        expect(getStakePresetValues(base, 1, 25)).toEqual([1, 5, 10, 20]);
+    });
+
+    it('should derive presets from the minimum when limits invalidate most of the base', () => {
+        expect(getStakePresetValues(base, 200, 50000)).toEqual([200, 400, 1000, 2000, 3000, 5000]);
+    });
+
+    it('should fall back to the minimum alone for extremely tight limits', () => {
+        expect(getStakePresetValues(base, 200, 250)).toEqual([200]);
     });
 });

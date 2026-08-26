@@ -1,11 +1,13 @@
 import React from 'react';
-import debounce from 'lodash.debounce';
-import classNames from 'classnames';
 import { NavLink } from 'react-router-dom';
-import { CSSTransition } from 'react-transition-group';
 import { useSwipeable } from 'react-swipeable';
-import { Localize } from '@deriv-com/translations';
+import { CSSTransition } from 'react-transition-group';
+import classNames from 'classnames';
+import debounce from 'lodash.debounce';
+
 import { getTimeSince } from '@deriv/shared';
+import { Localize } from '@deriv-com/translations';
+
 import Text from '../text';
 
 type TSwipeableNotificationProps = React.PropsWithChildren<{
@@ -40,6 +42,7 @@ const SwipeableNotification = ({
     }, []);
     const [seconds, setSeconds] = React.useState<number | null>(getSeconds(timestamp));
     const interval_ref = React.useRef<ReturnType<typeof setInterval>>();
+    const nodeRef = React.useRef(null);
 
     const hideNotification = () => setIsVisible(false);
     const debouncedHideNotification = React.useMemo(
@@ -94,20 +97,23 @@ const SwipeableNotification = ({
                 exit: 600,
             }}
             unmountOnExit
+            nodeRef={nodeRef}
         >
-            <NavLink
-                className={classNames(classname, {
-                    [`${classname}--failure`]: is_failure,
-                    [`${classname}--success`]: is_success,
-                })}
-                to={redirect_to}
-                {...swipe_handlers}
-            >
-                <div className={`${classname}-content`}>{children}</div>
-                <Text as='p' size='xxxs' line_height='s' className={`${classname}-time`}>
-                    {getDisplayedTime()}
-                </Text>
-            </NavLink>
+            <div ref={nodeRef}>
+                <NavLink
+                    className={classNames(classname, {
+                        [`${classname}--failure`]: is_failure,
+                        [`${classname}--success`]: is_success,
+                    })}
+                    to={redirect_to}
+                    {...swipe_handlers}
+                >
+                    <div className={`${classname}-content`}>{children}</div>
+                    <Text as='p' size='xxxs' line_height='s' className={`${classname}-time`}>
+                        {getDisplayedTime()}
+                    </Text>
+                </NavLink>
+            </div>
         </CSSTransition>
     );
 };

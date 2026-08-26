@@ -23,6 +23,7 @@ import {
 import { TColIndex } from 'Types';
 
 import { getLatestContractType } from '../Constants/contract-types';
+import useIsEuAccount from '../Hooks/useIsEuAccount';
 
 import { MobileRowRenderer } from './mobile-row-renderer';
 import { OpenPositionsTable } from './open-positions-table';
@@ -75,8 +76,8 @@ const getOpenPositionsTotals = (
             purchase += Number(portfolio_pos.purchase);
             if (portfolio_pos.contract_info) {
                 const prices = {
-                    bid_price: portfolio_pos.contract_info.bid_price ?? 0,
-                    buy_price: portfolio_pos.contract_info.buy_price ?? 0,
+                    bid_price: portfolio_pos.contract_info.bid_price ?? '0',
+                    buy_price: portfolio_pos.contract_info.buy_price ?? '0',
                 };
                 profit += getTotalProfit(prices);
 
@@ -163,7 +164,7 @@ const OpenPositions = observer(({ component_icon, ...props }: TOpenPositions) =>
         onMount,
         removePositionById: onClickRemove,
     } = portfolio;
-    const { currency, is_eu: hide_accu_in_dropdown } = client;
+    const { currency } = client;
     const {
         notification_messages_ui: NotificationMessages,
         addToast,
@@ -190,7 +191,9 @@ const OpenPositions = observer(({ component_icon, ...props }: TOpenPositions) =>
         getContractById,
     };
 
-    const { isDesktop } = useDevice();
+    const { isMobile } = useDevice();
+    // EU detection is group-based here (client.is_eu / landing_company is not reliable in this app).
+    const { is_eu, is_ready: is_eu_account_ready } = useIsEuAccount();
     const previous_active_positions = usePrevious(active_positions);
 
     const generateContractTypes = () => {
@@ -241,8 +244,7 @@ const OpenPositions = observer(({ component_icon, ...props }: TOpenPositions) =>
         return contract_types;
     };
 
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    const contract_types = React.useMemo(() => generateContractTypes(), [previous_active_positions]);
+    const contract_types = React.useMemo(() => generateContractTypes(), [previous_active_positions, localize]);
 
     // Get the initial contract type value from localStorage (user selection) or fallback to contract_types
     const [contract_type_value, setContractTypeValue] = React.useState(() => {
@@ -256,20 +258,27 @@ const OpenPositions = observer(({ component_icon, ...props }: TOpenPositions) =>
         return contract_types.find(type => type.is_default)?.value || 'options';
     });
     const prev_contract_type_value = usePrevious(contract_type_value);
-    const accumulator_rates = [
-        { text: localize('All growth rates'), value: 'all growth rates' },
-        { text: '1%', value: '1%' },
-        { text: '2%', value: '2%' },
-        { text: '3%', value: '3%' },
-        { text: '4%', value: '4%' },
-        { text: '5%', value: '5%' },
-    ];
+    const accumulator_rates = React.useMemo(
+        () => [
+            { text: localize('All growth rates'), value: 'all growth rates' },
+            { text: '1%', value: '1%' },
+            { text: '2%', value: '2%' },
+            { text: '3%', value: '3%' },
+            { text: '4%', value: '4%' },
+            { text: '5%', value: '5%' },
+        ],
+        [localize]
+    );
     const [accumulator_rate, setAccumulatorRate] = React.useState(accumulator_rates[0].value);
     const prev_accumulator_rate = usePrevious(accumulator_rate);
-    const is_accumulator_selected = contract_type_value === contract_types[2].value;
-    const is_multiplier_selected = contract_type_value === contract_types[1].value;
+    // EU accounts can only trade Multipliers, so the trade-type filter should expose Multipliers
+    // only: force the selection to Multipliers and drop the other buckets from the dropdown (which
+    // then collapses to a single option and is hidden in the render below).
+    const effective_contract_type_value = is_eu ? CONTRACT_STORAGE_VALUES.MULTIPLIERS : contract_type_value;
+    const is_accumulator_selected = effective_contract_type_value === contract_types[2].value;
+    const is_multiplier_selected = effective_contract_type_value === contract_types[1].value;
     const contract_types_list = contract_types
-        .filter(contract_type => contract_type.value !== 'accumulators' || !hide_accu_in_dropdown)
+        .filter(({ value }) => (is_eu ? value === CONTRACT_STORAGE_VALUES.MULTIPLIERS : true))
         .map(({ text, value }) => ({ text, value }));
     const active_positions_filtered = active_positions?.filter(({ contract_info }) => {
         if (contract_info) {
@@ -326,30 +335,6 @@ const OpenPositions = observer(({ component_icon, ...props }: TOpenPositions) =>
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [previous_active_positions, active_positions, active_positions_filtered.length]);
 
-    React.useEffect(() => {
-        if (prev_contract_type_value) {
-            Analytics.trackEvent('ce_reports_form', {
-                action: 'filter_trade_type',
-                form_name: 'default',
-                subform_name: 'open_positions_form',
-                trade_type_filter: contract_type_value,
-            });
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [contract_type_value]);
-
-    React.useEffect(() => {
-        if (prev_accumulator_rate) {
-            Analytics.trackEvent('ce_reports_form', {
-                action: 'filter_growth_rate',
-                form_name: 'default',
-                subform_name: 'open_positions_form',
-                growth_type_filter: accumulator_rate,
-            });
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [accumulator_rate]);
-
     // Handle contract type selection
     const handleContractTypeChange = (value: string) => {
         setContractTypeValue(value);
@@ -358,7 +343,7 @@ const OpenPositions = observer(({ component_icon, ...props }: TOpenPositions) =>
 
     if (error) return <p>{error}</p>;
 
-    const getColumns = () => {
+    const columns = React.useMemo(() => {
         if (is_multiplier_selected && server_time) {
             return getMultiplierOpenPositionsColumnsTemplate({
                 currency,
@@ -366,7 +351,7 @@ const OpenPositions = observer(({ component_icon, ...props }: TOpenPositions) =>
                 onClickSell,
                 getPositionById,
                 server_time,
-                isDesktop,
+                isDesktop: !isMobile,
             });
         }
         if (is_accumulator_selected) {
@@ -374,13 +359,21 @@ const OpenPositions = observer(({ component_icon, ...props }: TOpenPositions) =>
                 currency,
                 onClickSell,
                 getPositionById,
-                isDesktop,
+                isDesktop: !isMobile,
             });
         }
-        return getOpenPositionsColumnsTemplate(currency, isDesktop);
-    };
-
-    const columns = getColumns();
+        return getOpenPositionsColumnsTemplate(currency, !isMobile);
+    }, [
+        is_multiplier_selected,
+        is_accumulator_selected,
+        server_time,
+        currency,
+        onClickCancel,
+        onClickSell,
+        getPositionById,
+        isMobile,
+        localize,
+    ]);
 
     const columns_map = {} as Record<TColIndex, TDataListCell['column']>;
     columns.forEach(e => {
@@ -403,7 +396,7 @@ const OpenPositions = observer(({ component_icon, ...props }: TOpenPositions) =>
         accumulator_rate,
         active_positions: active_positions_filtered,
         component_icon,
-        contract_type_value,
+        contract_type_value: effective_contract_type_value,
         currency,
         is_loading,
         mobileRowRenderer,
@@ -412,14 +405,14 @@ const OpenPositions = observer(({ component_icon, ...props }: TOpenPositions) =>
 
     const getOpenPositionsTable = () => {
         let classname = 'open-positions';
-        let row_size = isDesktop ? 63 : 5;
+        let row_size = !isMobile ? 63 : 5;
 
         if (is_accumulator_selected) {
             classname = 'open-positions-accumulator open-positions';
-            row_size = isDesktop ? 68 : 3;
+            row_size = !isMobile ? 68 : 3;
         } else if (is_multiplier_selected) {
             classname = 'open-positions-multiplier open-positions';
-            row_size = isDesktop ? 68 : 3;
+            row_size = !isMobile ? 68 : 3;
         }
 
         return (
@@ -437,7 +430,9 @@ const OpenPositions = observer(({ component_icon, ...props }: TOpenPositions) =>
         <React.Fragment>
             <NotificationMessages />
             {active_positions.length !== 0 &&
-                (isDesktop ? (
+                is_eu_account_ready &&
+                contract_types_list.length > 1 &&
+                (!isMobile ? (
                     <div
                         className={
                             is_accumulator_selected
@@ -454,7 +449,7 @@ const OpenPositions = observer(({ component_icon, ...props }: TOpenPositions) =>
                                 onChange={e => handleContractTypeChange(e.target.value)}
                             />
                         </div>
-                        {is_accumulator_selected && !hide_accu_in_dropdown && (
+                        {is_accumulator_selected && !is_eu && (
                             <div className='open-positions__accumulator-container__rates-dropdown'>
                                 <Dropdown
                                     is_align_text_left
@@ -483,7 +478,7 @@ const OpenPositions = observer(({ component_icon, ...props }: TOpenPositions) =>
                                 handleContractTypeChange(e.target.value)
                             }
                         />
-                        {is_accumulator_selected && !hide_accu_in_dropdown && (
+                        {is_accumulator_selected && !is_eu && (
                             <SelectNative
                                 className='open-positions__accumulator-container--mobile__rates-dropdown'
                                 list_items={accumulator_rates}

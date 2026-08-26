@@ -11,7 +11,6 @@ import ImageReset from 'Assets/SvgComponents/trade_explanations/img-reset.svg';
 import ImageRunHighLow from 'Assets/SvgComponents/trade_explanations/img-run-high-low.svg';
 import ImageSpread from 'Assets/SvgComponents/trade_explanations/img-spread.svg';
 import ImageTickHighLow from 'Assets/SvgComponents/trade_explanations/img-tick-high-low.svg';
-import ImageTurbos from 'Assets/SvgComponents/trade_explanations/img-turbos.svg';
 
 import ContractTypeDescriptionVideo from './contract-type-description-video';
 

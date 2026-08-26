@@ -1,11 +1,97 @@
 .trade-params {
-    border-radius: var(--core-borderRadius-400);
     background-color: var(--semantic-color-slate-solid-surface-frame-low);
-    padding: var(--core-spacing-800);
+    border-radius: var(--core-borderRadius-400) 0 var(--core-borderRadius-400) var(--core-borderRadius-400);
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    gap: var(--core-spacing-800);
+    height: 100%;
+    width: 100%;
+    min-height: 0;
+    box-sizing: border-box;
+    position: relative;
+    padding-bottom: 0;
+
+    // Content-height wrapper for the scrollable params + action button (Buy / Run) so the onboarding
+    // tour can spotlight just that, not the full-height card. Hugs its content; the footer sits below.
+    &__content {
+        display: flex;
+        flex-direction: column;
+        gap: var(--core-spacing-800);
+        flex: 0 1 auto;
+        min-height: 0;
+        padding: var(--core-spacing-800);
+    }
+
+    // Upper area: scrollable. Holds Guide, TradeParameters, ClosedMarketMessage
+    // and (in automation tab) the AutomationPanel fields. `flex: 0 1 auto`
+    // hugs the natural content height so the PurchaseButton (manual) /
+    // AutomationActions (automation) sibling sits immediately after the
+    // last field instead of being pushed to the bottom.
+    &__scrollable {
+        flex: 0 1 auto;
+        min-height: 0;
+        overflow-y: hidden;
+        display: flex;
+        flex-direction: column;
+        gap: var(--core-spacing-800);
+    }
+
+    &:has(.automation-actions) &__scrollable {
+        overflow-y: auto;
+    }
+
+    // Actions row (PurchaseButton on trade tab / AutomationActions on
+    // automation tab) sits as its own flex item right after the scrollable
+    // area, so when content fits it hugs the last field instead of being
+    // pushed to the bottom. `flex-shrink: 0` keeps it from being squashed
+    // when the scrollable area gets squeezed.
+    &__content > .purchase-button__wrapper,
+    &__content > .automation-actions {
+        flex-shrink: 0;
+    }
+
+    @include mobile-screen {
+        background-color: unset;
+        padding: unset;
+        gap: unset;
+    }
+
+    &__container {
+        position: fixed;
+        width: 100%;
+        bottom: 5.6rem; // HEIGHT.BOTTOM_NAV
+        left: 0;
+        right: 0;
+
+        // Chart maximized: the bottom-nav collapses, so drop the sheet to the screen edge to
+        // reclaim its space (animates via the existing `transition: all` on this container).
+        &--chart-maximized {
+            bottom: 0;
+        }
+        background: var(--semantic-color-slate-solid-surface-frame-mid);
+        transition: all 0.3s ease-in-out;
+        // Top padding stands in for the drag handle this sheet used to have — the params row now
+        // fits on screen, so the sheet has a single fixed height and nothing to expand into.
+        padding: var(--core-spacing-400) var(--core-spacing-400) 0;
+        border-radius: var(--core-spacing-800) var(--core-spacing-800) 0 0;
+        box-shadow: 0 -2px 4px 0 rgba(0, 0, 0, 0.08);
+        border-top: 1px solid var(--color-surface-border);
+        z-index: 20;
+        touch-action: manipulation; // Prevents double-tap zoom and hover states on touch
+
+        &-tabs {
+            padding: 0;
+            margin-bottom: 1.2rem;
+
+            .trade-params__option.segmented-control-single--sm {
+                background-color: var(--semantic-color-monochrome-surface-normal-lowest);
+            }
+        }
+
+        &-content {
+            position: relative;
+            z-index: 1; // Chart sits below
+        }
+    }
 
     &__title {
         display: flex;
@@ -13,7 +99,7 @@
         justify-content: space-between;
     }
     &__options {
-        &__wrapper {
+        &-wrapper {
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -28,55 +114,324 @@
                 white-space: nowrap;
                 -ms-overflow-style: none;
                 scrollbar-width: none;
-                // if container has 2 children, then apply style to children
-                &:has(> :last-child:nth-child(2)) {
-                    .trade-params__option--minimized {
-                        width: unset;
-                    }
+                // Tighter than the vertical row: every extra pixel of gap comes straight out of
+                // the text budget once 4 params (Turbos) have to share a 360px screen.
+                gap: var(--core-spacing-200);
+
+                // Every param takes an equal share of the row so the whole set is visible at once
+                // without scrolling. Targets the direct children rather than the chip itself
+                // because the row's children are not uniform: some params expose
+                // `.quill-input__container`, five wrap it in `.trade-params__field-locked`, and the
+                // loading fallbacks are a bare `.trade-params__option--minimized` div.
+                > * {
+                    flex: 1 1 0;
+                    min-width: 0;
                 }
 
                 &::-webkit-scrollbar {
                     display: none;
                 }
+
+                .trade-params__option--minimized {
+                    // Halved from quill's `size--lg` 16px. (0,2,0) beats quill's (0,1,0) whatever
+                    // the stylesheet order.
+                    padding-inline: var(--core-spacing-400);
+
+                    // Quill leaves `min-width` at `auto` on its internals, so their automatic
+                    // minimum size is min-content — which the `<input>`'s intrinsic width
+                    // (`size=20`, ~177px) dominates. Without this the chip refuses to shrink to its
+                    // share, hard-clips mid-glyph instead of ellipsising, and pushes the status
+                    // icon outside the chip.
+                    .quill-input-icons__wrapper,
+                    .quill-input-label__wrapper,
+                    .input {
+                        min-width: 0;
+                    }
+
+                    .input {
+                        text-overflow: ellipsis;
+                    }
+                }
+
+                // The label text is a bare text node (Localize renders react-i18next's `Trans` with
+                // no `defaultTransParent`), i.e. an anonymous flex item no selector can reach — so
+                // the label itself has to leave `display: flex` for `text-overflow` to work.
+                // `top: -3px` + an 18px box reproduces quill's geometry exactly: it centres an 18px
+                // line box inside a 12px label box, i.e. an offset of (12 - 18) / 2.
+                //
+                // Compiled specificity (0,5,0) — `--horizontal` collapses to a single class token,
+                // so the count is: wrapper--horizontal, option, option--minimized,
+                // label__wrapper--has-value, label. It has to beat
+                // `.quill-input__wrapper .peer:focus + .label` (0,4,0) and
+                // `.quill-input__wrapper .peer:not(placeholder-shown) + .label` (0,3,1) even after a
+                // Reports visit re-injects quill's base2.css after the trader CSS (see
+                // purchase-button.scss). Scoped to `--has-value` because the offset assumes quill's
+                // 12px `--has-value` padding-top; Barrier has no skeleton guard and legitimately
+                // renders an empty value before the first proposal, where quill's centred resting
+                // label must be left alone.
+                .trade-params__option.trade-params__option--minimized .quill-input-label__wrapper--has-value > .label {
+                    display: block;
+                    height: var(--core-lineHeight-100);
+                    line-height: var(--core-lineHeight-100);
+                    top: calc((var(--core-size-600) - var(--core-lineHeight-100)) / 2);
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                }
+
+                // EXPERIMENT — centre-aligned label + value. Delete this whole block to go back to
+                // left alignment. Note quill deliberately disables its own `textAlignment='center'`
+                // when a floating label is present (`.input__align--center:not(:has(~label))`), so
+                // this is an override of that decision rather than a use of the prop.
+                //
+                // The chip class is doubled up so the compiled `.input` rule reaches (0,4,0) and
+                // beats the RTL `[dir='rtl'] .trade-params__option .input` (0,3,0) `text-align:
+                // right` further down this file. Nothing competes on the label's `text-align`.
+                .trade-params__option.trade-params__option--minimized {
+                    .input {
+                        // `&__option .input` below sets an asymmetric 0 / 2px inline padding, which
+                        // would bias the centring by a pixel.
+                        padding-inline: 0;
+                        text-align: center;
+                    }
+
+                    .label {
+                        text-align: center;
+                    }
+                }
             }
 
             &--minimized {
                 max-height: 104px;
-                padding: var(--core-spacing-400) var(--core-spacing-400) var(--core-spacing-200) var(--core-spacing-400);
-
-                .quill-input__container {
-                    width: unset;
-                }
             }
         }
     }
     &__option {
-        &--minimized {
-            width: 16rem;
-            flex-shrink: 0;
+        border: 1px solid var(--color-surface-border);
+        touch-action: manipulation; // Prevent hover states on touch devices
+
+        @include rtl {
+            direction: rtl;
+
+            .label {
+                left: unset;
+                right: var(--core-spacing-50);
+            }
         }
-        &:not(.trade-params__option--minimized) {
-            height: var(--core-size-2800);
+
+        // Width comes from the equal flex share the row hands out, not from this chip — see
+        // `.trade-params__options-wrapper--horizontal`.
+        &--minimized {
+            // The loading fallbacks render `<Skeleton />` (`width: 100%; height: 100%`) inside a
+            // bare div, where `height: 100%` resolves to 0 and the chip collapses to its border.
+            // 56px is quill's own `--component-field-height-md`, so this is a no-op for real chips.
+            min-height: var(--core-size-2800);
+        }
+        @include mobile-screen {
+            background-color: var(--semantic-color-slate-solid-surface-frame-low);
         }
         .input {
             padding-inline-start: 0;
             padding-block: 1px;
             padding-inline-end: 2px;
             height: unset;
+
+            @include rtl {
+                text-align: right;
+            }
+        }
+
+        // Custom styling for trade type segmented control (Rise/Fall, Higher/Lower, etc.)
+        &.segmented-control-single {
+            @include pill-segmented-control;
+            height: 4.8rem;
+
+            button {
+                // Selected state - target the actual button with .selected class
+                &.selected {
+                    // Target the span (quill-typography) inside the button
+                    span,
+                    .quill-typography {
+                        color: var(--component-button-bg-buy-primary-default) !important; // Buy button green (brighter)
+                        font-weight: 700 !important; // Bold font weight
+                    }
+                }
+
+                // Selected state for last button (Fall/Lower/Put/etc.) - red
+                &:last-child.selected {
+                    span,
+                    .quill-typography {
+                        color: var(
+                            --color-trade-sell-text
+                        ) !important; // Brighter red/pink (#FF4D6E) for better visibility
+                        font-weight: 700 !important; // Bold font weight
+                    }
+                }
+            }
+
+            // Ensure border-radius applies to both mobile and desktop sizes
+            &--md {
+                background-color: var(--semantic-color-monochrome-surface-normal-lowest);
+            }
+        }
+
+        @include mobile-or-tablet-screen {
+            &.quill-input__wrapper__variant--fill--neutral:hover {
+                background-color: var(--semantic-color-slate-solid-surface-frame-low);
+            }
         }
     }
     &--minimized {
         min-height: var(--core-size-3600);
         width: 100%;
-        padding-bottom: 6.4rem;
 
-        &:has(.trade-params__options__wrapper--horizontal:only-child) {
+        &:has(.trade-params__options-wrapper--horizontal:only-child) {
             padding-bottom: 0;
         }
     }
 
     &__text--disabled {
         color: var(--component-textIcon-normal-disabled);
+    }
+
+    &__field-with-info {
+        position: relative;
+
+        // Reveal the info ("i") icon only when the field is hovered, restricted to hover-capable
+        // devices so it stays visible/accessible on touch. Applies in both manual and automate modes
+        // (both render these classes) so the two stay consistent.
+        @media (hover: hover) {
+            .trade-params__info-icon-wrapper {
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 0.15s ease;
+            }
+
+            &:hover .trade-params__info-icon-wrapper {
+                opacity: 1;
+                pointer-events: auto;
+            }
+        }
+    }
+
+    &__info-icon-wrapper {
+        position: absolute;
+        right: var(--core-spacing-800);
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 1;
+        pointer-events: auto;
+
+        @include rtl {
+            right: unset;
+            left: var(--core-spacing-800);
+        }
+    }
+
+    // Transparent click-catcher over a field locked by an active automation run —
+    // the disabled field swallows clicks, so this sits on top to surface the
+    // "locked" snackbar. Kept below `__info-icon-wrapper` (later in the DOM) so the
+    // param description tooltip stays reachable.
+    &__field-locked {
+        position: relative;
+    }
+
+    &__lock-overlay {
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        cursor: not-allowed;
+    }
+
+    &__info-icon {
+        cursor: pointer;
+        display: block;
+        fill: var(--component-textIcon-normal-prominent);
+
+        &:hover {
+            fill: var(--component-textIcon-normal-default);
+        }
+    }
+
+    &__tooltip-trigger {
+        display: inline-flex;
+        align-items: center;
+        cursor: pointer;
+    }
+
+    &__parameter-tooltip {
+        // Override TooltipPortal content styles for proper theming
+        .dc-tooltip-portal__content {
+            background-color: var(--color-surface-inverse);
+            color: var(--color-text-inverse);
+            padding: var(--core-spacing-400) var(--core-spacing-800);
+            font-size: var(--core-fontSize-75);
+            line-height: var(--core-lineHeight-100);
+            max-width: 320px;
+            box-shadow: var(--core-shadow-200);
+
+            @include rtl {
+                direction: rtl;
+                text-align: right;
+            }
+
+            // Override Quill UI Text component styles in tooltip
+            .quill-typography {
+                color: var(--color-text-inverse);
+                font-size: var(--core-fontSize-75);
+                line-height: var(--core-lineHeight-100);
+                margin-bottom: var(--core-spacing-400);
+
+                &:last-child {
+                    margin-bottom: 0;
+                }
+            }
+
+            // Override SectionMessage styles in tooltip
+            .quill-section-message {
+                background-color: rgba(255, 255, 255, 0.1);
+                border-color: rgba(255, 255, 255, 0.2);
+                margin-top: var(--core-spacing-400);
+
+                .quill-typography {
+                    color: var(--color-text-inverse);
+                }
+            }
+        }
+
+        // Override TooltipPortal arrow styles
+        .dc-tooltip-portal__arrow--left {
+            border-left-color: var(--color-surface-inverse);
+
+            // postcss-rtlcss auto-flips the arrow to the left side in RTL,
+            // but it should always stay on the right side pointing toward the field
+            @include rtl {
+                right: -0.6rem;
+                left: auto;
+                border-width: 0.6rem 0 0.6rem 0.6rem;
+                border-color: transparent transparent transparent var(--color-surface-inverse);
+            }
+        }
+
+        .dc-tooltip-portal__arrow--right {
+            border-right-color: var(--color-surface-inverse);
+        }
+    }
+
+    &__parameter-tooltip-content {
+        position: relative;
+    }
+
+    &__parameter-tooltip-arrow {
+        position: absolute;
+        right: -6px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 0;
+        height: 0;
+        border-top: 6px solid transparent;
+        border-bottom: 6px solid transparent;
+        border-left: 6px solid var(--color-surface-inverse);
     }
 }
 
@@ -96,4 +451,17 @@
             z-index: 2;
         }
     }
+}
+
+[dir='rtl'] .input__align--left {
+    text-align: right;
+}
+
+// Selected (centered, non-disabled) wheel-picker row, styled with the heading h4 tokens. Shared by
+// every wheel sheet: Duration, Multiplier and Deal cancellation are not carousels, so a
+// carousel-scoped rule missed them.
+.quill-wheel-picker__data-item[class*='__disabled--false'] .quill-dropdown-item-label {
+    font-size: var(--semantic-typography-heading-h4-fontSize);
+    font-weight: var(--semantic-typography-heading-h4-fontWeight);
+    line-height: var(--semantic-typography-heading-h4-lineHeight);
 }

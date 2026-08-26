@@ -1,10 +1,17 @@
 import React from 'react';
-import { addDays, daysFromTodayTo, toMoment, convertDateFormat, getPosition } from '@deriv/shared';
+import {
+    addDays,
+    type ConfigType,
+    convertDateFormat,
+    type Dayjs,
+    daysFromTodayTo,
+    getPosition,
+    toMoment,
+} from '@deriv/shared';
 import Input from './date-picker-input';
 import Calendar from './date-picker-calendar';
 import Native from './date-picker-native';
 import { useOnClickOutside } from '../../hooks/use-onclickoutside';
-import moment, { MomentInput } from 'moment';
 import { TDatePickerOnChangeEvent } from '../types';
 import { useDevice } from '@deriv-com/ui';
 
@@ -22,7 +29,7 @@ type TDatePicker = Omit<
     | 'onChangeInput'
 > & {
     mode?: string;
-    value: moment.Moment | string;
+    value: Dayjs | string;
     onChange: (e: TDatePickerOnChangeEvent) => void;
     date_format?: string;
 };
@@ -113,7 +120,7 @@ const DatePicker = React.memo((props: TDatePicker) => {
         setIsDatepickerVisible(!is_datepicker_visible);
     };
 
-    const onHover = (hovered_date: MomentInput) => {
+    const onHover = (hovered_date: ConfigType) => {
         if (typeof onChange === 'function') {
             onChange({
                 date: toMoment(hovered_date).format(display_format),

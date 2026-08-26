@@ -1,11 +1,18 @@
 import React from 'react';
 import { BrowserRouter } from 'react-router-dom';
-import moment from 'moment';
 
+import { dayjs, trackAnalyticsEvent } from '@deriv/shared';
 import { mockStore } from '@deriv/stores';
 import { render, screen } from '@testing-library/react';
 
 import App from '../app';
+
+jest.mock('@deriv/shared', () => ({
+    ...jest.requireActual('@deriv/shared'),
+    trackAnalyticsEvent: jest.fn(),
+}));
+
+const mockTrackAnalyticsEvent = trackAnalyticsEvent as jest.MockedFunction<typeof trackAnalyticsEvent>;
 
 // Mock external dependencies
 jest.mock('@deriv/reports/src/Stores/useReportsStores', () => ({
@@ -23,7 +30,7 @@ jest.mock('@deriv-com/quill-ui', () => ({
     ),
 }));
 
-jest.mock('App/init-store', () => jest.fn(rootStore => rootStore));
+jest.mock('Stores/init-store', () => jest.fn(rootStore => rootStore));
 
 jest.mock('Stores/Providers/modules-providers', () => {
     const MockModulesProvider = ({ children }: { children: React.ReactNode }) => (
@@ -34,8 +41,11 @@ jest.mock('Stores/Providers/modules-providers', () => {
 });
 
 jest.mock('../../trader-providers', () => {
-    const MockTraderProviders = ({ children }: { children: React.ReactNode }) => (
-        <div data-testid='trader-providers'>{children}</div>
+    const { StoreProvider } = jest.requireActual('@deriv/stores');
+    const MockTraderProviders = ({ children, store }: { children: React.ReactNode; store: any }) => (
+        <StoreProvider store={store}>
+            <div data-testid='trader-providers'>{children}</div>
+        </StoreProvider>
     );
     MockTraderProviders.displayName = 'MockTraderProviders';
     return MockTraderProviders;
@@ -45,6 +55,12 @@ jest.mock('../Components/ServicesErrorSnackbar', () => {
     const MockServicesErrorSnackbar = () => <div data-testid='services-error-snackbar' />;
     MockServicesErrorSnackbar.displayName = 'MockServicesErrorSnackbar';
     return MockServicesErrorSnackbar;
+});
+
+jest.mock('../Components/AutomationPanel/automation-stop-snackbar', () => {
+    const MockAutomationStopSnackbar = () => <div data-testid='automation-stop-snackbar' />;
+    MockAutomationStopSnackbar.displayName = 'MockAutomationStopSnackbar';
+    return MockAutomationStopSnackbar;
 });
 
 jest.mock('../Containers/Notifications', () => {
@@ -59,13 +75,9 @@ jest.mock('../Routes/router', () => {
     return MockRouter;
 });
 
-jest.mock('../../Analytics', () => ({
-    sendDtraderV2OpenToAnalytics: jest.fn(),
-}));
-
 const mockRootStore = mockStore({
     common: {
-        server_time: moment(new Date()).utc(),
+        server_time: dayjs(new Date()).utc(),
     },
     client: {
         is_logged_in: false,
@@ -140,5 +152,24 @@ describe('App', () => {
         unmount();
 
         expect(mockRootStore.ui.setPromptHandler).toHaveBeenCalledWith(false);
+    });
+
+    it('should fire analytics event when not logging in', () => {
+        renderApp();
+        expect(mockTrackAnalyticsEvent).toHaveBeenCalledWith('ce_dtrader_app_v2', { action: 'open' });
+    });
+
+    it('should not fire analytics event while login is in progress', () => {
+        const loggingInStore = mockStore({
+            common: { server_time: dayjs(new Date()).utc() },
+            client: { is_logged_in: false, is_logging_in: true },
+            ui: { setPromptHandler: jest.fn() },
+        });
+        render(
+            <BrowserRouter>
+                <App passthrough={{ root_store: loggingInStore, WS: mockWs }} />
+            </BrowserRouter>
+        );
+        expect(mockTrackAnalyticsEvent).not.toHaveBeenCalled();
     });
 });

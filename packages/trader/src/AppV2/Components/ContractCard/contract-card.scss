@@ -15,7 +15,32 @@
     &__body {
         display: flex;
         flex-direction: column;
-        justify-content: space-between;
+        gap: var(--semantic-spacing-gap-sm);
+        min-width: 0;
+        flex-grow: 1;
+    }
+
+    &__header {
+        display: flex;
+        align-items: center;
+        gap: var(--core-spacing-400);
+        min-width: 0;
+    }
+
+    &__market-icon {
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+
+        svg {
+            width: 2.4rem;
+            height: 2.4rem;
+        }
+    }
+
+    &__details-col {
+        display: flex;
+        flex-direction: column;
         gap: var(--semantic-spacing-gap-sm);
         min-width: 0;
         flex-grow: 1;
@@ -29,6 +54,7 @@
     }
     .tag__wrapper {
         gap: var(--core-spacing-200);
+        justify-content: flex-start;
     }
     .risk-management,
     .timer {
@@ -64,6 +90,9 @@
         inset-inline-end: 0;
         inset-block-end: 0;
         transform: translateX(100%);
+        [dir='rtl'] & {
+            transform: translateX(-100%);
+        }
         opacity: var(--core-opacity-50);
         transition: opacity var(--core-motion-duration-200) var(--motion-easing-inandout);
 
@@ -131,8 +160,8 @@
         .profit {
             color: var(--core-color-solid-red-700);
         }
-        button:not(:disabled),
-        button.loading {
+        .buttons button:not(:disabled),
+        .buttons button.loading {
             background-color: var(--core-color-solid-cherry-700);
         }
         .status {
@@ -144,8 +173,8 @@
         .profit {
             color: var(--core-color-solid-green-700);
         }
-        button:not(:disabled),
-        button.loading {
+        .buttons button:not(:disabled),
+        .buttons button.loading {
             background-color: var(--core-color-solid-emerald-700);
         }
         .status {
@@ -156,8 +185,16 @@
     &.show-buttons {
         transform: translateX(calc(var(--core-size-3600) * -1));
 
+        [dir='rtl'] & {
+            transform: translateX(var(--core-size-3600));
+        }
+
         &.has-cancel-button {
             transform: translateX(calc(var(--core-size-3600) * -2));
+
+            [dir='rtl'] & {
+                transform: translateX(calc(var(--core-size-3600) * 2));
+            }
         }
     }
     &-wrapper {
@@ -195,6 +232,13 @@
                     &.has-cancel-button {
                         animation: var(--motion-duration-relax) var(--motion-easing-inandout) bounce-two-buttons;
                     }
+                    [dir='rtl'] & {
+                        animation-name: bounce-one-button-rtl;
+
+                        &.has-cancel-button {
+                            animation-name: bounce-two-buttons-rtl;
+                        }
+                    }
                     @keyframes bounce-one-button {
                         0%,
                         100% {
@@ -213,6 +257,26 @@
                         30%,
                         70% {
                             transform: translateX(calc(var(--core-size-3600) * -2));
+                        }
+                    }
+                    @keyframes bounce-one-button-rtl {
+                        0%,
+                        100% {
+                            transform: translateX(0);
+                        }
+                        30%,
+                        70% {
+                            transform: translateX(var(--core-size-3600));
+                        }
+                    }
+                    @keyframes bounce-two-buttons-rtl {
+                        0%,
+                        100% {
+                            transform: translateX(0);
+                        }
+                        30%,
+                        70% {
+                            transform: translateX(calc(var(--core-size-3600) * 2));
                         }
                     }
                 }

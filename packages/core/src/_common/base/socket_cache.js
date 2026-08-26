@@ -1,4 +1,4 @@
-const moment = require('moment');
+const dayjs = require('dayjs');
 const isEmptyObject = require('@deriv/shared').isEmptyObject;
 const getPropertyValue = require('@deriv/shared').getPropertyValue;
 const getStaticHash = require('_common/utility').getStaticHash;
@@ -25,10 +25,8 @@ const SocketCache = (() => {
     // keys are msg_type
     // expire: how long to keep the value (in minutes)
     const config = {
-        payout_currencies: { expire: 120 },
         proposal_open_contract: { expire: 10 },
         contracts_for: { expire: 10 },
-        exchange_rates: { expire: 60 },
         trading_times: { expire: 120 },
         // TODO: Enable statement and trade table caching once we have UI design for handling
         // transitions between cached table and newly added data to table
@@ -73,7 +71,7 @@ const SocketCache = (() => {
             return;
         }
 
-        const expires = moment().add(config[msg_type].expire, 'm').valueOf();
+        const expires = dayjs().add(config[msg_type].expire, 'm').valueOf();
 
         if (!data_obj.static_hash) {
             data_obj.static_hash = getStaticHash();
@@ -89,7 +87,7 @@ const SocketCache = (() => {
             if (!data.length) {
                 is_empty_data = true;
             }
-        } else if (typeof response_data === 'object') {
+        } else if (typeof data === 'object') {
             if (!Object.keys(data).length) {
                 is_empty_data = true;
             }
@@ -117,7 +115,7 @@ const SocketCache = (() => {
         const response_obj = getData(key);
 
         let response;
-        if (moment().isBefore(response_obj.expires)) {
+        if (dayjs().isBefore(response_obj.expires)) {
             response = response_obj.value;
         } else {
             // remove if expired
@@ -137,7 +135,7 @@ const SocketCache = (() => {
         const response_obj = getData(key);
 
         let response;
-        if (moment().isBefore(response_obj.expires)) {
+        if (dayjs().isBefore(response_obj.expires)) {
             response = response_obj.value;
         } else {
             // remove if expired

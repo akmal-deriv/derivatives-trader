@@ -1,13 +1,12 @@
 import React, { createContext, PropsWithChildren, useCallback, useContext, useEffect, useRef, useState } from 'react';
 
-import { getAppId, getSocketURL } from '@deriv/shared';
+import { getBrandName, getSocketURL } from '@deriv/shared';
 import { getInitialLanguage } from '@deriv-com/translations';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 import { TSocketRequestPayload, TSocketResponseData, TSocketSubscribableEndpointNames } from '../types';
 
 import WSClient from './ws-client/ws-client';
-import { PLATFORMS } from './constants';
 import { hashObject } from './utils';
 
 type TSubscribeFunction = <T extends TSocketSubscribableEndpointNames>(
@@ -39,9 +38,7 @@ type APIContextData = {
  * @returns {string} The WebSocket URL.
  */
 const getWebSocketURL = (endpoint: string) => {
-    const app_id = getAppId();
-    const language = getInitialLanguage();
-    return `wss://${endpoint}/websockets/v3?app_id=${app_id}&l=${language}&brand=deriv`;
+    return `wss://${endpoint}/websockets/v3?brand=${getBrandName().toLowerCase()}`;
 };
 
 const APIContext = createContext<APIContextData | null>(null);
@@ -64,20 +61,10 @@ const initializeConnection = (endpoint: string, onWSClose: () => void, onOpen?: 
     return connection;
 };
 
-/**
- * TODO: standlone no longer exists, as its always standalone,
- * but I do not want to remove it from all packages withint this PR, so needs to be cleaned up in subsequent PRs
- */
-type TAPIProviderProps = {
-    /** If set to true, the APIProvider will instantiate it's own socket connection. */
-    standalone?: boolean;
-    platform?: string;
-};
-
 type SubscribeReturnType = ReturnType<TSubscribeFunction>; // This captures the entire return type of TSubscribeFunction
 type UnwrappedSubscription = Awaited<SubscribeReturnType>;
 
-const APIProvider = ({ children, platform }: PropsWithChildren<TAPIProviderProps>) => {
+const APIProvider = ({ children }: PropsWithChildren) => {
     const [reconnect, setReconnect] = useState(false);
     const connectionRef = useRef<WebSocket>();
     const subscriptionsRef = useRef<Record<string, UnwrappedSubscription['subscription']>>();
@@ -92,7 +79,7 @@ const APIProvider = ({ children, platform }: PropsWithChildren<TAPIProviderProps
 
     const language = getInitialLanguage();
     const [prevLanguage, setPrevLanguage] = useState<string>(language);
-    const endpoint = getSocketURL(platform === PLATFORMS.WALLETS);
+    const endpoint = getSocketURL();
 
     useEffect(() => {
         isMounted.current = true;
@@ -108,6 +95,11 @@ const APIProvider = ({ children, platform }: PropsWithChildren<TAPIProviderProps
                     refetchOnWindowFocus: false,
                     refetchOnReconnect: false,
                 },
+            },
+            logger: {
+                log: () => {},
+                warn: () => {},
+                error: () => {},
             },
         });
     }
@@ -195,9 +187,9 @@ const APIProvider = ({ children, platform }: PropsWithChildren<TAPIProviderProps
     useEffect(() => {
         const interval_id: ReturnType<typeof setInterval> = setInterval(() => {
             if (wsClientRef.current && wsClientRef.current?.ws?.readyState == 1) {
-                wsClientRef.current.request('ping');
+                wsClientRef.current.request('time');
             }
-        }, 10000);
+        }, 30000);
         return () => clearInterval(interval_id);
     }, []);
 

@@ -185,6 +185,8 @@ const DropdownList = React.forwardRef<HTMLDivElement, TDropdownList>((props, lis
         return undefined;
     };
 
+    const transition_ref = React.useRef(null);
+
     const el_dropdown_list = (
         <CSSTransition
             in={is_list_visible}
@@ -192,8 +194,9 @@ const DropdownList = React.forwardRef<HTMLDivElement, TDropdownList>((props, lis
             classNames={transitionClassName()}
             onEntered={setListDimension}
             unmountOnExit
+            nodeRef={transition_ref}
         >
-            <div style={style} className={dropdownListClassName()}>
+            <div ref={transition_ref} style={style} className={dropdownListClassName()}>
                 <div
                     className={listClassNames()}
                     style={getDropDownAlignment()}

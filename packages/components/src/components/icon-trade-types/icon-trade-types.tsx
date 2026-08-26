@@ -39,6 +39,7 @@ const IconTradeTypes = ({ type, className, iconSize = 'md', color, ...props }: T
                 return 'IcTradetypeDigitover';
             case CONTRACT_TYPES.OVER_UNDER.UNDER:
                 return 'IcTradetypeDigitunder';
+            case CONTRACT_TYPES.EXPIRYMISSE:
             case CONTRACT_TYPES.END.OUT:
                 return 'IcTradetypeExpirymiss';
             case CONTRACT_TYPES.EXPIRYRANGEE:

@@ -14,11 +14,12 @@ jest.mock('@deriv/shared', () => {
         ...jest.requireActual('@deriv/shared'),
         WS: {
             forgetAll: jest.fn(),
+            setOnReconnect: jest.fn(),
+            removeOnReconnect: jest.fn(),
             profitTable: jest.fn().mockReturnValue({
                 profit_table: {
                     transactions: [
                         {
-                            app_id: 16929,
                             buy_price: 11.29,
                             contract_id: 246293653348,
                             contract_type: 'MULTUP',
@@ -36,7 +37,6 @@ jest.mock('@deriv/shared', () => {
                             underlying_symbol: 'R_100',
                         },
                         {
-                            app_id: 16929,
                             buy_price: 10,
                             contract_id: 245824534328,
                             contract_type: 'CALL',
@@ -54,7 +54,6 @@ jest.mock('@deriv/shared', () => {
                     ],
                 },
             }),
-            wait: jest.fn(),
         },
     };
 });
@@ -69,7 +68,6 @@ describe('ProfitTableStore', () => {
     const mocked_error = 'Test error';
     const mocked_loginid = 'test_loginid';
     const multiplier_contract = {
-        app_id: 16929,
         buy_price: 11.29,
         contract_id: 246293653348,
         contract_type: 'MULTUP',
@@ -81,16 +79,16 @@ describe('ProfitTableStore', () => {
         multiplier: '30',
         payout: 0,
         profit_loss: '-3.08',
-        purchase_time: '18 Jun 2024 13:32:25',
+        purchase_time: 1718717545,
         purchase_time_unix: 1718717545,
         sell_price: 8.21,
-        sell_time: '18 Jun 2024 14:48:15',
+        sell_time: 1718722095,
+        sell_time_unix: 1718722095,
         shortcode: 'MULTUP_R_100_10.00_30_1718717545_4872355199_60m_0.00_N1',
         transaction_id: 490981792908,
         underlying_symbol: 'R_100',
     };
     const rise_contract = {
-        app_id: 16929,
         buy_price: 10,
         contract_id: 245824534328,
         contract_type: 'CALL',
@@ -100,10 +98,11 @@ describe('ProfitTableStore', () => {
             'Win payout if Volatility 100 Index is strictly higher than entry spot at 6 hours after contract start time.',
         payout: 19.73,
         profit_loss: '0.99',
-        purchase_time: '14 Jun 2024 12:12:50',
+        purchase_time: 1718367170,
         purchase_time_unix: 1718367170,
         sell_price: 10.99,
-        sell_time: '14 Jun 2024 13:03:02',
+        sell_time: 1718370182,
+        sell_time_unix: 1718370182,
         shortcode: 'CALL_R_100_19.73_1718367170_1718388770_S0P_0',
         transaction_id: 490044918128,
         underlying_symbol: 'R_100',
@@ -114,6 +113,7 @@ describe('ProfitTableStore', () => {
             root_store: mockStore({
                 client: {
                     loginid: mocked_loginid,
+                    is_logged_in: true,
                 },
                 modules: {
                     positions: {
@@ -131,8 +131,12 @@ describe('ProfitTableStore', () => {
     });
 
     describe('is_empty', () => {
-        beforeEach(() => {
+        beforeEach(async () => {
             mocked_profit_table_store.onMount();
+            // Wait for data to load after authentication
+            await waitFor(() => {
+                expect(mocked_profit_table_store.data.length).toBeGreaterThan(0);
+            });
         });
         it('should return false if is_loading={false} but data is non-empty regardless of is_loading value', () => {
             expect(mocked_profit_table_store.data).toEqual([multiplier_contract, rise_contract]);
@@ -233,7 +237,7 @@ describe('ProfitTableStore', () => {
         it('should call fetchNextBatch if called with left param value that is < 1500', () => {
             const spyFetchNextBatch = jest.spyOn(mocked_profit_table_store, 'fetchNextBatch');
 
-            mocked_profit_table_store.fetchOnScroll(1100);
+            mocked_profit_table_store.fetchOnScroll(1100, false);
 
             expect(spyFetchNextBatch).toBeCalled();
         });
@@ -247,7 +251,7 @@ describe('ProfitTableStore', () => {
         it('should not call fetchNextBatch if called with left param value that is > 1500', () => {
             const spyFetchNextBatch = jest.spyOn(mocked_profit_table_store, 'fetchNextBatch');
 
-            mocked_profit_table_store.fetchOnScroll(1600);
+            mocked_profit_table_store.fetchOnScroll(1600, false);
 
             expect(spyFetchNextBatch).not.toBeCalled();
         });
@@ -297,14 +301,11 @@ describe('ProfitTableStore', () => {
         });
     });
     describe('onMount', () => {
-        const spyWSWait = jest.spyOn(WS, 'wait');
-
-        it('should set client_loginid from client-store loginid, wait for authorize API and call fetchNextBatch', async () => {
+        it('should set client_loginid from client-store loginid, wait for authentication and call fetchNextBatch', async () => {
             const spyFetchNextBatch = jest.spyOn(mocked_profit_table_store, 'fetchNextBatch');
             mocked_profit_table_store.onMount();
 
             expect(mocked_profit_table_store.client_loginid).toBe(mocked_loginid);
-            expect(spyWSWait).toBeCalledWith('authorize');
             await waitFor(() => expect(spyFetchNextBatch).toBeCalledWith(undefined, true));
         });
         it('should call fetchNextBatch with true for shouldFilterContractTypes value when called with true', async () => {
@@ -315,49 +316,38 @@ describe('ProfitTableStore', () => {
         });
     });
     describe('onUnmount', () => {
-        it('should call disposeSwitchAccount and unsubscribe from proposal API', () => {
-            const spyDisposeSwitchAccount = jest.spyOn(mocked_profit_table_store, 'disposeSwitchAccount');
+        it('should not forget price-proposal subscriptions it does not own (avoids breaking the trade form in AppV2)', () => {
             const spyWSForgetAll = jest.spyOn(WS, 'forgetAll');
             mocked_profit_table_store.onUnmount();
 
-            expect(spyDisposeSwitchAccount).toHaveBeenCalled();
-            expect(spyWSForgetAll).toHaveBeenCalledWith('proposal');
+            expect(spyWSForgetAll).not.toHaveBeenCalledWith('proposal');
         });
     });
     describe('totals', () => {
         it('should return total profit_loss of all transactions', async () => {
             mocked_profit_table_store.onMount();
 
+            // Wait for data to load after authentication
             await waitFor(() => {
-                expect(mocked_profit_table_store.totals).toEqual({ profit_loss: '-2.09' });
+                expect(mocked_profit_table_store.data.length).toBeGreaterThan(0);
             });
-        });
-    });
-    describe('accountSwitcherListener', () => {
-        it('should call clearTable, clearDateFilter & fetchNextBatch', () => {
-            const spyClearTable = jest.spyOn(mocked_profit_table_store, 'clearTable');
-            const spyClearDateFilter = jest.spyOn(mocked_profit_table_store, 'clearDateFilter');
-            const spyFetchNextBatch = jest.spyOn(mocked_profit_table_store, 'fetchNextBatch');
 
-            mocked_profit_table_store.accountSwitcherListener();
-
-            expect(spyClearTable).toHaveBeenCalled();
-            expect(spyClearDateFilter).toHaveBeenCalled();
-            expect(spyFetchNextBatch).toHaveBeenCalled();
+            expect(mocked_profit_table_store.totals).toEqual({ profit_loss: '-2.09' });
         });
     });
     describe('clearTable', () => {
         it('should clear data, has_loaded_all & is_loading', async () => {
             mocked_profit_table_store.onMount();
 
+            // Wait for data to load after authentication
             await waitFor(() => {
                 expect(mocked_profit_table_store.data).toEqual([multiplier_contract, rise_contract]);
-
-                mocked_profit_table_store.clearTable();
-                expect(mocked_profit_table_store.data).toEqual([]);
-                expect(mocked_profit_table_store.has_loaded_all).toBe(false);
-                expect(mocked_profit_table_store.is_loading).toBe(false);
             });
+
+            mocked_profit_table_store.clearTable();
+            expect(mocked_profit_table_store.data).toEqual([]);
+            expect(mocked_profit_table_store.has_loaded_all).toBe(false);
+            expect(mocked_profit_table_store.is_loading).toBe(false);
         });
     });
     describe('clearDateFilter', () => {

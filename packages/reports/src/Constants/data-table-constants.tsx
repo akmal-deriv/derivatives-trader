@@ -1,9 +1,15 @@
 import React from 'react';
 import classNames from 'classnames';
-import moment from 'moment';
 
 import { ArrowIndicator, ContractCard, ContractCardSell, Label, Money, Popover } from '@deriv/components';
-import { getCardLabels, getCurrencyDisplayCode, getGrowthRatePercentage, getTotalProfit } from '@deriv/shared';
+import {
+    type Dayjs,
+    formatDate,
+    getCardLabels,
+    getCurrencyDisplayCode,
+    getGrowthRatePercentage,
+    getTotalProfit,
+} from '@deriv/shared';
 import { useStore } from '@deriv/stores';
 import { Localize } from '@deriv-com/translations';
 
@@ -30,7 +36,7 @@ const map = {
     transfer: 'transfer',
 } as const;
 
-export type TKeys = string;
+export type TKeys = string | number;
 
 const getModeFromValue = (key: string) => map[key as keyof typeof map] || map.default;
 
@@ -46,7 +52,7 @@ type TMultiplierOpenPositionstemplateProps = Pick<
     'getPositionById' | 'onClickCancel' | 'onClickSell'
 > & {
     currency: string;
-    server_time: moment.Moment;
+    server_time: Dayjs;
     isDesktop: boolean;
 };
 
@@ -87,9 +93,10 @@ export const getStatementTableColumnsTemplate = (currency: string, isDesktop: bo
     },
     {
         title: <Localize i18n_default_text='Transaction time' />,
-        col_index: 'date',
+        col_index: 'transaction_time',
         renderCellContent: ({ cell_value }: TCellContentProps) => {
-            return <span>{cell_value} GMT</span>;
+            if (!cell_value) return '-';
+            return <span>{formatDate(cell_value, 'DD MMM YYYY HH:mm:ss')} GMT</span>;
         },
     },
     {
@@ -97,7 +104,7 @@ export const getStatementTableColumnsTemplate = (currency: string, isDesktop: bo
         title: <Localize i18n_default_text='Transaction' />,
         col_index: 'action_type',
         renderCellContent: ({ cell_value, passthrough, row_obj }: TCellContentProps) => (
-            <Label mode={getModeFromValue(cell_value)}>
+            <Label mode={getModeFromValue(String(cell_value))}>
                 {(passthrough.isTopUp(row_obj) && <Localize i18n_default_text='Top up' />) || row_obj.action}
             </Label>
         ),
@@ -106,8 +113,8 @@ export const getStatementTableColumnsTemplate = (currency: string, isDesktop: bo
         title: <Localize i18n_default_text='Credit/Debit' />,
         col_index: 'amount',
         renderCellContent: ({ cell_value }: TCellContentProps) => (
-            <div className={`amount--${getProfitOrLoss(cell_value)}`}>
-                <Money has_sign amount={cell_value.replace(/[,]+/g, '')} currency={currency} />
+            <div className={`amount--${getProfitOrLoss(String(cell_value))}`}>
+                <Money has_sign amount={String(cell_value).replace(/[,]+/g, '')} currency={currency} />
             </div>
         ),
     },
@@ -115,7 +122,7 @@ export const getStatementTableColumnsTemplate = (currency: string, isDesktop: bo
         title: <Localize i18n_default_text='Balance' />,
         col_index: 'balance',
         renderCellContent: ({ cell_value }: TCellContentProps) => (
-            <Money amount={cell_value.replace(/[,]+/g, '')} currency={currency} />
+            <Money amount={String(cell_value).replace(/[,]+/g, '')} currency={currency} />
         ),
     },
 ];
@@ -148,10 +155,11 @@ export const getProfitTableColumnsTemplate = (currency: string, items_count: num
     },
     {
         title: <Localize i18n_default_text='Buy time' />,
-        col_index: 'purchase_time',
+        col_index: 'purchase_time_unix',
         renderCellContent: ({ cell_value, is_footer }: TCellContentProps) => {
             if (is_footer) return '';
-            return <span>{cell_value} GMT</span>;
+            if (!cell_value) return '-';
+            return <span>{formatDate(cell_value, 'DD MMM YYYY HH:mm:ss')} GMT</span>;
         },
     },
     {
@@ -165,11 +173,12 @@ export const getProfitTableColumnsTemplate = (currency: string, items_count: num
     },
     {
         title: <Localize i18n_default_text='Sell time' />,
-        col_index: 'sell_time',
+        col_index: 'sell_time_unix',
         renderHeader: ({ title }: THeaderProps) => <span>{title}</span>,
         renderCellContent: ({ cell_value, is_footer }: TCellContentProps) => {
             if (is_footer) return '';
-            return <span>{cell_value} GMT</span>;
+            if (!cell_value) return '-';
+            return <span>{formatDate(cell_value, 'DD MMM YYYY HH:mm:ss')} GMT</span>;
         },
     },
     {
@@ -185,8 +194,8 @@ export const getProfitTableColumnsTemplate = (currency: string, items_count: num
         title: <Localize i18n_default_text='Total profit/loss' />,
         col_index: 'profit_loss',
         renderCellContent: ({ cell_value }: TCellContentProps) => (
-            <ProfitLossCell value={cell_value}>
-                <Money has_sign amount={cell_value.replace(/[,]+/g, '')} currency={currency} />
+            <ProfitLossCell value={String(cell_value)}>
+                <Money has_sign amount={String(cell_value).replace(/[,]+/g, '')} currency={currency} />
             </ProfitLossCell>
         ),
     },
@@ -333,8 +342,7 @@ export const getMultiplierOpenPositionsColumnsTemplate = ({
         renderCellContent: ({ row_obj }: TCellContentProps) => {
             if (!row_obj.contract_info) return '-';
 
-            // Backward compatibility: fallback to old field name
-            const contract_underlying = row_obj.contract_info.underlying_symbol || row_obj.contract_info.underlying;
+            const contract_underlying = row_obj.contract_info.underlying_symbol;
             if (!contract_underlying) return '-';
 
             if (row_obj.contract_info.cancellation) {
@@ -442,7 +450,7 @@ export const getMultiplierOpenPositionsColumnsTemplate = ({
                     <ContractCard.MultiplierCloseActions
                         contract_info={contract_info}
                         getCardLabels={getCardLabels}
-                        is_sell_requested={is_sell_requested}
+                        is_sell_requested={!!is_sell_requested}
                         onClickCancel={onClickCancel}
                         onClickSell={onClickSell}
                         server_time={server_time}
@@ -450,6 +458,85 @@ export const getMultiplierOpenPositionsColumnsTemplate = ({
                 </div>
             );
         },
+    },
+];
+
+export const getArchivedStatementColumnsTemplate = (currency: string, isDesktop: boolean) => [
+    {
+        key: 'icon',
+        title: isDesktop ? <Localize i18n_default_text='Type' /> : '',
+        col_index: 'icon',
+        renderCellContent: ({ row_obj }: TCellContentProps) => {
+            return <MarketSymbolIconRow key={row_obj.transaction_id} payload={row_obj} />;
+        },
+    },
+    {
+        title: <Localize i18n_default_text='Ref. ID' />,
+        col_index: 'refid',
+        renderCellContent: ({ cell_value, row_obj }: TCellContentProps) => {
+            return (
+                <Popover
+                    alignment={'top'}
+                    message={
+                        <Localize
+                            i18n_default_text='Transaction performed by (App ID: {{app_id}})'
+                            values={{ app_id: row_obj.app_id }}
+                        />
+                    }
+                >
+                    {cell_value}
+                </Popover>
+            );
+        },
+    },
+    {
+        title: <Localize i18n_default_text='Currency' />,
+        col_index: 'currency',
+        renderCellContent: ({ row_obj }: TCellContentProps) => (
+            <CurrencyWrapper currency={getCurrencyDisplayCode(row_obj.currency || currency)} />
+        ),
+    },
+    {
+        title: <Localize i18n_default_text='Transaction time' />,
+        col_index: 'transaction_time',
+        renderCellContent: ({ cell_value }: TCellContentProps) => {
+            if (!cell_value) return '-';
+            return (
+                <span>
+                    {formatDate(cell_value, 'DD MMM YYYY')}
+                    <br />
+                    {formatDate(cell_value, 'HH:mm:ss')} GMT
+                </span>
+            );
+        },
+    },
+    {
+        key: 'mode',
+        title: <Localize i18n_default_text='Transaction' />,
+        col_index: 'action_type',
+        renderCellContent: ({ cell_value, row_obj }: TCellContentProps) => (
+            <Label mode={getModeFromValue(String(cell_value))}>{row_obj.action}</Label>
+        ),
+    },
+    {
+        title: <Localize i18n_default_text='Credit/Debit' />,
+        col_index: 'amount',
+        renderCellContent: ({ cell_value, row_obj }: TCellContentProps) => (
+            <div className={`amount--${getProfitOrLoss(String(cell_value))}`}>
+                <Money
+                    has_sign
+                    amount={String(cell_value).replace(/[,]+/g, '')}
+                    currency={row_obj.currency || currency}
+                />
+            </div>
+        ),
+    },
+    {
+        title: <Localize i18n_default_text='Balance' />,
+        col_index: 'balance',
+        renderCellContent: ({ cell_value, row_obj }: TCellContentProps) => (
+            <Money amount={String(cell_value).replace(/[,]+/g, '')} currency={row_obj.currency || currency} />
+        ),
     },
 ];
 
@@ -572,7 +659,7 @@ export const getAccumulatorOpenPositionsColumnsTemplate = ({
                 <div className='open-positions__row-action'>
                     <ContractCardSell
                         contract_info={contract_info}
-                        is_sell_requested={is_sell_requested}
+                        is_sell_requested={!!is_sell_requested}
                         getCardLabels={getCardLabels}
                         onClickSell={onClickSell}
                     />

@@ -8,12 +8,17 @@ import { TPortfolioPosition } from '@deriv/stores/types';
 
 import { ContractCardList, ContractCardsSections } from 'AppV2/Components/ContractCard';
 import { EmptyPositions, TEmptyPositionsProps } from 'AppV2/Components/EmptyPositions';
-import { ContractTypeFilter, TimeFilter } from 'AppV2/Components/Filter';
+import { ContractTypeFilter, TimeFilter, TradeModeFilter } from 'AppV2/Components/Filter';
 import TotalProfitLoss from 'AppV2/Components/TotalProfitLoss';
+import useAvailableContracts from 'AppV2/Hooks/useAvailableContracts';
+import useIsAutomationEnabled from 'AppV2/Hooks/useIsAutomationEnabled';
+import useIsEuAccount from 'AppV2/Hooks/useIsEuAccount';
 import useTimeFilter from 'AppV2/Hooks/useTimeFilter';
+import useTradeModeFilter from 'AppV2/Hooks/useTradeModeFilter';
 import useTradeTypeFilter from 'AppV2/Hooks/useTradeTypeFilter';
+import { CONTRACT_LIST } from 'AppV2/Utils/trade-types-utils';
 
-import { filterPositions, getTotalPositionsProfit, TAB_NAME } from '../../Utils/positions-utils';
+import { filterByTradeMode, filterPositions, getTotalPositionsProfit, TAB_NAME } from '../../Utils/positions-utils';
 
 type TPositionsContentProps = Omit<TEmptyPositionsProps, 'noMatchesFound'> & {
     hasButtonsDemo?: boolean;
@@ -27,12 +32,17 @@ export type TClosedPosition = {
 const PositionsContent = observer(({ hasButtonsDemo, isClosedTab, setHasButtonsDemo }: TPositionsContentProps) => {
     const { contractTypeFilter, setContractTypeFilter } = useTradeTypeFilter({ isClosedTab });
     const { timeFilter, setTimeFilter, customTimeRangeFilter, setCustomTimeRangeFilter } = useTimeFilter();
+    const available_contracts = useAvailableContracts();
+    const { is_eu, is_ready: is_eu_account_ready } = useIsEuAccount();
+    const { tradeModeFilter, setTradeModeFilter } = useTradeModeFilter();
+    const { is_enabled: is_automation_enabled } = useIsAutomationEnabled();
     const [filteredPositions, setFilteredPositions] = React.useState<(TPortfolioPosition | TClosedPosition)[]>([]);
     const [noMatchesFound, setNoMatchesFound] = React.useState(false);
 
-    const { common, client, portfolio } = useStore();
+    const { common, client, portfolio, ui } = useStore();
     const { server_time = undefined } = isClosedTab ? {} : common; // Server time is required only to update cards timers in Open positions
     const { currency } = client;
+    const { is_switching_account } = ui;
     const {
         active_positions,
         is_active_empty,
@@ -57,14 +67,24 @@ const PositionsContent = observer(({ hasButtonsDemo, isClosedTab, setHasButtonsD
         () => (isClosedTab ? closedPositions : active_positions),
         [active_positions, isClosedTab, closedPositions]
     );
+    // EU accounts can only trade Multipliers, so the Open-positions trade-type filter would
+    // contain a single option. Collapse the list for EU and hide the filter entirely whenever
+    // there is at most one trade type available to filter by (it adds no value at that point).
+    const contractTypeFilterOptions = React.useMemo(
+        () => (is_eu ? available_contracts.filter(({ id }) => id === CONTRACT_LIST.MULTIPLIERS) : available_contracts),
+        [available_contracts, is_eu]
+    );
+    const shouldShowContractTypeFilter = is_eu_account_ready && contractTypeFilterOptions.length > 1;
     const hasNoActiveFilters = isClosedTab
-        ? !timeFilter && !customTimeRangeFilter && !contractTypeFilter.length
+        ? !timeFilter && !customTimeRangeFilter && !contractTypeFilter.length && !tradeModeFilter
         : !contractTypeFilter.length;
     const hasNoPositions = hasNoActiveFilters && (isClosedTab ? is_empty : is_active_empty);
     const shouldShowEmptyMessage = hasNoPositions || noMatchesFound;
     const shouldShowContractCards =
         !!filteredPositions.length && (isClosedTab || (filteredPositions[0]?.contract_info as TContractInfo)?.status);
-    const shouldShowLoading = isClosedTab ? isFetchingClosedPositions && !filteredPositions.length : is_loading;
+    const shouldShowLoading = isClosedTab
+        ? isFetchingClosedPositions && !filteredPositions.length
+        : is_loading || is_switching_account;
     const shouldShowTakeProfit = !isClosedTab || !!(timeFilter || customTimeRangeFilter);
 
     const onScroll = (e: React.UIEvent<HTMLDivElement>) => {
@@ -100,16 +120,20 @@ const PositionsContent = observer(({ hasButtonsDemo, isClosedTab, setHasButtonsD
 
     React.useEffect(() => {
         const result = filterPositions(positions, contractTypeFilter);
+        const mode_filtered = isClosedTab ? filterByTradeMode(result, tradeModeFilter) : result;
         if (contractTypeFilter.length) {
-            setFilteredPositions(result);
-            if (!isClosedTab) setNoMatchesFound(!result.length);
+            setFilteredPositions(mode_filtered);
+            if (!isClosedTab) setNoMatchesFound(!mode_filtered.length);
         } else {
             setNoMatchesFound(false);
-            setFilteredPositions(positions);
+            setFilteredPositions(mode_filtered);
         }
         if (isClosedTab)
-            setNoMatchesFound(!result.length && !!(timeFilter || customTimeRangeFilter || contractTypeFilter.length));
-    }, [isClosedTab, positions, contractTypeFilter, timeFilter, customTimeRangeFilter]);
+            setNoMatchesFound(
+                !mode_filtered.length &&
+                    !!(timeFilter || customTimeRangeFilter || contractTypeFilter.length || tradeModeFilter)
+            );
+    }, [isClosedTab, positions, contractTypeFilter, timeFilter, customTimeRangeFilter, tradeModeFilter]);
 
     React.useEffect(() => {
         isClosedTab ? onClosedTabMount(true) : onOpenTabMount();
@@ -127,22 +151,31 @@ const PositionsContent = observer(({ hasButtonsDemo, isClosedTab, setHasButtonsD
         return <Loading.DTraderV2 is_positions is_closed_tab={isClosedTab} />;
     return (
         <div
-            className={`positions-page__${isClosedTab ? TAB_NAME.CLOSED.toLowerCase() : TAB_NAME.OPEN.toLowerCase()}`}
+            className={`positions-page-container__${isClosedTab ? TAB_NAME.CLOSED.toLowerCase() : TAB_NAME.OPEN.toLowerCase()}`}
             onScroll={isClosedTab ? onScroll : undefined}
         >
-            {!hasNoPositions && (
-                <div className='positions-page__filter__wrapper'>
+            {!hasNoPositions && (isClosedTab || shouldShowContractTypeFilter) && (
+                <div className='positions-page-container__filter__wrapper'>
                     {isClosedTab ? (
-                        <TimeFilter
-                            timeFilter={timeFilter}
-                            setTimeFilter={setTimeFilter}
-                            handleDateChange={handleDateChange}
-                            customTimeRangeFilter={customTimeRangeFilter}
-                            setCustomTimeRangeFilter={setCustomTimeRangeFilter}
-                            setNoMatchesFound={setNoMatchesFound}
-                        />
+                        <React.Fragment>
+                            <TimeFilter
+                                timeFilter={timeFilter}
+                                setTimeFilter={setTimeFilter}
+                                handleDateChange={handleDateChange}
+                                customTimeRangeFilter={customTimeRangeFilter}
+                                setCustomTimeRangeFilter={setCustomTimeRangeFilter}
+                                setNoMatchesFound={setNoMatchesFound}
+                            />
+                            {is_automation_enabled && (
+                                <TradeModeFilter
+                                    tradeModeFilter={tradeModeFilter}
+                                    setTradeModeFilter={setTradeModeFilter}
+                                />
+                            )}
+                        </React.Fragment>
                     ) : (
                         <ContractTypeFilter
+                            availableContracts={contractTypeFilterOptions}
                             contractTypeFilter={contractTypeFilter}
                             onApplyContractTypeFilter={onApplyContractTypeFilter}
                         />

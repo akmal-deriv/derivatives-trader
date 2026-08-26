@@ -3,15 +3,13 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import ProfitTable, { getRowAction } from '../profit-table';
 import { mockStore } from '@deriv/stores';
-import { Analytics } from '@deriv-com/analytics';
 import ReportsProviders from '../../reports-providers';
 import { useReportsStore } from 'Stores/useReportsStores';
-import { extractInfoFromShortcode, formatDate, getUnsupportedContracts } from '@deriv/shared';
+import { extractInfoFromShortcode, formatDate, getUnsupportedContracts, trackAnalyticsEvent } from '@deriv/shared';
 import { useDevice } from '@deriv-com/ui';
 
 const mockData = [
     {
-        app_id: 36300,
         buy_price: 9.39,
         contract_id: 3213,
         action_type: 'sell',
@@ -32,7 +30,6 @@ const mockData = [
         underlying_symbol: '1HZ100V',
     },
     {
-        app_id: 321323,
         buy_price: 1.39,
         action_type: 'sell',
         contract_id: 312321312,
@@ -53,12 +50,6 @@ const mockData = [
         underlying_symbol: '1HZ100V',
     },
 ];
-
-jest.mock('@deriv-com/analytics', () => ({
-    Analytics: {
-        trackEvent: jest.fn(),
-    },
-}));
 
 jest.mock('Stores/useReportsStores', () => ({
     ...jest.requireActual('Stores/useReportsStores'),
@@ -105,6 +96,7 @@ jest.mock('@deriv/components', () => ({
 
 jest.mock('@deriv/shared', () => ({
     ...jest.requireActual('@deriv/shared'),
+    trackAnalyticsEvent: jest.fn(),
     WS: {
         forgetAll: jest.fn(),
         wait: jest.fn(),
@@ -114,7 +106,6 @@ jest.mock('@deriv/shared', () => ({
                     {
                         action_type: 'sell',
                         amount: 11,
-                        app_id: 2,
                         balance_after: 8866.19,
                         contract_id: 243990619668,
                         longcode:
@@ -129,7 +120,6 @@ jest.mock('@deriv/shared', () => ({
                     {
                         action_type: 'buy',
                         amount: -10,
-                        app_id: 36300,
                         balance_after: 8845.35,
                         contract_id: 244170956768,
                         longcode:
@@ -263,30 +253,6 @@ describe('Profit Table', () => {
         expect(screen.getByText(errorMessage)).toBeInTheDocument();
     });
 
-    test('tracks Analytics events on date changes', () => {
-        (useReportsStore as jest.Mock).mockReturnValueOnce({
-            profit_table: {
-                ...useReportsStore().profit_table,
-                data: [{}],
-                date_from: '31/01/2024',
-                date_to: '01/02/2024',
-                is_empty: false,
-                is_loading: true,
-            },
-        });
-        renderProfitTable();
-        expect(Analytics.trackEvent).toHaveBeenCalledWith(
-            'ce_reports_form',
-            expect.objectContaining({
-                action: 'choose_report_type',
-                start_date_filter: formatDate('31/01/2024', 'DD/MM/YYYY', false),
-                end_date_filter: formatDate('01/02/2024', 'DD/MM/YYYY', false),
-                subform_name: 'trade_table_form',
-                form_name: 'default',
-            })
-        );
-    });
-
     test('renders data table when data is available', () => {
         (useReportsStore as jest.Mock).mockReturnValueOnce({
             profit_table: {
@@ -315,6 +281,9 @@ describe('Profit Table', () => {
     });
 
     test('renders footer when is_footer prop is true on mobile', () => {
+        (useDevice as jest.Mock).mockReturnValue({
+            isMobile: true,
+        });
         (useReportsStore as jest.Mock).mockReturnValueOnce({
             profit_table: {
                 ...useReportsStore().profit_table,
@@ -322,14 +291,14 @@ describe('Profit Table', () => {
                 totals: {},
             },
         });
-        (useDevice as jest.Mock).mockReturnValue({
-            isDesktop: false,
-        });
         renderProfitTable();
         expect(screen.queryByTestId(dataList)).not.toBeInTheDocument();
     });
 
     test('renders DataList on mobile when data is available', () => {
+        (useDevice as jest.Mock).mockReturnValue({
+            isMobile: true,
+        });
         (useReportsStore as jest.Mock).mockReturnValueOnce({
             profit_table: {
                 ...useReportsStore().profit_table,
@@ -338,14 +307,14 @@ describe('Profit Table', () => {
                 is_empty: false,
             },
         });
-        (useDevice as jest.Mock).mockReturnValue({
-            isDesktop: false,
-        });
         renderProfitTable();
         expect(screen.getByTestId(dataList)).toBeInTheDocument();
     });
 
     test('renders DataList on mobile when data is available and not loading', () => {
+        (useDevice as jest.Mock).mockReturnValue({
+            isMobile: true,
+        });
         (useReportsStore as jest.Mock).mockReturnValueOnce({
             profit_table: {
                 ...useReportsStore().profit_table,
@@ -354,9 +323,6 @@ describe('Profit Table', () => {
                 is_empty: false,
                 is_loading: false,
             },
-        });
-        (useDevice as jest.Mock).mockReturnValue({
-            isDesktop: false,
         });
         renderProfitTable();
         expect(screen.getByTestId(dataList)).toBeInTheDocument();

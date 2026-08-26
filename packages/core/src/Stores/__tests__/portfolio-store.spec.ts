@@ -1,5 +1,6 @@
+import { autorun, configure } from 'mobx';
+
 import PortfolioStore from '../portfolio-store';
-import { configure } from 'mobx';
 
 configure({ safeDescriptors: false });
 
@@ -8,7 +9,6 @@ let mockedPortfolioStore: PortfolioStore;
 const symbol = '1HZ100V';
 const contracts = [
     {
-        app_id: 24075,
         buy_price: 10,
         contract_id: 229749680508,
         contract_type: 'MULTUP',
@@ -24,7 +24,6 @@ const contracts = [
         transaction_id: 458367398868,
     },
     {
-        app_id: 16929,
         buy_price: 10,
         contract_id: 230152813328,
         contract_type: 'MULTDOWN',
@@ -57,11 +56,26 @@ beforeEach(() => {
                     subgroup: 'synthetics',
                     subgroup_display_name: 'Synthetics',
                     submarket: 'random_index',
-                    submarket_display_name: 'Continuous Indices',
+                    submarket_display_name: 'Volatility Indices',
                     symbol,
                     symbol_type: 'stockindex',
                 },
             ],
+        },
+        contract_trade: {
+            addContract: jest.fn(),
+            updateProposal: jest.fn(),
+        },
+        contract_replay: {
+            contract_id: null,
+            populateConfig: jest.fn(),
+        },
+        common: {
+            services_error: {},
+            resetServicesError: jest.fn(),
+        },
+        ui: {
+            is_mobile: false,
         },
     });
     mockedPortfolioStore.portfolioHandler({
@@ -94,5 +108,112 @@ describe('PortfolioStore', () => {
         expect(mockedPortfolioStore.getPositionById('incorrect-id')).toEqual(undefined);
         expect(mockedPortfolioStore.getPositionById(null)).toEqual(undefined);
         expect(mockedPortfolioStore.getPositionById(undefined)).toEqual(undefined);
+    });
+
+    it('proposalOpenContractHandler() should preserve entry_spot as string with trailing zeros', () => {
+        const contract_id = contracts[0].contract_id;
+
+        mockedPortfolioStore.proposalOpenContractHandler({
+            proposal_open_contract: {
+                contract_id,
+                contract_type: 'MULTUP',
+                shortcode: contracts[0].shortcode,
+                bid_price: '10.00',
+                profit: '0.50',
+                entry_spot: '975.40',
+                barrier: '980.00',
+                is_valid_to_sell: 1,
+            },
+        });
+
+        const position = mockedPortfolioStore.positions_map[contract_id];
+        expect(typeof position.entry_spot).toBe('string');
+        expect(position.entry_spot).toBe('975.40');
+        expect(typeof position.barrier).toBe('number');
+        expect(position.barrier).toBe(980);
+    });
+
+    describe('populateResultDetails()', () => {
+        const getClosedContractResponse = () => ({
+            proposal_open_contract: {
+                contract_id: contracts[0].contract_id,
+                contract_type: 'MULTUP',
+                shortcode: contracts[0].shortcode,
+                bid_price: '10.50',
+                buy_price: 10,
+                profit: '0.50',
+                entry_spot: '975.40',
+                barrier: '980.00',
+                currency: 'USD',
+                date_start: contracts[0].date_start,
+                date_expiry: contracts[0].expiry_time,
+                exit_tick_time: contracts[0].date_start + 60,
+                sell_time: contracts[0].date_start + 60,
+                sell_price: '10.50',
+                is_expired: 1,
+                is_sold: 1,
+                is_valid_to_sell: 0,
+                status: 'sold',
+            },
+        });
+
+        it('should clear stale services_error when a contract closes', () => {
+            mockedPortfolioStore.root_store.common.services_error = {
+                code: 'ContractSellFailure',
+                message: 'Mock sell error',
+                type: 'sell',
+            };
+
+            mockedPortfolioStore.populateResultDetails(getClosedContractResponse());
+
+            expect(mockedPortfolioStore.root_store.common.resetServicesError).toHaveBeenCalled();
+        });
+
+        it('should not call resetServicesError when there is no services_error', () => {
+            mockedPortfolioStore.root_store.common.services_error = {};
+
+            mockedPortfolioStore.populateResultDetails(getClosedContractResponse());
+
+            expect(mockedPortfolioStore.root_store.common.resetServicesError).not.toHaveBeenCalled();
+        });
+    });
+
+    it('active_positions notifies observers when a position profit is updated in place', () => {
+        // Regression: `active_positions` was annotated `observable.struct`. Because
+        // proposalOpenContractHandler mutates position objects in place, the re-filtered
+        // array held identical references, deepEqual reported no change, and consumers
+        // (e.g. the positions drawer Total P/L) stayed frozen until a position was
+        // added or removed.
+        const totalProfit = () =>
+            mockedPortfolioStore.active_positions.reduce(
+                (total, position) => total + (Number(position.profit_loss) || 0),
+                0
+            );
+
+        const observed: number[] = [];
+        const dispose = autorun(() => observed.push(totalProfit()));
+
+        expect(observed).toEqual([0]);
+
+        const emitProfit = (contract_id: number, profit: string) => {
+            mockedPortfolioStore.proposalOpenContractHandler({
+                proposal_open_contract: {
+                    contract_id,
+                    contract_type: 'MULTUP',
+                    shortcode: contracts[0].shortcode,
+                    bid_price: '10.00',
+                    profit,
+                },
+            });
+            mockedPortfolioStore.updatePositions();
+        };
+
+        emitProfit(contracts[0].contract_id, '5.00');
+        emitProfit(contracts[1].contract_id, '2.50');
+
+        dispose();
+
+        expect(totalProfit()).toBe(7.5);
+        expect(observed).toEqual([0, 5, 7.5]);
     });
 });

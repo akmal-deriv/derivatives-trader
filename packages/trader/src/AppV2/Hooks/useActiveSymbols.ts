@@ -1,59 +1,50 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 
-import { ActiveSymbols, ActiveSymbolsResponse } from '@deriv/api-types';
-import { CONTRACT_TYPES, getContractTypesConfig, isTurbosContract, isVanillaContract } from '@deriv/shared';
+import { useQuery } from '@deriv/api';
+import { routes } from '@deriv/shared';
 import { useStore } from '@deriv/stores';
 import { localize } from '@deriv-com/translations';
 
+import { isMultiplierOnlySymbol } from 'AppV2/Utils/symbol-categories-utils';
 import { useTraderStore } from 'Stores/useTraderStores';
 
-import { useDtraderQuery } from './useDtraderQuery';
+// Cache configuration for active symbols query
+const ACTIVE_SYMBOLS_CACHE_CONFIG = {
+    CACHE_TIME: 10 * 60 * 1000, // 10 minutes - keep in cache even if unused
+} as const;
 
+/**
+ * Hook to fetch and manage active symbols for trading
+ */
 const useActiveSymbols = () => {
-    const { client, common } = useStore();
-    const { loginid } = client;
-    const { showError, current_language } = common;
+    const { common } = useStore();
+    const { showError } = common;
+    const { setActiveSymbolsV2 } = useTraderStore();
+    const { pathname } = useLocation();
+    // The mobile automation tab (its own route) can't trade Multipliers, so
+    // hide Multiplier-only markets from its market list.
+    const exclude_multiplier_only = pathname === routes.trader_automate;
+
+    // Fetch all active symbols without contract_type filter.
+    // Previously, contract_type was included in the payload which caused
+    // React Query to refetch whenever contract_type changed during initialization.
+    // The contract_type filter is not needed — useContractsFor already filters
+    // available contracts for the selected symbol.
     const {
-        active_symbols: symbols_from_store,
-        contract_type,
-        is_vanilla,
-        is_turbos,
-        setActiveSymbolsV2,
-    } = useTraderStore();
-    const [activeSymbols, setActiveSymbols] = useState<ActiveSymbols | []>(symbols_from_store);
-
-    const getContractTypesList = () => {
-        if (is_turbos) return [CONTRACT_TYPES.TURBOS.LONG, CONTRACT_TYPES.TURBOS.SHORT];
-        if (is_vanilla) return [CONTRACT_TYPES.VANILLA.CALL, CONTRACT_TYPES.VANILLA.PUT];
-        return getContractTypesConfig()[contract_type]?.trade_types ?? [];
-    };
-
-    const isQueryEnabled = useCallback(() => {
-        // Remove dependency on available_contract_types to break circular dependency
-        // Active symbols should load independently to provide data for other hooks
-        // Removed switching logic for single account model
-        return true;
-    }, []);
-
-    const getContractType = () => {
-        if (isTurbosContract(contract_type)) {
-            return 'turbos';
-        } else if (isVanillaContract(contract_type)) {
-            return 'vanilla';
-        }
-        return contract_type;
-    };
-
-    const { data: response, error: queryError } = useDtraderQuery<ActiveSymbolsResponse>(
-        ['active_symbols', loginid ?? '', getContractType(), current_language],
-        {
+        data: response,
+        error: queryError,
+        isLoading,
+    } = useQuery('active_symbols', {
+        payload: {
             active_symbols: 'brief',
-            contract_type: getContractTypesList(),
         },
-        {
-            enabled: isQueryEnabled(),
-        }
-    );
+        options: {
+            cacheTime: ACTIVE_SYMBOLS_CACHE_CONFIG.CACHE_TIME,
+            staleTime: ACTIVE_SYMBOLS_CACHE_CONFIG.CACHE_TIME,
+            keepPreviousData: true,
+        },
+    });
 
     // Handle query errors
     useEffect(() => {
@@ -62,42 +53,33 @@ const useActiveSymbols = () => {
         }
     }, [queryError, showError]);
 
-    useEffect(
-        () => {
-            const process = async () => {
-                if (!response) return;
+    // Update MobX store when data is received (for trade-store internal operations).
+    // Always stores the full, unfiltered list — the filter below only affects
+    // what this hook returns for display.
+    useEffect(() => {
+        if (!response) return;
 
-                const { active_symbols = [], error } = response;
+        const { active_symbols = [] } = response;
 
-                if (error) {
-                    // Fallback: try to use existing symbols from store if available
-                    if (symbols_from_store?.length) {
-                        setActiveSymbols(symbols_from_store);
-                        setActiveSymbolsV2(symbols_from_store);
-                    } else {
-                        showError({ message: localize('Trading is unavailable at this time.') });
-                        setActiveSymbols([]);
-                    }
-                } else if (!active_symbols?.length) {
-                    // Fallback: try to use existing symbols from store if available
-                    if (symbols_from_store?.length) {
-                        setActiveSymbols(symbols_from_store);
-                        setActiveSymbolsV2(symbols_from_store);
-                    } else {
-                        setActiveSymbols([]);
-                    }
-                } else {
-                    setActiveSymbols(active_symbols);
-                    setActiveSymbolsV2(active_symbols);
-                }
-            };
-            process();
-        },
+        if (!active_symbols?.length) {
+            showError({ message: localize('Trading is unavailable at this time.') });
+            setActiveSymbolsV2([]);
+        } else {
+            // Update store with fresh data
+            setActiveSymbolsV2(active_symbols);
+        }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        [response]
-    );
+    }, [response]);
 
-    return { activeSymbols };
+    const activeSymbols = useMemo(() => {
+        const all_symbols = response?.active_symbols || [];
+        return exclude_multiplier_only ? all_symbols.filter(symbol => !isMultiplierOnlySymbol(symbol)) : all_symbols;
+    }, [response, exclude_multiplier_only]);
+
+    return {
+        activeSymbols,
+        isLoading,
+    };
 };
 
 export default useActiveSymbols;

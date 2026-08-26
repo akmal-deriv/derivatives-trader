@@ -1,7 +1,7 @@
 import React, { Suspense } from 'react';
 import { Switch } from 'react-router-dom';
 
-import { RouteWithSubroutes, UILoader } from '@deriv/components';
+import { RouteWithSubroutes, SmartFallbackLoader } from '@deriv/components';
 import { observer, useStore } from '@deriv/stores';
 
 import Page404 from 'Modules/Page404';
@@ -21,7 +21,7 @@ const Router: React.FC = () => {
     }, []);
 
     return (
-        <Suspense fallback={<UILoader />}>
+        <Suspense fallback={<SmartFallbackLoader />}>
             <Switch>
                 {traderRoutes.map((route, index) => (
                     <RouteWithSubroutes

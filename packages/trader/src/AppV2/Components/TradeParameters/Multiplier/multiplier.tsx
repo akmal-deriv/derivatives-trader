@@ -1,57 +1,47 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import clsx from 'clsx';
 import { observer } from 'mobx-react-lite';
 
-import { Localize } from '@deriv-com/translations';
+import { isMobile } from '@deriv/shared';
 import { ActionSheet, Skeleton, TextField } from '@deriv-com/quill-ui';
+import { Localize, useTranslations } from '@deriv-com/translations';
 
-import Carousel from 'AppV2/Components/Carousel';
-import CarouselHeader from 'AppV2/Components/Carousel/carousel-header';
-import TradeParamDefinition from 'AppV2/Components/TradeParamDefinition';
-import { isSmallScreen } from 'AppV2/Utils/trade-params-utils';
+import { ActionSheetHeaderTitle } from 'AppV2/Components/ActionSheetHeaderTooltip';
 import { useTraderStore } from 'Stores/useTraderStores';
 
 import { TTradeParametersProps } from '../trade-parameters';
 
+import MultiplierDescription from './multiplier-description';
+import MultiplierDesktop from './multiplier-desktop';
 import MultiplierWheelPicker from './multiplier-wheel-picker';
 
 const Multiplier = observer(({ is_minimized }: TTradeParametersProps) => {
-    const { multiplier, multiplier_range_list, commission, is_market_closed, onChange, currency } = useTraderStore();
+    const { multiplier, multiplier_range_list, is_market_closed, onChange } = useTraderStore();
+    const { localize } = useTranslations();
 
     const [isOpen, setIsOpen] = useState(false);
-    const is_small_screen_device = isSmallScreen();
+    // Draft kept in state (not a ref) so the header check reacts to wheel changes.
+    const [selected_multiplier, setSelectedMultiplier] = useState(multiplier);
+    const is_mobile = isMobile();
     const classname = clsx('trade-params__option', is_minimized && 'trade-params__option--minimized');
 
-    const handleMultiplierChange = (multiplier: number) => {
-        onChange({ target: { name: 'multiplier', value: multiplier } });
+    // Re-initialise the draft from the committed value on open — this is what makes dismiss = discard.
+    useEffect(() => {
+        if (isOpen) {
+            setSelectedMultiplier(multiplier);
+        }
+    }, [isOpen, multiplier]);
+
+    const onClose = React.useCallback(() => {
+        setIsOpen(false);
+    }, []);
+
+    const handleSave = () => {
+        onChange({ target: { name: 'multiplier', value: selected_multiplier } });
+        setIsOpen(false);
     };
 
-    const onClose = React.useCallback(() => setIsOpen(false), []);
-
-    const action_sheet_content = [
-        {
-            id: 1,
-            component: (
-                <MultiplierWheelPicker
-                    multiplier={multiplier}
-                    multiplier_range_list={multiplier_range_list}
-                    currency={currency}
-                    commission={commission}
-                    setMultiplier={handleMultiplierChange}
-                />
-            ),
-        },
-        {
-            id: 2,
-            component: (
-                <TradeParamDefinition
-                    description={
-                        <Localize i18n_default_text='Multipliers amplify your potential profit if the market moves in your favour, with losses limited to your initial capital.' />
-                    }
-                />
-            ),
-        },
-    ];
+    const is_save_disabled = selected_multiplier === multiplier;
 
     if (!multiplier)
         return (
@@ -60,6 +50,12 @@ const Multiplier = observer(({ is_minimized }: TTradeParametersProps) => {
             </div>
         );
 
+    // Render desktop version with InputPopover for non-mobile devices
+    if (!is_mobile) {
+        return <MultiplierDesktop is_minimized={is_minimized} />;
+    }
+
+    // Render mobile version with ActionSheet
     return (
         <React.Fragment>
             <TextField
@@ -80,15 +76,24 @@ const Multiplier = observer(({ is_minimized }: TTradeParametersProps) => {
                 onClose={onClose}
                 shouldBlurOnClose={isOpen}
             >
-                <ActionSheet.Portal shouldCloseOnDrag>
-                    <Carousel
-                        classname={clsx(
-                            'multiplier__carousel',
-                            is_small_screen_device && 'multiplier__carousel--small'
-                        )}
-                        header={CarouselHeader}
-                        pages={action_sheet_content}
-                        title={<Localize i18n_default_text='Multiplier' />}
+                <ActionSheet.Portal showHandlebar={false} shouldDetectSwipingOnContainer shouldCloseOnDrag>
+                    <ActionSheet.Header
+                        title={
+                            <ActionSheetHeaderTitle
+                                title={<Localize i18n_default_text='Multiplier' />}
+                                description={<MultiplierDescription />}
+                                label={localize('Multiplier')}
+                            />
+                        }
+                        closeAction={{ ariaLabel: localize('Close') }}
+                        saveAction={{ onAction: handleSave, ariaLabel: localize('Save') }}
+                        isSaveActionDisabled={is_save_disabled}
+                        shouldCloseOnSaveActionClick
+                    />
+                    <MultiplierWheelPicker
+                        multiplier_range_list={multiplier_range_list}
+                        selected_multiplier={selected_multiplier}
+                        setSelectedMultiplier={setSelectedMultiplier}
                     />
                 </ActionSheet.Portal>
             </ActionSheet.Root>

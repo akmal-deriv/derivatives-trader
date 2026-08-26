@@ -1,13 +1,13 @@
 import getToken from '../getToken';
 
-describe('getActiveAuthTokenIDFromLocalStorage', () => {
+describe('getToken', () => {
     beforeEach(() => {
         localStorage.clear();
 
         localStorage.setItem(
             'client.accounts',
             JSON.stringify({
-                CR1001: {
+                ROT1001: {
                     token: '12345',
                 },
             })
@@ -15,13 +15,13 @@ describe('getActiveAuthTokenIDFromLocalStorage', () => {
     });
 
     test('should return specific account token', () => {
-        const result = getToken('CR1001');
+        const result = getToken('ROT1001');
 
         expect(result).toBe('12345');
     });
 
     test('should return undefined for unrecognised account', () => {
-        localStorage.setItem('active_loginid', 'CR1111');
+        localStorage.setItem('active_loginid', 'ROT1111');
 
         const result = getToken('UNKNWON_ACCOUNT');
 
@@ -31,7 +31,7 @@ describe('getActiveAuthTokenIDFromLocalStorage', () => {
     test('if local storage empty, retrun undefined', () => {
         localStorage.clear();
 
-        const result = getToken('CR1001');
+        const result = getToken('ROT1001');
 
         expect(result).toBeUndefined();
     });

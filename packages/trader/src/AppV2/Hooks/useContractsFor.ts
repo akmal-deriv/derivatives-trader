@@ -1,32 +1,16 @@
 import React, { useCallback, useEffect, useRef } from 'react';
 
-import { cloneObject, getContractCategoriesConfig, getContractTypesConfig, setTradeURLParams } from '@deriv/shared';
+import { useMobileBridge, useQuery } from '@deriv/api';
+import { cloneObject, getContractCategoriesConfig, getContractTypesConfig } from '@deriv/shared';
 import { useStore } from '@deriv/stores';
 
-import { checkContractTypePrefix } from 'AppV2/Utils/contract-type';
+import { TContractType } from 'AppV2/Types/contract-type';
 import { getTradeTypesList } from 'AppV2/Utils/trade-types-utils';
-import { TContractType } from 'Modules/Trading/Components/Form/ContractType/types';
+import { ContractType } from 'Stores/Modules/Trading/Helpers/contract-type';
 import { useTraderStore } from 'Stores/useTraderStores';
 import { TConfig, TContractTypesList } from 'Types';
 
-import { useDtraderQuery } from './useDtraderQuery';
-
-type TContractsForResponse = {
-    contracts_for: {
-        available: {
-            contract_category: string;
-            contract_type: string;
-            default_stake: number;
-            sentiment: string;
-            underlying_symbol?: string; // New field (symbol → underlying_symbol)
-            symbol?: string; // Legacy field for backward compatibility
-            barrier?: string;
-            barriers?: number;
-            exchange_name?: string;
-        }[];
-        hit_count: number;
-    };
-};
+import useNativeAppAllowedTradeTypes from './useNativeAppAllowedTradeTypes';
 
 const useContractsFor = () => {
     const [contract_types_list, setContractTypesList] = React.useState<TContractTypesList | []>([]);
@@ -34,15 +18,18 @@ const useContractsFor = () => {
     const [trade_types, setTradeTypes] = React.useState<TContractType[]>([]);
     const {
         contract_type,
-        onChange,
+        processContractsForV2,
+        resolveContractTypeAvailability,
         setContractTypesListV2,
         setDefaultStake,
-        processContractsForV2,
+        setIsAwaitingContractsFor,
         symbol,
         active_symbols,
     } = useTraderStore();
     const { client } = useStore();
     const { loginid } = client;
+    const { isMobileApp } = useMobileBridge();
+    const nativeAppAllowedTradeTypes = useNativeAppAllowedTradeTypes();
 
     // Helper function to get underlying_symbol from active_symbols
     const getUnderlyingSymbol = useCallback(
@@ -77,16 +64,16 @@ const useContractsFor = () => {
     const {
         data: response,
         error,
-        is_fetching,
-    } = useDtraderQuery<TContractsForResponse>(
-        ['contracts_for', loginid ?? '', underlying_symbol],
-        {
+        isLoading,
+    } = useQuery('contracts_for', {
+        payload: {
             contracts_for: underlying_symbol, // Use underlying_symbol from active_symbols lookup
         },
-        {
+        options: {
             enabled: isQueryEnabled(),
-        }
-    );
+            staleTime: 60 * 1000,
+        },
+    });
 
     const contract_categories = getContractCategoriesConfig();
     const available_categories = cloneObject(contract_categories);
@@ -95,47 +82,15 @@ const useContractsFor = () => {
         ReturnType<typeof getContractTypesConfig> | undefined
     >();
 
-    const is_fetching_ref = useRef(is_fetching);
+    const is_fetching_ref = useRef(isLoading);
 
-    const isContractTypeAvailable = useCallback(
-        (trade_types: TContractType[]) => {
-            return trade_types.some(
-                type => checkContractTypePrefix([contract_type, type.value]) || contract_type === type.value
-            );
+    const getTradeTypes = useCallback(
+        (categories: TContractTypesList) => {
+            return Array.isArray(categories) && categories.length === 0
+                ? []
+                : getTradeTypesList(categories as TContractTypesList, nativeAppAllowedTradeTypes);
         },
-        [contract_type]
-    );
-
-    const getTradeTypes = useCallback((categories: TContractTypesList) => {
-        return Array.isArray(categories) && categories.length === 0
-            ? []
-            : getTradeTypesList(categories as TContractTypesList);
-    }, []);
-
-    const getNewContractType = useCallback(
-        (trade_types: TContractType[]) => {
-            if (!isContractTypeAvailable(trade_types) && trade_types.length > 0) {
-                return trade_types[0].value;
-            }
-            return contract_type;
-        },
-        [contract_type, isContractTypeAvailable]
-    );
-
-    const processNewContractType = useCallback(
-        (new_contract_type: string) => {
-            const has_contract_type_changed = contract_type != new_contract_type && new_contract_type;
-            if (has_contract_type_changed) {
-                onChange({
-                    target: {
-                        name: 'contract_type',
-                        value: new_contract_type,
-                    },
-                });
-            }
-            setTradeURLParams({ contractType: new_contract_type });
-        },
-        [contract_type, onChange]
+        [nativeAppAllowedTradeTypes]
     );
 
     useEffect(() => {
@@ -145,10 +100,20 @@ const useContractsFor = () => {
     }, [loginid]);
 
     useEffect(() => {
+        // Skip processing stale response data during loading
+        if (isLoading) {
+            return;
+        }
+        // Wait for native app allowed trade types to be ready before processing
+        // to prevent showing unfiltered trade types during bridge initialization
+        if (isMobileApp && nativeAppAllowedTradeTypes === undefined) {
+            return;
+        }
+
         try {
             const { contracts_for } = response || {};
             const available_contract_types: ReturnType<typeof getContractTypesConfig> = {};
-            is_fetching_ref.current = false;
+            is_fetching_ref.current = isLoading;
 
             if (!error && contracts_for?.available.length) {
                 contracts_for.available.forEach(contract => {
@@ -212,30 +177,55 @@ const useContractsFor = () => {
                 setContractTypesList(available_categories);
                 setAvailableContractTypes(available_contract_types);
 
+                // Populate the ContractType closure with the React Query response data.
+                // This ensures ContractType.getContractValues() returns barrier/duration config
+                // without making a duplicate WS.contractsFor call.
+                ContractType.processContractsForResponse(
+                    { contracts_for } as Required<typeof response>,
+                    underlying_symbol
+                );
+
                 const trade_types = getTradeTypes(available_categories);
                 setTradeTypes(trade_types);
 
-                const new_contract_type = getNewContractType(trade_types);
-                processNewContractType(new_contract_type);
+                // Report availability to the store; the store owns the "current type isn't offered"
+                // policy (evaluated against its live state, deferred while a selection is committing,
+                // and correcting the tab strip in place). This hook never changes the trade type
+                // itself — the old in-hook swap ran on stale render closures and could override a
+                // user's mid-cascade selection, spawning phantom tabs on the strip.
+                resolveContractTypeAvailability(
+                    symbol,
+                    trade_types.map(type => type.value)
+                );
 
-                // Process contracts for V2 when data is available
+                // Call processContractsForV2 AFTER resolveContractTypeAvailability ensures the
+                // correct contract_type is set in the store (a synchronous fallback swap has been
+                // applied by now). On page refresh, the contract_type may be empty or stale before
+                // the resolution runs. getContractValues(this) needs the correct contract_type to
+                // return barrier/duration config from the populated ContractType closure.
+                // processContractsForV2 awaits its calls sequentially and triggers
+                // debouncedProposal internally after all values are applied.
                 processContractsForV2();
-            } else if (symbol && !error) {
-                // Fallback: Set basic trade types if API fails but we have a valid symbol
-                const fallbackTradeTypes = [
-                    { text: 'Rise/Fall', value: 'rise_fall' },
-                    { text: 'Higher/Lower', value: 'high_low' },
-                ];
-                setTradeTypes(fallbackTradeTypes);
             } else {
                 setTradeTypes([]);
+                // A settled response with no available contracts never reaches
+                // processContractsForV2 — release the hold so the panel isn't frozen.
+                setIsAwaitingContractsFor(false);
             }
         } catch (err) {
             /* eslint-disable no-console */
             console.error(err);
+            // Release the proposal hold so failures surface as server errors, not a dead page.
+            setIsAwaitingContractsFor(false);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [response]);
+    }, [response, isLoading, isMobileApp, nativeAppAllowedTradeTypes]);
+
+    // Same degradation when the contracts_for request itself fails — otherwise the
+    // proposal hold is never released for this symbol.
+    useEffect(() => {
+        if (error) setIsAwaitingContractsFor(false);
+    }, [error, setIsAwaitingContractsFor]);
 
     const resetTradeTypes = () => {
         setTradeTypes([]);

@@ -1,7 +1,7 @@
 import React from 'react';
+
+import FullscreenError from '../fullscreen-error';
 import PageError from '../page-error';
-import UnhandledErrorModal from '../unhandled-error-modal';
-import ErrorModal from '../error-modal';
 
 type TPageErrorContainer = {
     buttonOnClick?: () => void;
@@ -14,14 +14,24 @@ type TPageErrorContainer = {
 };
 
 const PageErrorContainer = ({ error_header, error_messages, ...props }: TPageErrorContainer) => {
-    if (error_header && error_messages) {
+    const hasMessages = error_messages && error_messages.length > 0;
+    let errorMessage: string | undefined;
+    if (hasMessages) {
+        const firstMessage = error_messages[0];
+        if (firstMessage && typeof firstMessage === 'object' && 'message' in firstMessage) {
+            errorMessage = firstMessage.message;
+        } else if (typeof firstMessage === 'string') {
+            errorMessage = firstMessage;
+        }
+    }
+
+    // Full page error with header and messages (e.g., 404, specific page errors)
+    if (error_header && hasMessages) {
         return <PageError header={error_header} messages={error_messages} {...props} />;
     }
-    // If there are error messages from the backend, show an error modal with the messages
-    if (error_messages) {
-        return <ErrorModal messages={error_messages} />;
-    }
-    return <UnhandledErrorModal />;
+
+    // Uncaught errors from ErrorBoundary → show fullscreen error with optional error message
+    return <FullscreenError error_message={errorMessage} />;
 };
 
 export default PageErrorContainer;

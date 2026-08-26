@@ -1,6 +1,8 @@
-import { Analytics } from '@deriv-com/analytics';
 import Cookies from 'js-cookie';
-import { getDomainName } from '../brand';
+
+import { Analytics } from '@deriv-com/analytics';
+
+import { getTrustedDomainName } from '../brand';
 
 interface Payload {
     type: string;
@@ -73,7 +75,7 @@ const cacheTrackEvents = {
         const cacheCookie = cacheTrackEvents.parseCookies(cookieName);
         if (cacheCookie) storedCookies = cacheCookie;
         storedCookies.push(data);
-        document.cookie = `${cookieName}=${JSON.stringify(storedCookies)}; path=/; Domain=.${getDomainName()};`;
+        document.cookie = `${cookieName}=${JSON.stringify(storedCookies)}; path=/; Domain=.${getTrustedDomainName()};`;
     },
     processEvent: (event: Event): Event => {
         const clientInfo = Cookies.get('client_information');
@@ -108,7 +110,7 @@ const cacheTrackEvents = {
             const signup_device = Cookies.get('signup_device');
 
             if (Analytics !== undefined && typeof Analytics?.pageView === 'function' && cacheTrackEvents.isReady()) {
-                Analytics?.pageView(window.location.href, 'Deriv-App', {
+                Analytics?.pageView(window.location.href, 'Derivatives-Trader', {
                     loggedIn,
                     signup_device: signup_device || 'none',
                 });
@@ -170,13 +172,13 @@ const cacheTrackEvents = {
             // Log the error to the console as usual
             originalConsoleError.apply(console, args);
 
-            // Create a clean error message without __trackjs_state__
+            // Build a readable error message from the console arguments
             const errorMessage = args
                 .map(arg =>
                     arg && typeof arg === 'object' && 'message' in arg
                         ? (arg as Error).message
                         : typeof arg === 'object'
-                          ? JSON.stringify(arg, (key, value) => (key.startsWith('__trackjs') ? undefined : value))
+                          ? JSON.stringify(arg)
                           : String(arg)
                 )
                 .join(' ');

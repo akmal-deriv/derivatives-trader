@@ -50,22 +50,22 @@ describe('MultipliersDealCancellationInfo', () => {
         default_mock_store.modules.trade.proposal_info = {};
         mockMultipliersDealCancellationInfo();
 
-        expect(screen.getAllByTestId('dt_skeleton')).toHaveLength(2);
+        expect(screen.getAllByTestId('dt_skeleton')).toHaveLength(1);
     });
 
     it('renders component with title and value', () => {
         mockMultipliersDealCancellationInfo();
 
-        const upTitle = screen.getByText('DC fee (Up)');
-        expect(upTitle).toBeInTheDocument();
-        expect(upTitle).not.toHaveClass('trade-params__text--disabled');
-        expect(screen.getByText(/4.00 USD/)).toBeInTheDocument();
+        const title = screen.getByText('DC fee');
+        expect(title).toBeInTheDocument();
+        expect(title).not.toHaveClass('trade-params__text--disabled');
+        expect(screen.getByText(/\$4.00/)).toBeInTheDocument();
     });
 
     it('applies specific className if is_market_closed === true', () => {
         default_mock_store.modules.trade.is_market_closed = true;
         mockMultipliersDealCancellationInfo();
 
-        expect(screen.getByText('DC fee (Up)')).toHaveClass('trade-params__text--disabled');
+        expect(screen.getByText('DC fee')).toHaveClass('trade-params__text--disabled');
     });
 });

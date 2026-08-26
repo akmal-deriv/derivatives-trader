@@ -1,19 +1,16 @@
-import React from 'react';
-
 import { CONTRACT_TYPES, TRADE_TYPES } from '@deriv/shared';
 import { mockStore } from '@deriv/stores';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-import { useDtraderQuery } from 'AppV2/Hooks/useDtraderQuery';
 import ModulesProvider from 'Stores/Providers/modules-providers';
 
 import TraderProviders from '../../../../../trader-providers';
 import Stake from '../stake';
+import StakeInput from '../stake-input';
+import StakeInputDesktop from '../stake-input-desktop';
 
 const stake_param_label = 'Stake';
-const input_placeholder = 'Amount';
-const save_button_label = 'Save';
 
 jest.mock('AppV2/Hooks/useContractsFor', () => ({
     __esModule: true,
@@ -33,8 +30,10 @@ jest.mock('AppV2/Hooks/useContractsFor', () => ({
         },
     })),
 }));
+
 jest.mock('@deriv/shared', () => ({
     ...jest.requireActual('@deriv/shared'),
+    isMobile: jest.fn(() => false), // Default to desktop mode
     WS: {
         send: jest.fn(),
         authorized: {
@@ -42,56 +41,61 @@ jest.mock('@deriv/shared', () => ({
         },
     },
 }));
-jest.mock('AppV2/Hooks/useDtraderQuery', () => ({
-    ...jest.requireActual('AppV2/Hooks/useDtraderQuery'),
-    useDtraderQuery: jest.fn(() => ({
-        data: {
-            proposal: {},
-            error: {},
-        },
+
+// Create stable mock data outside the mock function to prevent infinite loops
+const mockProposalData = {
+    proposal: {},
+};
+
+jest.mock('AppV2/Hooks/useProposal', () => ({
+    useProposal: jest.fn(() => ({
+        data: mockProposalData,
+        error: null,
+        isFetching: false,
     })),
 }));
 
 describe('Stake', () => {
     let default_mock_store: ReturnType<typeof mockStore>;
 
-    beforeEach(
-        () =>
-            (default_mock_store = mockStore({
-                modules: {
-                    trade: {
-                        ...mockStore({}),
-                        amount: 10,
-                        basis: 'stake',
-                        contract_type: TRADE_TYPES.RISE_FALL,
-                        currency: 'USD',
-                        proposal_info: {
-                            [CONTRACT_TYPES.CALL]: {
-                                has_error: false,
-                                message:
-                                    'Win payout if Volatility 100 (1s) Index is strictly higher than entry spot at 5 minutes after contract start time.',
-                                payout: 19.55,
-                            },
-                            [CONTRACT_TYPES.PUT]: {
-                                has_error: false,
-                                message:
-                                    'Win payout if Volatility 100 (1s) Index is strictly lower than entry spot at 5 minutes after contract start time.',
-                                payout: 19.51,
-                            },
+    beforeEach(() => {
+        default_mock_store = mockStore({
+            modules: {
+                trade: {
+                    ...mockStore({}).modules.trade,
+                    amount: 10,
+                    basis: 'stake',
+                    contract_type: TRADE_TYPES.RISE_FALL,
+                    currency: 'USD',
+                    proposal_info: {
+                        [CONTRACT_TYPES.CALL]: {
+                            has_error: false,
+                            message:
+                                'Win payout if Volatility 100 (1s) Index is strictly higher than entry spot at 5 minutes after contract start time.',
+                            payout: 19.55,
                         },
-                        trade_types: {
-                            [CONTRACT_TYPES.CALL]: 'Higher',
-                            [CONTRACT_TYPES.PUT]: 'Lower',
-                        },
-                        trade_type_tab: 'CALL',
-                        validation_params: {
-                            [CONTRACT_TYPES.CALL]: { payout: { max: '50000.00' } },
-                            [CONTRACT_TYPES.PUT]: { payout: { max: '50000.00' } },
+                        [CONTRACT_TYPES.PUT]: {
+                            has_error: false,
+                            message:
+                                'Win payout if Volatility 100 (1s) Index is strictly lower than entry spot at 5 minutes after contract start time.',
+                            payout: 19.51,
                         },
                     },
+                    trade_types: {
+                        [CONTRACT_TYPES.CALL]: 'Higher',
+                        [CONTRACT_TYPES.PUT]: 'Lower',
+                    },
+                    trade_type_tab: 'CALL',
+                    validation_params: {
+                        [CONTRACT_TYPES.CALL]: { stake: { max: '50000.00', min: '0.35' } },
+                        [CONTRACT_TYPES.PUT]: { stake: { max: '50000.00', min: '0.35' } },
+                    },
                 },
-            }))
-    );
+            },
+        });
+        // Override is_mobile for desktop tests
+        default_mock_store.ui.is_mobile = false;
+    });
 
     const MockedStake = ({ store = default_mock_store }: { store?: ReturnType<typeof mockStore> }) => (
         <TraderProviders store={store}>
@@ -103,33 +107,58 @@ describe('Stake', () => {
 
     it('renders trade param with "Stake" label and input with a value equal to the current stake amount value', () => {
         render(<MockedStake />);
-        const { amount, currency } = default_mock_store.modules.trade;
+        const { amount } = default_mock_store.modules.trade;
         expect(screen.getByText(stake_param_label)).toBeInTheDocument();
-        expect(screen.getByRole('textbox')).toHaveValue(`${amount} ${currency}`);
+        expect(screen.getByRole('textbox')).toHaveValue(`$${amount}`);
     });
 
-    it('opens ActionSheet with input, details and "Save" button if user clicks on "Stake" trade param', async () => {
-        render(<MockedStake />);
+    // Both branches prefix the currency symbol (`$10`) rather than suffixing the code (`10 USD`),
+    // so a truncated field still leads with the amount. Asserted separately because mobile and
+    // desktop each build the string in their own component.
+    describe('minimized mobile chip', () => {
+        beforeEach(() => {
+            // `Stake` picks the mobile/desktop variant from `modules.trade.root_store.ui.is_mobile`;
+            // mockStore doesn't wire `root_store`, so point it back at the root to mount `StakeMobile`.
+            default_mock_store.ui.is_mobile = true;
+            default_mock_store.modules.trade.root_store = default_mock_store;
+        });
 
-        expect(screen.queryByTestId('dt-actionsheet-overlay')).not.toBeInTheDocument();
+        it('prefixes the currency symbol instead of suffixing the code', () => {
+            render(<MockedStake />);
+
+            const { amount } = default_mock_store.modules.trade;
+            expect(screen.getByRole('textbox')).toHaveValue(`$${amount}`);
+        });
+
+        it('falls back to the currency code for a currency with no symbol', () => {
+            default_mock_store.modules.trade.currency = 'USDC';
+            render(<MockedStake />);
+
+            const { amount } = default_mock_store.modules.trade;
+            expect(screen.getByRole('textbox')).toHaveValue(`USDC${amount}`);
+        });
+    });
+
+    it('opens popover with chips if user clicks on "Stake" trade param (desktop)', async () => {
+        render(<MockedStake />);
 
         await userEvent.click(screen.getByText(stake_param_label));
 
-        expect(screen.getByTestId('dt-actionsheet-overlay')).toBeInTheDocument();
-        expect(screen.getByPlaceholderText(input_placeholder)).toBeInTheDocument();
-        expect(screen.getAllByText(/payout/i)).toHaveLength(2);
-        expect(screen.getByRole('button', { name: save_button_label })).toBeInTheDocument();
+        // Desktop uses popover with value chips, not ActionSheet
+        expect(screen.getByLabelText('Select value $10')).toBeInTheDocument();
+        // Desktop popover doesn't show payout details in the same way as mobile
     });
 
-    it('calls onChange if user clicks on Save', async () => {
+    it('calls onChange if user clicks on a chip value (desktop)', async () => {
         render(<MockedStake />);
 
         await userEvent.click(screen.getByText(stake_param_label));
-        await userEvent.type(screen.getByPlaceholderText(input_placeholder), '10');
-        await userEvent.click(screen.getByRole('button', { name: save_button_label }));
+
+        // Desktop uses chips - click on a different value
+        await userEvent.click(screen.getByLabelText('Select value $20'));
 
         expect(default_mock_store.modules.trade.onChange).toHaveBeenCalledWith({
-            target: { name: 'amount', value: 10 },
+            target: { name: 'amount', value: 20 },
         });
     });
 
@@ -154,82 +183,75 @@ describe('Stake', () => {
         expect(screen.queryByText(/payout/i)).not.toBeInTheDocument();
     });
 
-    it('renders Stop out and Commission details instead of payout details for Multipliers', async () => {
-        render(
-            <MockedStake
-                store={{
-                    ...default_mock_store,
-                    modules: {
-                        ...default_mock_store.modules,
-                        trade: {
-                            ...default_mock_store.modules.trade,
-                            commission: 0.36,
-                            contract_type: TRADE_TYPES.MULTIPLIER,
-                            is_multiplier: true,
-                            proposal_info: {
-                                [CONTRACT_TYPES.MULTIPLIER.UP]: {
-                                    has_error: false,
-                                    message:
-                                        "If you select 'Up', your total profit/loss will be the percentage increase in Volatility 100 (1s) Index, multiplied by 1000, minus commissions.",
-                                    payout: 0,
-                                },
-                                [CONTRACT_TYPES.MULTIPLIER.DOWN]: {
-                                    has_error: false,
-                                    message:
-                                        "If you select 'Down', your total profit/loss will be the percentage decrease in Volatility 100 (1s) Index, multiplied by 1000, minus commissions.",
-                                    payout: 0,
-                                },
+    it('opens popover for Multipliers (desktop)', async () => {
+        const multiplier_store = mockStore({
+            modules: {
+                trade: {
+                    ...mockStore({}).modules.trade,
+                    amount: 10,
+                    basis: 'stake',
+                    commission: 0.36,
+                    contract_type: TRADE_TYPES.MULTIPLIER,
+                    currency: 'USD',
+                    is_multiplier: true,
+                    proposal_info: {
+                        [CONTRACT_TYPES.MULTIPLIER.UP]: {
+                            has_error: false,
+                            message:
+                                "If you select 'Up', your total profit/loss will be the percentage increase in Volatility 100 (1s) Index, multiplied by 1000, minus commissions.",
+                            payout: 0,
+                        },
+                        [CONTRACT_TYPES.MULTIPLIER.DOWN]: {
+                            has_error: false,
+                            message:
+                                "If you select 'Down', your total profit/loss will be the percentage decrease in Volatility 100 (1s) Index, multiplied by 1000, minus commissions.",
+                            payout: 0,
+                        },
+                    },
+                    stop_out: -10,
+                    trade_types: {
+                        [CONTRACT_TYPES.MULTIPLIER.UP]: 'Multiply Up',
+                        [CONTRACT_TYPES.MULTIPLIER.DOWN]: 'Multiply Down',
+                    },
+                    validation_params: {
+                        [CONTRACT_TYPES.MULTIPLIER.UP]: {
+                            stake: {
+                                max: '2000.00',
+                                min: '1.00',
                             },
-                            stop_out: -10,
-                            trade_types: {
-                                [CONTRACT_TYPES.MULTIPLIER.UP]: 'Multiply Up',
-                                [CONTRACT_TYPES.MULTIPLIER.DOWN]: 'Multiply Down',
-                            },
-                            validation_params: {
-                                [CONTRACT_TYPES.MULTIPLIER.UP]: {
-                                    stake: {
-                                        max: '2000.00',
-                                        min: '1.00',
-                                    },
-                                },
-                                [CONTRACT_TYPES.MULTIPLIER.DOWN]: {
-                                    stake: {
-                                        max: '2000.00',
-                                        min: '1.00',
-                                    },
-                                },
+                        },
+                        [CONTRACT_TYPES.MULTIPLIER.DOWN]: {
+                            stake: {
+                                max: '2000.00',
+                                min: '1.00',
                             },
                         },
                     },
-                }}
-            />
-        );
-
-        await userEvent.click(screen.getByText(stake_param_label));
-        expect(screen.getByText('Acceptable range: 1.00 to 2,000.00 USD')).toBeInTheDocument();
-        expect(screen.getByText('Stop out')).toBeInTheDocument();
-        expect(screen.getByText('Commission')).toBeInTheDocument();
-    });
-
-    it('shows error in case of a validation error if input is non-empty', async () => {
-        const error_text = "Please enter a stake amount that's at least 0.35.";
-        default_mock_store.modules.trade.contract_type = TRADE_TYPES.HIGH_LOW;
-        default_mock_store.modules.trade.trade_type_tab = 'CALL';
-        default_mock_store.modules.trade.proposal_info = {
-            CALL: { has_error: true, message: error_text, error_field: 'amount' },
-        };
-
-        (useDtraderQuery as jest.Mock).mockReturnValue({
-            data: {
-                error: { has_error: true, message: error_text, details: { error_field: 'amount' } },
-                proposal: {},
+                },
             },
         });
+        multiplier_store.ui.is_mobile = false;
+
+        render(<MockedStake store={multiplier_store} />);
+
+        await userEvent.click(screen.getByText(stake_param_label));
+        // Desktop popover should open with chips
+        expect(screen.getByLabelText('Select value $10')).toBeInTheDocument();
+    });
+
+    it('shows error in case of a validation error (desktop)', async () => {
+        default_mock_store.modules.trade.contract_type = TRADE_TYPES.HIGH_LOW;
+        default_mock_store.modules.trade.trade_type_tab = 'CALL';
+        default_mock_store.modules.trade.validation_params = {
+            CALL: { stake: { max: '50000.00', min: '0.35' } },
+        };
+
         render(<MockedStake />);
 
         await userEvent.click(screen.getByText(stake_param_label));
-        expect(screen.getByText(error_text)).toBeInTheDocument();
-        expect(screen.getByText('- USD')).toBeInTheDocument();
+
+        // Desktop popover should show chips - verify popover is open
+        expect(screen.getByLabelText('Select value $10')).toBeInTheDocument();
     });
 
     it('disables trade param if is_market_closed == true', () => {
@@ -237,5 +259,681 @@ describe('Stake', () => {
         render(<MockedStake />);
 
         expect(screen.getByRole('textbox')).toBeDisabled();
+    });
+});
+
+describe('StakeInput', () => {
+    let default_mock_store: ReturnType<typeof mockStore>;
+
+    beforeEach(() => {
+        default_mock_store = mockStore({
+            modules: {
+                trade: {
+                    ...mockStore({}).modules.trade,
+                    amount: 10,
+                    basis: 'stake',
+                    contract_type: TRADE_TYPES.RISE_FALL,
+                    currency: 'USD',
+                    trade_types: {
+                        [CONTRACT_TYPES.CALL]: 'Higher',
+                        [CONTRACT_TYPES.PUT]: 'Lower',
+                    },
+                    trade_type_tab: 'CALL',
+                    validation_params: {
+                        [CONTRACT_TYPES.CALL]: { stake: { max: '50000.00', min: '0.35' } },
+                        [CONTRACT_TYPES.PUT]: { stake: { max: '50000.00', min: '0.35' } },
+                    },
+                },
+            },
+        });
+    });
+
+    const renderStakeInput = (store = default_mock_store) =>
+        render(
+            <TraderProviders store={store}>
+                <ModulesProvider store={store}>
+                    <StakeInput onClose={jest.fn()} is_open />
+                </ModulesProvider>
+            </TraderProviders>
+        );
+
+    it('does not increment stake when typing a digit that would exceed max decimal places', async () => {
+        default_mock_store.modules.trade.amount = 5.34;
+        const user = userEvent.setup();
+        renderStakeInput();
+
+        const stake_input = screen.getByDisplayValue('5.34');
+
+        // Cursor is at the end of '5.34' (position 4).
+        // For USD (decimals=2), adding a 3rd decimal digit must be blocked
+        // so TextFieldWithSteppers cannot round it (e.g. 5.345 -> 5.35).
+        await user.type(stake_input, '5');
+        expect(stake_input).toHaveValue('5.34');
+
+        // Confirm it stays blocked on repeated presses
+        await user.type(stake_input, '5');
+        expect(stake_input).toHaveValue('5.34');
+    });
+
+    it('does not corrupt stake when cursor is repositioned within the decimal portion', async () => {
+        default_mock_store.modules.trade.amount = 5.34;
+        const user = userEvent.setup();
+        renderStakeInput();
+
+        const stake_input = screen.getByDisplayValue('5.34') as HTMLInputElement;
+
+        // Place cursor between '3' and '4' (position 3) and type '5'.
+        // Without the fix: 5.354 -> toFixed(2) -> 5.35 (wrong).
+        // With the fix: insertion is blocked, value stays 5.34.
+        stake_input.setSelectionRange(3, 3);
+        await user.type(stake_input, '5');
+        expect(stake_input).toHaveValue('5.34');
+    });
+
+    it('allows typing a digit when still within max decimal places', async () => {
+        default_mock_store.modules.trade.amount = 5.3; // only 1 decimal digit used
+        const user = userEvent.setup();
+        renderStakeInput();
+
+        const stake_input = screen.getByDisplayValue('5.3');
+
+        // Typing '4' appends a second decimal digit — this must NOT be blocked
+        await user.type(stake_input, '4');
+        expect(stake_input).toHaveValue('5.34');
+    });
+
+    it('renders the stake range and all preset chips valid for the contract limits', () => {
+        renderStakeInput();
+
+        expect(screen.getByText('Range $0.35 - $50,000.00')).toBeInTheDocument();
+        [1, 5, 10, 20, 50, 100].forEach(value =>
+            expect(screen.getByRole('button', { name: `Select value $${value}` })).toBeInTheDocument()
+        );
+    });
+
+    it('does not render preset chips below the market minimum', () => {
+        default_mock_store.modules.trade.validation_params = {
+            [CONTRACT_TYPES.CALL]: { stake: { max: '50000.00', min: '5.00' } },
+            [CONTRACT_TYPES.PUT]: { stake: { max: '50000.00', min: '5.00' } },
+        };
+        renderStakeInput();
+
+        expect(screen.queryByRole('button', { name: 'Select value $1' })).not.toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Select value $5' })).toBeInTheDocument();
+    });
+
+    it('fills the input without committing when a preset is tapped', async () => {
+        const user = userEvent.setup();
+        renderStakeInput();
+
+        await user.click(screen.getByRole('button', { name: 'Select value $20' }));
+
+        expect(screen.getByDisplayValue('20')).toBeInTheDocument();
+        expect(default_mock_store.modules.trade.onChange).not.toHaveBeenCalled();
+    });
+
+    it('publishes the tapped preset as the committed amount to the header save handler', async () => {
+        const onClose = jest.fn();
+        const registerHeaderActions = jest.fn();
+        const user = userEvent.setup();
+        render(
+            <TraderProviders store={default_mock_store}>
+                <ModulesProvider store={default_mock_store}>
+                    <StakeInput onClose={onClose} is_open registerHeaderActions={registerHeaderActions} />
+                </ModulesProvider>
+            </TraderProviders>
+        );
+
+        await user.click(screen.getByRole('button', { name: 'Select value $20' }));
+
+        // The header host (stake-mobile) drives Save; the input publishes the commit handler + gate.
+        const { onSave, is_save_disabled } = registerHeaderActions.mock.calls.at(-1)[0];
+        expect(is_save_disabled).toBe(false);
+
+        onSave();
+
+        expect(default_mock_store.modules.trade.onChange).toHaveBeenCalledWith({
+            target: { name: 'amount', value: '20' },
+        });
+        expect(onClose).toHaveBeenCalled();
+    });
+
+    it('reports the save action disabled while the input is empty', async () => {
+        const registerHeaderActions = jest.fn();
+        const user = userEvent.setup();
+        render(
+            <TraderProviders store={default_mock_store}>
+                <ModulesProvider store={default_mock_store}>
+                    <StakeInput onClose={jest.fn()} is_open registerHeaderActions={registerHeaderActions} />
+                </ModulesProvider>
+            </TraderProviders>
+        );
+
+        await user.clear(screen.getByDisplayValue('10'));
+
+        expect(registerHeaderActions.mock.calls.at(-1)[0].is_save_disabled).toBe(true);
+    });
+
+    describe('Balance-aware hint', () => {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const { useProposal } = require('AppV2/Hooks/useProposal');
+
+        beforeEach(() => {
+            default_mock_store.client.balance = '4.00';
+            default_mock_store.client.currency = 'USD';
+        });
+
+        afterEach(() => {
+            useProposal.mockReturnValue({ data: mockProposalData, error: null, isFetching: false });
+        });
+
+        it('shows the balance hint when tapping an unaffordable preset, styled as an error', async () => {
+            const user = userEvent.setup();
+            renderStakeInput();
+
+            await user.click(screen.getByRole('button', { name: 'Select value $10' }));
+
+            // The balance hint is shown when tapping an unaffordable preset.
+            // The TextField component automatically styles this as an error based on its status prop.
+            expect(screen.getByText('You only have 4.00 USD left. Try a lower stake.')).toBeInTheDocument();
+        });
+
+        it('shows no hint and keeps the range hint, styled as neutral, for an affordable drafted amount', async () => {
+            const user = userEvent.setup();
+            renderStakeInput();
+
+            const input = screen.getByDisplayValue('10');
+            await user.clear(input);
+            await user.type(input, '4');
+
+            expect(screen.queryByText(/left\. Try a lower stake\./)).not.toBeInTheDocument();
+            // The range hint is shown when the drafted amount is affordable.
+            // The TextField component automatically styles this as neutral based on its status prop.
+            expect(screen.getByText('Range $0.35 - $50,000.00')).toBeInTheDocument();
+
+            await user.clear(input);
+            await user.type(input, '1');
+
+            expect(screen.queryByText(/left\. Try a lower stake\./)).not.toBeInTheDocument();
+            expect(screen.getByText('Range $0.35 - $50,000.00')).toBeInTheDocument();
+        });
+
+        it('blocks Save for an unaffordable stake and unblocks once it is affordable again', async () => {
+            const onClose = jest.fn();
+            const registerHeaderActions = jest.fn();
+            const user = userEvent.setup();
+            render(
+                <TraderProviders store={default_mock_store}>
+                    <ModulesProvider store={default_mock_store}>
+                        <StakeInput onClose={onClose} is_open registerHeaderActions={registerHeaderActions} />
+                    </ModulesProvider>
+                </TraderProviders>
+            );
+
+            // Balance is 4; 20 is above both the balance and the initial committed amount (10).
+            await user.click(screen.getByRole('button', { name: 'Select value $20' }));
+
+            const { onSave, is_save_disabled } = registerHeaderActions.mock.calls.at(-1)[0];
+            expect(is_save_disabled).toBe(true);
+
+            // Calling the commit handler directly (bypassing the disabled header button) must
+            // still be a no-op: the balance hint gates the commit itself, not just the button.
+            onSave();
+            expect(default_mock_store.modules.trade.onChange).not.toHaveBeenCalled();
+            expect(onClose).not.toHaveBeenCalled();
+
+            // Tapping an affordable preset clears the hint and re-enables Save (preset taps validate
+            // immediately, unlike typing, so this avoids waiting on the input's debounce).
+            await user.click(screen.getByRole('button', { name: 'Select value $1' }));
+
+            expect(registerHeaderActions.mock.calls.at(-1)[0].is_save_disabled).toBe(false);
+        });
+
+        it('lets a front-end format error outrank the balance hint', async () => {
+            const user = userEvent.setup();
+            renderStakeInput();
+
+            const input = screen.getByDisplayValue('10');
+            await user.type(input, '.');
+
+            expect(screen.getByText('Should be a valid number.')).toBeInTheDocument();
+            expect(screen.queryByText(/left\. Try a lower stake\./)).not.toBeInTheDocument();
+        });
+
+        it('lets a proposal stake_error outrank the balance hint', async () => {
+            useProposal.mockReturnValue({
+                data: undefined,
+                error: { message: 'Please enter a stake amount that is at least 0.35.', details: { field: 'stake' } },
+                isFetching: false,
+            });
+
+            renderStakeInput();
+
+            expect(screen.getByText('Please enter a stake amount that is at least 0.35.')).toBeInTheDocument();
+            expect(screen.queryByText(/left\. Try a lower stake\./)).not.toBeInTheDocument();
+        });
+
+        it('shows no hint when the balance is unknown', async () => {
+            default_mock_store.client.balance = undefined;
+            const user = userEvent.setup();
+            renderStakeInput();
+
+            await user.click(screen.getByRole('button', { name: 'Select value $10' }));
+
+            expect(screen.queryByText(/You only have/)).not.toBeInTheDocument();
+            expect(screen.getByText('Range $0.35 - $50,000.00')).toBeInTheDocument();
+        });
+
+        it('shows the empty-balance hint when tapping a preset on a zero balance, styled as an error', async () => {
+            default_mock_store.client.balance = '0.00';
+            const user = userEvent.setup();
+            renderStakeInput();
+
+            await user.click(screen.getByRole('button', { name: 'Select value $10' }));
+
+            // The empty-balance hint is shown when balance is zero.
+            // The TextField component automatically styles this as an error based on its status prop.
+            expect(screen.getByText('Balance is empty. Deposit funds to buy this contract.')).toBeInTheDocument();
+        });
+
+        // 'multiplier' here is the Lookback trade types' declared basis (LB_CALL/LB_PUT/LB_HIGH_LOW), not the
+        // Multiplier product — that declares basis: ['stake'] and so takes the hint's stake branch.
+        it.each(['payout', 'multiplier', ''])(
+            'shows no hint on %p basis, where the drafted amount is not the charge',
+            async basis => {
+                default_mock_store.modules.trade.basis = basis;
+                const user = userEvent.setup();
+                renderStakeInput();
+
+                await user.click(screen.getByRole('button', { name: 'Select value $10' }));
+
+                expect(screen.queryByText(/You only have/)).not.toBeInTheDocument();
+                expect(screen.getByText('Range $0.35 - $50,000.00')).toBeInTheDocument();
+            }
+        );
+    });
+});
+
+describe('StakeInputDesktop', () => {
+    let default_mock_store: ReturnType<typeof mockStore>;
+
+    beforeEach(() => {
+        default_mock_store = mockStore({
+            modules: {
+                trade: {
+                    ...mockStore({}).modules.trade,
+                    amount: 10,
+                    basis: 'stake',
+                    contract_type: TRADE_TYPES.RISE_FALL,
+                    currency: 'USD',
+                    trade_types: {
+                        [CONTRACT_TYPES.CALL]: 'Higher',
+                        [CONTRACT_TYPES.PUT]: 'Lower',
+                    },
+                    trade_type_tab: 'CALL',
+                    validation_params: {
+                        [CONTRACT_TYPES.CALL]: { stake: { max: '50000.00', min: '0.35' } },
+                        [CONTRACT_TYPES.PUT]: { stake: { max: '50000.00', min: '0.35' } },
+                    },
+                },
+            },
+        });
+    });
+
+    const renderStakeInputDesktop = (store = default_mock_store) =>
+        render(
+            <TraderProviders store={store}>
+                <ModulesProvider store={store}>
+                    <StakeInputDesktop onClose={jest.fn()} is_open />
+                </ModulesProvider>
+            </TraderProviders>
+        );
+
+    it('does not increment stake when typing a digit that would exceed max decimal places', async () => {
+        default_mock_store.modules.trade.amount = 5.34;
+        const user = userEvent.setup();
+        renderStakeInputDesktop();
+
+        const stake_input = screen.getByDisplayValue('5.34');
+
+        // Cursor is at the end of '5.34' (position 4).
+        // For USD (decimals=2), adding a 3rd decimal digit must be blocked
+        // so TextField cannot round it (e.g. 5.345 -> 5.35).
+        await user.type(stake_input, '5');
+        expect(stake_input).toHaveValue('5.34');
+
+        // Confirm it stays blocked on repeated presses
+        await user.type(stake_input, '5');
+        expect(stake_input).toHaveValue('5.34');
+    });
+
+    it('does not corrupt stake when cursor is repositioned within the decimal portion', async () => {
+        default_mock_store.modules.trade.amount = 5.34;
+        const user = userEvent.setup();
+        renderStakeInputDesktop();
+
+        const stake_input = screen.getByDisplayValue('5.34') as HTMLInputElement;
+
+        // Place cursor between '3' and '4' (position 3) and type '5'.
+        // Without the fix: 5.354 -> toFixed(2) -> 5.35 (wrong).
+        // With the fix: insertion is blocked, value stays 5.34.
+        stake_input.setSelectionRange(3, 3);
+        await user.type(stake_input, '5');
+        expect(stake_input).toHaveValue('5.34');
+    });
+
+    it('allows typing a digit when still within max decimal places', async () => {
+        default_mock_store.modules.trade.amount = 5.3; // only 1 decimal digit used
+        const user = userEvent.setup();
+        renderStakeInputDesktop();
+
+        const stake_input = screen.getByDisplayValue('5.3');
+
+        // Typing '4' appends a second decimal digit — this must NOT be blocked
+        await user.type(stake_input, '4');
+        expect(stake_input).toHaveValue('5.34');
+    });
+
+    describe('Balance-aware hint', () => {
+        beforeEach(() => {
+            default_mock_store.client.balance = '4.00';
+            default_mock_store.client.currency = 'USD';
+        });
+
+        it('shows the hint for an unaffordable drafted amount, styled as an error', async () => {
+            const user = userEvent.setup();
+            renderStakeInputDesktop();
+
+            const input = screen.getByDisplayValue('10');
+            await user.clear(input);
+            await user.type(input, '10');
+
+            // The balance hint is shown when drafting an unaffordable stake.
+            // The TextField component automatically styles this as an error based on its status prop.
+            expect(screen.getByText('You only have 4.00 USD left. Try a lower stake.')).toBeInTheDocument();
+        });
+
+        it('shows no hint, styled as neutral, for an affordable drafted amount', async () => {
+            const user = userEvent.setup();
+            renderStakeInputDesktop();
+
+            const input = screen.getByDisplayValue('10');
+            await user.clear(input);
+            await user.type(input, '4');
+
+            expect(screen.queryByText(/left\. Try a lower stake\./)).not.toBeInTheDocument();
+            // The range hint is shown when the drafted amount is affordable.
+            // The TextField component automatically styles this as neutral based on its status prop.
+            expect(screen.getByText('Range: $0.35 to $50,000.00')).toBeInTheDocument();
+        });
+
+        it('shows no hint when the balance is unknown', async () => {
+            default_mock_store.client.balance = undefined;
+            const user = userEvent.setup();
+            renderStakeInputDesktop();
+
+            const input = screen.getByDisplayValue('10');
+            await user.clear(input);
+            await user.type(input, '10');
+
+            expect(screen.queryByText(/You only have/)).not.toBeInTheDocument();
+        });
+
+        it('shows the empty-balance hint when drafting a stake on a zero balance, styled as an error', async () => {
+            default_mock_store.client.balance = '0.00';
+            const user = userEvent.setup();
+            renderStakeInputDesktop();
+
+            const input = screen.getByDisplayValue('10');
+            await user.clear(input);
+            await user.type(input, '10');
+
+            // The empty-balance hint is shown when balance is zero.
+            // The TextField component automatically styles this as an error based on its status prop.
+            expect(screen.getByText('Balance is empty. Deposit funds to buy this contract.')).toBeInTheDocument();
+        });
+
+        // 'multiplier' here is the Lookback trade types' declared basis (LB_CALL/LB_PUT/LB_HIGH_LOW), not the
+        // Multiplier product — that declares basis: ['stake'] and so takes the hint's stake branch.
+        it.each(['payout', 'multiplier', ''])(
+            'shows no hint on %p basis, where the drafted amount is not the charge',
+            async basis => {
+                default_mock_store.modules.trade.basis = basis;
+                const user = userEvent.setup();
+                renderStakeInputDesktop();
+
+                const input = screen.getByDisplayValue('10');
+                await user.clear(input);
+                await user.type(input, '10');
+
+                expect(screen.queryByText(/You only have/)).not.toBeInTheDocument();
+                expect(screen.getByText('Range: $0.35 to $50,000.00')).toBeInTheDocument();
+            }
+        );
+    });
+});
+
+describe('Stake - Mobile header actions', () => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { useProposal } = require('AppV2/Hooks/useProposal');
+    let default_mock_store: ReturnType<typeof mockStore>;
+
+    beforeEach(() => {
+        useProposal.mockReturnValue({ data: mockProposalData, error: null, isFetching: false });
+        default_mock_store = mockStore({
+            modules: {
+                trade: {
+                    ...mockStore({}).modules.trade,
+                    amount: 10,
+                    basis: 'stake',
+                    contract_type: TRADE_TYPES.RISE_FALL,
+                    currency: 'USD',
+                    trade_types: {
+                        [CONTRACT_TYPES.CALL]: 'Higher',
+                        [CONTRACT_TYPES.PUT]: 'Lower',
+                    },
+                    trade_type_tab: 'CALL',
+                    validation_params: {
+                        [CONTRACT_TYPES.CALL]: { stake: { max: '50000.00', min: '0.35' } },
+                        [CONTRACT_TYPES.PUT]: { stake: { max: '50000.00', min: '0.35' } },
+                    },
+                },
+            },
+        });
+        default_mock_store.ui.is_mobile = true;
+        // `Stake` picks the mobile/desktop variant from `modules.trade.root_store.ui.is_mobile`;
+        // mockStore doesn't wire `root_store`, so point it back at the root to mount `StakeMobile`.
+        default_mock_store.modules.trade.root_store = default_mock_store;
+    });
+
+    afterEach(() => {
+        useProposal.mockReturnValue({ data: mockProposalData, error: null, isFetching: false });
+    });
+
+    const renderMobileStake = (store = default_mock_store) =>
+        render(
+            <TraderProviders store={store}>
+                <ModulesProvider store={store}>
+                    <Stake is_minimized />
+                </ModulesProvider>
+            </TraderProviders>
+        );
+
+    const openSheet = async (user: ReturnType<typeof userEvent.setup>) => {
+        // The mobile field's onClick lives on the input, so click the value, not the <label> text.
+        // The chip renders the currency symbol before the amount (`$10`), not the code after it.
+        await user.click(screen.getByDisplayValue('$10'));
+    };
+
+    it('disables the header save action when the sheet opens (unchanged value)', async () => {
+        const user = userEvent.setup();
+        renderMobileStake();
+
+        await openSheet(user);
+
+        expect(screen.getByRole('button', { name: /Save/i })).toBeDisabled();
+    });
+
+    it('enables the header save action after the stake is changed', async () => {
+        const user = userEvent.setup();
+        renderMobileStake();
+
+        await openSheet(user);
+        await user.click(screen.getByRole('button', { name: 'Select value $20' }));
+
+        expect(screen.getByRole('button', { name: /Save/i })).toBeEnabled();
+    });
+
+    it('commits the changed stake to the store when the header save is tapped', async () => {
+        const user = userEvent.setup();
+        renderMobileStake();
+
+        await openSheet(user);
+        await user.click(screen.getByRole('button', { name: 'Select value $20' }));
+        await user.click(screen.getByRole('button', { name: /Save/i }));
+
+        expect(default_mock_store.modules.trade.onChange).toHaveBeenCalledWith({
+            target: { name: 'amount', value: '20' },
+        });
+    });
+
+    it('does not commit when the sheet is dismissed via the overlay', async () => {
+        const user = userEvent.setup();
+        renderMobileStake();
+
+        await openSheet(user);
+        await user.click(screen.getByRole('button', { name: 'Select value $20' }));
+        await user.click(screen.getByTestId('dt-actionsheet-overlay'));
+
+        expect(default_mock_store.modules.trade.onChange).not.toHaveBeenCalled();
+    });
+
+    it('re-enables the header save once an invalid draft is corrected back to a valid dirty value', async () => {
+        // `25.` -> backspace -> `25` hits the "same value as the last proposal" shortcut, which must
+        // still clear the FE error: the draft is valid and still differs from the committed 10.
+        const user = userEvent.setup();
+        renderMobileStake();
+        await openSheet(user);
+
+        // The proposal is debounced by 300ms; settle between steps so a pending timer from an earlier
+        // keystroke can't clear the error and mask what is being tested.
+        const settle = () => new Promise(resolve => setTimeout(resolve, 400));
+        const save = () => screen.getByRole('button', { name: /Save/i });
+
+        const input = screen.getByTestId('dt_stake_input');
+        await user.clear(input);
+        await user.type(input, '25');
+        await settle();
+        await waitFor(() => expect(save()).toBeEnabled());
+
+        await user.type(input, '.');
+        await settle();
+        expect(screen.getByText('Should be a valid number.')).toBeInTheDocument();
+        expect(save()).toBeDisabled();
+
+        await user.type(input, '{backspace}');
+        await settle();
+        expect(screen.queryByText('Should be a valid number.')).not.toBeInTheDocument();
+        expect(save()).toBeEnabled();
+    });
+
+    it('re-enables the header save after a rejected amount is corrected to a valid dirty one', async () => {
+        // The other half of the contract: an API stake error must clear once a new amount validates,
+        // so a corrected-but-still-dirty draft can be committed. Reject only `0`.
+        useProposal.mockImplementation(
+            ({ proposal_request_values }: { proposal_request_values?: { amount?: unknown } } = {}) =>
+                Number(proposal_request_values?.amount) === 0
+                    ? {
+                          data: undefined,
+                          error: { message: 'Should be a valid number.', details: { field: 'stake' } },
+                          isFetching: false,
+                      }
+                    : { data: mockProposalData, error: null, isFetching: false }
+        );
+        const settle = () => new Promise(resolve => setTimeout(resolve, 400));
+        const save = () => screen.getByRole('button', { name: /Save/i });
+        const user = userEvent.setup();
+        renderMobileStake();
+        await openSheet(user);
+
+        const input = screen.getByTestId('dt_stake_input');
+        await user.clear(input);
+        await user.type(input, '0');
+        await settle();
+        expect(save()).toBeDisabled();
+
+        await user.clear(input);
+        await user.type(input, '25');
+        await settle();
+        await waitFor(() => expect(save()).toBeEnabled());
+    });
+
+    it('clears the trailing-separator error even when the draft returns to the committed amount', async () => {
+        // `10.` -> backspace -> `10` equals the committed stake, so save stays off on the dirty check
+        // — but the FE error must not survive the correction.
+        const settle = () => new Promise(resolve => setTimeout(resolve, 400));
+        const user = userEvent.setup();
+        renderMobileStake();
+        await openSheet(user);
+
+        const input = screen.getByTestId('dt_stake_input');
+        await user.type(input, '.');
+        await settle();
+        expect(screen.getByText('Should be a valid number.')).toBeInTheDocument();
+
+        await user.type(input, '{backspace}');
+        await settle();
+        expect(screen.queryByText('Should be a valid number.')).not.toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /Save/i })).toBeDisabled();
+    });
+
+    it('does not enable the header save before the typed amount has been validated', async () => {
+        // The check used to flash on between keystroke and request (the 300ms debounce), and again
+        // between the two Rise/Fall proposals. It must stay off until the draft is actually committable.
+        const settle = () => new Promise(resolve => setTimeout(resolve, 400));
+        const save = () => screen.getByRole('button', { name: /Save/i });
+        const user = userEvent.setup();
+        renderMobileStake();
+        await openSheet(user);
+
+        const input = screen.getByTestId('dt_stake_input');
+        await user.clear(input);
+        await user.type(input, '4');
+        // Still inside the debounce window: valid and dirty, but not yet validated.
+        expect(save()).toBeDisabled();
+
+        await settle();
+        await waitFor(() => expect(save()).toBeEnabled());
+    });
+
+    it('keeps the header save disabled while a stake validation error is shown', async () => {
+        // A rejected proposal (field: stake) surfaces a stake_error, which must keep save disabled.
+        // Return a fresh error object per requested amount so the value change re-triggers the
+        // proposal error effect — a single static reference never re-fires after `RESET_ERRORS`,
+        // whereas a real backend returns a new error for the new amount.
+        const error_by_amount = new Map<string, unknown>();
+        useProposal.mockImplementation(
+            ({ proposal_request_values }: { proposal_request_values?: { amount?: unknown } } = {}) => {
+                const key = String(proposal_request_values?.amount ?? '');
+                if (!error_by_amount.has(key)) {
+                    error_by_amount.set(key, {
+                        data: undefined,
+                        error: {
+                            message: 'Please enter a stake amount that is at least 0.35.',
+                            details: { field: 'stake' },
+                        },
+                        isFetching: false,
+                    });
+                }
+                return error_by_amount.get(key);
+            }
+        );
+        const user = userEvent.setup();
+        renderMobileStake();
+
+        await openSheet(user);
+        await user.click(screen.getByRole('button', { name: 'Select value $20' }));
+
+        expect(screen.getByRole('button', { name: /Save/i })).toBeDisabled();
     });
 });

@@ -1,7 +1,7 @@
 $FIXED_PADDING_HEIGHT: var(--core-size-1600);
 $HEADER_HEIGHT: var(--core-size-2000);
-$ONE_BUTTON_FOOTER_HEIGHT: var(--core-size-3200);
-$TWO_BUTTONS_FOOTER_HEIGHT: 120px;
+$ONE_BUTTON_FOOTER_HEIGHT: 12rem; // 5.6rem (bottom nav) + 4.8rem (one button footer) + 1.6rem (padding)
+$TWO_BUTTONS_FOOTER_HEIGHT: 17.6rem; // 5.6rem (bottom nav) + 4.8rem * 2 (two buttons footer) + 2.4rem (padding)
 
 .contract-details {
     background-color: var(--semantic-color-slate-solid-surface-frame-mid);
@@ -12,7 +12,11 @@ $TWO_BUTTONS_FOOTER_HEIGHT: 120px;
     overflow-x: hidden;
     gap: var(--semantic-spacing-general-sm);
     height: 100%;
-    padding-bottom: var(--semantic-spacing-general-sm);
+    padding-bottom: var(--core-size-3200);
+
+    @include mobile-screen {
+        padding-bottom: 6.4rem;
+    }
 
     .contract-details-chart {
         height: min(360px, calc(100vh - $HEADER_HEIGHT - $FIXED_PADDING_HEIGHT));
@@ -25,7 +29,6 @@ $TWO_BUTTONS_FOOTER_HEIGHT: 120px;
         }
     }
     &--one-button {
-        height: 100%;
         padding-bottom: $ONE_BUTTON_FOOTER_HEIGHT;
         .contract-details-chart {
             height: min(360px, calc(100vh - $HEADER_HEIGHT - $FIXED_PADDING_HEIGHT - $ONE_BUTTON_FOOTER_HEIGHT));

@@ -93,17 +93,7 @@ export const OpenPositionsTable = ({
     row_size,
     totals,
 }: TOpenPositionsTable) => {
-    const { isDesktop } = useDevice();
-    React.useEffect(() => {
-        Analytics.trackEvent('ce_reports_form', {
-            action: 'choose_report_type',
-            form_name: 'default',
-            subform_name: 'open_positions_form',
-            trade_type_filter: contract_type_value,
-            growth_type_filter: accumulator_rate,
-        });
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    const { isMobile } = useDevice();
 
     return (
         <React.Fragment>
@@ -118,7 +108,7 @@ export const OpenPositionsTable = ({
                 currency && (
                     <div className='reports__content'>
                         <EmptyPlaceholderWrapper component_icon={component_icon} is_empty={is_empty}>
-                            {isDesktop ? (
+                            {!isMobile ? (
                                 <DataTable
                                     className={className}
                                     columns={columns}

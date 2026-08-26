@@ -1,20 +1,30 @@
 import React from 'react';
 import classNames from 'classnames';
-import { isCryptocurrency, getIndicativePrice, getCurrentTick, getDisplayStatus, getTotalProfit } from '@deriv/shared';
-import ContractCardItem from './contract-card-item';
+
+import {
+    type Dayjs,
+    getCurrentTick,
+    getDisplayStatus,
+    getIndicativePrice,
+    getTotalProfit,
+    isCryptocurrency,
+} from '@deriv/shared';
+
+import ArrowIndicator from '../../arrow-indicator';
 import CurrencyBadge from '../../currency-badge';
 import DesktopWrapper from '../../desktop-wrapper';
 import MobileWrapper from '../../mobile-wrapper';
 import Money from '../../money';
-import { ResultStatusIcon } from '../result-overlay/result-overlay';
 import ProgressSliderMobile from '../../progress-slider-mobile';
+import { ResultStatusIcon } from '../result-overlay/result-overlay';
+
 import AccumulatorCardBody from './accumulator-card-body';
+import ContractCardItem from './contract-card-item';
+import { TGeneralContractCardBodyProps } from './contract-update-form';
+import LookBacksCardBody from './lookbacks-card-body';
 import MultiplierCardBody from './multiplier-card-body';
 import TurbosCardBody from './turbos-card-body';
 import VanillaOptionsCardBody from './vanilla-options-card-body';
-import LookBacksCardBody from './lookbacks-card-body';
-import { TGeneralContractCardBodyProps } from './contract-update-form';
-import ArrowIndicator from '../../arrow-indicator';
 
 export type TContractCardBodyProps = {
     is_accumulator?: boolean;
@@ -22,7 +32,7 @@ export type TContractCardBodyProps = {
     is_multiplier: boolean;
     is_turbos?: boolean;
     is_vanilla?: boolean;
-    server_time: moment.Moment;
+    server_time: Dayjs;
 } & TGeneralContractCardBodyProps;
 
 const ContractCardBody = ({
@@ -50,7 +60,7 @@ const ContractCardBody = ({
     should_show_cancellation_warning,
     toggleCancellationWarning,
 }: TContractCardBodyProps) => {
-    const indicative = getIndicativePrice(contract_info);
+    const indicative = Number(getIndicativePrice(contract_info));
     const { buy_price, sell_price, payout, profit, tick_count, date_expiry, purchase_time } = contract_info;
     const current_tick = tick_count ? getCurrentTick(contract_info) : null;
     const { CONTRACT_VALUE, POTENTIAL_PAYOUT, TOTAL_PROFIT_LOSS, STAKE } = getCardLabels();

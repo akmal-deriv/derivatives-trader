@@ -19,7 +19,7 @@ import {
 } from '@deriv/shared';
 import { Localize } from '@deriv-com/translations';
 
-import { getBarrierValue } from 'App/Components/Elements/PositionsDrawer/helpers';
+import { getBarrierValue } from 'Modules/Contract/Components/ContractAudit/positions-helper';
 import { isCancellationExpired } from 'Stores/Modules/Trading/Helpers/logic';
 
 type TCardLabels = ReturnType<typeof getCardLabelsV2>;
@@ -324,6 +324,8 @@ const transformFunctionMap: Record<string, (data: TContractInfo, card_label: TCa
     [CONTRACT_TYPES.PUTE]: transformCallPutData,
     [CONTRACT_TYPES.CALLE]: transformCallPutData,
     [CONTRACT_TYPES.CALL]: transformCallPutData,
+    [CONTRACT_TYPES.HIGHER]: transformCallPutData,
+    [CONTRACT_TYPES.LOWER]: transformCallPutData,
     [CONTRACT_TYPES.TOUCH.ONE_TOUCH]: transformCallPutData,
     [CONTRACT_TYPES.TOUCH.NO_TOUCH]: transformCallPutData,
     [CONTRACT_TYPES.ACCUMULATOR]: transformAccumulatorData,

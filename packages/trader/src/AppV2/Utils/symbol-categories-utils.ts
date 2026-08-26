@@ -1,10 +1,20 @@
-import { ActiveSymbols } from '@deriv/api-types';
+import { TActiveSymbolsResponse } from '@deriv/api';
 import { localize } from '@deriv-com/translations';
 
 import sortSymbols from './sort-symbols-utils';
 
+type ActiveSymbols = NonNullable<TActiveSymbolsResponse['active_symbols']>;
+
+// Markets automation can't trade, hidden from the automate market list.
+// Crypto and Range Break are Multipliers-only; Boom/Crash stay (they do Accumulators).
+const MULTIPLIER_ONLY_MARKETS = new Set(['cryptocurrency']);
+const MULTIPLIER_ONLY_SUBMARKETS = new Set(['range_index']);
+
+export const isMultiplierOnlySymbol = (symbol: ActiveSymbols[0]) =>
+    MULTIPLIER_ONLY_MARKETS.has(symbol.market) || MULTIPLIER_ONLY_SUBMARKETS.has(symbol.submarket);
+
 // Helper function to get market display name
-const getMarketDisplayName = (market: string) => {
+export const getMarketDisplayName = (market: string) => {
     const market_display_names: Record<string, string> = {
         forex: localize('Forex'),
         synthetic_index: localize('Derived'),
@@ -19,7 +29,7 @@ const getMarketDisplayName = (market: string) => {
 };
 
 // Helper function to get subgroup display name
-const getSubgroupDisplayName = (subgroup: string, market: string) => {
+export const getSubgroupDisplayName = (subgroup: string, market: string) => {
     if (subgroup === 'none') {
         return getMarketDisplayName(market);
     }
@@ -41,18 +51,18 @@ const getSubgroupDisplayName = (subgroup: string, market: string) => {
 };
 
 // Helper function to get submarket display name
-const getSubmarketDisplayName = (submarket: string) => {
+export const getSubmarketDisplayName = (submarket: string) => {
     const submarket_display_names: Record<string, string> = {
         major_pairs: localize('Major pairs'),
         minor_pairs: localize('Minor pairs'),
         smart_fx: localize('Smart FX'),
-        random_index: localize('Continuous indices'),
+        random_index: localize('Volatility indices'),
         random_daily: localize('Daily reset indices'),
         crash_boom: localize('Crash/Boom'),
         crash_index: localize('Crash/Boom'),
         step_indices: localize('Step indices'),
         step_index: localize('Step indices'),
-        range_break: localize('Range break indices'),
+        range_index: localize('Range break indices'),
         jump_indices: localize('Jump indices'),
         jump_index: localize('Jump indices'),
         cryptocurrency: localize('Cryptocurrencies'),

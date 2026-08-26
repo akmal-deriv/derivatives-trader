@@ -1,16 +1,15 @@
 import React from 'react';
-import moment from 'moment';
 
-import { toMoment } from '@deriv/shared';
-import { Localize } from '@deriv-com/translations';
+import { type Dayjs, dayjs, toMoment } from '@deriv/shared';
 import { ActionSheet, DatePicker } from '@deriv-com/quill-ui';
+import { Localize, useTranslations } from '@deriv-com/translations';
 
 import { DEFAULT_DATE_FORMATTING_CONFIG } from 'AppV2/Utils/positions-utils';
 
 type TDateRangePicker = {
     applyHandler: () => void;
     handleDateChange: (
-        values: { to?: moment.Moment; from?: moment.Moment; is_batch?: boolean },
+        values: { to?: Dayjs; from?: Dayjs; is_batch?: boolean },
         otherParams?: {
             date_range?: Record<string, string | number>;
             shouldFilterContractTypes?: boolean;
@@ -29,6 +28,10 @@ const DateRangePicker = ({
 }: TDateRangePicker) => {
     const [chosenRangeString, setChosenRangeString] = React.useState<string>();
     const [chosenRange, setChosenRange] = React.useState<(string | null | Date)[] | null | Date>([]);
+    const { localize } = useTranslations();
+
+    // Header save stays disabled until a range is actually chosen (the previous footer gate).
+    const is_save_disabled = !chosenRangeString || !(Array.isArray(chosenRange) && chosenRange.length);
 
     const onApply = () => {
         setCustomTimeRangeFilter(chosenRangeString);
@@ -36,7 +39,7 @@ const DateRangePicker = ({
             handleDateChange(
                 {
                     from: toMoment(chosenRange[0]),
-                    to: chosenRange[1] ? toMoment(chosenRange[1]) : moment(chosenRange[0]).endOf('day'),
+                    to: chosenRange[1] ? toMoment(chosenRange[1]) : dayjs(chosenRange[0] as Date | string).endOf('day'),
                 },
                 { shouldFilterContractTypes: true }
             );
@@ -52,8 +55,14 @@ const DateRangePicker = ({
 
     return (
         <ActionSheet.Root isOpen={isOpen} onClose={onClose} position='left' expandable={false}>
-            <ActionSheet.Portal shouldCloseOnDrag>
-                <ActionSheet.Header title={<Localize i18n_default_text='Choose a date range' />} />
+            <ActionSheet.Portal showHandlebar={false} shouldDetectSwipingOnContainer shouldCloseOnDrag>
+                <ActionSheet.Header
+                    title={<Localize i18n_default_text='Choose a date range' />}
+                    closeAction={{ ariaLabel: localize('Close') }}
+                    saveAction={{ onAction: onApply, ariaLabel: localize('Save') }}
+                    isSaveActionDisabled={is_save_disabled}
+                    shouldCloseOnSaveActionClick
+                />
                 <ActionSheet.Content>
                     <DatePicker
                         allowPartialRange
@@ -67,14 +76,6 @@ const DateRangePicker = ({
                         maxDate={new Date()}
                     />
                 </ActionSheet.Content>
-                <ActionSheet.Footer
-                    alignment='vertical'
-                    isPrimaryButtonDisabled={!chosenRangeString}
-                    primaryAction={{
-                        content: <Localize i18n_default_text='Apply' />,
-                        onAction: onApply,
-                    }}
-                />
             </ActionSheet.Portal>
         </ActionSheet.Root>
     );

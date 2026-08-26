@@ -17,8 +17,18 @@ const mockProps = {
     show_guide_for_selected_contract: false,
 };
 
+jest.mock('@deriv/stores', () => ({
+    ...jest.requireActual('@deriv/stores'),
+    useStore: () => ({ ui: { is_dark_mode_on: false } }),
+}));
+
 jest.mock('@lottiefiles/dotlottie-react', () => ({
     DotLottieReact: jest.fn(() => <div>DotLottieReact</div>),
+}));
+
+jest.mock('@deriv-com/ui', () => ({
+    ...jest.requireActual('@deriv-com/ui'),
+    useDevice: () => ({ isMobile: true }),
 }));
 
 describe('DescriptionModal', () => {

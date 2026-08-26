@@ -1,22 +1,25 @@
 import React from 'react';
-import { addMonths, addYears, subMonths, subYears, toMoment } from '@deriv/shared';
+
 import {
     StandaloneChevronLeftBoldIcon,
     StandaloneChevronRightBoldIcon,
     StandaloneChevronsLeftBoldIcon,
     StandaloneChevronsRightBoldIcon,
 } from '@deriv/quill-icons';
+import { addMonths, addYears, type ConfigType, type Dayjs, subMonths, subYears, toMoment } from '@deriv/shared';
+
+import { type TCalendarUnit } from './helpers/constants';
 import Button from './calendar-button';
 import { getCentury, getDecade } from './helpers';
 
 type THeaderProps = {
-    calendar_date: moment.MomentInput;
+    calendar_date: ConfigType;
     calendar_view: string;
     disable_month_selector?: boolean;
     disable_year_selector?: boolean;
     hide_disabled_periods?: boolean;
-    isPeriodDisabled: (date: moment.Moment, unit: moment.unitOfTime.StartOf) => boolean;
-    navigateTo: (new_date: moment.Moment) => void;
+    isPeriodDisabled: (date: Dayjs, unit: TCalendarUnit) => boolean;
+    navigateTo: (new_date: Dayjs) => void;
     switchView?: (new_view: string) => void;
 };
 

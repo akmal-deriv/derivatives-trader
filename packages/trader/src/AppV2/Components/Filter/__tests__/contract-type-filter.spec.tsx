@@ -3,10 +3,23 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
+import { TAvailableContract } from 'AppV2/Utils/trade-types-utils';
+
 import ContractTypeFilter from '../contract-type-filter';
+
+const availableContracts = [
+    { id: 'Accumulators', tradeType: 'Accumulators' },
+    { id: 'Rise/Fall', tradeType: 'Rise/Fall' },
+    { id: 'Higher/Lower', tradeType: 'Higher/Lower' },
+    { id: 'Touch/No Touch', tradeType: 'Touch/No Touch' },
+    { id: 'Vanillas', tradeType: 'Vanillas' },
+    { id: 'Turbos', tradeType: 'Turbos' },
+    { id: 'Multipliers', tradeType: 'Multipliers' },
+] as unknown as TAvailableContract[];
 
 const defaultFilterName = 'Trade types';
 const mockProps = {
+    availableContracts,
     onApplyContractTypeFilter: jest.fn(),
     contractTypeFilter: [],
 };

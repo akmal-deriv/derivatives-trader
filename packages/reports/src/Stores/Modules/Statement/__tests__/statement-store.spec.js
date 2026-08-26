@@ -7,7 +7,8 @@ jest.mock('@deriv/shared', () => ({
     WS: {
         statement: jest.fn(),
         forgetAll: jest.fn(),
-        wait: jest.fn().mockResolvedValue(true),
+        setOnReconnect: jest.fn(),
+        removeOnReconnect: jest.fn(),
     },
 }));
 
@@ -18,6 +19,7 @@ describe('StatementStore', () => {
     const root_store = mockStore({
         client: {
             loginid: 'test_loginid',
+            is_logged_in: true,
         },
     });
     const response = {
@@ -179,17 +181,6 @@ describe('StatementStore', () => {
         expect(statement_store.fetchOnScroll).toHaveBeenCalledWith(1500);
     });
 
-    it('should perform certain action when accountSwitcherListener is called', async () => {
-        WS.statement.mockResolvedValue(response);
-        statement_store.shouldFetchNextBatch = jest.fn().mockReturnValue(true);
-
-        await statement_store.accountSwitcherListener();
-
-        expect(statement_store.is_loading).toBe(false);
-        expect(WS.statement).toHaveBeenCalled();
-        expect(statement_store.data.length).toBe(2);
-    });
-
     it('should change is_loading as per is_online status', () => {
         statement_store.is_loading = false;
 
@@ -198,21 +189,21 @@ describe('StatementStore', () => {
         expect(statement_store.is_loading).toBe(true);
     });
 
-    it('should initalize the statements on mount', () => {
+    it('should initialize the statements on mount and wait for authentication', async () => {
         WS.statement.mockResolvedValue(response);
         statement_store.shouldFetchNextBatch = jest.fn().mockReturnValue(true);
 
         statement_store.onMount();
 
-        expect(WS.forgetAll).toHaveBeenCalled();
         expect(statement_store.client_loginid).toBe(root_store.client.loginid);
-        expect(WS.wait).toHaveBeenCalledWith('authorize');
+        // Verify fetchNextBatch is eventually called after authentication
+        await new Promise(resolve => setTimeout(resolve, 0));
+        expect(WS.statement).toHaveBeenCalled();
     });
 
-    it('should call disposeSwitchAccount and forget proposal calls on Unmount', () => {
+    it('should not forget price-proposal subscriptions it does not own on Unmount', () => {
         statement_store.onUnmount();
 
-        expect(WS.forgetAll).toHaveBeenCalledWith('proposal');
-        expect(statement_store.switch_account_listener).toBeNull();
+        expect(WS.forgetAll).not.toHaveBeenCalledWith('proposal');
     });
 });

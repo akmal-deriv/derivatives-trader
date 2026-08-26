@@ -83,9 +83,15 @@ describe('getChartHeight', () => {
             is_accumulator: false,
             symbol: '1HZ100V',
         };
-        const default_chart_height = 484;
-        const accumulators_chart_height = 428;
-        const chart_height_with_additional_info = 454;
+        // window.innerHeight (740) - HEADER (56) - MARKET_SELECTOR (72) - TRADE_PARAM_SHEET (158) - BOTTOM_NAV (56) = 398
+        // MATCH_DIFF is a digit type, so subtract DIGIT_INFO (46): 398 - 46 = 352
+        // MATCH_DIFF has trade_type_tabs, so subtract TRADE_TYPE_TAB (48): 352 - 48 = 304
+        const default_chart_height = 304;
+        // base (398) - CHART_STATS (44) = 354 (ACCUMULATOR has no trade_type_tabs)
+        const accumulators_chart_height = 354;
+        // base (398) - TRADE_TYPE_TAB (48) = 350. The below-params info rows are dropped on
+        // responsive, so they no longer reduce the chart height.
+        const chart_height_with_trade_type_tabs = 350;
 
         expect(
             getChartHeight({
@@ -105,32 +111,45 @@ describe('getChartHeight', () => {
                 contract_type: TRADE_TYPES.MULTIPLIER,
                 has_cancellation: true,
             })
-        ).toEqual(chart_height_with_additional_info);
+        ).toEqual(chart_height_with_trade_type_tabs);
         expect(
             getChartHeight({
                 ...common_args,
                 contract_type: TRADE_TYPES.MULTIPLIER,
                 symbol: 'cryBTCUSD',
             })
-        ).toEqual(chart_height_with_additional_info);
+        ).toEqual(chart_height_with_trade_type_tabs);
         expect(
             getChartHeight({
                 ...common_args,
                 contract_type: TRADE_TYPES.VANILLA.CALL,
             })
-        ).toEqual(chart_height_with_additional_info);
+        ).toEqual(chart_height_with_trade_type_tabs);
         expect(
             getChartHeight({
                 ...common_args,
                 contract_type: TRADE_TYPES.RISE_FALL,
             })
-        ).toEqual(chart_height_with_additional_info);
+        ).toEqual(chart_height_with_trade_type_tabs);
         expect(
             getChartHeight({
                 ...common_args,
                 contract_type: TRADE_TYPES.HIGH_LOW,
             })
-        ).toEqual(chart_height_with_additional_info);
+        ).toEqual(chart_height_with_trade_type_tabs);
+    });
+
+    it('reclaims the market-selector and bottom-nav space when maximized', () => {
+        const common_args = {
+            contract_type: TRADE_TYPES.RISE_FALL,
+            has_cancellation: false,
+            is_accumulator: false,
+            symbol: '1HZ100V',
+        };
+        // Non-maximized RISE_FALL: base (386) - TRADE_TYPE_TAB (48) = 338
+        const default_height = getChartHeight(common_args);
+        // Maximized reclaims MARKET_SELECTOR (72) + BOTTOM_NAV (56) = +128
+        expect(getChartHeight({ ...common_args, is_maximized: true })).toEqual(default_height + 72 + 56);
     });
 });
 

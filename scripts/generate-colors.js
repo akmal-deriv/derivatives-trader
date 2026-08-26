@@ -78,7 +78,7 @@ function generateConstants(config) {
  *  # Color Constants (Auto-Generated)
  *------------------------------------*/
 
-/* 
+/*
  * This file is auto-generated from brand.config.json
  * Do not edit manually - run 'npm run generate:colors' instead
  */
@@ -131,10 +131,10 @@ function generateBrandTokens(config) {
 
     let content = `/**
  * Brand Tokens - Core White-Label Variables (Auto-Generated)
- * 
+ *
  * This file is auto-generated from brand.config.json
  * Do not edit manually - run 'npm run generate:colors' instead
- * 
+ *
  * Partners only need to customize colors in brand.config.json
  */
 
@@ -207,6 +207,8 @@ function generateSemanticTokens() {
     // Text Colors
     --color-text-primary: var(--brand-black);                           // Primary text (headings, important text)
     --color-text-secondary: #{transparentize($color-black, 0.3)};       // Secondary text (body text)
+    --color-text-secondary-alternate: var(--brand-success-dark);        // Secondary text alternative for dark backgrounds
+    --color-text-tertiary: var(--brand-warning-dark);                   // Tertiary text alternative for light backgrounds
     --color-text-disabled: #{transparentize($color-black, 0.6)};        // Disabled text
     --color-text-inverse: var(--brand-white);                           // Inverse text
     --color-text-white: var(--brand-white);                             // White text
@@ -257,6 +259,8 @@ function generateSemanticTokens() {
     // Text Colors
     --color-text-primary: var(--brand-white);                           // Primary text (headings, important text)
     --color-text-secondary: #{transparentize($color-white, 0.2)};       // Secondary text (body text)
+    --color-text-secondary-alternate: var(--brand-success-light);       // Secondary text alternative for dark backgrounds
+    --color-text-tertiary: var(--brand-warning-light);                  // Tertiary text alternative for light backgrounds
     --color-text-disabled: #{transparentize($color-white, 0.6)};        // Disabled text
     --color-text-inverse: var(--brand-black);                           // Inverse text
     --color-text-white: var(--brand-white);                             // White text
@@ -270,7 +274,7 @@ function generateSemanticTokens() {
     // Interactive States
     --color-interactive-default: #{lighten($color-black, 20%)};         // Default borders, dividers
     --color-interactive-hover: #{lighten($color-black, 8%)};            // Hover states (derived from brand-black to get #242828)
-    --color-interactive-active: #{lighten($color-black, 25%)};          // Active/selected states (derived from brand-black to get #323738)
+    --color-interactive-active: #{lighten($color-black, 16%)};          // Active/selected states (derived from brand-black to get #323738)
     --color-interactive-disabled: #{lighten($color-black, 12%)};        // Disabled states
     --color-interactive-focus: var(--brand-info);                       // Focus states
 
@@ -357,12 +361,14 @@ function generateComponentTokens() {
 
     // Navigation Colors
     --color-nav-bg: var(--color-surface-primary);
-    --color-nav-border: var(--color-interactive-default);
-    --color-nav-item-active: var(--brand-primary);
+    --color-nav-border: var(--color-surface-border);
+    --color-nav-item-active: var(--brand-danger);
     --color-nav-item-hover: var(--color-interactive-hover);
 
     // Modal/Dialog Colors
-    --color-modal-bg: var(--color-surface-overlay);
+    --color-modal-bg: var(--color-surface-primary);
+    --color-modal-bg-secondary: var(--color-surface-section);
+    --color-modal-popover-bg: #ffffff;
     --color-modal-backdrop: #{transparentize($color-black, 0.72)};
     --color-modal-border: var(--color-interactive-default);
 
@@ -450,13 +456,15 @@ function generateComponentTokens() {
     --color-card-shadow: var(--color-shadow-subtle);
 
     // Navigation Colors
-    --color-nav-bg: #{lighten($color-black, 8%)};
-    --color-nav-border: var(--color-interactive-default);
-    --color-nav-item-active: var(--brand-primary);
+    --color-nav-bg: var(--color-surface-primary);
+    --color-nav-border: var(--color-surface-border);
+    --color-nav-item-active: var(--brand-danger);
     --color-nav-item-hover: var(--color-interactive-hover);
 
     // Modal/Dialog Colors
-    --color-modal-bg: var(--color-surface-overlay);
+    --color-modal-bg: var(--core-color-solid-slate-1100);
+    --color-modal-bg-secondary: var(--core-color-solid-slate-1000);
+    --color-modal-popover-bg: #20242F;
     --color-modal-backdrop: #{transparentize($color-black, 0.4)};
     --color-modal-border: var(--color-interactive-default);
 

@@ -1,6 +1,8 @@
 import React from 'react';
+
 import { routes } from '@deriv/shared';
 import { render } from '@testing-library/react';
+
 import getRoutesConfig from '../routes-config';
 
 // Mock shared utilities
@@ -10,6 +12,7 @@ jest.mock('@deriv/shared', () => ({
         positions: '/reports/positions',
         profit: '/reports/profit',
         statement: '/reports/statement',
+        archived_statement: '/reports/archived-statement',
     },
     makeLazyLoader: (loader: () => any, fallback: () => React.ReactNode) => {
         return (component: string) => {
@@ -18,6 +21,7 @@ jest.mock('@deriv/shared', () => ({
                 OpenPositions: () => <div>OpenPositions</div>,
                 ProfitTable: () => <div>ProfitTable</div>,
                 Statement: () => <div>Statement</div>,
+                ArchivedStatement: () => <div>ArchivedStatement</div>,
             };
             return components[component] || (() => <div>{component}</div>);
         };
@@ -38,15 +42,17 @@ jest.mock('../../Containers', () => ({
         OpenPositions: () => <div>OpenPositions</div>,
         ProfitTable: () => <div>ProfitTable</div>,
         Statement: () => <div>Statement</div>,
+        ArchivedStatement: () => <div>ArchivedStatement</div>,
     },
 }));
 
 // Mock icon components
 jest.mock('@deriv/quill-icons', () => ({
-    LegacyOpenPositionIcon: ({ iconSize }: { iconSize: string }) => <span>OpenPositionIcon-{iconSize}</span>,
-    LegacyProfitTableIcon: ({ iconSize }: { iconSize: string }) => <span>ProfitTableIcon-{iconSize}</span>,
+    IllustrativeEtfIcon: ({ iconSize }: { iconSize: string }) => <span>EtfIcon-{iconSize}</span>,
     LegacyReportsIcon: ({ iconSize }: { iconSize: string }) => <span>ReportsIcon-{iconSize}</span>,
-    LegacyStatementIcon: ({ iconSize }: { iconSize: string }) => <span>StatementIcon-{iconSize}</span>,
+    StandaloneBriefcaseRegularIcon: ({ iconSize }: { iconSize: string }) => <span>BriefcaseIcon-{iconSize}</span>,
+    StandaloneClockThreeRegularIcon: ({ iconSize }: { iconSize: string }) => <span>ClockIcon-{iconSize}</span>,
+    StandaloneTableLayoutRegularIcon: ({ iconSize }: { iconSize: string }) => <span>TableLayoutIcon-{iconSize}</span>,
 }));
 
 // Mock @deriv/components
@@ -110,7 +116,7 @@ describe('Routes Config', () => {
 
         it('should have correct number of nested routes', () => {
             expect(reportsRoute.routes).toBeDefined();
-            expect(reportsRoute.routes).toHaveLength(3);
+            expect(reportsRoute.routes).toHaveLength(4);
         });
 
         describe('Open Positions sub-route', () => {
@@ -205,6 +211,37 @@ describe('Routes Config', () => {
                 }
             });
         });
+
+        describe('Archived Statements sub-route', () => {
+            let archivedStatementRoute: NonNullable<typeof reportsRoute.routes>[3];
+
+            beforeEach(() => {
+                archivedStatementRoute = reportsRoute.routes![3];
+            });
+
+            it('should have correct configuration', () => {
+                expect(archivedStatementRoute.path).toBe(routes.archived_statement);
+                expect(archivedStatementRoute.default).toBeUndefined();
+                expect(archivedStatementRoute.component).toBeDefined();
+                expect(archivedStatementRoute.getTitle).toBeDefined();
+                expect(archivedStatementRoute.icon_component).toBeDefined();
+            });
+
+            it('should have getTitle function that returns a localized string', () => {
+                const title = archivedStatementRoute.getTitle!();
+                expect(typeof title).toBe('string');
+                expect(title).toBe('Archived statement');
+            });
+
+            it('should have an icon component that renders correctly', () => {
+                expect(archivedStatementRoute.icon_component).toBeDefined();
+
+                if (archivedStatementRoute.icon_component) {
+                    render(archivedStatementRoute.icon_component);
+                    expect(React.isValidElement(archivedStatementRoute.icon_component)).toBe(true);
+                }
+            });
+        });
     });
 
     describe('Default 404 route configuration', () => {
@@ -282,6 +319,7 @@ describe('Routes Config', () => {
                 expect(reportsRoute.routes[0].path).toBe(routes.positions);
                 expect(reportsRoute.routes[1].path).toBe(routes.profit);
                 expect(reportsRoute.routes[2].path).toBe(routes.statement);
+                expect(reportsRoute.routes[3].path).toBe(routes.archived_statement);
             }
         });
 

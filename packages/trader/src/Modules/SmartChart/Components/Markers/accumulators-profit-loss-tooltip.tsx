@@ -30,12 +30,8 @@ const AccumulatorsProfitLossTooltip = ({
     current_spot,
     current_spot_time,
     currency,
-    // @ts-expect-error contract_info is not typed correctly this will not be an issue after the types are fixed
     exit_spot,
-    exit_tick,
-    // @ts-expect-error contract_info is not typed correctly this will not be an issue after the types are fixed
     exit_spot_time,
-    exit_tick_time,
     high_barrier,
     is_sold,
     profit,
@@ -43,13 +39,15 @@ const AccumulatorsProfitLossTooltip = ({
     should_show_profit_text,
     is_mobile,
 }: TAccumulatorsProfitLossTooltip) => {
-    // Backward compatibility: fallback to old field names
-    const actual_exit_spot_time = exit_spot_time ?? exit_tick_time;
-    const actual_exit_spot = exit_spot ?? exit_tick;
+    const actual_exit_spot_time = exit_spot_time;
+    const actual_exit_spot = exit_spot;
     const [is_tooltip_open, setIsTooltipOpen] = React.useState(false);
     const won = Number(profit) >= 0;
     const tooltip_timeout = React.useRef<ReturnType<typeof setTimeout>>();
     const should_show_profit_percentage = getDecimalPlaces(currency) > 2 && !!profit_percentage;
+
+    // Create a ref for CSSTransition to fix findDOMNode deprecation warning
+    const node_ref = React.useRef(null);
 
     React.useEffect(() => {
         return () => {
@@ -98,13 +96,13 @@ const AccumulatorsProfitLossTooltip = ({
 
     if (profit === undefined || isNaN(Number(profit))) return null;
 
-    if (!is_sold && current_spot_time && high_barrier && should_show_profit_text)
+    if (!is_sold && !exit_spot_time && current_spot_time && high_barrier && should_show_profit_text)
         return (
             <AccumulatorsProfitLossText
                 currency={currency}
                 current_spot={current_spot}
                 current_spot_time={current_spot_time}
-                profit_value={should_show_profit_percentage ? profit_percentage : profit}
+                profit_value={should_show_profit_percentage ? profit_percentage : Number(profit)}
                 should_show_profit_percentage={should_show_profit_percentage}
             />
         );
@@ -126,8 +124,9 @@ const AccumulatorsProfitLossTooltip = ({
                 }}
                 unmountOnExit
                 classNames={`${className}__content`}
+                nodeRef={node_ref}
             >
-                <div className={classNames(`${className}__content`, `arrow-${opposite_arrow_position}`)}>
+                <div ref={node_ref} className={classNames(`${className}__content`, `arrow-${opposite_arrow_position}`)}>
                     <Text size={is_mobile ? 'xxxxs' : 'xxs'} className={`${className}__text`}>
                         <Localize i18n_default_text='Total profit/loss:' />
                     </Text>

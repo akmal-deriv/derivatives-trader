@@ -1,62 +1,63 @@
-import { screen, render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+
 import * as ContractUtils from '../contract';
-import { TContractStore, TDigitsInfo, TTickItem } from '../contract-types';
 import { CONTRACT_TYPES } from '../contract';
 import { mockContractInfo } from '../contract-info';
+import { TContractStore, TDigitsInfo, TTickItem } from '../contract-types';
 
 describe('getFinalPrice', () => {
     it("should return sell_price as final price when it's available", () => {
         const contract_info = mockContractInfo({
-            sell_price: 12345,
-            bid_price: 0,
+            sell_price: '12345',
+            bid_price: '0',
         });
-        expect(ContractUtils.getFinalPrice(contract_info)).toEqual(12345);
+        expect(ContractUtils.getFinalPrice(contract_info)).toEqual('12345');
     });
     it('should return sell_price as final price when sell_price && bid_price are available', () => {
         const contract_info = mockContractInfo({
-            sell_price: 12345,
-            bid_price: 789,
+            sell_price: '12345',
+            bid_price: '789',
         });
-        expect(ContractUtils.getFinalPrice(contract_info)).toEqual(12345);
+        expect(ContractUtils.getFinalPrice(contract_info)).toEqual('12345');
     });
     it('should return bid_price as final price when sell_price is not available and bid_price is available', () => {
         const contract_info = mockContractInfo({
-            sell_price: 0,
-            bid_price: 789,
+            sell_price: '0',
+            bid_price: '789',
         });
-        expect(ContractUtils.getFinalPrice(contract_info)).toEqual(789);
+        expect(ContractUtils.getFinalPrice(contract_info)).toEqual('789');
     });
     it('should return 0 as final price when sell_price and bid_price are empty', () => {
         const contract_info = mockContractInfo({
-            sell_price: 0,
-            bid_price: 0,
+            sell_price: '0',
+            bid_price: '0',
         });
-        expect(ContractUtils.getFinalPrice(contract_info)).toEqual(0);
+        expect(ContractUtils.getFinalPrice(contract_info)).toEqual('0');
     });
 });
 
 describe('getIndicativePrice', () => {
     it('should return getFinalPrice if it has final price and contract is ended', () => {
         const contract_info = mockContractInfo({
-            sell_price: 12345,
-            bid_price: 0,
+            sell_price: '12345',
+            bid_price: '0',
             status: 'sold',
         });
-        expect(ContractUtils.getIndicativePrice(contract_info)).toEqual(12345);
+        expect(ContractUtils.getIndicativePrice(contract_info)).toEqual('12345');
     });
     it("should return zero if it doesn't have final price, bid_price and contract is not ended", () => {
         const contract_info = mockContractInfo({
             status: 'open',
-            sell_price: 0,
-            bid_price: 0,
+            sell_price: '0',
+            bid_price: '0',
         });
         expect(ContractUtils.getIndicativePrice(contract_info)).toEqual(0);
     });
     it("should return bid_price if it doesn't have final price, has bid_price and contract is not ended", () => {
         const contract_info = mockContractInfo({
             status: 'open',
-            bid_price: 12345,
-            sell_price: 0,
+            bid_price: '12345',
+            sell_price: '0',
         });
         expect(ContractUtils.getIndicativePrice(contract_info)).toEqual(12345);
     });
@@ -119,6 +120,44 @@ describe('isUserSold', () => {
             status: 'open',
         });
         expect(ContractUtils.isUserSold(contract_info)).toEqual(false);
+    });
+});
+
+describe('isPendingSettlement', () => {
+    it('should return true when contract is expired but not sold yet', () => {
+        const contract_info = mockContractInfo({
+            status: 'open',
+            is_expired: 1,
+            is_sold: 0,
+        });
+        expect(ContractUtils.isPendingSettlement(contract_info)).toEqual(true);
+    });
+    it('should return true when contract is settleable but not sold yet', () => {
+        const contract_info = mockContractInfo({
+            status: 'open',
+            is_settleable: 1,
+            is_sold: 0,
+        });
+        expect(ContractUtils.isPendingSettlement(contract_info)).toEqual(true);
+    });
+    it('should return false while contract is still open', () => {
+        const contract_info = mockContractInfo({
+            status: 'open',
+            is_expired: 0,
+            is_sold: 0,
+        });
+        expect(ContractUtils.isPendingSettlement(contract_info)).toEqual(false);
+    });
+    it('should return false once contract is sold', () => {
+        const contract_info = mockContractInfo({
+            status: 'lost',
+            is_expired: 1,
+            is_sold: 1,
+        });
+        expect(ContractUtils.isPendingSettlement(contract_info)).toEqual(false);
+    });
+    it('should return false for undefined contract info', () => {
+        expect(ContractUtils.isPendingSettlement(undefined)).toEqual(false);
     });
 });
 
@@ -216,11 +255,11 @@ describe('getDigitInfo', () => {
     });
     it('should return an empty object if tick_stream data is already in digits_info', () => {
         const contract_info = mockContractInfo({
-            entry_tick_time: 1544707342,
-            entry_tick: 123.99,
+            entry_spot_time: 1544707342,
+            entry_spot: '123.99',
             current_spot_time: 10000000,
-            current_spot: 456.99,
-            exit_tick_time: 10000001,
+            current_spot: '456.99',
+            exit_spot_time: 10000001,
             contract_type: CONTRACT_TYPES.MATCH_DIFF.MATCH,
             barrier: '9',
             tick_stream: [
@@ -268,32 +307,32 @@ describe('getDisplayStatus', () => {
     it('should return won if contract is ended and profit is more than zero', () => {
         const contract_info = mockContractInfo({
             status: 'sold',
-            buy_price: 0,
-            bid_price: 100,
+            buy_price: '0',
+            bid_price: '100',
         });
         expect(ContractUtils.getDisplayStatus(contract_info)).toEqual('won');
     });
     it('should return lost if contract is ended and profit is less than zero', () => {
         const contract_info = mockContractInfo({
             status: 'sold',
-            buy_price: 100,
-            bid_price: 0,
+            buy_price: '100',
+            bid_price: '0',
         });
         expect(ContractUtils.getDisplayStatus(contract_info)).toEqual('lost');
     });
     it('should return won if contract is ended and profit is zero', () => {
         const contract_info = mockContractInfo({
             status: 'sold',
-            buy_price: 100,
-            bid_price: 100,
+            buy_price: '100',
+            bid_price: '100',
         });
         expect(ContractUtils.getDisplayStatus(contract_info)).toEqual('won');
     });
     it('should return purchased if contract is not ended', () => {
         const contract_info = mockContractInfo({
             status: 'open',
-            buy_price: 0,
-            bid_price: 100,
+            buy_price: '0',
+            bid_price: '100',
         });
         expect(ContractUtils.getDisplayStatus(contract_info)).toEqual('purchased');
     });
@@ -321,7 +360,7 @@ describe('isAccumulatorContractOpen', () => {
     it('should return true if contract_type includes CONTRACT_TYPES.ACCUMULATOR, status is open, and current spot has NOT crossed barriers', () => {
         const contract_info = mockContractInfo({
             contract_type: CONTRACT_TYPES.ACCUMULATOR,
-            current_spot: 1232.44,
+            current_spot: '1232.44',
             high_barrier: '1232.555',
             low_barrier: '1232.222',
             status: 'open',
@@ -331,7 +370,7 @@ describe('isAccumulatorContractOpen', () => {
     it('should return false if contract_type is not CONTRACT_TYPES.ACCUMULATOR', () => {
         const contract_info = mockContractInfo({
             contract_type: CONTRACT_TYPES.CALL,
-            current_spot: 1232.44,
+            current_spot: '1232.44',
             high_barrier: '1232.555',
             low_barrier: '1232.222',
             status: 'open',
@@ -341,21 +380,21 @@ describe('isAccumulatorContractOpen', () => {
     it('should return false if status is not open', () => {
         const contract_info = mockContractInfo({
             contract_type: CONTRACT_TYPES.ACCUMULATOR,
-            current_spot: 1232.44,
+            current_spot: '1232.44',
             high_barrier: '1232.555',
             low_barrier: '1232.222',
             status: 'lost',
         });
         expect(ContractUtils.isAccumulatorContractOpen(contract_info)).toEqual(false);
     });
-    it('should return false if exit_tick_time is present', () => {
+    it('should return false if exit_spot_time is present', () => {
         const contract_info = mockContractInfo({
             contract_type: CONTRACT_TYPES.ACCUMULATOR,
-            current_spot: 1232.44,
+            current_spot: '1232.44',
             high_barrier: '1232.555',
             low_barrier: '1232.333',
             status: 'open',
-            exit_tick_time: 10000001,
+            exit_spot_time: 10000001,
         });
         expect(ContractUtils.isAccumulatorContractOpen(contract_info)).toEqual(false);
     });
@@ -366,7 +405,7 @@ describe('isOpen', () => {
         expect(
             ContractUtils.isOpen({
                 contract_type: CONTRACT_TYPES.CALL,
-                exit_tick_time: undefined,
+                exit_spot_time: undefined,
                 profit: undefined,
                 status: 'open',
             })
@@ -376,8 +415,8 @@ describe('isOpen', () => {
         expect(
             ContractUtils.isOpen({
                 contract_type: CONTRACT_TYPES.CALL,
-                exit_tick_time: 1608098748,
-                profit: 10,
+                exit_spot_time: 1608098748,
+                profit: '10',
                 status: 'won',
             })
         ).toBe(false);
@@ -386,8 +425,8 @@ describe('isOpen', () => {
         expect(
             ContractUtils.isOpen({
                 contract_type: CONTRACT_TYPES.ACCUMULATOR,
-                exit_tick_time: 1608098748,
-                profit: -10,
+                exit_spot_time: 1608098748,
+                profit: '-10',
                 status: 'open',
             })
         ).toBe(false);
@@ -396,8 +435,36 @@ describe('isOpen', () => {
         expect(
             ContractUtils.isOpen({
                 contract_type: CONTRACT_TYPES.ACCUMULATOR,
-                exit_tick_time: 1608098748,
-                profit: 10,
+                exit_spot_time: 1608098748,
+                profit: '10',
+                status: 'open',
+            })
+        ).toBe(false);
+    });
+    it('isOpen returns false for a contract with status open but has exit_spot_time (ended)', () => {
+        expect(
+            ContractUtils.isOpen({
+                contract_type: CONTRACT_TYPES.CALL,
+                exit_spot_time: 1608098748,
+                profit: '-0.11',
+                status: 'open',
+            })
+        ).toBe(false);
+    });
+    it('isOpen returns false for a contract with status open but is_expired', () => {
+        expect(
+            ContractUtils.isOpen({
+                contract_type: CONTRACT_TYPES.MULTIPLIER.UP,
+                is_expired: 1,
+                status: 'open',
+            })
+        ).toBe(false);
+    });
+    it('isOpen returns false for a contract with status open but is_settleable', () => {
+        expect(
+            ContractUtils.isOpen({
+                contract_type: CONTRACT_TYPES.VANILLA.CALL,
+                is_settleable: 1,
                 status: 'open',
             })
         ).toBe(false);
@@ -522,7 +589,7 @@ describe('getAccuBarriersForContractDetails', () => {
     it('should return an object { accu_high_barrier: current_spot_high_barrier, accu_low_barrier: current_spot_low_barrier } while ACCUMULATOR contract is open', () => {
         const contract_info = mockContractInfo({
             ...mocked_contract_info,
-            current_spot: 1232.555,
+            current_spot: '1232.555',
             current_spot_high_barrier: '1232.777',
             current_spot_low_barrier: '1232.333',
         });
@@ -534,27 +601,27 @@ describe('getAccuBarriersForContractDetails', () => {
     it('should return an object { accu_high_barrier: high_barrier, accu_low_barrier: low_barrier } if status is not open', () => {
         const contract_info = mockContractInfo({
             ...mocked_contract_info,
-            current_spot: 1232.555,
+            current_spot: '1232.555',
             current_spot_high_barrier: '1232.777',
             current_spot_low_barrier: '1232.333',
             status: 'lost',
         });
         expect(ContractUtils.getAccuBarriersForContractDetails(contract_info)).toEqual(previous_spot_barriers);
     });
-    it('should return an object { accu_high_barrier: high_barrier, accu_low_barrier: low_barrier } if exit_tick_time is present', () => {
+    it('should return an object { accu_high_barrier: high_barrier, accu_low_barrier: low_barrier } if exit_spot_time is present', () => {
         const contract_info = mockContractInfo({
             ...mocked_contract_info,
-            current_spot: 1232.555,
+            current_spot: '1232.555',
             current_spot_high_barrier: '1232.777',
             current_spot_low_barrier: '1232.333',
-            exit_tick_time: 10000001,
+            exit_spot_time: 10000001,
         });
         expect(ContractUtils.getAccuBarriersForContractDetails(contract_info)).toEqual(previous_spot_barriers);
     });
     it('should return an empty object if contract type is not ACCUMULATOR', () => {
         const contract_info = mockContractInfo({
             contract_type: CONTRACT_TYPES.CALL,
-            current_spot: 1232.555,
+            current_spot: '1232.555',
         });
         expect(ContractUtils.getAccuBarriersForContractDetails(contract_info)).toEqual({});
     });
@@ -565,27 +632,27 @@ describe('getContractStatus', () => {
         expect(
             ContractUtils.getContractStatus({
                 contract_type: CONTRACT_TYPES.CALL,
-                exit_tick_time: 0,
-                profit: 100,
+                exit_spot_time: 0,
+                profit: '100',
                 status: 'lost',
             })
         ).toBe('lost');
     });
-    it('should return "open" for accumulator contracts without exit_tick_time and with open status', () => {
+    it('should return "open" for accumulator contracts without exit_spot_time and with open status', () => {
         expect(
             ContractUtils.getContractStatus({
                 contract_type: CONTRACT_TYPES.ACCUMULATOR,
-                profit: 0,
+                profit: '0',
                 status: 'open',
             })
         ).toBe('open');
     });
-    it('should return "lost" for accumulator contracts with profit less than 0 and exit_tick_time present', () => {
+    it('should return "lost" for accumulator contracts with profit less than 0 and exit_spot_time present', () => {
         expect(
             ContractUtils.getContractStatus({
                 contract_type: CONTRACT_TYPES.ACCUMULATOR,
-                exit_tick_time: 10000001,
-                profit: -100,
+                profit: '-100',
+                exit_spot_time: 1608098748,
                 status: 'open',
             })
         ).toBe('lost');
@@ -594,8 +661,8 @@ describe('getContractStatus', () => {
         expect(
             ContractUtils.getContractStatus({
                 contract_type: CONTRACT_TYPES.ACCUMULATOR,
-                exit_tick_time: 10000001,
-                profit: 100,
+                profit: '100',
+                exit_spot_time: 10000001,
                 status: 'won',
             })
         ).toBe('won');

@@ -1,6 +1,3 @@
-import { LocalStorageUtils, URLUtils } from '@deriv-com/utils';
-import { deriv_urls } from './constants';
-
 /**
  * @deprecated Please use 'URLUtils.getQueryParameter' from '@deriv-com/utils' instead of this.
  */
@@ -19,41 +16,6 @@ export const getActionFromUrl = () => {
     const urlParams = new URLSearchParams(queryString);
     const action = urlParams.get('action');
     return action;
-};
-
-export const getUrlSmartTrader = () => {
-    const { is_staging_deriv_app } = getPlatformFromUrl();
-    const localize_language = LocalStorageUtils.getValue<string>('i18n_language');
-    const url_lang = URLUtils.getQueryParameter('lang');
-    const i18n_language = localize_language || url_lang || 'en';
-
-    let base_link = '';
-
-    if (is_staging_deriv_app) {
-        base_link = deriv_urls.SMARTTRADER_STAGING;
-    } else {
-        base_link = deriv_urls.SMARTTRADER_PRODUCTION;
-    }
-
-    return `${base_link}/${i18n_language.toLowerCase()}/trading.html`;
-};
-
-export const getUrlBot = () => {
-    const { is_staging_deriv_app } = getPlatformFromUrl();
-    const localize_language = LocalStorageUtils.getValue<string>('i18n_language');
-    const url_lang = URLUtils.getQueryParameter('lang');
-    const i18n_language = localize_language || url_lang || 'en';
-
-    let base_link = '';
-
-    if (is_staging_deriv_app) {
-        base_link = deriv_urls.BOT_STAGING;
-    } else {
-        base_link = deriv_urls.BOT_PRODUCTION;
-    }
-
-    const url = `${base_link}?lang=${i18n_language.toLowerCase()}`;
-    return url;
 };
 
 export const getPlatformFromUrl = (domain = window.location.hostname) => {
@@ -77,21 +39,27 @@ export const isStaging = (domain = window.location.hostname) => {
     return is_staging_deriv_app;
 };
 
-export const isTestDerivApp = (domain = window.location.hostname) => {
-    const { is_test_deriv_app } = getPlatformFromUrl(domain);
+/**
+ * Appends a language parameter to a URL
+ * @param url - The base URL to append the language parameter to
+ * @param language - The language code (e.g., 'EN', 'FR', 'ES')
+ * @returns The URL with the language parameter appended
+ */
+export const appendLangParam = (url: string, language?: string): string => {
+    if (!language || !url) return url;
 
-    return is_test_deriv_app;
-};
+    try {
+        const urlObj = new URL(url);
 
-export const removeActionParam = (action_to_remove: string) => {
-    const { pathname, search } = window.location;
-    const search_params = new URLSearchParams(search);
+        // Only add lang param if it doesn't already exist
+        if (!urlObj.searchParams.has('lang')) {
+            urlObj.searchParams.set('lang', language.toUpperCase());
+        }
 
-    if (search_params.get('action') === action_to_remove) {
-        search_params.delete('action');
+        return urlObj.toString();
+    } catch (error) {
+        // If URL parsing fails, fallback to simple string concatenation
+        const separator = url.includes('?') ? '&' : '?';
+        return `${url}${separator}lang=${language.toUpperCase()}`;
     }
-    const new_search = search_params.toString();
-    const new_path = `${pathname}${new_search ? `?${new_search}` : ''}`;
-
-    window.history.pushState({}, '', new_path);
 };

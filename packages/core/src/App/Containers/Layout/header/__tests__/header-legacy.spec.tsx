@@ -16,32 +16,25 @@ jest.mock('react-router-dom', () => ({
 
 jest.mock('@deriv-com/ui', () => ({
     ...jest.requireActual('@deriv-com/ui'),
-    useDevice: jest.fn(() => ({ isDesktop: true })),
+    useDevice: jest.fn(() => ({ isDesktop: true, isMobile: false })),
 }));
 
 jest.mock('App/Components/Layout/Header', () => ({
-    MenuLinks: jest.fn(() => <div data-testid='dt_menu_links'>Menu Links</div>),
+    AccountActions: jest.fn(() => <div data-testid='dt_header_account_actions'>Header Account Actions</div>),
 }));
 
 jest.mock('App/Components/Layout/Header/Components/Preloader', () => ({
     AccountsInfoLoader: jest.fn(() => <div data-testid='dt_accounts_info_loader'>Accounts Info Loader</div>),
 }));
 
-jest.mock('App/Components/Layout/Header/toggle-menu-drawer.jsx', () =>
-    jest.fn(() => <div data-testid='dt_toggle_menu_drawer'>Toggle Menu Drawer</div>)
-);
-
 jest.mock('App/Containers/new-version-notification', () =>
     jest.fn(() => <div data-testid='dt_new_version_notification'>New Version Notification</div>)
 );
 
-jest.mock('../brand-short-logo', () => jest.fn(() => <div data-testid='dt_brand_short_logo'>Brand Short Logo</div>));
-
-jest.mock('../header-account-actions', () =>
-    jest.fn(() => <div data-testid='dt_header_account_actions'>Header Account Actions</div>)
-);
-
-jest.mock('../home-button', () => jest.fn(() => <div data-testid='dt_home_button'>Home Button</div>));
+jest.mock('@deriv/quill-icons', () => ({
+    ...jest.requireActual('@deriv/quill-icons'),
+    DerivProductBrandLightDerivTraderLogoIcon: jest.fn(() => <div data-testid='dt_dtrader_logo'>DTrader Logo</div>),
+}));
 
 describe('HeaderLegacy', () => {
     const history = createBrowserHistory();
@@ -53,7 +46,6 @@ describe('HeaderLegacy', () => {
             is_logging_in: false,
         },
         ui: {
-            header_extension: null,
             is_app_disabled: false,
             is_route_modal_on: false,
         },
@@ -84,7 +76,7 @@ describe('HeaderLegacy', () => {
 
     beforeEach(() => {
         jest.clearAllMocks();
-        (useDevice as jest.Mock).mockReturnValue({ isDesktop: true });
+        (useDevice as jest.Mock).mockReturnValue({ isDesktop: true, isMobile: false });
     });
 
     describe('Basic Rendering', () => {
@@ -92,8 +84,6 @@ describe('HeaderLegacy', () => {
             renderComponent();
 
             expect(screen.getByRole('banner')).toBeInTheDocument();
-            expect(screen.getByTestId('dt_brand_short_logo')).toBeInTheDocument();
-            expect(screen.getByTestId('dt_menu_links')).toBeInTheDocument();
             expect(screen.getByTestId('dt_new_version_notification')).toBeInTheDocument();
         });
 
@@ -108,68 +98,25 @@ describe('HeaderLegacy', () => {
 
     describe('Desktop Layout', () => {
         beforeEach(() => {
-            (useDevice as jest.Mock).mockReturnValue({ isDesktop: true });
+            (useDevice as jest.Mock).mockReturnValue({ isDesktop: true, isMobile: false });
         });
 
-        it('should render Home button when logged in', () => {
+        it('should not render DTrader logo on desktop', () => {
             renderComponent();
 
-            expect(screen.getByTestId('dt_home_button')).toBeInTheDocument();
-            expect(screen.queryByTestId('dt_toggle_menu_drawer')).not.toBeInTheDocument();
-        });
-
-        it('should not render Home button when not logged in', () => {
-            renderComponent({
-                client: {
-                    ...default_mock_store.client,
-                    is_logged_in: false,
-                },
-            });
-
-            expect(screen.queryByTestId('dt_home_button')).not.toBeInTheDocument();
+            expect(screen.queryByTestId('dt_dtrader_logo')).not.toBeInTheDocument();
         });
     });
 
     describe('Mobile Layout', () => {
         beforeEach(() => {
-            (useDevice as jest.Mock).mockReturnValue({ isDesktop: false });
+            (useDevice as jest.Mock).mockReturnValue({ isDesktop: false, isMobile: true });
         });
 
-        it('should render ToggleMenuDrawer on mobile', () => {
+        it('should render DTrader logo on mobile', () => {
             renderComponent();
 
-            expect(screen.getByTestId('dt_toggle_menu_drawer')).toBeInTheDocument();
-            expect(screen.queryByTestId('dt_home_button')).not.toBeInTheDocument();
-        });
-
-        it('should render header extension when logged in and extension exists', () => {
-            const header_extension = <div data-testid='dt_header_extension'>Header Extension</div>;
-
-            renderComponent({
-                ui: {
-                    ...default_mock_store.ui,
-                    header_extension,
-                },
-            });
-
-            expect(screen.getByTestId('dt_header_extension')).toBeInTheDocument();
-        });
-
-        it('should not render header extension when not logged in', () => {
-            const header_extension = <div data-testid='dt_header_extension'>Header Extension</div>;
-
-            renderComponent({
-                client: {
-                    ...default_mock_store.client,
-                    is_logged_in: false,
-                },
-                ui: {
-                    ...default_mock_store.ui,
-                    header_extension,
-                },
-            });
-
-            expect(screen.queryByTestId('dt_header_extension')).not.toBeInTheDocument();
+            expect(screen.getByTestId('dt_dtrader_logo')).toBeInTheDocument();
         });
     });
 

@@ -1,34 +1,117 @@
 .trade {
     display: flex;
     flex-direction: column;
+    height: 100vh;
+    width: calc(100vw - 7.2rem);
+    padding-left: 0;
+    transition: padding-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-sizing: border-box;
     background-color: var(--semantic-color-slate-solid-surface-frame-mid);
-    padding: 0 var(--core-spacing-400) var(--core-spacing-400);
-    gap: var(--core-spacing-400);
+
+    @include mobile-screen {
+        height: unset;
+        width: unset;
+        background-color: var(--semantic-color-slate-solid-surface-frame-low);
+    }
+
+    &--flyout-open {
+        @include desktop-screen {
+            padding-left: 32rem;
+        }
+
+        @include tablet-screen {
+            padding-left: 32rem;
+        }
+    }
+
+    &__header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 6.5rem;
+        padding-right: 1.6rem;
+        position: relative;
+
+        &:after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 28rem;
+            width: 5.6rem;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+
+            @include mobile-screen {
+                display: none;
+            }
+        }
+    }
+    &__logout {
+        .trade__header:after {
+            right: 10rem;
+        }
+
+        .trade__trade-types {
+            width: calc(100vw - 7.2rem - 10rem);
+        }
+    }
+    &__grid {
+        display: grid;
+        grid-template-columns: 1fr minmax(0, 33.6rem);
+        grid-template-rows: minmax(0, 1fr);
+        position: relative;
+        height: calc(100vh - 6.4rem);
+        gap: var(--core-spacing-400);
+        padding: var(--core-spacing-400);
+        padding-top: 0;
+    }
 
     &__trade-types {
         position: relative;
-        width: 100vw;
-        inset-inline-start: calc(-1 * var(--core-spacing-400));
-        padding: var(--core-spacing-400) var(--core-spacing-800);
-        background-color: var(--semantic-color-slate-solid-surface-frame-low);
+        width: calc(100vw - 7.2rem - 28rem);
+        padding-right: 5.6rem;
         display: flex;
+        align-items: center;
         gap: var(--core-spacing-400);
         overflow-x: auto;
         min-height: var(--core-spacing-1600);
         white-space: nowrap;
         scrollbar-width: none;
         scroll-behavior: smooth;
-        transition: left var(--core-motion-duration-300) ease-in;
+
+        // Restricted accounts don't render the sticky grid selector, so the first
+        // chip would otherwise sit flush against the sidebar. Add a matching left
+        // padding to keep it visually aligned with the rest of the trade header.
+        &--restricted {
+            padding-inline-start: var(--core-spacing-800);
+        }
+
+        @include mobile-screen {
+            width: 100vw;
+            inset-inline-start: calc(-1 * var(--core-spacing-400));
+            padding: var(--core-spacing-400) var(--core-spacing-800);
+        }
 
         &::-webkit-scrollbar {
             display: none;
         }
 
-        button {
-            background-color: transparent !important;
+        button:not(.trade-types-selector__button):not(.trade-types-selector__guide-button):not(
+                .trade-types-selector__item
+            ) {
+            background-color: var(--semantic-color-slate-solid-surface-frame-low);
+            cursor: pointer;
 
+            // Outlined selected state — transparent fill, prominent border
+            // and text. Shared by manual trading and the automate tab.
             &.quill-chip[data-state='selected'] {
-                background-color: var(--component-chip-bg-selected) !important;
+                background-color: transparent !important;
+                border-color: var(--component-textIcon-normal-prominent) !important;
+
+                > p {
+                    color: var(--component-textIcon-normal-prominent) !important;
+                }
             }
         }
 
@@ -48,31 +131,90 @@
             }
         }
     }
+    // Wrapper around the market strip so it can collapse (height + fade) when the chart is
+    // maximized on mobile. Kept mounted (not unmounted) so the strip's state is preserved.
+    // Normal state caps at the reserved MARKET_SELECTOR height but keeps overflow visible so
+    // tab tooltips aren't clipped; overflow is hidden only while collapsing.
+    &__market-tabs {
+        max-height: 8rem; // HEIGHT.MARKET_SELECTOR
+        transition:
+            max-height 0.3s ease-in-out,
+            opacity 0.3s ease-in-out;
+
+        &--collapsed {
+            max-height: 0;
+            opacity: 0;
+            overflow: hidden;
+            pointer-events: none;
+        }
+    }
+
     &__chart {
         direction: ltr;
-        border-top-left-radius: var(--core-borderRadius-400);
-        border-top-right-radius: var(--core-borderRadius-400);
         overflow: hidden;
-        &--with-borderRadius {
-            border-bottom-left-radius: var(--core-borderRadius-400);
-            border-bottom-right-radius: var(--core-borderRadius-400);
+        touch-action: none;
+        // Positioning context for the floating P/L pill overlay (ChartProfitLoss).
+        position: relative;
+
+        @include mobile-screen {
+            border-top-left-radius: var(--core-borderRadius-400);
+            border-top-right-radius: var(--core-borderRadius-400);
+            &--with-borderRadius {
+                border-bottom-left-radius: var(--core-borderRadius-400);
+                border-bottom-right-radius: var(--core-borderRadius-400);
+            }
+
+            // Only armed during a maximize/minimize toggle (see trade-mobile), so the chart
+            // container grows/shrinks in lockstep with the collapsing chrome instead of jumping
+            // to its new size instantly. Matches the trade-params sheet timing (0.3s ease-in-out).
+            // NOTE: keep 0.3s in sync with CHART_MAXIMIZE_ANIMATION_MS (300) in layout-utils —
+            // the JS timer disarms this transition after that duration.
+            &--maximize-animating {
+                transition: height 0.3s ease-in-out;
+
+                // SmartCharts' internal container has its own `transition: height .4s`, which
+                // trails our 0.3s container animation and makes the chart drawing lag behind the
+                // edge. Neutralise it during the toggle so the chart tracks our container 1:1
+                // (matching the native mobile app, whose engine resizes to fill instantly).
+                .chartContainer {
+                    transition: none;
+                }
+            }
+        }
+
+        &-tooltip {
+            position: relative;
+            background-color: var(--semantic-color-slate-solid-surface-frame-low);
+            border-radius: var(--core-borderRadius-400);
+            overflow: hidden;
+
+            @include mobile-screen {
+                position: unset;
+                padding: 0 var(--core-spacing-400) var(--core-spacing-400);
+                background-color: unset;
+                border-radius: unset;
+                overflow: unset;
+            }
         }
 
         .smartcharts {
             position: relative;
         }
     }
+    &__market-selector-guide {
+        display: flex;
+        justify-content: space-between;
+    }
+    &__guide {
+        height: 3.2rem;
+        border-radius: 1.6rem;
+        padding: 0 1.2rem;
+        background-color: var(--semantic-color-monochrome-surface-normal-lowest);
+        text-decoration: unset;
+    }
     &__parameter {
-        min-height: 7.2rem;
-        background-color: var(--semantic-color-slate-solid-surface-frame-low);
-
-        &:has(.trade-params__options__wrapper--horizontal:not(:only-child)) {
-            min-height: 10.4rem;
-        }
-
-        &--with-button {
-            min-height: 13.6rem;
-        }
+        display: flex;
+        flex-direction: row;
     }
 }
 

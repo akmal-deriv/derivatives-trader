@@ -1,14 +1,13 @@
 import React from 'react';
-import moment from 'moment';
 
 import { Calendar } from '@deriv/components';
-import { addMonths, diffInMonths, subMonths, toMoment } from '@deriv/shared';
 import { LegacyCalendarForward1pxIcon } from '@deriv/quill-icons';
+import { addMonths, type ConfigType, type Dayjs, dayjs, diffInMonths, subMonths, toMoment } from '@deriv/shared';
 
 type TTwoMonthPicker = {
-    onChange: (date: moment.MomentInput) => void;
-    isPeriodDisabled: (date: moment.Moment) => boolean;
-    value: moment.Moment;
+    onChange: (date: ConfigType) => void;
+    isPeriodDisabled: (date: Dayjs) => boolean;
+    value: Dayjs;
 };
 
 const TwoMonthPicker = React.memo(({ onChange, isPeriodDisabled, value }: TTwoMonthPicker) => {
@@ -18,9 +17,9 @@ const TwoMonthPicker = React.memo(({ onChange, isPeriodDisabled, value }: TTwoMo
     /**
      * Navigate from date
      *
-     * @param {moment.Moment} date
+     * @param {Dayjs} date
      */
-    const navigateFrom = (date: moment.Moment) => {
+    const navigateFrom = (date: Dayjs) => {
         setLeftPaneDate(date);
         setRightPaneDate(addMonths(date.toISOString(), 1));
     };
@@ -28,9 +27,9 @@ const TwoMonthPicker = React.memo(({ onChange, isPeriodDisabled, value }: TTwoMo
     /**
      * Navigate to date
      *
-     * @param {moment.Moment} date
+     * @param {Dayjs} date
      */
-    const navigateTo = (date: moment.Moment) => {
+    const navigateTo = (date: Dayjs) => {
         setLeftPaneDate(subMonths(date.toISOString(), 1));
         setRightPaneDate(toMoment(date));
     };
@@ -38,9 +37,9 @@ const TwoMonthPicker = React.memo(({ onChange, isPeriodDisabled, value }: TTwoMo
     /**
      * Only allow previous months to be available to navigate. Disable other periods
      *
-     * @param {moment.Moment} date
+     * @param {Dayjs} date
      */
-    const validateFromArrows = (date: moment.Moment) => {
+    const validateFromArrows = (date: Dayjs) => {
         return diffInMonths(toMoment(left_pane_date), date) !== -1;
     };
 
@@ -48,9 +47,9 @@ const TwoMonthPicker = React.memo(({ onChange, isPeriodDisabled, value }: TTwoMo
      * Only allow next month to be available to navigate (unless next month is in the future).
      * Disable other periods
      *
-     * @param {moment.Moment} date
+     * @param {Dayjs} date
      */
-    const validateToArrows = (date: moment.Moment) => {
+    const validateToArrows = (date: Dayjs) => {
         const r_date = toMoment(right_pane_date).startOf('month');
         if (diffInMonths(toMoment().startOf('month'), r_date) === 0) return true; // future months are disallowed
         return diffInMonths(r_date, date) !== 1;
@@ -59,9 +58,9 @@ const TwoMonthPicker = React.memo(({ onChange, isPeriodDisabled, value }: TTwoMo
     /**
      * Validate values to be date_from < date_to
      *
-     * @param {moment.Moment} date
+     * @param {Dayjs} date
      */
-    const shouldDisableDate = (date: moment.Moment) => {
+    const shouldDisableDate = (date: Dayjs) => {
         return isPeriodDisabled(date);
     };
 
@@ -71,7 +70,7 @@ const TwoMonthPicker = React.memo(({ onChange, isPeriodDisabled, value }: TTwoMo
     };
 
     const updateSelectedDate = (e: React.MouseEvent<HTMLElement>) => {
-        onChange(moment.utc(e.currentTarget.dataset.date, 'YYYY-MM-DD'));
+        onChange(dayjs.utc(e.currentTarget.dataset.date, 'YYYY-MM-DD'));
     };
 
     return (

@@ -1,9 +1,12 @@
 import React from 'react';
-import classNames from 'classnames';
 import ReactDOM from 'react-dom';
 import { CSSTransition } from 'react-transition-group';
-import Calendar from '../calendar';
+import classNames from 'classnames';
+
+import { type ConfigType } from '@deriv/shared';
+
 import { useBlockScroll } from '../../hooks';
+import Calendar from '../calendar';
 
 type TDatePickerCalendarProps = {
     value: string;
@@ -32,7 +35,7 @@ type TDatePickerCalendarProps = {
         descrip: string;
     }>;
     has_range_selection?: boolean;
-    onHover?: (selected_date: moment.MomentInput | null) => void;
+    onHover?: (selected_date: ConfigType | null) => void;
     should_show_today?: boolean;
 };
 
@@ -42,6 +45,7 @@ type TCalendarRef = {
 
 const DatePickerCalendar = React.forwardRef<TCalendarRef, TDatePickerCalendarProps>(
     ({ alignment, is_datepicker_visible, parent_ref, portal_id, style, placement, ...props }, ref) => {
+        const nodeRef = React.useRef(null);
         const css_transition_classnames = {
             enter: classNames('dc-datepicker__picker--enter', {
                 [`dc-datepicker__picker--${alignment}-enter`]: alignment,
@@ -59,9 +63,11 @@ const DatePickerCalendar = React.forwardRef<TCalendarRef, TDatePickerCalendarPro
                 in={is_datepicker_visible}
                 timeout={100}
                 classNames={css_transition_classnames}
+                nodeRef={nodeRef}
                 unmountOnExit
             >
                 <div
+                    ref={nodeRef}
                     className={classNames('dc-datepicker__picker', {
                         'dc-datepicker__picker--left': alignment === 'left',
                     })}

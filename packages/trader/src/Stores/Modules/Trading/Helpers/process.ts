@@ -13,14 +13,26 @@ const processInSequence = async (
     functions: ReturnType<typeof getMethodsList> | ReturnType<typeof getExpiryMethodsList>
 ) => {
     const snapshot = (store.getSnapshot as TGetSnapshot)();
+    // Accumulate only what functions explicitly return (the diff), not the full snapshot.
+    // Applying the full snapshot would overwrite concurrent store changes (e.g. form_components
+    // set by a racing processTradeParams call) with stale snapshot values.
+    const diff: Partial<TTradeStore> = {};
     // To make sure that every function is invoked and affects the snapshot respectively, we have to use for instead of forEach
     for (let i = 0; i < functions.length; i++) {
         // Shallow copy with Object.assign is good enough to extend the snapshot with new state
         // we don't need deep extension here, since each function in functions array composes a property of the store completely
-        Object.assign(snapshot, await functions[i](snapshot)); // eslint-disable-line no-await-in-loop
+        const result = await functions[i](snapshot); // eslint-disable-line no-await-in-loop
+        Object.assign(snapshot, result);
+        Object.assign(diff, result);
     }
+    // Params processors may never write the market identity: `symbol`/`contract_type` are owned
+    // exclusively by the selection pipeline (selectMarketAndTradeType / resolveInitialMarket /
+    // setTradeSubType / resolveContractTypeAvailability). Enforced here at the choke point so no
+    // future process function can regress into an identity writer.
+    delete diff.symbol;
+    delete diff.contract_type;
     store.updateStore({
-        ...snapshot,
+        ...diff,
     });
 };
 
@@ -44,7 +56,6 @@ const getMethodsList = (
     const filtered_keys = Object.keys(new_state).filter(key => /\b(symbol|contract_type|is_equal)\b/.test(key));
     return [
         ContractTypeHelper.getContractCategories,
-        ContractType.onChangeContractTypeList,
         ...(filtered_keys.length > 0 || !store.contract_type // symbol/contract_type changed or contract_type not set yet
             ? [ContractType.onChangeContractType]
             : []),

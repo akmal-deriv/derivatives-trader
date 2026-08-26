@@ -2,21 +2,38 @@ import React, { useEffect, useRef, useState } from 'react';
 import clsx from 'clsx';
 import { observer } from 'mobx-react-lite';
 
-import { getTomorrowDate, getUnitMap, toMoment } from '@deriv/shared';
+import { getUnitMap, isMobile, mapErrorMessage, trackAnalyticsEvent } from '@deriv/shared';
 import { useStore } from '@deriv/stores';
 import { ActionSheet, TextField, useSnackbar } from '@deriv-com/quill-ui';
 import { Localize, useTranslations } from '@deriv-com/translations';
 
-import { getDatePickerStartDate, getSmallestDuration, isValidPersistedDuration } from 'AppV2/Utils/trade-params-utils';
+import { ERROR_SNACKBAR_DURATION } from 'AppV2/Utils/layout-utils';
+import {
+    clampTimeWheelSelection,
+    DURATION_TAB,
+    DURATION_UNIT,
+    getDurationFromTimeWheelSelection,
+    getDatePickerStartDate,
+    getDurationTab,
+    getTickWheelRange,
+    getTimeWheelSelectionFromDuration,
+    getTimeWheelVisibleUnits,
+    isValidPersistedDuration,
+    toExpiryDateString,
+} from 'AppV2/Utils/trade-params-utils';
 import { getDisplayedContractTypes } from 'AppV2/Utils/trade-types-utils';
 import { useTraderStore } from 'Stores/useTraderStores';
 
+import { AutomationLockOverlay } from '../Shared';
 import { TTradeParametersProps } from '../trade-parameters';
 
 import DurationActionSheetContainer from './container';
+import DurationDesktop from './duration-desktop';
 
 const Duration = observer(({ is_minimized }: TTradeParametersProps) => {
+    const is_mobile = isMobile();
     const {
+        applyDefaultDuration,
         contract_type,
         duration_min_max,
         duration_unit,
@@ -25,68 +42,79 @@ const Duration = observer(({ is_minimized }: TTradeParametersProps) => {
         expiry_epoch,
         expiry_time,
         expiry_type,
+        is_automation_params_locked,
         is_market_closed,
         onChangeMultiple,
         proposal_info,
-        saved_expiry_date_v2,
-        setSavedExpiryDateV2,
-        setUnsavedExpiryDateV2,
+        saved_expiry_date_v2: saved_expiry_date,
+        setSavedExpiryDateV2: setSavedExpiryDate,
+        setUnsavedExpiryDateV2: setSelectedExpiryDate,
         start_time,
         symbol,
         trade_type_tab,
         trade_types,
-        unsaved_expiry_date_v2,
+        unsaved_expiry_date_v2: selected_expiry_date,
         validation_errors,
     } = useTraderStore();
     const { addSnackbar } = useSnackbar();
     const { name_plural, name, name_singular } = getUnitMap()[duration_unit] ?? {};
     const duration_unit_text = (duration === 1 ? name_singular : name_plural) ?? name;
-    const [selected_hour, setSelectedHour] = useState<number[]>([]);
     const [is_open, setOpen] = useState(false);
-    const [expiry_time_string, setExpiryTimeString] = useState('');
-    const [expiry_date_string, setExpiryDateString] = useState('');
-    const [end_date, setEndDate] = useState<Date>(new Date());
-    const [end_time, setEndTime] = useState<string>('');
-    const [unit, setUnit] = useState(expiry_time ? 'd' : duration_unit);
+    const [saved_expiry_time, setSavedExpiryTime] = useState<string>('');
+    const [selected_expiry_time, setSelectedExpiryTime] = useState<string>('');
+    const [tab, setTab] = useState<string>(getDurationTab(duration_unit, expiry_type === 'endtime'));
+    const [selected_ticks, setSelectedTicks] = useState<number>(duration_unit === DURATION_UNIT.TICKS ? duration : 1);
+    const [selected_time, setSelectedTime] = useState<number[]>(
+        getTimeWheelSelectionFromDuration(duration, duration_unit)
+    );
     const contract_type_object = getDisplayedContractTypes(trade_types, contract_type, trade_type_tab);
     const has_error =
         (proposal_info[contract_type_object[0]]?.has_error &&
             proposal_info[contract_type_object[0]]?.error_field === 'duration') ||
-        validation_errors.duration.length > 0;
+        (validation_errors.duration?.length ?? 0) > 0;
     const isInitialMount = useRef(true);
-    const { common, client } = useStore();
+    const prevExpiryEpoch = useRef<string | number | null>(null);
+    const { client, common } = useStore();
     const { is_logged_in } = client;
     const { server_time } = common;
     const { localize } = useTranslations();
 
+    // Initialize saved date/time from expiry_epoch or set defaults
     useEffect(() => {
-        if (expiry_epoch && duration_unit !== 'd' && !saved_expiry_date_v2) {
-            // Set expiry time to end of day
-            setExpiryTimeString('23:59:59');
+        if (!expiry_epoch) return;
 
-            // Get tomorrow's date
-            const tomorrow_date = getTomorrowDate(server_time);
-            setExpiryDateString(tomorrow_date);
-            setSavedExpiryDateV2(tomorrow_date);
-        }
-        if (expiry_epoch && duration_unit === 'd' && !expiry_time_string) {
-            setExpiryTimeString(
-                new Date((expiry_epoch as number) * 1000).toISOString().split('T')[1].substring(0, 8) || ''
-            );
+        // Only sync from expiry_epoch if it actually changed (not from our own update)
+        if (prevExpiryEpoch.current === expiry_epoch) return;
 
-            const new_date_string = new Date((expiry_epoch as number) * 1000).toISOString().split('T')[0];
-            setExpiryDateString(new Date((expiry_epoch as number) * 1000).toISOString().split('T')[0]);
-            setSavedExpiryDateV2(new_date_string);
+        prevExpiryEpoch.current = expiry_epoch;
+
+        const epoch_date = new Date((expiry_epoch as number) * 1000);
+        const date_string = epoch_date.toISOString().split('T')[0];
+        const time_string = epoch_date.toISOString().split('T')[1].substring(0, 8);
+
+        // Only update if the date actually changed
+        if (saved_expiry_date !== date_string) {
+            setSavedExpiryDate(date_string);
+            setSavedExpiryTime(time_string || '23:59:59');
         }
     }, [expiry_epoch]);
 
+    // When switching to days unit, set tomorrow as default
     useEffect(() => {
-        if (duration_unit == 'd') {
-            const newDate = new Date();
-            newDate.setDate(newDate.getDate() + duration);
-            setEndDate(newDate);
+        if (duration_unit === 'd' && !saved_expiry_date) {
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const formatted_date = tomorrow.toISOString().split('T')[0];
+
+            setSavedExpiryDate(formatted_date);
+            setSavedExpiryTime('23:59:59');
+
+            onChangeMultiple({
+                expiry_date: `${formatted_date}T23:59:59Z`,
+                expiry_type: 'endtime',
+            });
         }
-    }, [duration_unit]);
+    }, [duration_unit, saved_expiry_date]);
 
     useEffect(() => {
         if (isInitialMount.current) {
@@ -96,7 +124,9 @@ const Duration = observer(({ is_minimized }: TTradeParametersProps) => {
             return () => clearTimeout(timer);
         }
 
-        // Check if current persisted duration values are valid for the new contract constraints
+        // Safety net: reset to the configured default when the persisted duration is invalid for the
+        // current constraints. Trade-type switches themselves are handled in the store (onChange), so
+        // this survives even if the component remounts on a switch.
         const isPersistedDurationValid = isValidPersistedDuration(
             duration,
             duration_unit,
@@ -104,72 +134,155 @@ const Duration = observer(({ is_minimized }: TTradeParametersProps) => {
             duration_units_list
         );
 
-        // Only reset to smallest duration if persisted values are invalid
         if (!isPersistedDurationValid) {
-            const result = getSmallestDuration(duration_min_max, duration_units_list);
-            if (result?.unit == 'd') {
-                setEndDate(new Date());
-            }
-
-            const start_duration = setTimeout(() => {
-                onChangeMultiple({
-                    duration_unit: result?.unit,
-                    duration: result?.value,
-                    expiry_time: null,
-                    expiry_type: 'duration',
-                });
-            }, 10);
-
-            const start_date = getDatePickerStartDate(duration_units_list, server_time, start_time, duration_min_max);
-            setEndDate(new Date(start_date));
-
+            const start_duration = setTimeout(() => applyDefaultDuration(), 10);
             return () => clearTimeout(start_duration);
         }
-        // Persisted values are valid, just update the date picker if needed
-        if (duration_unit === 'd') {
-            setEndDate(new Date());
-        }
-        const start_date = getDatePickerStartDate(duration_units_list, server_time, start_time, duration_min_max);
-        setEndDate(new Date(start_date));
     }, [symbol, contract_type, duration_min_max, duration_units_list, duration, duration_unit]);
 
+    // The sheet can close inside the wheel's snap-back window, so clamp the time selection here too
+    const clamped_time = duration_min_max?.intraday
+        ? clampTimeWheelSelection(
+              getTimeWheelVisibleUnits(duration_units_list),
+              duration_min_max.intraday,
+              selected_time
+          )
+        : selected_time;
+    const next_wheel_change =
+        tab === DURATION_TAB.TICKS
+            ? { duration: selected_ticks, duration_unit: DURATION_UNIT.TICKS }
+            : getDurationFromTimeWheelSelection(clamped_time, duration_units_list);
+
+    // Header save is disabled while the active tab's selection still equals its committed value
+    // (and, for the wheel tabs, while the converted duration is not positive). Compares normalized
+    // selections, not raw unit/value: the wheel commits hours as minutes, so a stored 2h counts as
+    // unchanged against a 120min selection.
+    const is_save_disabled =
+        tab === DURATION_TAB.END_TIME
+            ? expiry_type === 'endtime' &&
+              selected_expiry_date === saved_expiry_date &&
+              selected_expiry_time === saved_expiry_time
+            : next_wheel_change.duration <= 0 ||
+              (expiry_type === 'duration' &&
+                  (tab === DURATION_TAB.TICKS
+                      ? duration_unit === DURATION_UNIT.TICKS && duration === next_wheel_change.duration
+                      : getTimeWheelSelectionFromDuration(duration, duration_unit).every(
+                            (value, index) => value === clamped_time[index]
+                        )));
+
+    // Dismissing the sheet (X, overlay, drag) never commits — the `is_open` effect below re-initializes
+    // the drafts from committed values on every open, so dismiss = discard.
     const onClose = React.useCallback(() => setOpen(false), []);
 
+    // The single header check commits the active tab: Ticks/Time apply the wheel selection as a
+    // `duration` change, End time applies the selected date/time as an `endtime` change.
+    const handleSave = React.useCallback(() => {
+        if (tab === DURATION_TAB.END_TIME) {
+            setSavedExpiryDate(selected_expiry_date);
+            setSavedExpiryTime(selected_expiry_time);
+
+            onChangeMultiple({
+                expiry_date: `${selected_expiry_date}T${selected_expiry_time}Z`,
+                expiry_time: selected_expiry_time,
+                expiry_type: 'endtime',
+            });
+
+            trackAnalyticsEvent('ce_trade_types_form_v2', {
+                action: 'customizing_trades',
+                input_method: 'custom',
+                parameter_type: 'duration',
+            });
+            return;
+        }
+
+        if (next_wheel_change.duration > 0) {
+            setSavedExpiryDate(selected_expiry_date);
+            setSavedExpiryTime(selected_expiry_time);
+            setSelectedExpiryTime('');
+
+            onChangeMultiple({ ...next_wheel_change, expiry_type: 'duration' });
+
+            trackAnalyticsEvent('ce_trade_types_form_v2', {
+                action: 'customizing_trades',
+                input_method: 'custom',
+                parameter_type: 'duration',
+            });
+        }
+    }, [tab, next_wheel_change, selected_expiry_date, selected_expiry_time, onChangeMultiple, setSavedExpiryDate]);
+
     const getInputValues = () => {
-        const formatted_date = saved_expiry_date_v2
-            ? new Date(saved_expiry_date_v2).toLocaleDateString('en-GB', {
+        const formatted_date = saved_expiry_date
+            ? new Date(saved_expiry_date).toLocaleDateString('en-GB', {
                   day: 'numeric',
                   month: 'short',
                   year: 'numeric',
               })
             : '';
+
+        // Check if selected date is today
+        const formatted_current_date = new Date().toLocaleDateString('en-GB', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+        });
+        const is_today = formatted_date === formatted_current_date;
+
         if (expiry_type == 'duration') {
-            if (duration_unit === 'm' && duration > 59) {
-                const hours = Math.floor(duration / 60);
-                const minutes = duration % 60;
-                return `${hours} ${hours > 1 ? localize('hours') : localize('hour')} ${minutes ? `${minutes} ${minutes > 1 ? localize('minutes') : localize('minute')}` : ''} `;
-            } else if (duration_unit === 'd') {
+            const is_time_unit = [DURATION_UNIT.SECONDS, DURATION_UNIT.MINUTES, DURATION_UNIT.HOURS].includes(
+                duration_unit
+            );
+            if (is_time_unit) {
+                const [hours, minutes, seconds] = getTimeWheelSelectionFromDuration(duration, duration_unit);
+                // With an hour component the value reads as a clock (01:01:01); below an hour it
+                // stays verbose (1 minute 1 second); single-unit values fall through ('30 sec')
+                if (hours > 0) {
+                    const pad = (value: number) => String(value).padStart(2, '0');
+                    return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+                }
+                if (duration > 59) {
+                    return [
+                        minutes ? `${minutes} ${minutes > 1 ? localize('minutes') : localize('minute')}` : '',
+                        seconds ? `${seconds} ${seconds > 1 ? localize('seconds') : localize('second')}` : '',
+                    ]
+                        .filter(Boolean)
+                        .join(' ');
+                }
+            }
+            if (duration_unit === 'd') {
                 if (!formatted_date) {
                     return '';
                 }
-                return `${localize('Ends on')} ${formatted_date}, ${expiry_time_string || '23:59:59'} GMT`;
+                // For today: show HH:mm, for future: show HH:mm:ss
+                const time_display = is_today
+                    ? saved_expiry_time.substring(0, 5) // HH:mm
+                    : saved_expiry_time; // HH:mm:ss
+                return `${localize('Ends on')} ${formatted_date}, ${time_display} GMT`;
             }
             return `${duration} ${duration_unit_text}`;
         }
         if (expiry_time) {
-            return `${localize('Ends on')} ${formatted_date} ${expiry_time} GMT`;
+            // For today: show HH:mm, for future: show HH:mm:ss
+            const time_display = is_today
+                ? expiry_time.substring(0, 5) // HH:mm
+                : `${expiry_time}`; // HH:mm:ss
+            return `${localize('Ends on')} ${formatted_date}, ${time_display} GMT`;
         }
     };
 
+    // Fires on every viewport. This was previously gated on `!is_minimized`, i.e. it only showed
+    // while the mobile params sheet was expanded — a state that no longer exists, so the gate would
+    // now make the toast unreachable on mobile. The collapsed chip only turns red and truncates, so
+    // without this a blocked trade gives no reason. No sibling param gates its snackbar this way.
     useEffect(() => {
-        if (has_error && !is_minimized) {
+        if (has_error) {
             const error_obj = proposal_info[contract_type_object[0]] || validation_errors?.duration?.[0];
             if (error_obj?.error_field === 'duration') {
                 addSnackbar({
-                    message: error_obj.message,
+                    message: mapErrorMessage(error_obj),
                     status: 'fail',
                     hasCloseButton: true,
                     hasFixedHeight: false,
+                    delay: ERROR_SNACKBAR_DURATION,
                     style: {
                         marginBottom: is_logged_in ? '48px' : '-8px',
                         width: 'calc(100% - var(--core-spacing-800)',
@@ -180,44 +293,62 @@ const Duration = observer(({ is_minimized }: TTradeParametersProps) => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [has_error, contract_type_object[0]]);
 
-    const handleHour = React.useCallback(() => {
-        if (expiry_time) {
-            setUnit('d');
-            setEndTime(expiry_time);
-        } else {
-            // eslint-disable-next-line no-lonely-if
-            if (duration_unit === 'm' && duration > 59) {
-                const hour = Math.floor(duration / 60);
-                const minutes = duration % 60;
-                setUnit('h');
-                setSelectedHour([hour, minutes]);
-            } else {
-                setSelectedHour([]);
-                setUnit(duration_unit);
-            }
-        }
-    }, [duration, duration_unit, expiry_time]);
-
     useEffect(() => {
         if (is_open) {
-            handleHour();
-        }
-    }, [is_open]);
+            // Initialize selected values from saved values when opening.
+            setSelectedExpiryDate(
+                saved_expiry_date ||
+                    toExpiryDateString(
+                        getDatePickerStartDate(duration_units_list, server_time, start_time, duration_min_max)
+                    )
+            );
+            setSelectedExpiryTime(saved_expiry_time);
 
+            setTab(getDurationTab(duration_unit, !!expiry_time));
+
+            // Clamp into the current contract's range up-front: the wheels reset out-of-range
+            // values to their first option, which would lose the stored selection
+            const { min: tick_min, max: tick_max } = getTickWheelRange(duration_min_max);
+            setSelectedTicks(
+                duration_unit === DURATION_UNIT.TICKS ? Math.min(tick_max, Math.max(tick_min, duration)) : tick_min
+            );
+            const time_selection = getTimeWheelSelectionFromDuration(duration, duration_unit);
+            setSelectedTime(
+                duration_min_max?.intraday
+                    ? clampTimeWheelSelection(
+                          getTimeWheelVisibleUnits(duration_units_list),
+                          duration_min_max.intraday,
+                          time_selection
+                      )
+                    : time_selection
+            );
+        }
+    }, [is_open, saved_expiry_date, saved_expiry_time]);
+
+    // Render desktop version for desktop devices
+    if (!is_mobile) {
+        return <DurationDesktop is_minimized={is_minimized} />;
+    }
+
+    // Render mobile version (ActionSheet) for mobile devices
     return (
         <>
-            <TextField
-                variant='fill'
-                key={`${duration}-$${duration_unit}`}
-                readOnly
-                label={<Localize i18n_default_text='Duration' key={`duration${is_minimized ? '-minimized' : ''}`} />}
-                value={getInputValues()}
-                noStatusIcon
-                disabled={is_market_closed}
-                className={clsx('trade-params__option', is_minimized && 'trade-params__option--minimized')}
-                onClick={() => setOpen(true)}
-                status={has_error ? 'error' : 'neutral'}
-            />
+            <div className='trade-params__field-locked'>
+                <TextField
+                    variant='fill'
+                    readOnly
+                    label={
+                        <Localize i18n_default_text='Duration' key={`duration${is_minimized ? '-minimized' : ''}`} />
+                    }
+                    value={getInputValues()}
+                    noStatusIcon
+                    disabled={is_market_closed || is_automation_params_locked}
+                    className={clsx('trade-params__option', is_minimized && 'trade-params__option--minimized')}
+                    onClick={() => setOpen(true)}
+                    status={has_error ? 'error' : 'neutral'}
+                />
+                {is_automation_params_locked && <AutomationLockOverlay />}
+            </div>
             <ActionSheet.Root
                 isOpen={is_open}
                 onClose={onClose}
@@ -225,20 +356,20 @@ const Duration = observer(({ is_minimized }: TTradeParametersProps) => {
                 expandable={false}
                 shouldBlurOnClose={is_open}
             >
-                <ActionSheet.Portal shouldCloseOnDrag>
+                <ActionSheet.Portal showHandlebar={false} shouldDetectSwipingOnContainer shouldCloseOnDrag>
                     <DurationActionSheetContainer
-                        selected_hour={selected_hour}
-                        setSelectedHour={setSelectedHour}
-                        unit={unit}
-                        setUnit={setUnit}
-                        expiry_time_string={expiry_time_string}
-                        setExpiryTimeString={setExpiryTimeString}
-                        end_time={end_time}
-                        setEndTime={setEndTime}
-                        saved_expiry_date_v2={saved_expiry_date_v2}
-                        setSavedExpiryDateV2={setSavedExpiryDateV2}
-                        unsaved_expiry_date_v2={unsaved_expiry_date_v2}
-                        setUnsavedExpiryDateV2={setUnsavedExpiryDateV2}
+                        tab={tab}
+                        setTab={setTab}
+                        selected_ticks={selected_ticks}
+                        setSelectedTicks={setSelectedTicks}
+                        selected_time={selected_time}
+                        setSelectedTime={setSelectedTime}
+                        onSave={handleSave}
+                        is_save_disabled={is_save_disabled}
+                        selected_expiry_time={selected_expiry_time}
+                        selected_expiry_date={selected_expiry_date}
+                        setSelectedExpiryTime={setSelectedExpiryTime}
+                        setSelectedExpiryDate={setSelectedExpiryDate}
                     />
                 </ActionSheet.Portal>
             </ActionSheet.Root>

@@ -1,150 +1,93 @@
-import React, { useState } from 'react';
+import React from 'react';
+import clsx from 'clsx';
 
 import { observer } from '@deriv/stores';
-import { Localize } from '@deriv-com/translations';
 import { ActionSheet } from '@deriv-com/quill-ui';
+import { Localize, useTranslations } from '@deriv-com/translations';
 
-import { DURATION_UNIT } from 'AppV2/Utils/trade-params-utils';
+import { DURATION_TAB } from 'AppV2/Utils/trade-params-utils';
 import { useTraderStore } from 'Stores/useTraderStores';
 
-import DurationChips from './chips';
+import DurationTabs from './chips';
 import DayInput from './day';
-import DurationWheelPicker from './duration-wheel-picker';
+import { DurationTicksWheel, DurationTimeWheel } from './duration-wheel-picker';
 
 const DurationActionSheetContainer = observer(
     ({
-        end_time,
-        expiry_time_string,
-        saved_expiry_date_v2,
-        selected_hour,
-        setEndTime,
-        setExpiryTimeString,
-        setSavedExpiryDateV2,
-        setSelectedHour,
-        setUnit,
-        setUnsavedExpiryDateV2,
-        unit,
-        unsaved_expiry_date_v2,
+        tab,
+        setTab,
+        selected_ticks,
+        setSelectedTicks,
+        selected_time,
+        setSelectedTime,
+        selected_expiry_time,
+        selected_expiry_date,
+        setSelectedExpiryTime,
+        setSelectedExpiryDate,
+        onSave,
+        is_save_disabled,
     }: {
-        selected_hour: number[];
-        setSelectedHour: (arg: number[]) => void;
-        unit: string;
-        setUnit: (arg: string) => void;
-        end_time: string;
-        setEndTime: (arg: string) => void;
-        expiry_time_string: string;
-        setExpiryTimeString: (arg: string) => void;
-        saved_expiry_date_v2: string;
-        setSavedExpiryDateV2: (arg: string) => void;
-        unsaved_expiry_date_v2: string;
-        setUnsavedExpiryDateV2: (arg: string) => void;
+        tab: string;
+        setTab: (arg: string) => void;
+        selected_ticks: number;
+        setSelectedTicks: (arg: number) => void;
+        selected_time: number[];
+        setSelectedTime: (arg: number[]) => void;
+        selected_expiry_time: string;
+        selected_expiry_date: string;
+        setSelectedExpiryTime: (arg: string) => void;
+        setSelectedExpiryDate: (arg: string) => void;
+        onSave: () => void;
+        is_save_disabled: boolean;
     }) => {
-        const { duration, duration_units_list, onChangeMultiple } = useTraderStore();
-        const [selected_time, setSelectedTime] = useState([duration]);
-        const [expiry_time_input, setExpiryTimeInput] = React.useState(expiry_time_string);
-
-        React.useEffect(() => {
-            setUnsavedExpiryDateV2(saved_expiry_date_v2 || unsaved_expiry_date_v2);
-        }, []);
-
-        const onAction = () => {
-            setExpiryTimeString(expiry_time_input);
-            setSavedExpiryDateV2(unsaved_expiry_date_v2);
-            if (unit === DURATION_UNIT.HOURS) {
-                const minutes = selected_hour[0] * 60 + selected_hour[1];
-                const hour = Math.floor(duration / 60);
-                const min = duration % 60;
-                setSelectedHour([hour, min]);
-                setEndTime('');
-                onChangeMultiple({
-                    duration_unit: DURATION_UNIT.MINUTES,
-                    duration: Number(minutes),
-                    expiry_time: null,
-                    expiry_type: 'duration',
-                });
-            } else if (unit === DURATION_UNIT.DAYS) {
-                const difference_in_time = new Date(unsaved_expiry_date_v2).getTime() - new Date().getTime();
-                const difference_in_days = Math.ceil(difference_in_time / (1000 * 3600 * 24));
-                setSelectedHour([]);
-                if (end_time) {
-                    onChangeMultiple({
-                        expiry_time: end_time,
-                        expiry_type: 'endtime',
-                    });
-                } else {
-                    setEndTime('');
-                    onChangeMultiple({
-                        duration_unit: DURATION_UNIT.DAYS,
-                        duration: Number(difference_in_days),
-                        expiry_time: null,
-                        expiry_type: 'duration',
-                    });
-                }
-            } else {
-                setEndTime('');
-                setSelectedHour([]);
-                onChangeMultiple({
-                    duration_unit: unit,
-                    duration: Number(selected_time),
-                    expiry_time: null,
-                    expiry_type: 'duration',
-                });
-            }
-        };
-
-        const onChangeUnit = React.useCallback(
-            (value: string) => {
-                setUnit(value);
-                setSelectedTime([]);
-                if (value !== DURATION_UNIT.HOURS) {
-                    setSelectedHour([]);
-                }
-            },
-            [setUnit, setSelectedHour]
-        );
-
-        const setWheelPickerValue = (index: number, value: string | number) => {
-            const num_value = Number(value);
-            if (unit === DURATION_UNIT.HOURS) {
-                const arr = selected_hour;
-                arr[index] = num_value;
-                setSelectedHour(arr);
-            } else {
-                setSelectedTime([num_value]);
-            }
-        };
+        const { duration_units_list } = useTraderStore();
+        const { localize } = useTranslations();
 
         return (
-            <div className='duration-container'>
-                <ActionSheet.Header title={<Localize i18n_default_text='Duration' />} />
-                <DurationChips duration_units_list={duration_units_list} onChangeUnit={onChangeUnit} unit={unit} />
-                {unit !== DURATION_UNIT.DAYS && (
-                    <DurationWheelPicker
-                        unit={unit}
-                        setWheelPickerValue={setWheelPickerValue}
-                        selected_hour={selected_hour}
-                        selected_time={selected_time}
-                    />
-                )}
-
-                {unit === DURATION_UNIT.DAYS && (
-                    <DayInput
-                        end_time={end_time}
-                        expiry_time_input={expiry_time_input}
-                        saved_expiry_date_v2={saved_expiry_date_v2}
-                        setEndTime={setEndTime}
-                        setExpiryTimeInput={setExpiryTimeInput}
-                        setUnsavedExpiryDateV2={setUnsavedExpiryDateV2}
-                        unsaved_expiry_date_v2={unsaved_expiry_date_v2 || saved_expiry_date_v2}
-                    />
-                )}
-                <ActionSheet.Footer
-                    alignment='vertical'
-                    primaryAction={{
-                        content: <Localize i18n_default_text='Save' />,
-                        onAction,
-                    }}
+            <div
+                className='duration-container'
+                // The wheel is a vertical swipe; stop it bubbling (through the React portal tree) to the
+                // trade-params sheet's swipe handler, which would otherwise open/close it unintentionally.
+                onTouchStart={e => e.stopPropagation()}
+                onTouchMove={e => e.stopPropagation()}
+                onTouchEnd={e => e.stopPropagation()}
+            >
+                <ActionSheet.Header
+                    title={<Localize i18n_default_text='Duration' />}
+                    closeAction={{ ariaLabel: localize('Close') }}
+                    saveAction={{ onAction: onSave, ariaLabel: localize('Save') }}
+                    isSaveActionDisabled={is_save_disabled}
+                    shouldCloseOnSaveActionClick
                 />
+                <DurationTabs duration_units_list={duration_units_list} onChangeTab={setTab} tab={tab} />
+                <div className='duration-container__tab-content'>
+                    <div
+                        className={clsx('duration-container__wheel', {
+                            'duration-container__wheel--hidden': tab !== DURATION_TAB.TICKS,
+                        })}
+                        data-testid='dt_duration_ticks_wheel'
+                    >
+                        <DurationTicksWheel selected_ticks={selected_ticks} setSelectedTicks={setSelectedTicks} />
+                    </div>
+                    <div
+                        className={clsx('duration-container__wheel', {
+                            'duration-container__wheel--hidden': tab !== DURATION_TAB.TIME,
+                        })}
+                        data-testid='dt_duration_time_wheel'
+                    >
+                        <DurationTimeWheel selected_time={selected_time} setSelectedTime={setSelectedTime} />
+                    </div>
+                    {tab === DURATION_TAB.END_TIME && (
+                        <div className='duration-container__endtime-tab'>
+                            <DayInput
+                                selected_expiry_time={selected_expiry_time}
+                                selected_expiry_date={selected_expiry_date}
+                                setSelectedExpiryTime={setSelectedExpiryTime}
+                                setSelectedExpiryDate={setSelectedExpiryDate}
+                            />
+                        </div>
+                    )}
+                </div>
             </div>
         );
     }

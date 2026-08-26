@@ -1,12 +1,13 @@
 const CircularDependencyPlugin = require('circular-dependency-plugin');
 const { CleanWebpackPlugin } = require('clean-webpack-plugin');
-const IgnorePlugin = require('webpack').IgnorePlugin;
+const { createDayjsLocalePlugin } = require('../../shared/build/dayjs-locale-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 const path = require('path');
 const StylelintPlugin = require('stylelint-webpack-plugin');
 const TerserPlugin = require('terser-webpack-plugin');
 const { WebpackManifestPlugin } = require('webpack-manifest-plugin');
+const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
 
 const { cssConfig, stylelintConfig } = require('./config');
 const {
@@ -20,7 +21,8 @@ const {
 } = require('./loaders-config');
 
 const ALIASES = {
-    'react/jsx-runtime': 'react/jsx-runtime.js',
+    'react/jsx-runtime.js': 'react/jsx-runtime',
+    'react/jsx-runtime': 'react/jsx-runtime',
     _common: path.resolve(__dirname, '../src/_common'),
     Constants: path.resolve(__dirname, '../src/Constants'),
     Components: path.resolve(__dirname, '../src/Components'),
@@ -106,12 +108,14 @@ const MINIMIZERS = !IS_RELEASE
               exclude: /(smartcharts)/,
               parallel: 2,
           }),
-          new CssMinimizerPlugin(),
+          new CssMinimizerPlugin({
+              minify: CssMinimizerPlugin.cssnanoMinify,
+          }),
       ];
 
 const plugins = (base, is_test_env) => [
     new CleanWebpackPlugin(),
-    new IgnorePlugin({ resourceRegExp: /^\.\/locale$/, contextRegExp: /moment$/ }),
+    createDayjsLocalePlugin(),
     new MiniCssExtractPlugin(cssConfig()),
     new CircularDependencyPlugin({ exclude: /node_modules/, failOnError: true }),
     ...(IS_RELEASE
@@ -125,7 +129,17 @@ const plugins = (base, is_test_env) => [
     ...(is_test_env
         ? [new StylelintPlugin(stylelintConfig())]
         : [
-              // ...(!IS_RELEASE ? [ new BundleAnalyzerPlugin({ analyzerMode: 'static' }) ] : []),
+              ...(process.env.ANALYZE_BUNDLE
+                  ? [
+                        new BundleAnalyzerPlugin({
+                            analyzerMode: 'static',
+                            reportFilename: path.resolve(__dirname, '../bundle-report.html'),
+                            openAnalyzer: false,
+                            generateStatsFile: true,
+                            statsFilename: path.resolve(__dirname, '../bundle-stats.json'),
+                        }),
+                    ]
+                  : []),
           ]),
 ];
 

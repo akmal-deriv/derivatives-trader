@@ -26,7 +26,7 @@ const ErrorComponent = ({
                 onConfirm={redirectOnClick || (() => location.reload())}
                 has_close_icon={false}
             >
-                {message || localize('Sorry, an error occured while processing your request.')}
+                {message || localize('Sorry, an error occurred while processing your request.')}
             </Dialog>
         );
     }

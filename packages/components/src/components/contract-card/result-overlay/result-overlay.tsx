@@ -1,11 +1,13 @@
-import classNames from 'classnames';
 import React from 'react';
-import { CSSTransition } from 'react-transition-group';
 import { NavLink } from 'react-router-dom';
+import { CSSTransition } from 'react-transition-group';
+import classNames from 'classnames';
+
 import { LegacySellExpiredIcon } from '@deriv/quill-icons';
-import { TGetCardLables, TGetContractPath } from '../../types';
-import Text from '../../text';
+
 import Money from '../../money';
+import Text from '../../text';
+import { TGetCardLables, TGetContractPath } from '../../types';
 
 type TResultOverlayProps = {
     currency?: string;
@@ -53,6 +55,7 @@ const ResultOverlay = ({
     result,
 }: TResultOverlayProps) => {
     const is_contract_won = result === 'won';
+    const nodeRef = React.useRef(null);
 
     return (
         <React.Fragment>
@@ -65,8 +68,10 @@ const ResultOverlay = ({
                     exit: 'dc-contract-card__result--exit',
                 }}
                 unmountOnExit
+                nodeRef={nodeRef}
             >
                 <div
+                    ref={nodeRef}
                     id={`dc_contract_card_${contract_id}_result`}
                     className={classNames('dc-contract-card__result', {
                         'dc-result__positions-overlay': is_positions,

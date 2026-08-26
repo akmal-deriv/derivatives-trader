@@ -1,7 +1,7 @@
 import React from 'react';
 
 import { mockStore } from '@deriv/stores';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import ModulesProvider from 'Stores/Providers/modules-providers';
@@ -10,6 +10,11 @@ import TraderProviders from '../../../../../trader-providers';
 import PayoutPerPoint from '../payout-per-point';
 
 const payout_per_point_label = 'Payout per point';
+
+jest.mock('@deriv/shared', () => ({
+    ...jest.requireActual('@deriv/shared'),
+    isMobile: jest.fn(() => true),
+}));
 
 jest.mock('@deriv-com/quill-ui', () => ({
     ...jest.requireActual('@deriv-com/quill-ui'),
@@ -27,24 +32,31 @@ jest.mock('@deriv-com/quill-ui', () => ({
     )),
 }));
 
-jest.mock('@deriv/shared', () => ({
-    ...jest.requireActual('@deriv/shared'),
-    WS: {
-        send: jest.fn(),
-        authorized: {
-            send: jest.fn(),
-        },
-    },
-}));
-jest.mock('AppV2/Hooks/useDtraderQuery', () => ({
-    ...jest.requireActual('AppV2/Hooks/useDtraderQuery'),
-    useDtraderQuery: jest.fn(() => ({
-        data: {
-            proposal: { barrier_spot_distance: '+5.37' },
-            echo_req: { contract_type: 'TURBOSSHORT' },
-            error: {},
-        },
-    })),
+jest.mock('../payout-per-point-wheel', () => ({
+    __esModule: true,
+    default: jest.fn(({ barrier, onDetailClick, setValue, is_api_response_received_ref, payout_per_point_list }) => (
+        <div>
+            <p>WheelPicker</p>
+            <ul>
+                {payout_per_point_list.map(({ value: option_value }: { value: string }) => (
+                    <li key={option_value}>
+                        <button
+                            onClick={() => {
+                                // Mimic the real wheel: a selection means the barrier proposal resolved,
+                                // which unblocks the header Save (handleSave checks this ref).
+                                if (is_api_response_received_ref) is_api_response_received_ref.current = true;
+                                setValue(option_value);
+                            }}
+                        >
+                            {option_value}
+                        </button>
+                    </li>
+                ))}
+            </ul>
+            <button onClick={() => onDetailClick?.(2)}>Barrier</button>
+            {barrier && <p>{barrier}</p>}
+        </div>
+    )),
 }));
 
 describe('PayoutPerPoint', () => {
@@ -64,6 +76,9 @@ describe('PayoutPerPoint', () => {
                             TURBOSSHORT: 'Turbos Short',
                         },
                     },
+                },
+                ui: {
+                    is_mobile: true,
                 },
             }))
     );
@@ -90,7 +105,7 @@ describe('PayoutPerPoint', () => {
         mockPayoutPerPoint();
 
         expect(screen.getByText(payout_per_point_label)).toBeInTheDocument();
-        expect(screen.getByRole('textbox')).toHaveValue('3 USD');
+        expect(screen.getByRole('textbox')).toHaveValue('$3');
     });
 
     it('disables trade param if is_market_closed === true', () => {
@@ -111,12 +126,27 @@ describe('PayoutPerPoint', () => {
         expect(screen.getByText('WheelPicker')).toBeInTheDocument();
         expect(screen.getByText('Barrier')).toBeInTheDocument();
         expect(screen.getByText('+1.80')).toBeInTheDocument();
-        expect(screen.getByText('Save')).toBeInTheDocument();
+        // Save is now the header action (icon-only, aria-label) instead of a footer text button.
+        expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
+        // The definition moved into the header title's info-icon tooltip — revealed on hover/tap.
+        fireEvent.mouseEnter(screen.getByRole('button', { name: payout_per_point_label }));
         expect(
             screen.getByText(
                 'The amount you choose to receive at expiry for every point of change between the final price and the barrier.'
             )
         ).toBeInTheDocument();
+    });
+
+    it('sets the sheet title to Barrier when the barrier detail page is opened', async () => {
+        mockPayoutPerPoint();
+
+        await userEvent.click(screen.getByText(payout_per_point_label));
+        // Only the wheel's Barrier control before navigating to its page.
+        expect(screen.getAllByText('Barrier')).toHaveLength(1);
+
+        await userEvent.click(screen.getByText('Barrier'));
+        // The carousel title now reads Barrier too (control + title).
+        expect(screen.getAllByText('Barrier')).toHaveLength(2);
     });
 
     it('does not render barrier information if barrier is not defined', async () => {
@@ -146,7 +176,7 @@ describe('PayoutPerPoint', () => {
         const new_selected_value = default_mock_store.modules.trade.payout_choices[1];
         await userEvent.click(screen.getByText(payout_per_point_label));
         await userEvent.click(screen.getByText(new_selected_value));
-        await userEvent.click(screen.getByText('Save'));
+        await userEvent.click(screen.getByRole('button', { name: 'Save' }));
 
         expect(default_mock_store.modules.trade.setPayoutPerPoint).toBeCalled();
     });

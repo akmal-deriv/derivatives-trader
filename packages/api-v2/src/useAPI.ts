@@ -23,7 +23,11 @@ const useAPI = () => {
             // so it needs to be fixed in one of the layers,
             // potentially will make this consistent in upcoming PRs
             try {
-                return wsClient?.request<T>(name, payload as unknown as TSocketRequestPayload<T>['payload']);
+                const response = await wsClient?.request<T>(
+                    name,
+                    payload as unknown as TSocketRequestPayload<T>['payload']
+                );
+                return response as TSocketResponseData<T>;
             } catch (e) {
                 return e as TSocketResponseData<T>;
             }
@@ -47,7 +51,11 @@ const useAPI = () => {
         } => {
             const subscribeHandler = (onData: (response: any) => void): { unsubscribe?: UnsubscribeFunction } => {
                 // Start the subscription and keep the promise.
-                const subscriptionPromise = wsClient?.subscribe(name, payload, onData);
+                const subscriptionPromise = wsClient?.subscribe(
+                    name,
+                    payload as TSocketRequestPayload<TSocketSubscribableEndpointNames>['payload'],
+                    onData
+                );
 
                 // Define unsubscribe function, which will be returned inside the object from subscribeHandler.
                 const unsubscribe: UnsubscribeFunction = async () => {

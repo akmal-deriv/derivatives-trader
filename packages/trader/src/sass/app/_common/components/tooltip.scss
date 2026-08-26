@@ -1,0 +1,13 @@
+// Global tooltip content colour.
+//
+// The new tooltip design language uses `--text-default` for the content text, but @deriv-com/quill-ui
+// still ships the old `--component-textIcon-inverse-*` tokens. Override here until the library is
+// updated (then this file can be removed).
+//
+// Scoped to quill's tooltip portal container (`.react-tiny-popover-container`) because the content is
+// portaled — detached from the trigger, so the `className` prop can't reach it. This also raises the
+// specificity above quill's `.tooltip-content__variant-base { color }`. Matches the existing global
+// tooltip sizing/z-index override.
+.react-tiny-popover-container .tooltip-content {
+    color: var(--component-textIcon-inverse-prominent, #fff);
+}

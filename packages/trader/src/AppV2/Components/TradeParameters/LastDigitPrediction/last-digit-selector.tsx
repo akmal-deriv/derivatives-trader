@@ -1,11 +1,10 @@
-import React from 'react';
-
 import Digit from './digit';
 
 type TLastDigitSelectorProps = {
     digits: number[];
     digit_stats: number[];
     is_disabled?: boolean;
+    invalid_digit?: number | null;
     onDigitSelect?: (digit: number) => void;
     selected_digit?: number;
 };
@@ -14,6 +13,7 @@ const LastDigitSelector = ({
     digits = [],
     digit_stats,
     is_disabled,
+    invalid_digit,
     onDigitSelect,
     selected_digit,
 }: TLastDigitSelectorProps) => (
@@ -26,7 +26,7 @@ const LastDigitSelector = ({
                         digit={digit}
                         digit_stats={digit_stats}
                         is_active={selected_digit === digit}
-                        is_disabled={is_disabled}
+                        is_disabled={is_disabled || digit === invalid_digit}
                         is_max={digit_stats[digit] === Math.max(...digit_stats)}
                         is_min={digit_stats[digit] === Math.min(...digit_stats)}
                         onClick={onDigitSelect}

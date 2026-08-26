@@ -3,13 +3,13 @@ const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 // const CopyPlugin = require('copy-webpack-plugin');
 // const HtmlWebPackPlugin = require('html-webpack-plugin');
 // const HtmlWebpackTagsPlugin = require('html-webpack-tags-plugin');
-const IgnorePlugin = require('webpack').IgnorePlugin;
+const { createDayjsLocalePlugin } = require('../../shared/build/dayjs-locale-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 const path = require('path');
 const StylelintPlugin = require('stylelint-webpack-plugin');
 const TerserPlugin = require('terser-webpack-plugin');
-// const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
+const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
 const { WebpackManifestPlugin } = require('webpack-manifest-plugin');
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 
@@ -31,9 +31,9 @@ const {
 } = require('./loaders-config');
 
 const ALIASES = {
-    'react/jsx-runtime': 'react/jsx-runtime.js',
+    'react/jsx-runtime.js': 'react/jsx-runtime',
+    'react/jsx-runtime': 'react/jsx-runtime',
     _common: path.resolve(__dirname, '../src/_common'),
-    App: path.resolve(__dirname, '../src/App'),
     AppV2: path.resolve(__dirname, '../src/AppV2'),
     Assets: path.resolve(__dirname, '../src/Assets'),
     Constants: path.resolve(__dirname, '../src/Constants'),
@@ -89,7 +89,7 @@ const rules = (is_test_env = false) => [
         use: html_loaders,
     },
     {
-        test: /\.(png|jpg|gif|woff|woff2|eot|ttf|otf)$/,
+        test: /\.(png|jpg|gif|woff|woff2|eot|ttf|otf|webp)$/,
         exclude: /node_modules/,
         use: file_loaders,
     },
@@ -123,14 +123,16 @@ const MINIMIZERS = !IS_RELEASE
               exclude: /(smartcharts)/,
               parallel: 2,
           }),
-          new CssMinimizerPlugin(),
+          new CssMinimizerPlugin({
+              minify: CssMinimizerPlugin.cssnanoMinify,
+          }),
       ];
 
 const plugins = (base, is_test_env) => [
     new CleanWebpackPlugin(),
     // new HtmlWebPackPlugin(htmlOutputConfig()),
     // new HtmlWebpackTagsPlugin(htmlInjectConfig()),
-    new IgnorePlugin({ resourceRegExp: /^\.\/locale$/, contextRegExp: /moment$/ }),
+    createDayjsLocalePlugin(),
     new MiniCssExtractPlugin(cssConfig()),
     new CircularDependencyPlugin({ exclude: /node_modules/, failOnError: true }),
     new ForkTsCheckerWebpackPlugin(),
@@ -145,7 +147,17 @@ const plugins = (base, is_test_env) => [
     ...(is_test_env
         ? [new StylelintPlugin(stylelintConfig())]
         : [
-              // ...(!IS_RELEASE ? [ new BundleAnalyzerPlugin({ analyzerMode: 'static' }) ] : []),
+              ...(process.env.ANALYZE_BUNDLE
+                  ? [
+                        new BundleAnalyzerPlugin({
+                            analyzerMode: 'static',
+                            reportFilename: path.resolve(__dirname, '../bundle-report.html'),
+                            openAnalyzer: false,
+                            generateStatsFile: true,
+                            statsFilename: path.resolve(__dirname, '../bundle-stats.json'),
+                        }),
+                    ]
+                  : []),
           ]),
 ];
 

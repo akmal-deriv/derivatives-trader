@@ -1,6 +1,4 @@
 .barrier-params {
-    margin-bottom: var(--core-spacing-2800);
-
     &__description {
         &-header {
             display: flex;
@@ -22,23 +20,8 @@
         }
     }
 
-    &__chips {
-        display: flex;
-        gap: var(--core-spacing-400);
+    &__sign {
         margin-bottom: var(--core-spacing-800);
-        flex-wrap: nowrap;
-        overflow-x: scroll;
-        white-space: nowrap;
-        -ms-overflow-style: none;
-        scrollbar-width: none;
-
-        &::-webkit-scrollbar {
-            display: none;
-        }
-
-        button {
-            background-color: transparent;
-        }
     }
 
     &__error-area {

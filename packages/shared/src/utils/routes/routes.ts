@@ -3,11 +3,13 @@ export const routes = {
     index: '/',
     callback_page: '/callback',
     error404: '/404',
-    redirect: '/redirect',
+    unavailable: '/unavailable',
     endpoint: '/endpoint',
 
     // Trading routes
+    menu: '/menu',
     trader_positions: '/positions',
+    trader_automate: '/automate',
     contract: '/contract/:contract_id',
 
     // Reports routes
@@ -15,12 +17,14 @@ export const routes = {
     positions: '/reports/positions',
     profit: '/reports/profit',
     statement: '/reports/statement',
+    archived_statement: '/reports/archived-statement',
 };
 
 export const DISABLE_LANDSCAPE_BLOCKER_ROUTES = [
     routes.index,
     routes.reports,
     routes.endpoint,
+    routes.trader_automate,
     /** because contract route has dynamic id */
     '/contract',
 ];

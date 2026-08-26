@@ -1,9 +1,42 @@
+// Match the pill radius of the redesigned Duration footer button
+.stake-container .quill-action-sheet--footer button {
+    border-radius: 10rem !important;
+}
+
+// The stake sheet is a carousel: the stake input on page 0, and the Stop out explanation as a page
+// navigated to by tapping its label (mirrors the Turbos Payout-per-point sheet). Pages stretch to the
+// tallest so the sheet does not resize when switching between them.
+.stake__carousel {
+    flex: 1;
+    min-height: 0;
+
+    & > .carousel__item {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .trade-param-definition {
+        padding: 0 var(--component-actionSheet-spacing-padding-md);
+    }
+}
+
+.stake-container {
+    display: flex;
+    flex-direction: column;
+
+    // Mobile sheet only: pin the payout details above the footer (desktop shares the class)
+    .stake-content__details {
+        margin-top: auto;
+        padding: var(--core-spacing-800) 0;
+    }
+}
+
 .stake-content {
-    height: 23.6rem;
+    flex: 1;
     padding: 0 var(--component-actionSheet-spacing-padding-md);
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
+    gap: var(--core-spacing-800);
 
     &__details {
         display: flex;
@@ -23,5 +56,16 @@
                 }
             }
         }
+    }
+
+    // Interactive breakdown label (Stop out): dotted underline hints it opens an explanation page
+    // within the stake sheet (tap).
+    &__info-label {
+        color: var(--component-textIcon-normal-subtle);
+        text-decoration: underline;
+        text-decoration-style: dotted;
+        text-decoration-color: var(--component-textIcon-normal-prominent);
+        text-underline-offset: 0.4rem;
+        cursor: pointer;
     }
 }

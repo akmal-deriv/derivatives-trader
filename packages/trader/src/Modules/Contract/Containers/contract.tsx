@@ -7,7 +7,7 @@ import { routes } from '@deriv/shared';
 import { observer, useStore } from '@deriv/stores';
 import { useTranslations } from '@deriv-com/translations';
 
-import ErrorComponent from 'App/Components/Elements/Errors';
+import ErrorComponent from '../Components/Errors';
 
 import ContractReplay from './contract-replay';
 
@@ -19,22 +19,13 @@ const dialog_errors = ['GetProposalFailure', 'ContractValidationError'];
 const Contract = observer(({ match, history }: TContract) => {
     const { localize } = useTranslations();
     const { contract_replay } = useStore();
-    const {
-        removeErrorMessage,
-        error_message,
-        error_code,
-        has_error,
-        removeAccountSwitcherListener: onUnmount,
-        setAccountSwitcherListener: onMount,
-    } = contract_replay;
+    const { removeErrorMessage, error_message, error_code, has_error } = contract_replay;
+    const nodeRef = React.useRef(null);
     React.useEffect(() => {
-        onMount(+match.params.contract_id, history);
-
         return () => {
             removeErrorMessage();
-            onUnmount();
         };
-    }, [onMount, onUnmount, removeErrorMessage, history, match.params.contract_id]);
+    }, [removeErrorMessage]);
 
     if (isNaN(Number(match.params.contract_id))) {
         return <Redirect to='/404' />;
@@ -62,9 +53,12 @@ const Contract = observer(({ match, history }: TContract) => {
                         enterDone: 'contract--enter-done',
                         exit: 'contract--exit',
                     }}
+                    nodeRef={nodeRef}
                     unmountOnExit
                 >
-                    <ContractReplay contract_id={+match.params.contract_id} key={+match.params.contract_id} />
+                    <div ref={nodeRef}>
+                        <ContractReplay contract_id={+match.params.contract_id} key={+match.params.contract_id} />
+                    </div>
                 </CSSTransition>
             )}
         </React.Fragment>

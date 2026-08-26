@@ -1,21 +1,14 @@
 import React from 'react';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { Analytics } from '@deriv-com/analytics';
 import { MemoryRouter } from 'react-router-dom';
 import { TCoreStores } from '@deriv/stores/types';
-import { formatDate } from '@deriv/shared';
+import { formatDate, trackAnalyticsEvent } from '@deriv/shared';
 import { useDevice } from '@deriv-com/ui';
 import { mockStore } from '@deriv/stores';
 import { useReportsStore } from 'Stores/useReportsStores';
 import Statement, { getRowAction } from '../statement';
 import ReportsProviders from '../../reports-providers';
-
-jest.mock('@deriv-com/analytics', () => ({
-    Analytics: {
-        trackEvent: jest.fn(),
-    },
-}));
 
 jest.mock('@deriv-com/ui', () => ({
     useDevice: jest.fn(() => ({ isDesktop: true })),
@@ -31,7 +24,6 @@ jest.mock('Stores/useReportsStores', () => ({
                     action: 'Sell',
                     action_type: 'sell',
                     amount: '11.00',
-                    app_id: 2,
                     balance: '8,866.19',
                     date: '04 Jun 2024 01:47:16',
                     desc: "If you select 'Up', your total profit/loss will be the percentage increase in Volatility 100 Index, multiplied by 50, minus commissions.",
@@ -47,7 +39,6 @@ jest.mock('Stores/useReportsStores', () => ({
                     action: 'Buy',
                     action_type: 'buy',
                     amount: '-10.00',
-                    app_id: 36300,
                     balance: '8,845.35',
                     date: '31 May 2024 19:42:42',
                     desc: "If you select 'Up', your total profit/loss will be the percentage increase in Volatility 100 (1s) Index, multiplied by 100, minus commissions.",
@@ -80,6 +71,7 @@ jest.mock('Stores/useReportsStores', () => ({
 
 jest.mock('@deriv/shared', () => ({
     ...jest.requireActual('@deriv/shared'),
+    trackAnalyticsEvent: jest.fn(),
     isMobile: jest.fn(() => false),
     WS: {
         forgetAll: jest.fn(),
@@ -90,7 +82,6 @@ jest.mock('@deriv/shared', () => ({
                     {
                         action_type: 'sell',
                         amount: 11,
-                        app_id: 2,
                         balance_after: 8866.19,
                         contract_id: 243990619668,
                         longcode:
@@ -105,7 +96,6 @@ jest.mock('@deriv/shared', () => ({
                     {
                         action_type: 'buy',
                         amount: -10,
-                        app_id: 36300,
                         balance_after: 8845.35,
                         contract_id: 244170956768,
                         longcode:
@@ -272,48 +262,6 @@ describe('Statement', () => {
         await userEvent.click(screen.getByText(buyTransactions));
         expect(screen.getByTestId(filterDropdown)).toHaveTextContent(buyTransactions);
     });
-    it('should send analytics when previous filter value is defined', () => {
-        const { rerender } = render(mockedStatement());
-
-        (useReportsStore as jest.Mock).mockReturnValueOnce({
-            statement: {
-                ...useReportsStore().statement,
-                action_type: 'buy',
-            },
-        });
-        rerender(mockedStatement());
-        expect(Analytics.trackEvent).toHaveBeenCalledWith(
-            'ce_reports_form',
-            expect.objectContaining({
-                action: 'filter_transaction_type',
-                form_name: 'default',
-                subform_name: 'statement_form',
-                transaction_type_filter: 'buy',
-            })
-        );
-    });
-    it('should send analytics when previous date_from and date_to are defined', () => {
-        const { rerender } = render(mockedStatement());
-
-        (useReportsStore as jest.Mock).mockReturnValueOnce({
-            statement: {
-                ...useReportsStore().statement,
-                date_from: 1717184362,
-                date_to: 1717631989,
-            },
-        });
-        rerender(mockedStatement());
-        expect(Analytics.trackEvent).toHaveBeenCalledWith(
-            'ce_reports_form',
-            expect.objectContaining({
-                action: 'filter_dates',
-                form_name: 'default',
-                subform_name: 'statement_form',
-                start_date_filter: formatDate(1717184362, 'DD/MM/YYYY', false),
-                end_date_filter: formatDate(1717631989, 'DD/MM/YYYY', false),
-            })
-        );
-    });
 });
 
 describe('getRowAction', () => {
@@ -341,7 +289,6 @@ describe('getRowAction', () => {
         action: 'Buy',
         action_type: 'buy',
         amount: '-34.23',
-        app_id: 36300,
         date: '06 Jun 2024 07:47:12',
         refid: 488153867768,
         transaction_time: 1717660032,
@@ -351,7 +298,6 @@ describe('getRowAction', () => {
         action: 'Sell',
         action_type: 'sell',
         amount: '0.00',
-        app_id: 2,
         date: '06 Jun 2024 07:47:18',
         purchase_time: 1717660032,
         refid: 488153881108,
@@ -361,7 +307,6 @@ describe('getRowAction', () => {
         action: 'Deposit',
         action_type: 'deposit',
         amount: '10,000.00',
-        app_id: 36300,
         balance: '10,000.00',
         date: '06 Jun 2024 07:47:27',
         desc: 'Reset to default demo account balance.',
@@ -376,7 +321,6 @@ describe('getRowAction', () => {
         action: 'Withdrawal',
         action_type: 'withdrawal',
         amount: '750.00',
-        app_id: 36300,
         balance: '0.00',
         date: '06 Jun 2024 08:47:27',
         desc: 'Withdrawal message',

@@ -1,6 +1,10 @@
 .date-picker__action-sheet {
     padding: 0;
 
+    @include rtl {
+        direction: ltr;
+    }
+
     .react-calendar {
         &__tile {
             font-size: var(--core-fontSize-100);

@@ -31,6 +31,7 @@ export const systems = {
     mac: ['Mac68K', 'MacIntel', 'MacPPC'],
     linux: [
         'HP-UX',
+        'Linux',
         'Linux i686',
         'Linux amd64',
         'Linux i686 on x86_64',
@@ -54,17 +55,41 @@ export const systems = {
 
 export const isDesktopOs = () => {
     const os = OSDetect();
-    return !!['windows', 'mac', 'linux'].find(system => system === os);
+    // Compare case-insensitively: the `config.os` override in OSDetect() returns the
+    // stored value verbatim, so a natural override like 'Linux' would otherwise never
+    // match the lowercase keys that the `systems` allowlist produces.
+    return !!['windows', 'mac', 'linux'].find(system => system === os?.toLowerCase());
 };
 
 export const isMobileOs = () =>
     (/android/i.test(navigator.userAgent.toLowerCase()) && /mobile/i.test(navigator.userAgent.toLowerCase())) ||
     /webOS|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
+/**
+ * True only for devices whose *primary* input is touch (real tablets/phones).
+ *
+ * `navigator.maxTouchPoints > 0` on its own means "touch is available", not "this is a
+ * tablet". It is non-zero on plenty of real desktops — touchscreen laptops, Chromebooks,
+ * Linux machines whose input stack exposes a digitizer or a virtual absolute-axis device
+ * (common in VMs/remote sessions), and Chrome has long reported `maxTouchPoints === 1` on
+ * hardware with no touchscreen at all (crbug.com/352942).
+ *
+ * A coarse primary pointer with no hover capability is the signal that actually separates
+ * the two: a desktop or laptop keeps a fine, hover-capable pointer (mouse/trackpad) even
+ * when it also has a touchscreen, whereas an iPad or Android tablet reports
+ * `pointer: coarse` and `hover: none`.
+ */
+const isTouchPrimaryDevice = () =>
+    typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(pointer: coarse) and (hover: none)').matches;
+
 export const isTabletOs =
     /ipad|android 3.0|xoom|sch-i800|playbook|tablet|kindle/i.test(navigator.userAgent.toLowerCase()) ||
     (/android/i.test(navigator.userAgent.toLowerCase()) && !/mobile/i.test(navigator.userAgent.toLowerCase())) ||
-    (/MacIntel|Linux/.test(navigator.platform) && navigator.maxTouchPoints > 0); /** iOS13 and linux based tablet */
+    /** iOS13+ iPad reports 'MacIntel'; Linux-based tablets report a Linux platform. Both
+     * are only tablets when touch is the primary input — see isTouchPrimaryDevice above. */
+    (/MacIntel|Linux/.test(navigator.platform) && navigator.maxTouchPoints > 0 && isTouchPrimaryDevice());
 
 export const OSDetect = () => {
     // For testing purposes or more compatibility, if we set 'config.os'
@@ -74,14 +99,11 @@ export const OSDetect = () => {
         return localStorage.getItem('config.os');
     }
     if (typeof navigator !== 'undefined' && navigator.platform) {
-        return Object.keys(systems)
-            .map(os => {
-                if (systems[os as keyof typeof systems].some(platform => navigator.platform === platform)) {
-                    return os;
-                }
-                return false;
-            })
-            .filter(os => os)[0];
+        return (
+            Object.keys(systems).find(os =>
+                systems[os as keyof typeof systems].some(platform => navigator.platform === platform)
+            ) ?? 'Unknown OS'
+        );
     }
 
     return 'Unknown OS';
@@ -113,157 +135,3 @@ export const mobileOSDetect = () => {
 
     return 'unknown';
 };
-
-// Simple regular expression to match potential Huawei device codes
-const huaweiDevicesRegex = /\b([A-Z]{3}-)\b/gi;
-
-// Set of valid Huawei device codes
-const validCodes = new Set([
-    'ALP-',
-    'AMN-',
-    'ANA-',
-    'ANE-',
-    'ANG-',
-    'AQM-',
-    'ARS-',
-    'ART-',
-    'ATU-',
-    'BAC-',
-    'BLA-',
-    'BRQ-',
-    'CAG-',
-    'CAM-',
-    'CAN-',
-    'CAZ-',
-    'CDL-',
-    'CDY-',
-    'CLT-',
-    'CRO-',
-    'CUN-',
-    'DIG-',
-    'DRA-',
-    'DUA-',
-    'DUB-',
-    'DVC-',
-    'ELE-',
-    'ELS-',
-    'EML-',
-    'EVA-',
-    'EVR-',
-    'FIG-',
-    'FLA-',
-    'FRL-',
-    'GLK-',
-    'HMA-',
-    'HW-',
-    'HWI-',
-    'INE-',
-    'JAT-',
-    'JEF-',
-    'JER-',
-    'JKM-',
-    'JNY-',
-    'JSC-',
-    'LDN-',
-    'LIO-',
-    'LON-',
-    'LUA-',
-    'LYA-',
-    'LYO-',
-    'MAR-',
-    'MED-',
-    'MHA-',
-    'MLA-',
-    'MRD-',
-    'MYA-',
-    'NCE-',
-    'NEO-',
-    'NOH-',
-    'NOP-',
-    'OCE-',
-    'PAR-',
-    'PIC-',
-    'POT-',
-    'PPA-',
-    'PRA-',
-    'RNE-',
-    'SEA-',
-    'SLA-',
-    'SNE-',
-    'SPN-',
-    'STK-',
-    'TAH-',
-    'TAS-',
-    'TET-',
-    'TRT-',
-    'VCE-',
-    'VIE-',
-    'VKY-',
-    'VNS-',
-    'VOG-',
-    'VTR-',
-    'WAS-',
-    'WKG-',
-    'WLZ-',
-    'JAD-',
-    'MLD-',
-    'RTE-',
-    'NAM-',
-    'NEN-',
-    'BAL-',
-    'JLN-',
-    'YAL-',
-    'MGA-',
-    'FGD-',
-    'XYAO-',
-    'BON-',
-    'ALN-',
-    'ALT-',
-    'BRA-',
-    'DBY2-',
-    'STG-',
-    'MAO-',
-    'LEM-',
-    'GOA-',
-    'FOA-',
-    'MNA-',
-    'LNA-',
-]);
-
-// Function to validate Huawei device codes from a string
-function validateHuaweiCodes(inputString: string) {
-    const matches = inputString.match(huaweiDevicesRegex);
-    if (matches) {
-        return matches.filter(code => validCodes.has(code.toUpperCase())).length > 0;
-    }
-    return false;
-}
-
-export const mobileOSDetectAsync = async () => {
-    const userAgent = navigator.userAgent ?? window.opera ?? '';
-    // Windows Phone must come first because its UA also contains "Android"
-    if (/windows phone/i.test(userAgent)) {
-        return 'Windows Phone';
-    }
-
-    if (/android/i.test(userAgent)) {
-        // Check if navigator.userAgentData is available for modern browsers
-        if (navigator?.userAgentData) {
-            const ua = await navigator.userAgentData.getHighEntropyValues(['model']);
-            if (validateHuaweiCodes(ua?.model || '')) {
-                return 'huawei';
-            }
-        } else if (validateHuaweiCodes(userAgent) || /huawei/i.test(userAgent)) {
-            return 'huawei';
-        }
-        return 'Android';
-    }
-
-    if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
-        return 'iOS';
-    }
-
-    return 'unknown';
-};
-
-export const getOSNameWithUAParser = () => UAParser().os.name;

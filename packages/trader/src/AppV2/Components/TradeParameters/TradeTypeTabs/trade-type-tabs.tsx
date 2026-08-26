@@ -3,6 +3,7 @@ import clsx from 'clsx';
 import { observer } from 'mobx-react-lite';
 
 import { SegmentedControlSingleChoice } from '@deriv-com/quill-ui';
+import { useDevice } from '@deriv-com/ui';
 
 import { getTradeTypeTabsList } from 'AppV2/Utils/trade-params-utils';
 import { useTraderStore } from 'Stores/useTraderStores';
@@ -10,7 +11,8 @@ import { useTraderStore } from 'Stores/useTraderStores';
 import { TTradeParametersProps } from '../trade-parameters';
 
 const TradeTypeTabs = observer(({ is_minimized }: TTradeParametersProps) => {
-    const { contract_type, is_market_closed, onChange, trade_type_tab, setTradeTypeTab } = useTraderStore();
+    const { contract_type, is_market_closed, setTradeSubType, trade_type_tab, setTradeTypeTab } = useTraderStore();
+    const { isMobile } = useDevice();
     const tab_list = getTradeTypeTabsList(contract_type);
     let initial_index = 0;
 
@@ -33,8 +35,10 @@ const TradeTypeTabs = observer(({ is_minimized }: TTradeParametersProps) => {
         const { contract_type: type, value: trade_type } = tab_list[selected_item_index] ?? {};
         setTabIndex(selected_item_index);
         setTradeTypeTab(type);
+        // Same-category sub-toggle (Up/Down within Turbos or Vanillas) — goes through the fenced
+        // sub-type writer, never the raw contract_type pipeline.
         if (trade_type !== contract_type) {
-            onChange({ target: { name: 'contract_type', value: trade_type } });
+            setTradeSubType(trade_type);
         }
     };
 
@@ -45,6 +49,9 @@ const TradeTypeTabs = observer(({ is_minimized }: TTradeParametersProps) => {
     }, [tab_list, initial_tab_index]);
 
     if (!tab_list.length) return null;
+
+    const segmented_control_size = 'sm';
+
     return (
         <SegmentedControlSingleChoice
             className={clsx('trade-params__option', is_minimized && 'trade-params__option--minimized')}
@@ -52,6 +59,7 @@ const TradeTypeTabs = observer(({ is_minimized }: TTradeParametersProps) => {
             onChange={handleTabChange}
             options={tab_list.map(({ label }) => ({ disabled: is_market_closed, label }))}
             selectedItemIndex={tab_index}
+            size={segmented_control_size}
             key={`${tab_index}${is_market_closed}`}
         />
     );

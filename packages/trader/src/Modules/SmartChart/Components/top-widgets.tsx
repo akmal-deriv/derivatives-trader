@@ -39,7 +39,7 @@ const TopWidgets = ({
             onChange={onSymbolChange}
             searchInputClassName='data-hj-whitelist'
             isNestedList={is_mobile}
-            portalNodeId={is_mobile ? 'deriv_app' : undefined}
+            portalNodeId={is_mobile ? 'derivatives_trader' : undefined}
         />
     );
 
@@ -55,7 +55,9 @@ const TopWidgets = ({
 
     return (
         <React.Fragment>
-            {InfoBox}
+            {/* Hidden as we disable longcode temporarily */}
+            {/* TODO: enable or delete when decision is made */}
+            {/* {InfoBox} */}
             {is_mobile ? portal : ChartTitleLocal}
         </React.Fragment>
     );

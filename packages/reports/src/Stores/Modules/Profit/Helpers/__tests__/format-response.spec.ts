@@ -1,11 +1,11 @@
+import { TActiveSymbolsResponse } from '@deriv/api';
+
 import { formatProfitTableTransactions, TTransaction } from '../format-response';
-import { ActiveSymbols } from '@deriv/api-types';
 
 let mockProfitTableTransactionData: TTransaction;
 describe('formatProfitTableTransactions', () => {
     beforeEach(() => {
         mockProfitTableTransactionData = {
-            app_id: 11780,
             buy_price: 1,
             contract_id: 55113405821,
             contract_type: 'CALL',
@@ -28,18 +28,17 @@ describe('formatProfitTableTransactions', () => {
         expect(returnValue).toEqual({
             ...mockProfitTableTransactionData,
             display_name: 'Volatility 100 (1s) Index',
-            purchase_time: '21 Nov 2023 04:07:41',
             purchase_time_unix: 1700539661,
-            sell_time: '21 Nov 2023 04:10:16',
+            sell_time_unix: 1700539816,
             profit_loss: '-0.39',
         });
     });
 
-    it('should not return purchase time if purchase time is not available', () => {
+    it('should not return purchase time unix if purchase time is not available', () => {
         mockProfitTableTransactionData.purchase_time = undefined;
         const currency = 'USD';
         const returnValue = formatProfitTableTransactions(mockProfitTableTransactionData, currency);
-        expect(returnValue.purchase_time).toBeUndefined();
+        expect(returnValue.purchase_time_unix).toBeUndefined();
     });
 
     it('should return profit loss for with correct BTC formatted value', () => {
@@ -56,29 +55,5 @@ describe('formatProfitTableTransactions', () => {
         const currency = 'USD';
         const returnValue = formatProfitTableTransactions(mockProfitTableTransactionData, currency);
         expect(returnValue.profit_loss).toEqual('0.50');
-    });
-
-    it('should return display name if active symbols are available', () => {
-        const currency = 'USD';
-        const activeSymbols: ActiveSymbols = [
-            {
-                allow_forward_starting: 1,
-                display_name: 'Volatility 100 (1s) Index',
-                display_order: 3,
-                exchange_is_open: 1,
-                is_trading_suspended: 0,
-                market: 'synthetic_index',
-                market_display_name: 'Derived',
-                pip: 0.01,
-                subgroup: 'synthetics',
-                subgroup_display_name: 'Synthetics',
-                submarket: 'random_index',
-                submarket_display_name: 'Continuous Indices',
-                symbol: '1HZ100V',
-                symbol_type: 'stockindex',
-            },
-        ];
-        const returnValue = formatProfitTableTransactions(mockProfitTableTransactionData, currency, activeSymbols);
-        expect(returnValue.display_name).toEqual('Volatility 100 (1s) Index');
     });
 });

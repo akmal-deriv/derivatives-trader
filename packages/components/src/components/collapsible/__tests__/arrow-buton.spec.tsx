@@ -44,9 +44,10 @@ describe('<ArrowButton/>', () => {
         expect(screen.getByTestId('icon_handle')).toBeInTheDocument();
     });
 
-    it('should call onClick function if user clicks on icon', () => {
+    it('should call onClick function if user clicks on icon', async () => {
+        const user = userEvent.setup();
         render(<ArrowButton {...mockedDefaultProps} />);
-        userEvent.click(screen.getByText(mockedTitle));
+        await user.click(screen.getByText(mockedTitle));
 
         expect(mockedDefaultProps.onClick).toHaveBeenCalled();
     });

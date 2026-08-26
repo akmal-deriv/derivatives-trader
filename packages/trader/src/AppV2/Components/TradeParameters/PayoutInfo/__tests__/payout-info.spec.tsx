@@ -45,12 +45,12 @@ describe('<PayoutInfo />', () => {
 
         expect(screen.getByText(label)).toBeInTheDocument();
         expect(screen.getByTestId('dt_skeleton')).toBeInTheDocument();
-        expect(screen.queryByText('123.00 USD')).not.toBeInTheDocument();
+        expect(screen.queryByText('$123.00')).not.toBeInTheDocument();
     });
     it('displays the correct label, value and currency', () => {
         mockedPayoutInfo();
 
-        expect(screen.getByText('123.00 USD')).toBeInTheDocument();
+        expect(screen.getByText('$123.00')).toBeInTheDocument();
         expect(screen.getByText(label)).toBeInTheDocument();
         expect(screen.getByText(label)).not.toHaveClass('trade-params__text--disabled');
     });
@@ -81,7 +81,7 @@ describe('<PayoutInfo />', () => {
             };
             mockedPayoutInfo();
 
-            expect(screen.getByText('456.00 USD')).toBeInTheDocument();
+            expect(screen.getByText('$456.00')).toBeInTheDocument();
             expect(screen.getByText(label)).toBeInTheDocument();
         });
 
@@ -104,7 +104,7 @@ describe('<PayoutInfo />', () => {
             };
             mockedPayoutInfo();
 
-            expect(screen.getByText('789.00 USD')).toBeInTheDocument();
+            expect(screen.getByText('$789.00')).toBeInTheDocument();
             expect(screen.getByText(label)).toBeInTheDocument();
         });
 
@@ -123,7 +123,7 @@ describe('<PayoutInfo />', () => {
 
             expect(screen.getByText(label)).toBeInTheDocument();
             expect(screen.getByTestId('dt_skeleton')).toBeInTheDocument();
-            expect(screen.queryByText('789.00 USD')).not.toBeInTheDocument();
+            expect(screen.queryByText('$789.00')).not.toBeInTheDocument();
         });
 
         it('shows skeleton loader when Higher/Lower contract has PUT trade_type_tab but no LOWER proposal key', () => {
@@ -141,7 +141,7 @@ describe('<PayoutInfo />', () => {
 
             expect(screen.getByText(label)).toBeInTheDocument();
             expect(screen.getByTestId('dt_skeleton')).toBeInTheDocument();
-            expect(screen.queryByText('456.00 USD')).not.toBeInTheDocument();
+            expect(screen.queryByText('$456.00')).not.toBeInTheDocument();
         });
 
         it('falls back to direct key mapping for Higher/Lower contracts when both CALL/PUT and HIGHER/LOWER keys exist', () => {
@@ -164,7 +164,7 @@ describe('<PayoutInfo />', () => {
             mockedPayoutInfo();
 
             // Should use CALL key directly when both exist
-            expect(screen.getByText('111.00 USD')).toBeInTheDocument();
+            expect(screen.getByText('$111.00')).toBeInTheDocument();
             expect(screen.getByText(label)).toBeInTheDocument();
         });
 
@@ -189,7 +189,7 @@ describe('<PayoutInfo />', () => {
             mockedPayoutInfo();
 
             expect(screen.getByText(label)).toBeInTheDocument();
-            expect(screen.getByText('- USD')).toBeInTheDocument();
+            expect(screen.getByText('-')).toBeInTheDocument();
         });
     });
 
@@ -207,7 +207,7 @@ describe('<PayoutInfo />', () => {
             };
             mockedPayoutInfo();
 
-            expect(screen.getByText('999.00 USD')).toBeInTheDocument();
+            expect(screen.getByText('$999.00')).toBeInTheDocument();
             expect(screen.getByText(label)).toBeInTheDocument();
         });
     });

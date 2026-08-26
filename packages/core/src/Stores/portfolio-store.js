@@ -24,14 +24,15 @@ import {
     isEnded,
     isMultiplierContract,
     isValidToSell,
+    mapErrorMessage,
     removeBarrier,
     routes,
     setLimitOrderBarriers,
+    trackAnalyticsEvent,
     TRADE_TYPES,
     WS,
 } from '@deriv/shared';
 import { localize } from '@deriv-com/translations';
-import { Analytics } from '@deriv-com/analytics';
 
 import BaseStore from './base-store';
 
@@ -63,6 +64,10 @@ export default class PortfolioStore extends BaseStore {
         // TODO: [mobx-undecorate] verify the constructor arguments and the arguments of this automatically generated super call
         super(root_store);
 
+        // Initialize disposers for cleanup
+        this.loginReactionDisposer = null;
+        this.reconnectHandler = null;
+
         makeObservable(this, {
             positions: observable.shallow,
             all_positions: observable.shallow,
@@ -71,7 +76,7 @@ export default class PortfolioStore extends BaseStore {
             barriers: observable,
             main_barrier: observable,
             contract_type: observable,
-            active_positions: observable.struct,
+            active_positions: observable.shallow,
             initializePortfolio: action.bound,
             clearTable: action.bound,
             portfolioHandler: action.bound,
@@ -110,12 +115,11 @@ export default class PortfolioStore extends BaseStore {
         this.root_store = root_store;
     }
 
-    async initializePortfolio() {
+    initializePortfolio() {
         if (this.has_subscribed_to_poc_and_transaction) {
             this.clearTable();
         }
         this.is_loading = true;
-        await WS.wait('authorize');
         WS.portfolio().then(this.portfolioHandler);
         WS.subscribeProposalOpenContract(null, this.proposalOpenContractQueueHandler);
         WS.subscribeTransaction(this.transactionHandler);
@@ -141,14 +145,14 @@ export default class PortfolioStore extends BaseStore {
     portfolioHandler(response) {
         this.is_loading = false;
         if ('error' in response) {
-            this.error = response.error.message;
+            this.error = mapErrorMessage(response.error);
             return;
         }
         this.error = '';
         if (response.portfolio.contracts) {
             this.positions = response.portfolio.contracts
                 .filter(filterDisabledPositions)
-                .map(pos => formatPortfolioPosition(pos, this.root_store.active_symbols.active_symbols))
+                .map(pos => formatPortfolioPosition(pos))
                 .sort((pos1, pos2) => pos2.reference - pos1.reference); // new contracts first
 
             this.positions.forEach(p => {
@@ -159,29 +163,17 @@ export default class PortfolioStore extends BaseStore {
     }
 
     onBuyResponse({ contract_id, longcode, contract_type }) {
-        // Extract underlying from shortcode if available
-        let underlying;
-        if (longcode) {
-            // Shortcode format: "CALL_1HZ100V_19.79_1753695396_1753373396_S0P0"
-            // Extract the second part which is the underlying symbol
-            const parts = longcode.split('_');
-            if (parts.length >= 2) {
-                underlying = parts[1];
-            }
-        }
-
         const new_pos = {
             contract_id,
             longcode,
             contract_type,
-            underlying, // Add the extracted underlying
         };
         this.pushNewPosition(new_pos);
     }
 
     async transactionHandler(response) {
         if ('error' in response) {
-            this.error = response.error.message;
+            this.error = mapErrorMessage(response.error);
         }
         if (!response.transaction) return;
         const { contract_id, action: act, longcode } = response.transaction;
@@ -264,11 +256,7 @@ export default class PortfolioStore extends BaseStore {
         this.updateContractTradeStore(response);
         this.updateContractReplayStore(response);
 
-        const formatted_position = formatPortfolioPosition(
-            proposal,
-            this.root_store.active_symbols.active_symbols,
-            portfolio_position.indicative
-        );
+        const formatted_position = formatPortfolioPosition(proposal, portfolio_position.indicative);
         Object.assign(portfolio_position, formatted_position);
 
         const prev_indicative = portfolio_position.indicative;
@@ -277,8 +265,10 @@ export default class PortfolioStore extends BaseStore {
 
         // fix for missing barrier and entry_spot in proposal_open_contract API response, only re-assign if valid
         Object.entries(proposal).forEach(([key, value]) => {
-            if (key === 'barrier' || key === 'high_barrier' || key === 'low_barrier' || key === 'entry_spot') {
+            if (key === 'barrier' || key === 'high_barrier' || key === 'low_barrier') {
                 portfolio_position[key] = +value;
+            } else if (key === 'entry_spot') {
+                portfolio_position[key] = value;
             }
         });
 
@@ -417,10 +407,9 @@ export default class PortfolioStore extends BaseStore {
                 );
             }
 
-            Analytics.trackEvent('ce_reports_form', {
+            trackAnalyticsEvent('ce_reports_form_v2', {
                 action: 'close_contract',
-                form_name: 'default',
-                subform_name: 'open_positions_form',
+                platform: 'DTrader',
             });
         }
     }
@@ -460,9 +449,8 @@ export default class PortfolioStore extends BaseStore {
         this.positions[i].contract_info = contract_response;
         this.positions[i].duration = getDurationTime(contract_response);
         this.positions[i].duration_unit = getDurationUnitText(getDurationPeriod(contract_response));
-        // workaround if no exit_spot/exit_tick in proposal_open_contract, use latest spot
-        this.positions[i].exit_spot =
-            contract_response.exit_spot ?? contract_response.exit_tick ?? contract_response.current_spot;
+        // workaround if no exit_spot in proposal_open_contract, use latest spot
+        this.positions[i].exit_spot = contract_response.exit_spot ?? contract_response.current_spot;
         this.positions[i].is_valid_to_sell = isValidToSell(contract_response);
         this.positions[i].result = getDisplayStatus(contract_response);
         this.positions[i].profit_loss = +contract_response.profit;
@@ -477,6 +465,12 @@ export default class PortfolioStore extends BaseStore {
         }
 
         this.positions[i].is_loading = false;
+
+        // Clear any stale services error (e.g. a failed sell attempt) once the contract has closed,
+        // so error toasts don't get re-triggered on the trade/contract details pages after closure.
+        if (this.root_store.common.services_error && !isEmptyObject(this.root_store.common.services_error)) {
+            this.root_store.common.resetServicesError();
+        }
 
         if (this.root_store.ui.is_mobile && getEndTime(contract_response)) {
             const contract_info = this.positions[i].contract_info;
@@ -519,7 +513,7 @@ export default class PortfolioStore extends BaseStore {
     }
 
     pushNewPosition(new_pos) {
-        const position = formatPortfolioPosition(new_pos, this.root_store.active_symbols.active_symbols);
+        const position = formatPortfolioPosition(new_pos);
 
         if (this.positions_map[position.id]) return;
 
@@ -537,16 +531,10 @@ export default class PortfolioStore extends BaseStore {
         this.root_store.contract_trade.removeContract({ contract_id });
     }
 
-    async accountSwitcherListener() {
-        await this.initializePortfolio();
-        return Promise.resolve();
-    }
-
-    onHoverPosition(is_over, position, underlying) {
-        // Backward compatibility: fallback to old field name
-        const position_underlying = position.contract_info.underlying_symbol || position.contract_info.underlying;
+    onHoverPosition(is_over, position, underlying_symbol) {
+        const position_underlying = position.contract_info.underlying_symbol;
         if (
-            position_underlying !== underlying ||
+            position_underlying !== underlying_symbol ||
             isEnded(position.contract_info) ||
             !isMultiplierContract(position.type)
         ) {
@@ -555,11 +543,6 @@ export default class PortfolioStore extends BaseStore {
 
         this.hovered_position_id = is_over ? position.id : null;
         this.updateTradeStore(is_over, position);
-    }
-
-    preSwitchAccountListener() {
-        this.clearTable();
-        return Promise.resolve();
     }
 
     logoutListener() {
@@ -572,16 +555,16 @@ export default class PortfolioStore extends BaseStore {
     }
 
     onMount() {
-        this.onPreSwitchAccount(this.preSwitchAccountListener);
-        this.onSwitchAccount(this.accountSwitcherListener);
         this.onNetworkStatusChange(this.networkStatusChangeListener);
         this.onLogout(this.logoutListener);
+
         if (this.positions.length === 0 && !this.has_subscribed_to_poc_and_transaction) {
-            // TODO: Optimise the way is_logged_in changes are detected for "logging in" and "already logged on" states
+            // Check current state first to handle both initial connection and reconnection
             if (this.root_store.client.is_logged_in) {
                 this.initializePortfolio();
-            } else {
-                reaction(
+            } else if (!this.loginReactionDisposer) {
+                // Only create reaction if one doesn't exist
+                this.loginReactionDisposer = reaction(
                     () => this.root_store.client.is_logged_in,
                     () => {
                         if (this.root_store.client.is_logged_in) {
@@ -591,15 +574,36 @@ export default class PortfolioStore extends BaseStore {
                 );
             }
         }
+
+        // Add reconnection handler - onReconnect is only called when account_id exists
+        // so we don't need to check is_logged_in here
+        // Store the handler so we can remove it later
+        if (!this.reconnectHandler) {
+            this.reconnectHandler = () => {
+                this.initializePortfolio();
+            };
+            WS.setOnReconnect(this.reconnectHandler);
+        }
     }
 
     onUnmount() {
         const is_reports_path = /^\/reports/.test(window.location.pathname);
-        if (!is_reports_path) {
+        const is_menu_path = /^\/menu/.test(window.location.pathname);
+        if (!is_reports_path && !is_menu_path) {
             this.clearTable();
-            this.disposePreSwitchAccount();
-            this.disposeSwitchAccount();
             this.disposeLogout();
+        }
+
+        // Dispose MobX reaction to prevent memory leak
+        if (this.loginReactionDisposer) {
+            this.loginReactionDisposer();
+            this.loginReactionDisposer = null;
+        }
+
+        // Remove reconnection handler
+        if (this.reconnectHandler) {
+            WS.removeOnReconnect(this.reconnectHandler);
+            this.reconnectHandler = null;
         }
     }
 
@@ -688,7 +692,7 @@ export default class PortfolioStore extends BaseStore {
 
         let purchase_spot_barrier = this.barriers.find(b => b.key === key);
         if (purchase_spot_barrier) {
-            if (purchase_spot_barrier.high !== +position.contract_info.entry_spot) {
+            if (+purchase_spot_barrier.high !== +position.contract_info.entry_spot) {
                 purchase_spot_barrier.onChange({
                     high: position.contract_info.entry_spot,
                 });

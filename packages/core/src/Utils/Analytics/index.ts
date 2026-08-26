@@ -1,61 +1,88 @@
-import Cookies from 'js-cookie';
-
 import FIREBASE_INIT_DATA from '@deriv/api/src/remote_config.json';
-import { getAppId, LocalStore } from '@deriv/shared';
 import { Analytics } from '@deriv-com/analytics';
-import { useTranslations } from '@deriv-com/translations';
-import { CountryUtils } from '@deriv-com/utils';
 
-import { MAX_MOBILE_WIDTH } from '../../Constants';
+import { FeatureFlags, isFeatureFlags } from '../../types/feature-flags';
+
+/**
+ * Fetches remote configuration with proper error handling and logging
+ */
+const fetchRemoteConfig = async (url: string): Promise<FeatureFlags> => {
+    try {
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+
+        // Validate the response structure
+        if (!isFeatureFlags(data)) {
+            throw new Error('Invalid feature flags structure received from remote config');
+        }
+
+        return data;
+    } catch (error) {
+        // Remote config fetch failed, fall back to local config
+        // This is expected during development or when remote config is unavailable
+        return FIREBASE_INIT_DATA as FeatureFlags;
+    }
+};
 
 export const AnalyticsInitializer = async () => {
-    const { currentLang } = useTranslations();
-    if (process.env.REMOTE_CONFIG_URL) {
-        const flags = await fetch(process.env.REMOTE_CONFIG_URL)
-            .then(res => res.json())
-            .catch(() => FIREBASE_INIT_DATA);
-        if (process.env.RUDDERSTACK_KEY && flags?.tracking_rudderstack) {
-            const client_information = JSON.parse(Cookies.get('client_information') || 'null');
-            const account_type = client_information?.loginid?.match(/[a-zA-Z]+/g)?.join('');
-            const ppc_campaign_cookies =
-                JSON.parse(Cookies.get('utm_data') || 'null') === 'null'
-                    ? {
-                          utm_source: 'no source',
-                          utm_medium: 'no medium',
-                          utm_campaign: 'no campaign',
-                          utm_content: 'no content',
-                      }
-                    : JSON.parse(Cookies.get('utm_data') || 'null');
+    // Initialize GTM
+    (function (w: any, d: Document, s: string, l: string, i: string) {
+        w[l] = w[l] || [];
+        w[l].push({ 'gtm.start': new Date().getTime(), event: 'gtm.js' });
+        const f = d.getElementsByTagName(s)[0];
+        const j = d.createElement(s) as HTMLScriptElement;
+        const dl = l !== 'dataLayer' ? `&l=${l}` : '';
+        j.async = true;
+        j.src = `https://www.googletagmanager.com/gtm.js?id=${i}${dl}`;
+        f?.parentNode?.insertBefore(j, f);
+    })(window, document, 'script', 'dataLayer', 'GTM-NF7884S');
 
-            const config = {
-                growthbookKey: flags.marketing_growthbook ? process.env.GROWTHBOOK_CLIENT_KEY : undefined,
-                growthbookDecryptionKey: flags.marketing_growthbook ? process.env.GROWTHBOOK_DECRYPTION_KEY : undefined,
-                rudderstackKey: process.env.RUDDERSTACK_KEY,
+    if (!process.env.REMOTE_CONFIG_URL) {
+        return;
+    }
 
-                growthbookOptions: {
-                    attributes: {
-                        loggedIn: !!client_information,
-                        account_type: account_type === 'null' ? 'unlogged' : account_type,
-                        app_id: String(getAppId()),
-                        device_type: window.innerWidth <= MAX_MOBILE_WIDTH ? 'mobile' : 'desktop',
-                        device_language: navigator?.language || 'en-EN',
-                        user_language: currentLang.toLowerCase(),
-                        country: await CountryUtils.getCountry(),
-                        utm_source: ppc_campaign_cookies?.utm_source,
-                        utm_medium: ppc_campaign_cookies?.utm_medium,
-                        utm_campaign: ppc_campaign_cookies?.utm_campaign,
-                        utm_content: ppc_campaign_cookies?.utm_content,
-                        domain: window.location.hostname,
-                        url: window.location.href,
-                        network_type: navigator.connection?.effectiveType,
-                        network_rtt: navigator.connection?.rtt,
-                        network_downlink: navigator.connection?.downlink,
-                        user_id: localStorage.getItem('active_user_id') || '',
-                        residence_country: client_information?.residence,
-                    },
+    const flags = await fetchRemoteConfig(process.env.REMOTE_CONFIG_URL);
+
+    // Initialize RudderStack and/or PostHog based on feature flags
+    // Note: posthogKey and posthogHost are supported in @deriv-com/analytics v1.33.0+
+    const hasRudderStack = !!(process.env.RUDDERSTACK_KEY && flags.tracking_rudderstack);
+    const hasPostHog = !!(process.env.POSTHOG_KEY && flags.tracking_posthog);
+
+    // Initialize Analytics if at least one service is enabled
+    if (hasRudderStack || hasPostHog) {
+        const config: {
+            rudderstackKey?: string;
+            posthogOptions?: {
+                apiKey: string;
+                allowedDomains?: string[];
+                config?: {
+                    api_host?: string;
+                    capture_exceptions?: boolean;
+                };
+            };
+        } = {};
+
+        if (hasRudderStack) {
+            config.rudderstackKey = process.env.RUDDERSTACK_KEY!;
+        }
+
+        if (hasPostHog) {
+            config.posthogOptions = {
+                apiKey: process.env.POSTHOG_KEY!,
+                config: {
+                    // Capture uncaught runtime errors automatically, replacing DataDog RUM's error collection.
+                    capture_exceptions: true,
+                    ...(process.env.POSTHOG_HOST && {
+                        api_host: process.env.POSTHOG_HOST,
+                    }),
                 },
             };
-            await Analytics?.initialise(config);
         }
+
+        await Analytics?.initialise(config);
     }
 };

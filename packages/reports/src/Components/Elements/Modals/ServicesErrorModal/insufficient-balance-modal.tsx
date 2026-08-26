@@ -1,6 +1,7 @@
 import React from 'react';
 import { RouteComponentProps, withRouter } from 'react-router-dom';
 
+import { useMobileBridge } from '@deriv/api';
 import { Button, Modal } from '@deriv/components';
 import { getBrandUrl } from '@deriv/shared';
 import { observer, useStore } from '@deriv/stores';
@@ -17,8 +18,24 @@ const InsufficientBalanceModal = observer(
     ({ is_virtual, is_visible, message, toggleModal }: TInsufficientBalanceModal) => {
         const {
             ui: { is_mobile },
+            client: { currency },
+            common: { current_language },
         } = useStore();
         const { localize } = useTranslations();
+        const { sendBridgeEvent } = useMobileBridge();
+
+        const handleTransferClick = () => {
+            if (!is_virtual) {
+                const brandUrl = getBrandUrl();
+                const lang_param = current_language ? `&lang=${current_language}` : '';
+                sendBridgeEvent('trading:transfer', () => {
+                    window.location.href = `${brandUrl}/transfer?from=dtrader&source=options&acc=options&curr=${currency}${lang_param}`;
+                });
+            } else {
+                toggleModal();
+            }
+        };
+
         return (
             <Modal
                 id='dt_insufficient_balance_modal'
@@ -33,19 +50,7 @@ const InsufficientBalanceModal = observer(
                     <Button
                         has_effect
                         text={is_virtual ? localize('OK') : localize('Deposit now')}
-                        onClick={() => {
-                            if (!is_virtual) {
-                                const hubUrl = getBrandUrl();
-                                const url_query_string = window.location.search;
-                                const url_params = new URLSearchParams(url_query_string);
-                                const account_currency =
-                                    window.sessionStorage.getItem('account') || url_params.get('account');
-
-                                window.location.href = `${hubUrl}/redirect?action=redirect_to&redirect_to=wallet${account_currency ? `&account=${account_currency}` : ''}`;
-                            } else {
-                                toggleModal();
-                            }
-                        }}
+                        onClick={handleTransferClick}
                         primary
                     />
                 </Modal.Footer>

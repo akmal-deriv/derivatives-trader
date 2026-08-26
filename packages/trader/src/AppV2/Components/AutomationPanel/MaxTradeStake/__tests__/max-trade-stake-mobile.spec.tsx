@@ -1,0 +1,72 @@
+import { fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+
+import MaxTradeStakeMobile from '../max-trade-stake-mobile';
+
+const defaultProps = {
+    currency: 'USD',
+    initialValue: 10,
+    description: 'Upper limit for stake multiplying.',
+    onSave: jest.fn(),
+};
+
+// The sheet's own input is the editable one; the trigger field is readOnly.
+const getSheetInput = () => screen.getAllByRole('textbox').find(el => !el.hasAttribute('readonly')) as HTMLElement;
+
+const openSheet = async () => {
+    await userEvent.click(screen.getAllByRole('textbox')[0]);
+};
+
+describe('MaxTradeStakeMobile', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+    });
+
+    it('disables the header save action on open (nothing changed yet)', async () => {
+        render(<MaxTradeStakeMobile {...defaultProps} />);
+        await openSheet();
+
+        expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+    });
+
+    it('enables the header save action after changing the amount', async () => {
+        render(<MaxTradeStakeMobile {...defaultProps} />);
+        await openSheet();
+
+        await userEvent.clear(getSheetInput());
+        await userEvent.type(getSheetInput(), '25');
+        expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
+    });
+
+    it('commits the amount on tapping the header save action', async () => {
+        const onSave = jest.fn();
+        render(<MaxTradeStakeMobile {...defaultProps} onSave={onSave} />);
+        await openSheet();
+
+        await userEvent.clear(getSheetInput());
+        await userEvent.type(getSheetInput(), '25');
+        await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+        expect(onSave).toHaveBeenCalledWith(25);
+    });
+
+    it('does not commit when the sheet is dismissed via the overlay after a change', async () => {
+        const onSave = jest.fn();
+        render(<MaxTradeStakeMobile {...defaultProps} onSave={onSave} />);
+        await openSheet();
+
+        await userEvent.clear(getSheetInput());
+        await userEvent.type(getSheetInput(), '25');
+        await userEvent.click(screen.getByTestId('dt-actionsheet-overlay'));
+
+        expect(onSave).not.toHaveBeenCalled();
+    });
+
+    it('shows the description in the header info tooltip', async () => {
+        render(<MaxTradeStakeMobile {...defaultProps} />);
+        await openSheet();
+
+        fireEvent.mouseEnter(screen.getByRole('button', { name: 'Max. stake' }));
+        expect(screen.getByText('Upper limit for stake multiplying.')).toBeInTheDocument();
+    });
+});

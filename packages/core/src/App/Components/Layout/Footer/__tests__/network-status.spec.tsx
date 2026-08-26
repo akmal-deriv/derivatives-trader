@@ -1,6 +1,6 @@
 import React from 'react';
 import userEvent from '@testing-library/user-event';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import NetworkStatus from '../network-status';
 import { StoreProvider, mockStore } from '@deriv/stores';
 
@@ -58,8 +58,10 @@ describe('network-status component', () => {
         render(<MockNetworkStatus is_mobile={false} />);
         const popover_wrapper = screen.getByTestId('dt_popover_wrapper');
         await userEvent.hover(popover_wrapper);
-        const network_status = screen.getByText(/network status.*connecting to server/i);
-        expect(network_status).toBeInTheDocument();
+        await waitFor(() => {
+            const network_status = screen.getByText(/network status.*connecting to server/i);
+            expect(network_status).toBeInTheDocument();
+        });
     });
 
     it('should contain "Tooltip" message passed in the status property', async () => {
@@ -75,7 +77,9 @@ describe('network-status component', () => {
         );
         const popover_wrapper = screen.getByTestId('dt_popover_wrapper');
         await userEvent.hover(popover_wrapper);
-        const network_status = screen.getByText(/online/i);
-        expect(network_status).toBeInTheDocument();
+        await waitFor(() => {
+            const network_status = screen.getByText(/online/i);
+            expect(network_status).toBeInTheDocument();
+        });
     });
 });

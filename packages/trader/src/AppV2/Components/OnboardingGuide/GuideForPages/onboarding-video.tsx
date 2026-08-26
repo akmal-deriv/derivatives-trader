@@ -1,45 +1,26 @@
-import React from 'react';
-import clsx from 'clsx';
+import { useStore } from '@deriv/stores';
 
-import { getUrlBase } from '@deriv/shared';
-import { Localize } from '@deriv-com/translations';
-import { Skeleton } from '@deriv-com/quill-ui';
-
-import { ASPECT_RATIO } from 'AppV2/Utils/layout-utils';
+import StreamIframe from 'AppV2/Components/StreamIframe';
+import { getOnboardingVideoId } from 'AppV2/Utils/video-config';
 
 type TOnboardingVideoProps = {
-    type: 'trade_page' | 'positions_page' | 'trade_page_dark' | 'positions_page_dark';
+    page_type: 'trade_page' | 'positions_page';
 };
 
-const OnboardingVideo = ({ type }: TOnboardingVideoProps) => {
-    const [is_loading, setIsLoading] = React.useState(true);
-
-    // memoize file paths for videos and open the modal only after we get them
-    const getVideoSource = React.useCallback(
-        (extension: string) =>
-            getUrlBase(`/public/videos/user-onboarding-guide-${type.replaceAll('_', '-')}.${extension}`),
-        [type]
-    );
-    const mp4_src = React.useMemo(() => getVideoSource('mp4'), [getVideoSource]);
+const OnboardingVideo = ({ page_type }: TOnboardingVideoProps) => {
+    const {
+        ui: { is_dark_mode_on },
+    } = useStore();
 
     return (
-        <div className={clsx('guide__player__wrapper', is_loading && 'guide__player__wrapper--is-loading')}>
-            {is_loading && <Skeleton.Square height={`calc(100vw * ${ASPECT_RATIO})`} />}
-            <video
-                autoPlay
-                className='guide__player'
-                data-testid='dt_onboarding_guide_video'
-                muted
-                loop
-                onLoadedData={() => setIsLoading(false)}
-                playsInline
-                preload='auto'
-            >
-                {/* a browser will select a source with extension it recognizes */}
-                <source src={mp4_src} type='video/mp4' />
-                <Localize i18n_default_text='Unfortunately, your browser does not support the video.' />
-            </video>
-        </div>
+        <StreamIframe
+            src={getOnboardingVideoId(page_type, is_dark_mode_on)}
+            title={`onboarding_${page_type}`}
+            autoplay
+            loop
+            muted
+            data-testid='dt_onboarding_guide_video'
+        />
     );
 };
 

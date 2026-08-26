@@ -1,34 +1,32 @@
 import Cookies from 'js-cookie';
 import { action, computed, makeObservable, observable, reaction, runInAction, when } from 'mobx';
-import moment from 'moment';
 
 import {
-    deriv_urls,
+    clearAccountId,
+    dayjs,
     filterUrlQuery,
-    getAppId,
+    getAccountId,
+    getTrustedDomainName,
     isCryptocurrency,
+    isDemoAccountId,
     isMobile,
     LocalStore,
-    redirectToLogin,
     removeCookies,
     routes,
     SessionStore,
-    setCurrencies,
     urlForLanguage,
 } from '@deriv/shared';
-import { getInitialLanguage, localize } from '@deriv-com/translations';
 import { Analytics } from '@deriv-com/analytics';
+import { getInitialLanguage, localize } from '@deriv-com/translations';
 import { CountryUtils } from '@deriv-com/utils';
 
-import { requestLogout, WS } from 'Services';
-import BinarySocketGeneral from 'Services/socket-general';
+import { checkWhoAmI, requestRestLogout, WS } from 'Services';
 
-import { getClientAccountType } from './Helpers/client';
 import { buildCurrenciesList } from './Modules/Trading/Helpers/currency';
 import BaseStore from './base-store';
 
 import BinarySocket from '_common/base/socket_base';
-import { getRegion, isEuCountry, isMultipliersOnly, isOptionsBlocked } from '_common/utility';
+import { getRegion } from '_common/utility';
 
 const LANGUAGE_KEY = 'i18n_language';
 const storage_key = 'current_account';
@@ -39,6 +37,7 @@ export default class ClientStore extends BaseStore {
     preferred_language;
     email;
     user_id;
+    external_id;
 
     current_account = null;
     initialized_broadcast = false;
@@ -47,13 +46,13 @@ export default class ClientStore extends BaseStore {
     is_client_store_initialized = false;
     has_logged_out = false;
     should_redirect_user_to_login = false;
-    is_new_session = false;
 
     currencies_list = {};
     selected_currency = '';
-    website_status = {};
 
     has_cookie_account = false;
+    tab_visibility_handler = null;
+    has_archived_statement = false;
 
     constructor(root_store) {
         const local_storage_properties = [];
@@ -73,9 +72,8 @@ export default class ClientStore extends BaseStore {
             is_client_store_initialized: observable,
             has_logged_out: observable,
             should_redirect_user_to_login: observable,
-            website_status: observable,
             has_cookie_account: observable,
-            is_new_session: observable,
+            has_archived_statement: observable,
 
             balance: computed,
             currency: computed,
@@ -88,23 +86,10 @@ export default class ClientStore extends BaseStore {
             email_address: computed,
             landing_company_shortcode: computed,
 
-            is_cr_account: computed,
-            is_mf_account: computed,
-            clients_country: computed,
-            is_eu_country: computed,
-            is_options_blocked: computed,
-            is_multipliers_only: computed,
-
-            has_active_real_account: computed,
-            has_any_real_account: computed,
-            has_wallet: computed,
-            is_single_currency: computed,
-
             setPreferredLanguage: action.bound,
             setCookieAccount: action.bound,
             responsePayoutCurrencies: action.bound,
             responseAuthorize: action.bound,
-            setWebsiteStatus: action.bound,
             setLoginId: action.bound,
             setIsAuthorize: action.bound,
             setIsLoggingIn: action.bound,
@@ -117,16 +102,11 @@ export default class ClientStore extends BaseStore {
             logout: action.bound,
             setLogout: action.bound,
             setShouldRedirectToLogin: action.bound,
-            getToken: action.bound,
+            setHasArchivedStatement: action.bound,
             init: action.bound,
-            responseWebsiteStatus: action.bound,
             resetVirtualBalance: action.bound,
-            authenticateV2: action.bound,
-            storeSessionToken: action.bound,
-            getStoredSessionToken: action.bound,
-            clearSessionToken: action.bound,
-            removeTokenFromUrl: action.bound,
             is_crypto: action.bound,
+            switchAccount: action.bound,
         });
 
         reaction(
@@ -143,19 +123,10 @@ export default class ClientStore extends BaseStore {
     }
 
     get balance() {
-        return this.current_account?.balance?.toString() || undefined;
-    }
-
-    get has_active_real_account() {
-        return !this.is_virtual;
-    }
-
-    get has_any_real_account() {
-        return !this.is_virtual;
-    }
-
-    get has_wallet() {
-        return false; // Simplified for trading app
+        if (this.current_account?.balance !== undefined && this.current_account?.balance !== null) {
+            return this.current_account.balance.toString();
+        }
+        return undefined;
     }
 
     get currency() {
@@ -179,14 +150,16 @@ export default class ClientStore extends BaseStore {
     }
 
     get is_logged_in() {
-        const hasSessionToken = !!this.getStoredSessionToken();
+        const hasAccountId = !!getAccountId();
         const hasCurrentAccountLoginId = !!this.current_account?.loginid;
         const hasLoginId = !!this.loginid;
-        return hasSessionToken && hasCurrentAccountLoginId && hasLoginId;
+        return hasAccountId && hasCurrentAccountLoginId && hasLoginId;
     }
 
     get is_virtual() {
-        return !!this.current_account?.is_virtual;
+        // Demo if the account_id/loginid carries the DOT prefix. Referencing this.loginid
+        // keeps the computed reactive to account switches.
+        return isDemoAccountId(this.loginid);
     }
 
     get is_eu() {
@@ -194,7 +167,8 @@ export default class ClientStore extends BaseStore {
     }
 
     get account_type() {
-        return getClientAccountType(this.loginid);
+        // Only consumed by GTM analytics (bom_account_type); demo → 'virtual', otherwise undefined.
+        return this.is_virtual ? 'virtual' : undefined;
     }
 
     get residence() {
@@ -206,37 +180,8 @@ export default class ClientStore extends BaseStore {
     }
 
     get landing_company_shortcode() {
-        return this.current_account?.landing_company_shortcode || '';
-    }
-
-    get is_cr_account() {
-        return this.loginid?.startsWith('CR');
-    }
-
-    get is_mf_account() {
-        return this.loginid?.startsWith('MF');
-    }
-
-    get clients_country() {
-        return this.website_status?.clients_country;
-    }
-
-    get is_eu_country() {
-        const country = this.website_status.clients_country;
-        if (country) return isEuCountry(country);
-        return false;
-    }
-
-    get is_options_blocked() {
-        return isOptionsBlocked(this.residence);
-    }
-
-    get is_multipliers_only() {
-        return isMultipliersOnly(this.residence);
-    }
-
-    get is_single_currency() {
-        return true; // Simplified for single account
+        // Default to 'svg' for ROW behavior (maximum permissiveness)
+        return this.current_account?.landing_company_shortcode || 'svg';
     }
 
     setIsAuthorize(value) {
@@ -249,9 +194,7 @@ export default class ClientStore extends BaseStore {
     };
 
     setCookieAccount() {
-        const domain = /deriv\.(com|me|be)/.test(window.location.hostname)
-            ? deriv_urls.DERIV_HOST_NAME
-            : window.location.hostname;
+        const domain = getTrustedDomainName();
 
         const { loginid, landing_company_shortcode, currency, preferred_language, user_id } = this;
         const email = this.email;
@@ -268,7 +211,8 @@ export default class ClientStore extends BaseStore {
                 user_id,
             };
             Cookies.set('region', getRegion(landing_company_shortcode, residence), { domain });
-            Cookies.set('client_information', client_information, { domain });
+            // js-cookie v3 no longer auto-serializes objects (v2 did); stringify explicitly so readers (e.g. analytics) can JSON.parse it
+            Cookies.set('client_information', JSON.stringify(client_information), { domain });
             this.has_cookie_account = true;
         } else {
             removeCookies('region', 'client_information');
@@ -277,8 +221,9 @@ export default class ClientStore extends BaseStore {
     }
 
     responsePayoutCurrencies(response) {
-        const list = response?.payout_currencies || response;
-        this.currencies_list = buildCurrenciesList(Array.isArray(list) ? list : []);
+        // Since payout_currencies endpoint has been removed, use USD as fallback
+        const list = response?.payout_currencies || response || ['USD'];
+        this.currencies_list = buildCurrenciesList(Array.isArray(list) ? list : ['USD']);
         this.selectCurrency('');
     }
 
@@ -290,12 +235,10 @@ export default class ClientStore extends BaseStore {
                 loginid: authorize.loginid,
                 balance: authorize.balance,
                 currency: authorize.currency,
-                is_virtual: authorize.is_virtual,
                 email: authorize.email || '',
                 landing_company_shortcode: authorize.landing_company_name || '',
                 residence: authorize.country || '',
-                session_token: this.getStoredSessionToken(),
-                session_start: parseInt(moment().utc().valueOf() / 1000),
+                session_start: parseInt(dayjs().utc().valueOf() / 1000),
             };
 
             this.setLoginId(authorize.loginid);
@@ -306,33 +249,12 @@ export default class ClientStore extends BaseStore {
             localStorage.setItem('active_user_id', this.user_id);
         }
 
+        // Store active_loginid for backward compatibility with notification system and multi-tab sync
+        localStorage.setItem('active_loginid', authorize.loginid);
+        sessionStorage.setItem('active_loginid', authorize.loginid);
+
         // Store current account
         localStorage.setItem(storage_key, JSON.stringify(this.current_account));
-    }
-
-    setWebsiteStatus(response) {
-        this.website_status = response.website_status;
-        this.responseWebsiteStatus(response);
-        setCurrencies(this.website_status);
-
-        // TODO: remove the below lines after full smartcharts v2 launch.
-        const domain = /deriv\.(com|me)/.test(window.location.hostname)
-            ? deriv_urls.DERIV_HOST_NAME
-            : window.location.hostname;
-        const { clients_country } = this.website_status;
-
-        const options = {
-            domain,
-            expires: 7,
-        };
-
-        try {
-            const cookie = Cookies.get('website_status') ? JSON.parse(Cookies.get('website_status')) : {};
-            cookie.clients_country = clients_country;
-            Cookies.set('website_status', cookie, options);
-        } catch (e) {
-            Cookies.set('website_status', { clients_country }, options);
-        }
     }
 
     async resetVirtualBalance() {
@@ -344,16 +266,10 @@ export default class ClientStore extends BaseStore {
         await WS.authorized.topupVirtual();
     }
 
-    isAccountOfType = type => {
-        const client_account_type = getClientAccountType(this.loginid);
-        return (
-            (type === 'virtual' && client_account_type === 'virtual') ||
-            (type === 'real' && client_account_type !== 'virtual') ||
-            type === client_account_type
-        );
-    };
+    async init(external_id) {
+        // Remove any legacy token parameters from URL
+        this.removeTokenFromUrl();
 
-    async init() {
         let search = '';
         try {
             search = SessionStore?.get?.('signup_query_param') || window?.location?.search || '';
@@ -366,42 +282,27 @@ export default class ClientStore extends BaseStore {
         const action_param = search_params?.get('action');
         const loginid_param = search_params?.get('loginid');
 
-        if (!window.location.pathname.endsWith(routes.index) && /chart_type|interval|symbol|trade_type/.test(search)) {
-            window.history.replaceState({}, document.title, routes.index + search);
-        }
+        const account_id = getAccountId();
 
-        const urlParams = new URLSearchParams(search);
-        const oneTimeToken = urlParams.get('token');
-        const existingSessionToken = this.getStoredSessionToken();
+        if (account_id) {
+            // Set is_logging_in to true while we wait for authorization
+            this.setIsLoggingIn(true);
 
-        let authorize_response;
-
-        if (oneTimeToken) {
-            this.removeTokenFromUrl();
-            authorize_response = await this.authenticateV2(oneTimeToken);
-        } else if (existingSessionToken) {
-            authorize_response = await this.authenticateV2(null);
-        } else {
-            // No authentication available - continue with logged-out state
-            authorize_response = null;
-        }
-
-        // Handle authentication errors
-        if (authorize_response?.error) {
-            await this.logout();
-            this.root_store.common.setError(true, {
-                header: authorize_response.error.message,
-                code: authorize_response.error.code,
-                message: localize('Please Log in'),
-                should_show_refresh: false,
-                redirect_label: localize('Log in'),
-                redirectOnClick: () => {
-                    redirectToLogin();
-                },
-            });
-            this.setIsLoggingIn(false);
-            this.setInitialized(false);
-            return false;
+            // Wait for auth confirmation: socket-general's authorizeAccount flips is_authorize on
+            // the first balance response, on whichever connection instance delivers it — unlike
+            // the old expectResponse('balance'), which was pinned to one instance and hung forever
+            // if that connection died before its balance arrived.
+            try {
+                await when(() => this.is_authorize, { timeout: 30000 });
+            } catch (error) {
+                // Not confirmed within the window (dead network, refused handshakes, lost
+                // response). Let the one validation path decide: handleWhoAmI clears credentials
+                // only on a confirmed 401; plain network trouble keeps retrying via the network
+                // monitor while boot continues.
+                // eslint-disable-next-line no-console
+                console.error('[Auth] Authorization not confirmed within 30s:', error);
+                this.handleWhoAmI();
+            }
         }
 
         // Handle special action parameters and user_id for both logged-in and logged-out states
@@ -416,7 +317,7 @@ export default class ClientStore extends BaseStore {
 
         this.user_id = LocalStore.get('active_user_id');
 
-        // Load current account from localStorage if not already set by authenticateV2
+        // Load current account from localStorage if not already set
         if (!this.current_account) {
             const stored_account = LocalStore.getObject(storage_key);
             if (stored_account) {
@@ -424,21 +325,19 @@ export default class ClientStore extends BaseStore {
             }
         }
 
-        // Process successful authentication
-        if (authorize_response) {
-            // Ensure loginid is set from the authorize response
-            this.setLoginId(authorize_response.authorize.loginid);
+        this.external_id = external_id;
 
-            BinarySocketGeneral.authorizeAccount(authorize_response);
-            Analytics.identifyEvent(this.user_id);
+        // Analytics and GTM for logged-in users
+        if (this.is_logged_in) {
+            Analytics.identifyEvent(external_id || this.user_id);
 
             await this.root_store.gtm.pushDataLayer({
                 event: 'login',
             });
         }
 
-        // Handle redirect and language settings for successful authentication
-        if (authorize_response) {
+        // Handle redirect and language settings for logged-in users
+        if (this.is_logged_in) {
             if (redirect_url) {
                 const redirect_route = routes[redirect_url].length > 1 ? routes[redirect_url] : '';
                 const has_action = [
@@ -456,7 +355,7 @@ export default class ClientStore extends BaseStore {
                 }
             }
 
-            const language = authorize_response.authorize.preferred_language || getInitialLanguage();
+            const language = this.current_account?.preferred_language || getInitialLanguage();
             const stored_language_without_double_quotes = LocalStore.get(LANGUAGE_KEY).replace(/"/g, '');
             if (stored_language_without_double_quotes && language !== stored_language_without_double_quotes) {
                 window.history.replaceState({}, document.title, urlForLanguage(language));
@@ -466,15 +365,8 @@ export default class ClientStore extends BaseStore {
 
         this.selectCurrency('');
 
-        if (this.is_logged_in) {
-            this.responsePayoutCurrencies(await WS.authorized.payoutCurrencies());
-        } else {
-            // For logged-out state, get payout currencies without authorization
-            this.responsePayoutCurrencies(await WS.payoutCurrencies());
-        }
-
-        // Simplified initialization - no account settings needed for trading
-        this.responseWebsiteStatus(await WS.wait('website_status'));
+        // Since payout_currencies endpoint has been removed, use USD as default
+        this.responsePayoutCurrencies(['USD']);
 
         this.setIsLoggingIn(false);
         this.setInitialized(true);
@@ -491,53 +383,105 @@ export default class ClientStore extends BaseStore {
 
         this.setIsClientStoreInitialized();
 
-        // Ensure balance subscription is active
-        if (this.is_logged_in && this.loginid) {
-            setTimeout(() => {
-                import('../Services/socket-general').then(({ default: BinarySocketGeneral }) => {
-                    if (BinarySocketGeneral.ensureBalanceSubscription) {
-                        BinarySocketGeneral.ensureBalanceSubscription();
-                    }
-                });
-            }, 200);
-        }
+        // Set up visibility change listener to check whoami when tab becomes visible
+        this.setupVisibilityListener();
 
         return true;
     }
 
-    responseWebsiteStatus(response) {
-        this.website_status = response.website_status;
+    /**
+     * Checks session validity via whoami service and handles cleanup if needed.
+     * Guarded against overlap: visibility and focus both fire on a tab return, and the
+     * connection-error path can trigger it too — one validation at a time is enough.
+     */
+    async handleWhoAmI() {
+        if (this.is_whoami_in_flight) return;
+        this.is_whoami_in_flight = true;
+
+        try {
+            const result = await checkWhoAmI();
+
+            // Only trigger cleanup if we get 401 error AND have account_id (expect to be logged in)
+            // This means user logged out from Deriv home. If no account_id, we're on public - ignore 401
+            if (result.error?.code === 401 && getAccountId()) {
+                await this.cleanUp();
+            }
+        } finally {
+            this.is_whoami_in_flight = false;
+        }
+    }
+
+    /**
+     * Sets up visibility change and focus listeners to check whoami when tab becomes visible or gains focus
+     */
+    setupVisibilityListener() {
+        // Remove existing listeners if any
+        this.removeVisibilityListener();
+
+        // Create visibility change handler
+        this.tab_visibility_handler = () => {
+            if (document.visibilityState === 'visible') {
+                // Tab became visible - check whoami
+                this.handleWhoAmI();
+            }
+        };
+
+        // Create focus handler
+        this.window_focus_handler = () => {
+            // Window gained focus - check whoami
+            this.handleWhoAmI();
+        };
+
+        // Add listeners
+        document.addEventListener('visibilitychange', this.tab_visibility_handler);
+        window.addEventListener('focus', this.window_focus_handler);
+    }
+
+    /**
+     * Removes the visibility change and focus listeners
+     */
+    removeVisibilityListener() {
+        if (this.tab_visibility_handler) {
+            document.removeEventListener('visibilitychange', this.tab_visibility_handler);
+            this.tab_visibility_handler = null;
+        }
+        if (this.window_focus_handler) {
+            window.removeEventListener('focus', this.window_focus_handler);
+            this.window_focus_handler = null;
+        }
     }
 
     setLoginId(loginid) {
         this.loginid = loginid;
     }
 
-    getToken() {
-        return this.getStoredSessionToken();
-    }
-
     async getAnalyticsConfig(isLoggedOut = false) {
         const broker = this.loginid?.match(/[a-zA-Z]+/g)?.join('');
 
+        // js-cookie v3 removed Cookies.getJSON(); replicate its v2 behavior (parse JSON, fall back to the raw string on failure)
+        const utm_data_cookie = Cookies.get('utm_data');
+        let utm_data;
+        try {
+            utm_data = utm_data_cookie === undefined ? undefined : JSON.parse(utm_data_cookie);
+        } catch (e) {
+            utm_data = utm_data_cookie;
+        }
         const ppc_campaign_cookies =
-            Cookies.getJSON('utm_data') === 'null'
+            utm_data === 'null'
                 ? {
                       utm_source: 'no source',
                       utm_medium: 'no medium',
                       utm_campaign: 'no campaign',
                       utm_content: 'no content',
                   }
-                : Cookies.getJSON('utm_data');
+                : utm_data;
 
         const residence_country = !isLoggedOut ? this.residence : '';
         const login_status = !isLoggedOut && this.is_logged_in;
-
         return {
             loggedIn: login_status,
             account_type: broker === 'null' ? 'unlogged' : broker,
             residence_country,
-            app_id: String(getAppId()),
             device_type: isMobile() ? 'mobile' : 'desktop',
             language: getInitialLanguage(),
             device_language: navigator?.language || 'en-EN',
@@ -549,6 +493,7 @@ export default class ClientStore extends BaseStore {
             utm_content: ppc_campaign_cookies?.utm_content,
             domain: window.location.hostname,
             url: window.location.href,
+            ...(!isLoggedOut && this.external_id && { user_id: this.external_id }),
         };
     }
 
@@ -564,8 +509,7 @@ export default class ClientStore extends BaseStore {
         if (this.current_account && obj_balance.loginid === this.current_account.loginid) {
             this.current_account.balance = obj_balance.balance;
 
-            // Handle virtual account notifications
-            if (this.current_account.is_virtual) {
+            if (this.is_virtual) {
                 this.root_store.notifications.resetVirtualBalanceNotification(this.current_account.loginid);
             }
 
@@ -594,10 +538,8 @@ export default class ClientStore extends BaseStore {
     }
 
     async cleanUp() {
-        const hasSessionToken = !!this.getStoredSessionToken();
-        if (hasSessionToken) {
-            return;
-        }
+        // Remove visibility listener
+        this.removeVisibilityListener();
 
         // Clean up notifications
         const notification_messages = LocalStore.getObject('notification_messages');
@@ -615,7 +557,12 @@ export default class ClientStore extends BaseStore {
         // Reset state
         this.loginid = null;
         this.user_id = null;
+        this.external_id = null;
         this.current_account = null;
+        this.setHasArchivedStatement(false);
+        // The session is gone — without this, is_authorize stays true forever after logout and
+        // auth gates (waitForAuth) would resolve stale-true.
+        this.setIsAuthorize(false);
 
         LocalStore.set('marked_notifications', JSON.stringify([]));
         localStorage.setItem('active_loginid', this.loginid);
@@ -623,21 +570,34 @@ export default class ClientStore extends BaseStore {
         localStorage.setItem('active_user_id', this.user_id);
         localStorage.setItem(storage_key, JSON.stringify(this.current_account));
 
+        // Clear account_id from localStorage
+        clearAccountId();
+
+        // Remove the shared `options_account_id` cookie before reconnecting.
+        removeCookies('options_account_id');
+
         Analytics.reset();
 
-        runInAction(async () => {
-            this.responsePayoutCurrencies(await WS.payoutCurrencies());
+        runInAction(() => {
+            // Since payout_currencies endpoint has been removed, use USD as default
+            this.responsePayoutCurrencies(['USD']);
         });
         this.root_store.notifications.removeAllNotificationMessages(true);
+
+        // Drop WebSocket connection and reconnect to public endpoint
+        BinarySocket.closeAndOpenNewConnection();
     }
 
     setShouldRedirectToLogin(should_redirect_user_to_login) {
         this.should_redirect_user_to_login = should_redirect_user_to_login;
     }
 
+    setHasArchivedStatement(has_archived_statement) {
+        this.has_archived_statement = has_archived_statement;
+    }
+
     async logout() {
-        // TODO: [add-client-action] - Move logout functionality to client store
-        const response = await requestLogout();
+        const response = await requestRestLogout();
 
         if (response?.logout === 1) {
             await this.cleanUp();
@@ -652,92 +612,41 @@ export default class ClientStore extends BaseStore {
         if (this.root_store.common.has_error) this.root_store.common.setError(false, null);
     }
 
-    // V2 Authentication Method
-    async authenticateV2(oneTimeToken) {
-        try {
-            this.setIsLoggingIn(true);
-
-            let sessionToken;
-
-            if (oneTimeToken) {
-                const sessionResponse = await WS.getSessionToken(oneTimeToken);
-
-                if (sessionResponse.error) {
-                    return {
-                        error: {
-                            code: 'TokenExchangeError',
-                            message: sessionResponse.error.message,
-                        },
-                    };
-                }
-
-                sessionToken = sessionResponse.get_session_token.token;
-                this.storeSessionToken(sessionToken);
-            } else {
-                sessionToken = this.getStoredSessionToken();
-
-                if (!sessionToken) {
-                    return {
-                        error: {
-                            code: 'NoSessionToken',
-                            message: 'No valid session token available',
-                        },
-                    };
-                }
-            }
-
-            // Authorize with session token
-            const authorizeResponse = await BinarySocket.authorize(sessionToken);
-
-            if (authorizeResponse.error) {
-                this.clearSessionToken();
-                return authorizeResponse;
-            }
-
-            // Process successful authorization
-            const { authorize } = authorizeResponse;
-            const loginid = authorize.loginid;
-
-            // Store session info in localStorage
-            localStorage.setItem('active_loginid', loginid);
-            sessionStorage.setItem('active_loginid', loginid);
-
-            // Process authorization response - this will set current_account with runInAction
-            this.responseAuthorize(authorizeResponse);
-
-            this.setIsLoggingIn(false);
-            return authorizeResponse;
-        } catch (error) {
-            this.setIsLoggingIn(false);
-
-            return {
-                error: {
-                    code: 'UnexpectedAuthError',
-                    message: error.message || 'Unexpected authentication error',
-                },
-            };
-        }
-    }
-
-    storeSessionToken(token) {
-        if (token) {
-            localStorage.setItem('session_token', token);
-        }
-    }
-
-    getStoredSessionToken() {
-        return localStorage.getItem('session_token');
-    }
-
-    clearSessionToken() {
-        localStorage.removeItem('session_token');
-    }
-
     removeTokenFromUrl() {
         const url = new URL(window.location.href);
         if (url.searchParams.has('token')) {
             url.searchParams.delete('token');
             window.history.replaceState({}, document.title, url.toString());
         }
+    }
+
+    /**
+     * Switch to a different account
+     * Handles notification clearing, localStorage updates, and WebSocket reconnection.
+     * The server (demo/real) is derived from the account_id prefix on reconnect.
+     * @param {string} account_id - The account ID to switch to
+     */
+    async switchAccount(account_id) {
+        if (!account_id || this.loginid === account_id) return;
+
+        // Update localStorage with new account
+        localStorage.setItem('account_id', account_id);
+        localStorage.setItem('active_loginid', account_id);
+        sessionStorage.setItem('active_loginid', account_id);
+
+        // Clear notifications when switching accounts (similar to old implementation)
+        this.root_store.notifications.removeNotifications(true);
+        this.root_store.notifications.removeTradeNotifications();
+        this.root_store.notifications.removeAllNotificationMessages(true);
+
+        // Clear contract markers to prevent showing previous account's contracts on chart
+        this.root_store.contract_trade.clearContracts();
+
+        // Clear stale positions immediately so previous account's positions
+        // are not visible while the new account's data loads
+        this.root_store.portfolio.clearTable();
+
+        // Reconnect WebSocket with new account
+        BinarySocket.closeAndOpenNewConnection();
     }
 }

@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 
-import { getBrandUrl, isEmptyObject, redirectToLogin, redirectToSignUp } from '@deriv/shared';
+import { useMobileBridge } from '@deriv/api';
+import { getBrandUrl, isEmptyObject, mapErrorMessage, redirectToLogin, redirectToSignUp } from '@deriv/shared';
 import { observer, useStore } from '@deriv/stores';
+import { ActionSheet, Modal, Text } from '@deriv-com/quill-ui';
 import { Localize } from '@deriv-com/translations';
-import { ActionSheet } from '@deriv-com/quill-ui';
 
 import { checkIsServiceModalError, SERVICE_ERROR } from 'AppV2/Utils/layout-utils';
 import { useTraderStore } from 'Stores/useTraderStores';
@@ -12,12 +13,17 @@ import ServiceErrorDescription from './service-error-description';
 
 const ServiceErrorSheet = observer(() => {
     const [is_open, setIsOpen] = useState(false);
-    const { common, client } = useStore();
-    const { is_virtual } = client;
-    const { services_error, resetServicesError } = common;
+    const { common, client, ui } = useStore();
+    const { is_mobile } = ui;
+    const { is_virtual, currency } = client;
+    const { services_error, resetServicesError, current_language } = common;
     const { clearPurchaseInfo, requestProposal: resetPurchase } = useTraderStore();
+    const { sendBridgeEvent } = useMobileBridge();
 
-    const { code, message, type } = services_error || {};
+    const { code, type } = services_error || {};
+
+    // Get mapped error message
+    const mappedMessage = mapErrorMessage(services_error || {});
     const is_insufficient_balance = code === SERVICE_ERROR.INSUFFICIENT_BALANCE;
     const is_authorization_required = code === SERVICE_ERROR.AUTHORIZATION_REQUIRED && type === 'buy';
     const should_show_error_modal = !isEmptyObject(services_error) && checkIsServiceModalError({ services_error });
@@ -25,7 +31,11 @@ const ServiceErrorSheet = observer(() => {
     const onClose = () => {
         setIsOpen(false);
         if (services_error.type === 'buy') {
-            if (is_insufficient_balance) {
+            // AuthorizationRequired is raised for logged-out users without sending a real buy, so the
+            // proposal subscriptions were never touched. Clearing + re-requesting here would blank the
+            // payout and can leave proposals failing to re-subscribe, so just close the sheet.
+            // Insufficient balance is likewise handled without resetting purchase state.
+            if (is_insufficient_balance || is_authorization_required) {
                 return;
             }
             clearPurchaseInfo();
@@ -35,22 +45,28 @@ const ServiceErrorSheet = observer(() => {
 
     const getActionButtonProps = () => {
         if (is_insufficient_balance) {
+            // Show OK button for virtual accounts, Deposit now for real accounts
+            if (is_virtual) {
+                return {
+                    primaryAction: {
+                        content: <Localize i18n_default_text='OK' />,
+                        onAction: () => {
+                            resetServicesError();
+                            onClose();
+                        },
+                    },
+                };
+            }
             return {
                 primaryAction: {
                     content: <Localize i18n_default_text='Deposit now' />,
                     onAction: () => {
                         resetServicesError();
-                        if (!is_virtual) {
-                            const hubUrl = getBrandUrl();
-                            const url_query_string = window.location.search;
-                            const url_params = new URLSearchParams(url_query_string);
-                            const account_currency =
-                                window.sessionStorage.getItem('account') || url_params.get('account');
-
-                            window.location.href = `${hubUrl}/redirect?action=redirect_to&redirect_to=wallet${account_currency ? `&account=${account_currency}` : ''}`;
-                        } else {
-                            onClose();
-                        }
+                        const brandUrl = getBrandUrl();
+                        const lang_param = current_language ? `&lang=${current_language}` : '';
+                        sendBridgeEvent('trading:transfer', () => {
+                            window.location.href = `${brandUrl}/transfer?from=dtrader&source=options&acc=options&curr=${currency}${lang_param}`;
+                        });
                     },
                 },
             };
@@ -61,14 +77,14 @@ const ServiceErrorSheet = observer(() => {
                     content: <Localize i18n_default_text='Create free account' />,
                     onAction: () => {
                         resetServicesError();
-                        redirectToSignUp();
+                        redirectToSignUp(current_language);
                     },
                 },
                 secondaryAction: {
                     content: <Localize i18n_default_text='Login' />,
                     onAction: () => {
                         resetServicesError();
-                        redirectToLogin();
+                        redirectToLogin(current_language);
                     },
                 },
             };
@@ -91,28 +107,81 @@ const ServiceErrorSheet = observer(() => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [is_open]);
 
+    const getModalContent = () => {
+        if (is_insufficient_balance) {
+            return {
+                title: <Localize i18n_default_text='Insufficient balance' />,
+                message: mappedMessage || <Localize i18n_default_text='An error occurred.' />,
+            };
+        }
+        if (is_authorization_required) {
+            return {
+                title: <Localize i18n_default_text='Start trading with us' />,
+                message: <Localize i18n_default_text='Log in or create a free account to place a trade.' />,
+            };
+        }
+        return { title: null, message: null };
+    };
+
+    const getModalButtonProps = () => {
+        const action_button_props = getActionButtonProps();
+        if (!action_button_props) return {};
+
+        const props: Record<string, unknown> = {
+            primaryButtonLabel: action_button_props.primaryAction?.content,
+            primaryButtonCallback: action_button_props.primaryAction?.onAction,
+        };
+
+        if (action_button_props.secondaryAction) {
+            props.showSecondaryButton = true;
+            props.secondaryButtonLabel = action_button_props.secondaryAction.content;
+            props.secondaryButtonCallback = action_button_props.secondaryAction.onAction;
+        }
+
+        return props;
+    };
+
     if (!should_show_error_modal) return null;
 
+    if (is_mobile) {
+        return (
+            <ActionSheet.Root
+                className='service-error-sheet'
+                isOpen={is_open}
+                onClose={onClose}
+                expandable={false}
+                position='left'
+            >
+                <ActionSheet.Portal showHandlebar shouldCloseOnDrag>
+                    <div className='service-error-sheet__body'>
+                        <ServiceErrorDescription error_type={getErrorType()} services_error_message={mappedMessage} />
+                    </div>
+                    <ActionSheet.Footer
+                        className='service-error-sheet__footer'
+                        alignment='vertical'
+                        primaryButtonColor='coral'
+                        {...getActionButtonProps()}
+                    />
+                </ActionSheet.Portal>
+            </ActionSheet.Root>
+        );
+    }
+
+    const { title, message } = getModalContent();
+
     return (
-        <ActionSheet.Root
-            className='service-error-sheet'
-            isOpen={is_open}
-            onClose={onClose}
-            expandable={false}
-            position='left'
+        <Modal
+            isOpened={is_open}
+            toggleModal={onClose}
+            buttonColor='coral'
+            shouldCloseOnPrimaryButtonClick={false}
+            {...getModalButtonProps()}
         >
-            <ActionSheet.Portal showHandlebar shouldCloseOnDrag>
-                <div className='service-error-sheet__body'>
-                    <ServiceErrorDescription error_type={getErrorType()} services_error_message={message} />
-                </div>
-                <ActionSheet.Footer
-                    className='service-error-sheet__footer'
-                    alignment='vertical'
-                    primaryButtonColor='coral'
-                    {...getActionButtonProps()}
-                />
-            </ActionSheet.Portal>
-        </ActionSheet.Root>
+            <Modal.Header title={title} />
+            <Modal.Body>
+                <Text size='sm'>{message}</Text>
+            </Modal.Body>
+        </Modal>
     );
 });
 

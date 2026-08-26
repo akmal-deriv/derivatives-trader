@@ -5,6 +5,8 @@ import { mockStore } from '@deriv/stores';
 import { useSnackbar } from '@deriv-com/quill-ui';
 import { render } from '@testing-library/react';
 
+import { ERROR_SNACKBAR_DURATION } from 'AppV2/Utils/layout-utils';
+
 import TraderProviders from '../../../../trader-providers';
 import TradeErrorSnackbar from '../trade-error-snackbar';
 
@@ -69,6 +71,23 @@ describe('TradeErrorSnackbar', () => {
         render(mockTradeErrorSnackbar());
 
         expect(mockAddSnackbar).toHaveBeenCalled();
+    });
+
+    it('passes an auto-dismiss delay to addSnackbar so the error toast does not persist forever', () => {
+        render(mockTradeErrorSnackbar());
+
+        expect(mockAddSnackbar).toHaveBeenCalledWith(
+            expect.objectContaining({
+                status: 'fail',
+                delay: ERROR_SNACKBAR_DURATION,
+            })
+        );
+    });
+
+    it('does not render its own SnackbarController (the app-root controller renders the queue)', () => {
+        const { container } = render(mockTradeErrorSnackbar());
+
+        expect(container).toBeEmptyDOMElement();
     });
 
     it('calls useSnackbar if error field in proposal matches the passed error_fields even if user is log out', () => {

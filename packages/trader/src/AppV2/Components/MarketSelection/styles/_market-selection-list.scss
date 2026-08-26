@@ -1,0 +1,152 @@
+.market-selection-list {
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    flex: 1;
+    @include themed-scrollbar;
+    padding: 0 var(--core-spacing-400, 8px);
+
+    &--empty,
+    &--loading {
+        height: 100%;
+        gap: var(--core-spacing-400, 8px);
+        padding-block-start: var(--core-spacing-400, 8px);
+    }
+
+    // A subgroup section (Derived → Baskets / Synthetics), mirroring the search/favourites two-level
+    // layout. Non-subgrouped markets render a single unlabelled section, so it stays a flat list.
+    &__section {
+        display: flex;
+        flex-direction: column;
+
+        // Hairline separating each subgroup section from the previous one.
+        &:not(:first-child) {
+            margin-block-start: var(--core-spacing-400, 8px);
+            padding-block-start: var(--core-spacing-400, 8px);
+            border-block-start: 1px solid var(--color-surface-border);
+        }
+    }
+
+    &__section-title {
+        padding: var(--core-spacing-800, 16px) var(--core-spacing-400, 8px) 0;
+        font-size: 1.4rem;
+    }
+
+    &__group {
+        display: flex;
+        flex-direction: column;
+    }
+
+    &__group-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 var(--core-spacing-400, 8px) var(--core-spacing-600, 8px);
+    }
+
+    &__group-title {
+        color: var(--component-textIcon-normal-subtle);
+    }
+}
+
+$market-row-action-width: 56px;
+
+.market-selection-row {
+    position: relative;
+    overflow: hidden;
+
+    &__actions {
+        position: absolute;
+        inset-block: 0;
+        inset-inline-end: 0;
+        display: flex;
+    }
+
+    &__action {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: $market-row-action-width;
+        border: none;
+        cursor: pointer;
+
+        &--info {
+            background: var(--semantic-color-slate-solid-surface-normal-highest);
+        }
+
+        &--favourite {
+            background: var(--semantic-color-yellow-solid-surface-normal-highest);
+        }
+    }
+
+    &__content {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        align-items: center;
+        gap: var(--core-spacing-800, 16px);
+        padding: var(--core-spacing-600, 12px) var(--core-spacing-800, 16px);
+        background: var(--semantic-color-slate-solid-surface-frame-low);
+        transition: transform 0.2s ease;
+        cursor: pointer;
+    }
+
+    // Reveal the two swipe actions (pinned at the inline-end edge) by sliding the content toward the
+    // inline start. translateX is physical, so it's negative (leftward) in LTR and positive (rightward)
+    // in RTL — otherwise the content would slide away from the actions and never uncover them.
+    &--show-actions &__content {
+        transform: translateX(calc(-2 * #{$market-row-action-width}));
+
+        @include rtl {
+            transform: translateX(calc(2 * #{$market-row-action-width}));
+        }
+    }
+
+    &__name {
+        flex: 1;
+    }
+
+    &__change {
+        padding: 0 var(--core-spacing-200, 4px);
+        border-radius: var(--core-borderRadius-200, 4px);
+        // Keep the signed percentage LTR so the sign/% aren't reordered in an RTL layout.
+        direction: ltr;
+        unicode-bidi: isolate;
+
+        &--positive {
+            .quill-typography {
+                color: var(--component-tag-label-color-success);
+            }
+            background: var(--component-tag-bg-success);
+        }
+
+        &--negative {
+            .quill-typography {
+                color: var(--component-tag-label-color-danger);
+            }
+            background: var(--component-tag-bg-danger);
+        }
+    }
+}
+
+// The % change pill and worm sparkline mount when a row's (lazily-fetched) ticks land, so fade them
+// in to appear smoothly rather than popping. Scoped to this list so other surfaces (discovery,
+// favourites, search, info) are unaffected.
+.market-selection-list .market-selection-row__change,
+.market-selection-list .market-row-desktop__change,
+.market-selection-list .market-sparkline {
+    animation: market-selection-data-fade-in 0.4s ease;
+
+    @media (prefers-reduced-motion: reduce) {
+        animation: none;
+    }
+}
+
+@keyframes market-selection-data-fade-in {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}

@@ -9,8 +9,8 @@ import {
     isValidToCancel,
 } from '@deriv/shared';
 import { observer } from '@deriv/stores';
+import { ActionSheet, Text, TextField, ToggleSwitch } from '@deriv-com/quill-ui';
 import { Localize, useTranslations } from '@deriv-com/translations';
-import { ActionSheet, Text, TextField, TextFieldWithSteppers, ToggleSwitch } from '@deriv-com/quill-ui';
 
 import useContractDetails from 'AppV2/Hooks/useContractDetails';
 import { getProfit } from 'AppV2/Utils/positions-utils';
@@ -122,6 +122,11 @@ const RiskManagementItem = observer(
 
         const error_message = showError ? getErrorMessage() : '';
 
+        // Header save stays disabled until the drafted amount differs from the committed value
+        // (and while it is empty). Existing validation still runs on save via `onSave`.
+        const is_save_disabled =
+            stepperValue === '' || stepperValue === undefined || Math.abs(Number(stepperValue)) === finalValue;
+
         const onSave = () => {
             setShowError(true);
             const current_error_message = getErrorMessage();
@@ -198,27 +203,34 @@ const RiskManagementItem = observer(
                         setShowError(false);
                     }}
                 >
-                    <ActionSheet.Portal shouldCloseOnDrag>
-                        <ActionSheet.Header title={label} />
+                    <ActionSheet.Portal showHandlebar={false} shouldDetectSwipingOnContainer shouldCloseOnDrag>
+                        <ActionSheet.Header
+                            title={label}
+                            closeAction={{ ariaLabel: localize('Close') }}
+                            saveAction={{ onAction: onSave, ariaLabel: localize('Save') }}
+                            isSaveActionDisabled={is_save_disabled}
+                            shouldCloseOnSaveActionClick={false}
+                        />
                         <ActionSheet.Content className='risk-management-item__action-sheet-content'>
                             {isSheetOpen && (
-                                <TextFieldWithSteppers
+                                <TextField
                                     allowDecimals
                                     allowSign={false}
                                     className='text-field--custom'
                                     customType='commaRemoval'
                                     decimals={getDecimalPlaces(currency)}
+                                    label={localize('Amount ({{currency}})', {
+                                        currency: getCurrencyDisplayCode(currency),
+                                    })}
                                     message={error_message}
-                                    minusDisabled={Number(stepperValue) - 1 <= 0}
                                     name={type}
                                     noStatusIcon
                                     onChange={onChange}
                                     placeholder={localize('Amount')}
                                     regex={/[^0-9.,]/g}
                                     status={error_message ? 'error' : 'neutral'}
-                                    textAlignment='center'
+                                    textAlignment='left'
                                     inputMode='decimal'
-                                    unitLeft={getCurrencyDisplayCode(currency)}
                                     value={stepperValue}
                                     variant='fill'
                                 />
@@ -231,13 +243,6 @@ const RiskManagementItem = observer(
                                 />
                             )}
                         </ActionSheet.Content>
-                        <ActionSheet.Footer
-                            shouldCloseOnPrimaryButtonClick={false}
-                            primaryAction={{
-                                content: <Localize i18n_default_text='Save' />,
-                                onAction: onSave,
-                            }}
-                        />
                     </ActionSheet.Portal>
                 </ActionSheet.Root>
             </div>

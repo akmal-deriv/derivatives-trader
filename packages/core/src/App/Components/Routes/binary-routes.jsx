@@ -1,10 +1,11 @@
 import React from 'react';
 import { Switch, Prompt, useLocation, Redirect } from 'react-router-dom';
-import { Loading } from '@deriv/components';
+import { useDevice } from '@deriv-com/ui';
+import { Loading, SmartFallbackLoader } from '@deriv/components';
+import { routes } from '@deriv/shared';
 import getRoutesConfig from 'App/Constants/routes-config';
 import RouteWithSubRoutes from './route-with-sub-routes.jsx';
 import { observer, useStore } from '@deriv/stores';
-import { routes } from '@deriv/shared';
 
 // List of route patterns that have been removed
 const REMOVED_ROUTE_PATTERNS = [
@@ -39,6 +40,7 @@ const BinaryRoutes = observer(props => {
     const { promptFn, prompt_when } = ui;
     const { pushDataLayer } = gtm;
     const location = useLocation();
+    const { isMobile } = useDevice();
 
     React.useEffect(() => {
         pushDataLayer({ event: 'page_load' });
@@ -46,7 +48,7 @@ const BinaryRoutes = observer(props => {
     }, [location]);
 
     return (
-        <React.Suspense fallback={<Loading />}>
+        <React.Suspense fallback={isMobile ? <SmartFallbackLoader /> : <Loading />}>
             <Prompt when={prompt_when} message={promptFn} />
             <RemovedRoutesRedirect />
             <Switch>

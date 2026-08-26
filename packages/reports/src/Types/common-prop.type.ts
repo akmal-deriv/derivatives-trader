@@ -1,14 +1,17 @@
 import React from 'react';
 import { Redirect } from 'react-router-dom';
+
+import { getSupportedContracts, getUnsupportedContracts } from '@deriv/shared';
 import { TCoreStores } from '@deriv/stores/types';
+
 import {
+    getArchivedStatementColumnsTemplate,
     getMultiplierOpenPositionsColumnsTemplate,
     getOpenPositionsColumnsTemplate,
     getProfitTableColumnsTemplate,
     getStatementTableColumnsTemplate,
     TKeys,
 } from 'Constants/data-table-constants';
-import { getSupportedContracts, getUnsupportedContracts } from '@deriv/shared';
 
 export type TPassthrough = {
     root_store: TCoreStores;
@@ -69,6 +72,7 @@ export type TInputDateRange = {
 export type TColIndex =
     | ReturnType<typeof getStatementTableColumnsTemplate>[number]['col_index']
     | ReturnType<typeof getProfitTableColumnsTemplate>[number]['col_index']
+    | ReturnType<typeof getArchivedStatementColumnsTemplate>[number]['col_index']
     | ReturnType<typeof getOpenPositionsColumnsTemplate>[number]['col_index']
     | ReturnType<typeof getMultiplierOpenPositionsColumnsTemplate>[number]['col_index'];
 

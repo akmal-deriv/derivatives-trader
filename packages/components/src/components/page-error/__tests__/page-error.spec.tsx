@@ -40,8 +40,9 @@ describe('<PageError/>', () => {
         expect(screen.getByText('Test error message')).toBeInTheDocument();
     });
 
-    it('Should call buttonOnClick() upon button click when should_redirect and should_clear_error_on_click equals to false', () => {
+    it('Should call buttonOnClick() upon button click when should_redirect and should_clear_error_on_click equals to false', async () => {
         const { buttonOnClick } = pageErrorDefaultProps;
+        const user = userEvent.setup();
 
         render(
             <PageError
@@ -53,7 +54,7 @@ describe('<PageError/>', () => {
         );
 
         expect(screen.getByRole('button')).toHaveClass('dc-page-error__btn--no-redirect');
-        userEvent.click(screen.getByRole('button'));
+        await user.click(screen.getByRole('button'));
         expect(buttonOnClick).toHaveBeenCalledTimes(1);
     });
 
@@ -64,31 +65,34 @@ describe('<PageError/>', () => {
         expect(button).toBeInTheDocument();
     });
 
-    it('Should call setError() when redirect button gets clicked', () => {
+    it('Should call setError() when redirect button gets clicked', async () => {
         const { setError } = pageErrorDefaultProps;
+        const user = userEvent.setup();
         renderWithRouter(<PageError {...pageErrorDefaultProps} />);
 
         const link = screen.getByRole('link');
 
-        userEvent.click(link);
+        await user.click(link);
         expect(setError).toHaveBeenCalledTimes(1);
     });
 
-    it('Should call setError() when redirect button gets clicked and should_redirect did not pass', () => {
+    it('Should call setError() when redirect button gets clicked and should_redirect did not pass', async () => {
         const { setError } = pageErrorDefaultProps;
+        const user = userEvent.setup();
         renderWithRouter(<PageError {...pageErrorDefaultProps} should_redirect={undefined} />);
 
         const link = screen.getByRole('link');
 
-        userEvent.click(link);
+        await user.click(link);
         expect(setError).toHaveBeenCalled();
     });
 
-    it('Should call setError when button is clicked and should_clear_error_on_click is true', () => {
+    it('Should call setError when button is clicked and should_clear_error_on_click is true', async () => {
+        const user = userEvent.setup();
         renderWithRouter(<PageError {...pageErrorDefaultProps} />);
 
         const button = screen.getByText('Go back');
-        userEvent.click(button);
+        await user.click(button);
 
         expect(mockSetError).toHaveBeenCalledWith(false, null);
     });

@@ -4,13 +4,14 @@ const CopyPlugin = require('copy-webpack-plugin');
 const HtmlWebPackPlugin = require('html-webpack-plugin');
 const HtmlWebpackTagsPlugin = require('html-webpack-tags-plugin');
 const PreloadWebpackPlugin = require('preload-webpack-plugin');
-const { IgnorePlugin, DefinePlugin } = require('webpack');
+const { DefinePlugin } = require('webpack');
+const { createDayjsLocalePlugin } = require('../../shared/build/dayjs-locale-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 const path = require('path');
 const StylelintPlugin = require('stylelint-webpack-plugin');
 const TerserPlugin = require('terser-webpack-plugin');
-// const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
+const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
 const { WebpackManifestPlugin } = require('webpack-manifest-plugin');
 const { GenerateSW } = require('workbox-webpack-plugin');
 
@@ -44,7 +45,7 @@ const HOISTED_PACKAGES = {
     '@deriv/shared': path.resolve(__dirname, '../../../node_modules/@deriv/shared'),
     '@deriv/components': path.resolve(__dirname, '../../../node_modules/@deriv/components'),
     '@deriv-com/translations': path.resolve(__dirname, '../../../node_modules/@deriv-com/translations'),
-    '@deriv-com/derivatives-charts': path.resolve(__dirname, '../../../node_modules/@deriv-com/derivatives-charts'),
+    '@deriv-com/smartcharts-champion': path.resolve(__dirname, '../../../node_modules/@deriv-com/smartcharts-champion'),
     '@deriv/trader': path.resolve(__dirname, '../../../node_modules/@deriv/trader'),
     '@deriv/reports': path.resolve(__dirname, '../../../node_modules/@deriv/reports'),
 };
@@ -86,7 +87,7 @@ const rules = (is_test_env = false) => [
         use: html_loaders,
     },
     {
-        test: /\.(png|jpg|gif|woff|woff2|eot|ttf|otf|pdf)$/,
+        test: /\.(png|jpg|gif|woff|woff2|eot|ttf|otf|pdf|webp)$/,
         exclude: /node_modules/,
         use: file_loaders,
     },
@@ -120,24 +121,19 @@ const MINIMIZERS = !IS_RELEASE
               exclude: /(smartcharts)/,
               parallel: 2,
           }),
-          new CssMinimizerPlugin(),
+          new CssMinimizerPlugin({
+              minify: CssMinimizerPlugin.cssnanoMinify,
+          }),
       ];
 
 const plugins = ({ base, is_test_env }) => {
     return [
         new Dotenv({ systemvars: true }),
         new DefinePlugin({
-            'process.env.DATADOG_APPLICATION_ID': JSON.stringify(process.env.DATADOG_APPLICATION_ID),
-            'process.env.DATADOG_CLIENT_TOKEN': JSON.stringify(process.env.DATADOG_CLIENT_TOKEN),
-            'process.env.DATADOG_SESSION_REPLAY_SAMPLE_RATE': JSON.stringify(
-                process.env.DATADOG_SESSION_REPLAY_SAMPLE_RATE
-            ),
-            'process.env.DATADOG_SESSION_SAMPLE_RATE': JSON.stringify(process.env.DATADOG_SESSION_SAMPLE_RATE),
             'process.env.REF_NAME': JSON.stringify(process.env.REF_NAME),
             'process.env.RUDDERSTACK_KEY': JSON.stringify(process.env.RUDDERSTACK_KEY),
-            'process.env.GROWTHBOOK_CLIENT_KEY': JSON.stringify(process.env.GROWTHBOOK_CLIENT_KEY),
-            'process.env.GROWTHBOOK_DECRYPTION_KEY': JSON.stringify(process.env.GROWTHBOOK_DECRYPTION_KEY),
-            'process.env.IS_GROWTHBOOK_ENABLED': JSON.stringify(process.env.IS_GROWTHBOOK_ENABLED),
+            'process.env.POSTHOG_KEY': JSON.stringify(process.env.POSTHOG_KEY),
+            'process.env.POSTHOG_HOST': JSON.stringify(process.env.POSTHOG_HOST),
             'process.env.REMOTE_CONFIG_URL': JSON.stringify(process.env.REMOTE_CONFIG_URL),
             'process.env.R2_PROJECT_NAME': JSON.stringify(process.env.R2_PROJECT_NAME),
             'process.env.CROWDIN_BRANCH_NAME': JSON.stringify(process.env.CROWDIN_BRANCH_NAME),
@@ -148,7 +144,7 @@ const plugins = ({ base, is_test_env }) => {
         new HtmlWebPackPlugin(htmlOutputConfig(IS_RELEASE)),
         new HtmlWebpackTagsPlugin(htmlInjectConfig()),
         new PreloadWebpackPlugin(htmlPreloadConfig()),
-        new IgnorePlugin({ resourceRegExp: /^\.\/locale$/, contextRegExp: /moment$/ }),
+        createDayjsLocalePlugin(),
         new MiniCssExtractPlugin(cssConfig()),
         new CircularDependencyPlugin({ exclude: /node_modules/, failOnError: true }),
         ...(IS_RELEASE
@@ -158,7 +154,17 @@ const plugins = ({ base, is_test_env }) => {
             ? [new StylelintPlugin(stylelintConfig())]
             : [
                   new GenerateSW(generateSWConfig(IS_RELEASE)),
-                  // ...(!IS_RELEASE ? [new BundleAnalyzerPlugin({ analyzerMode: 'static' })] : []),
+                  ...(process.env.ANALYZE_BUNDLE
+                      ? [
+                            new BundleAnalyzerPlugin({
+                                analyzerMode: 'static',
+                                reportFilename: path.resolve(__dirname, '../bundle-report.html'),
+                                openAnalyzer: false,
+                                generateStatsFile: true,
+                                statsFilename: path.resolve(__dirname, '../bundle-stats.json'),
+                            }),
+                        ]
+                      : []),
               ]),
     ];
 };

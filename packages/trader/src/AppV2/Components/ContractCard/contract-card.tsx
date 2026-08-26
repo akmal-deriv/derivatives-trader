@@ -3,14 +3,12 @@ import { NavLink } from 'react-router-dom';
 import { useSwipeable } from 'react-swipeable';
 import clsx from 'clsx';
 
-import { IconTradeTypes, Money, RemainingTime } from '@deriv/components';
+import { Money, RemainingTime } from '@deriv/components';
 import {
-    formatDate,
-    formatTime,
+    type Dayjs,
     getCardLabels,
     getCurrentTick,
     getMarketName,
-    getStartTime,
     getTradeTypeName,
     isCryptoContract,
     isEnded,
@@ -18,14 +16,19 @@ import {
     isValidToCancel,
     isValidToSell,
     TContractInfo,
-    toMoment,
 } from '@deriv/shared';
 import { isHigherLowerContractInfo } from '@deriv/shared/src/utils/helpers/market-underlying';
-import { CaptionText, Tag, Text } from '@deriv-com/quill-ui';
+import { Button, CaptionText, Tag, Text } from '@deriv-com/quill-ui';
+import { useTranslations } from '@deriv-com/translations';
+import { useDevice } from '@deriv-com/ui';
 
 import { TClosedPosition } from 'AppV2/Containers/Positions/positions-content';
 import { getProfit } from 'AppV2/Utils/positions-utils';
+import IcAutomationTrading from 'Assets/SvgComponents/settings/ic-automation-trading.svg';
+import IcManualTrading from 'Assets/SvgComponents/settings/ic-manual-trading.svg';
 import { TRootStore } from 'Types';
+
+import SymbolIconsMapper from '../SymbolIconsMapper/symbol-icons-mapper';
 
 import { ContractCardStatusTimer, TContractCardStatusTimerProps } from './contract-card-status-timer';
 
@@ -64,15 +67,17 @@ const ContractCard = ({
     redirectTo,
     serverTime,
 }: TContractCardProps) => {
+    const { currentLang } = useTranslations();
+    const { isMobile } = useDevice();
+    const is_rtl = currentLang === 'AR';
     const [isDeleted, setIsDeleted] = React.useState(false);
     const [isClosing, setIsClosing] = React.useState(false);
     const [isCanceling, setIsCanceling] = React.useState(false);
     const [shouldShowButtons, setShouldShowButtons] = React.useState(false);
-    const { buy_price, contract_type, display_name, purchase_time, sell_time, shortcode, limit_order } =
-        contractInfo as TContractInfo;
+    const { buy_price, contract_type, sell_time, shortcode, limit_order } = contractInfo as TContractInfo;
     const { take_profit, stop_loss } = limit_order ?? { take_profit: {}, stop_loss: {} };
     const is_higher_lower = isHigherLowerContractInfo({
-        contract_category: (contractInfo as any).contract_category,
+        contract_category: (contractInfo as unknown as { contract_category?: string }).contract_category,
         shortcode,
     });
     const contract_main_title = getTradeTypeName(contract_type ?? '', {
@@ -84,9 +89,9 @@ const ContractCard = ({
     const tradeTypeName = `${contract_main_title} ${getTradeTypeName(contract_type ?? '', {
         isHighLow: is_higher_lower,
     })}`.trim();
-    const symbol = (contractInfo as any).underlying_symbol || (contractInfo as any).symbol;
-    const symbolName = symbol ? getMarketName(symbol) : display_name;
-    const is_crypto = isCryptoContract((contractInfo as TContractInfo).underlying);
+    const symbol = contractInfo.underlying_symbol || '';
+    const symbolName = getMarketName(symbol);
+    const is_crypto = isCryptoContract((contractInfo as TContractInfo).underlying_symbol);
     const isMultiplier = isMultiplierContract(contract_type);
     const isSold = !!sell_time || isEnded(contractInfo as TContractInfo);
     const totalProfit = getProfit(contractInfo);
@@ -99,8 +104,8 @@ const ContractCard = ({
     const Component = redirectTo ? NavLink : 'div';
 
     const handleSwipe = (direction: string) => {
-        const isLeft = direction === DIRECTION.LEFT;
-        setShouldShowButtons(isLeft);
+        const showDirection = is_rtl ? DIRECTION.RIGHT : DIRECTION.LEFT;
+        setShouldShowButtons(direction === showDirection);
     };
 
     const swipeHandlers = useSwipeable({
@@ -141,23 +146,53 @@ const ContractCard = ({
     return (
         <div className={clsx(`${className}-wrapper`, { deleted: isDeleted })}>
             <Component
-                {...(hasActionButtons ? swipeHandlers : {})}
+                {...(hasActionButtons && isMobile ? swipeHandlers : {})}
                 className={clsx(className, {
                     'show-buttons': shouldShowButtons,
                     'has-cancel-button': validToCancel,
                     lost: Number(totalProfit) < 0,
                     won: Number(totalProfit) >= 0,
                 })}
+                data-testid='dt_contract_card'
                 onClick={onClick}
                 onDragStart={e => e.preventDefault()}
                 to={redirectTo}
             >
                 <div className={`${className}__body`}>
+                    <div className={`${className}__header`}>
+                        <div className={`${className}__market-icon`}>
+                            <SymbolIconsMapper symbol={symbol} />
+                        </div>
+                        <div className={`${className}__details-col`}>
+                            <div className={`${className}__details`}>
+                                <Text size='sm' className='symbol'>
+                                    {symbolName}
+                                </Text>
+                                {'auto_run_id' in contractInfo && contractInfo.auto_run_id ? (
+                                    <IcAutomationTrading
+                                        width={20}
+                                        height={16}
+                                        className='quill-typography__color--subtle'
+                                    />
+                                ) : (
+                                    <IcManualTrading
+                                        width={14}
+                                        height={14}
+                                        className='quill-typography__color--subtle'
+                                    />
+                                )}
+                            </div>
+                            <div className={`${className}__details`}>
+                                <Text className='trade-type' size='sm'>
+                                    {tradeTypeName}
+                                </Text>
+                                <Text size='sm' color='quill-typography__color--subtle'>
+                                    <Money amount={buy_price} currency={currency} show_currency />
+                                </Text>
+                            </div>
+                        </div>
+                    </div>
                     <div className={`${className}__details`}>
-                        <IconTradeTypes
-                            type={is_higher_lower ? `${contract_type}_barrier` : contract_type}
-                            iconSize='xs'
-                        />
                         <div className='tag__wrapper'>
                             {show_risk_management_labels &&
                                 risk_management_labels.map(label => (
@@ -178,25 +213,56 @@ const ContractCard = ({
                                 />
                             )}
                         </div>
-                    </div>
-                    <div className={`${className}__details`}>
-                        <Text className='trade-type' size='sm'>
-                            {tradeTypeName}
-                        </Text>
-                        <Text size='sm' color='quill-typography__color--subtle'>
-                            <Money amount={buy_price} currency={currency} show_currency />
-                        </Text>
-                    </div>
-                    <div className={`${className}__details`}>
-                        <Text size='sm' className='symbol' color='quill-typography__color--subtle'>
-                            {symbolName}
-                        </Text>
                         <Text className='profit' size='sm'>
                             <Money amount={totalProfit} currency={currency} has_sign show_currency />
                         </Text>
                     </div>
                 </div>
-                {hasActionButtons && (
+                {!isMobile && hasActionButtons && (
+                    <React.Fragment>
+                        <Button
+                            className={`${className}__sell-btn`}
+                            color='black-white'
+                            size='md'
+                            variant='secondary'
+                            fullWidth
+                            disabled={!validToSell}
+                            isLoading={isCloseButtonPressed}
+                            onClick={handleClose}
+                            label={validToSell ? getCardLabels().CLOSE : getCardLabels().RESALE_NOT_OFFERED}
+                        />
+                        {validToCancel && (
+                            <Button
+                                className={`${className}__cancel-btn`}
+                                color='black-white'
+                                size='md'
+                                variant='secondary'
+                                fullWidth
+                                disabled={Number((contractInfo as TContractInfo).profit) >= 0 || isSellRequested}
+                                isLoading={isCancelButtonPressed}
+                                onClick={e => handleClose(e, true)}
+                                label={
+                                    <React.Fragment>
+                                        {getCardLabels().CANCEL}
+                                        {cancellation_date_expiry && (
+                                            <React.Fragment>
+                                                {' '}
+                                                <RemainingTime
+                                                    as='span'
+                                                    end_time={cancellation_date_expiry}
+                                                    format='mm:ss'
+                                                    getCardLabels={getCardLabels}
+                                                    start_time={serverTime as Dayjs}
+                                                />
+                                            </React.Fragment>
+                                        )}
+                                    </React.Fragment>
+                                }
+                            />
+                        )}
+                    </React.Fragment>
+                )}
+                {hasActionButtons && isMobile && (
                     <div className='buttons'>
                         {validToCancel && (
                             <button
@@ -227,7 +293,7 @@ const ContractCard = ({
                                                     end_time={cancellation_date_expiry}
                                                     format='mm:ss'
                                                     getCardLabels={getCardLabels}
-                                                    start_time={serverTime as moment.Moment}
+                                                    start_time={serverTime as Dayjs}
                                                 />
                                             </CaptionText>
                                         )}

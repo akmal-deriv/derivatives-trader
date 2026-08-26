@@ -1,0 +1,166 @@
+.automation-panel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--core-spacing-800);
+
+    // Opt into text-level RTL (body is forced LTR app-wide; components opt in).
+    @include rtl {
+        direction: rtl;
+    }
+
+    // Each section (Strategy parameters / Risk management) is its own flex
+    // column with a 16px gap between the header and its fields. The top
+    // border doubles as the divider between this section and whatever sits
+    // above it — the previous section, or the TradeParameters block above
+    // when this is the first section.
+    &__section {
+        display: flex;
+        flex-direction: column;
+        gap: var(--core-spacing-800);
+        padding-top: var(--core-spacing-800);
+        border-top: 1px solid var(--semantic-color-monochrome-border-normal-mid);
+    }
+
+    &__header {
+        color: var(--component-field-label-color-default);
+    }
+
+    &__fields {
+        display: flex;
+        flex-direction: column;
+        gap: var(--core-spacing-400);
+        // The info-icon hover reveal now lives in trade-parameters.scss (`&__field-with-info`), shared
+        // by manual + automate modes.
+    }
+}
+
+// Popover styles for automation panel fields
+.automation-popover {
+    padding: var(--core-spacing-400) !important;
+
+    // SelectionListPopover content (Strategy selector)
+    &__content {
+        display: flex;
+        flex-direction: column;
+        gap: var(--core-spacing-200);
+    }
+
+    &__option {
+        height: 4.8rem;
+        border: none;
+        border-radius: 0.8rem;
+        font-size: 1.6rem;
+        font-weight: 400;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        background-color: transparent;
+        color: var(--component-textIcon-normal-default);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        &:hover:not(&--selected) {
+            background: var(--component-segmentedControl-bg-single-item-hover);
+        }
+
+        &--selected {
+            background-color: var(--semantic-color-slate-solid-surface-inverse-lowest);
+            color: var(--component-textIcon-inverse-prominent);
+        }
+
+        &:active {
+            transform: scale(0.98);
+        }
+
+        @include mobile-screen {
+            min-height: 5.6rem;
+            height: auto;
+            border: var(--core-borderWidth-75) solid transparent;
+            box-sizing: border-box;
+            padding: var(--core-spacing-600);
+            gap: var(--core-spacing-800);
+            text-align: start;
+            justify-content: flex-start;
+            color: var(--color-text-primary);
+
+            &--selected {
+                background: var(--color-surface-primary);
+                border-color: var(--color-text-primary);
+                color: var(--color-text-primary);
+            }
+        }
+    }
+
+    // Input wrapper for threshold / max stake popovers
+    &__input-wrapper {
+        display: flex;
+        flex-direction: column;
+        gap: var(--core-spacing-800);
+    }
+
+    &__save-button {
+        border-radius: 100px;
+    }
+
+    // Toggle header for Max. trade stake
+    &__toggle-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    &__toggle-content {
+        position: relative;
+    }
+
+    &__toggle-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        cursor: pointer;
+    }
+}
+
+// StrategySelector mobile info-page (carousel page 2). Chips row at the
+// top lets the user preview each strategy's description before pressing
+// "Select {strategy}" in the footer to commit.
+.strategy-selector {
+    &__info {
+        display: flex;
+        flex-direction: column;
+        gap: var(--core-spacing-1200);
+    }
+
+    &__info-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--core-spacing-400);
+
+        // Selected chip = bordered light surface (matching the market-selection category chips), not a
+        // solid fill. Include hover/active so it doesn't flash the old dark fill on interaction.
+        .quill-chip[data-state='selected'],
+        .quill-chip[data-state='selected']:hover,
+        .quill-chip[data-state='selected']:active {
+            background-color: var(--semantic-color-monochrome-surface-normal-lowest, rgba(0, 0, 0, 0.04));
+            border: 1px solid var(--semantic-color-slate-solid-border-inverse-lowest, #000);
+        }
+
+        // Keep the selected label readable on the light fill (overrides quill's mis-themed token).
+        .quill-chip[data-state='selected'] > p {
+            color: var(--component-textIcon-normal-prominent, #181c25);
+        }
+    }
+
+    &__info-description {
+        display: block;
+    }
+}
+
+// Stake multiplier moved its Save from an inline button into the ActionSheet footer, so the footer
+// button needs the pill radius the inline one had — mirrors what .stake-container does for Stake.
+.automation-param-sheet .quill-action-sheet--footer button {
+    border-radius: 10rem !important;
+}

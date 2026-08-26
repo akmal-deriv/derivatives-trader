@@ -1,19 +1,22 @@
-import classNames from 'classnames';
 import React from 'react';
-import { getTimePercentage } from '@deriv/shared';
+import classNames from 'classnames';
+
 import { LegacyTimeIcon } from '@deriv/quill-icons';
-import ProgressTicksMobile from './progress-ticks-mobile';
+import { type Dayjs, getTimePercentage } from '@deriv/shared';
+
 import CircularProgress from '../circular-progress';
 import RemainingTime from '../remaining-time';
 import Text from '../text';
 import { TGetCardLables } from '../types';
+
+import ProgressTicksMobile from './progress-ticks-mobile';
 
 type TProgressSliderMobileProps = {
     className?: string;
     current_tick?: number | null;
     expiry_time?: number;
     is_loading?: boolean;
-    server_time: moment.Moment;
+    server_time: Dayjs;
     start_time?: number;
     ticks_count?: number;
     getCardLabels: TGetCardLables;

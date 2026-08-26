@@ -2,64 +2,58 @@ import React from 'react';
 import { observer } from 'mobx-react-lite';
 
 import { Skeleton } from '@deriv/components';
-import { Localize } from '@deriv-com/translations';
 import { ActionSheet, Text, WheelPicker } from '@deriv-com/quill-ui';
+import { Localize } from '@deriv-com/translations';
 
-import { useDtraderQuery } from 'AppV2/Hooks/useDtraderQuery';
-import { getProposalRequestObject } from 'AppV2/Utils/trade-params-utils';
+import { useBlockSheetSwipe } from 'AppV2/Hooks/useBlockSheetSwipe';
+import { useProposal } from 'AppV2/Hooks/useProposal';
+import { WHEEL_PICKER_HEIGHT } from 'AppV2/Utils/trade-params-utils';
 import { useTraderStore } from 'Stores/useTraderStores';
-import { TTradeStore } from 'Types';
+
+// Carousel page index of the barrier detail page (after the sheet-level definition became a tooltip).
+const BARRIER_PAGE = 1;
 
 type TPayoutPerPointWheelProps = {
     barrier?: string | number;
     is_open?: boolean;
-    current_payout_per_point: string;
-    onPayoutPerPointSelect: (new_value: string | number) => void;
-    onClose: () => void;
+    is_api_response_received_ref: React.MutableRefObject<boolean>;
+    onDetailClick?: (page_index: number) => void;
+    value: string | number;
+    setValue: (new_value: string | number) => void;
     payout_per_point_list: {
         value: string;
     }[];
 };
-type TOnProposalResponse = TTradeStore['onProposalResponse'];
 
 const PayoutPerPointWheel = observer(
     ({
         barrier,
-        current_payout_per_point,
         is_open,
-        onPayoutPerPointSelect,
-        onClose,
+        is_api_response_received_ref,
+        onDetailClick,
+        value,
+        setValue,
         payout_per_point_list,
     }: TPayoutPerPointWheelProps) => {
         const trade_store = useTraderStore();
         const { trade_types } = trade_store;
 
-        const [value, setValue] = React.useState<string | number>(current_payout_per_point);
         const [displayed_barrier_value, setDisplayedBarrierValue] = React.useState(barrier);
-
-        // For handling cases when user clicks on Save btn before we got response from API
-        const is_api_response_received_ref = React.useRef(false);
+        const block_sheet_swipe = useBlockSheetSwipe();
 
         const new_values = { payout_per_point: String(value) };
-        const proposal_req = getProposalRequestObject({
-            new_values,
-            trade_store,
-            trade_type: Object.keys(trade_types)[0],
-        });
+
         // Sending proposal without subscription to get a new barrier value
-        const { data: response } = useDtraderQuery<Parameters<TOnProposalResponse>[0]>(
-            [
-                'proposal',
-                ...Object.entries(new_values).flat().join('-'),
-                `${barrier}`,
-                Object.keys(trade_types)[0],
-                JSON.stringify(proposal_req),
-            ],
-            proposal_req,
-            {
-                enabled: is_open,
-            }
-        );
+        const {
+            data: response,
+            error,
+            isFetching,
+        } = useProposal({
+            trade_store,
+            proposal_request_values: new_values,
+            contract_type: Object.keys(trade_types)[0],
+            is_enabled: is_open,
+        });
 
         const onChange = (new_value: string | number) => {
             // If a new value is equal to previous one, then we won't send API request
@@ -70,50 +64,60 @@ const PayoutPerPointWheel = observer(
             setValue(new_value);
         };
 
-        const onSave = () => {
-            // Prevent from saving if user clicks before BE validation
-            if (!is_api_response_received_ref.current) return;
-            onPayoutPerPointSelect(value);
-            onClose();
-        };
-
         React.useEffect(() => {
-            const onProposalResponse: TOnProposalResponse = response => {
-                const { error, proposal } = response;
-                const { barrier_spot_distance } = proposal ?? {};
+            if (response) {
+                const { proposal } = response;
+                const { barrier_spot_distance } = proposal?.contract_details ?? {};
                 // Currently we are not handling errors
-                if (barrier_spot_distance && !error) setDisplayedBarrierValue(barrier_spot_distance);
+                if (barrier_spot_distance) setDisplayedBarrierValue(barrier_spot_distance);
 
                 is_api_response_received_ref.current = true;
-            };
-
-            if (response) onProposalResponse(response);
-        }, [response]);
+            }
+        }, [response, is_api_response_received_ref]);
 
         return (
-            <React.Fragment>
-                <ActionSheet.Content className='payout-per-point__wrapper' data-testid='dt_payout-per-point_wrapper'>
-                    <div className='payout-per-point__wheel-picker'>
-                        <WheelPicker data={payout_per_point_list} selectedValue={value} setSelectedValue={onChange} />
-                    </div>
-                    <div className='payout-per-point__barrier'>
-                        <Text color='quill-typography__color--subtle' size='sm'>
-                            <Localize i18n_default_text='Barrier' />
-                        </Text>
-                        <Text size='sm' as='div' className='payout-per-point__barrier__content'>
-                            {displayed_barrier_value ?? <Skeleton width={90} height={14} />}
-                        </Text>
-                    </div>
-                </ActionSheet.Content>
-                <ActionSheet.Footer
-                    alignment='vertical'
-                    primaryAction={{
-                        content: <Localize i18n_default_text='Save' />,
-                        onAction: onSave,
+            <ActionSheet.Content className='payout-per-point__wrapper' data-testid='dt_payout-per-point_wrapper'>
+                <div className='payout-per-point__wheel-picker' {...block_sheet_swipe}>
+                    <WheelPicker
+                        containerHeight={WHEEL_PICKER_HEIGHT}
+                        data={payout_per_point_list}
+                        selectedValue={value}
+                        setSelectedValue={onChange}
+                    />
+                </div>
+                <div
+                    className='payout-per-point__barrier'
+                    role='button'
+                    tabIndex={0}
+                    onClick={() => onDetailClick?.(BARRIER_PAGE)}
+                    onKeyDown={(e: React.KeyboardEvent) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            onDetailClick?.(BARRIER_PAGE);
+                        }
                     }}
-                    shouldCloseOnPrimaryButtonClick={false}
-                />
-            </React.Fragment>
+                >
+                    <Text
+                        color='quill-typography__color--subtle'
+                        size='sm'
+                        className='payout-per-point__barrier__label'
+                    >
+                        <Localize i18n_default_text='Barrier' />
+                    </Text>
+                    <Text
+                        color='quill-typography__color--subtle'
+                        size='sm'
+                        as='div'
+                        className='payout-per-point__barrier__content'
+                    >
+                        {!displayed_barrier_value || error || isFetching ? (
+                            <Skeleton width={90} height={14} />
+                        ) : (
+                            displayed_barrier_value
+                        )}
+                    </Text>
+                </div>
+            </ActionSheet.Content>
         );
     }
 );

@@ -1,61 +1,75 @@
 import React from 'react';
 
-import { LabelPairedPresentationScreenSmRegularIcon } from '@deriv/quill-icons';
+import { LabelPairedChevronRightSmRegularIcon } from '@deriv/quill-icons';
+import { trackAnalyticsEvent } from '@deriv/shared';
 import { observer, useStore } from '@deriv/stores';
-import { Localize } from '@deriv-com/translations';
 import { Button, Text } from '@deriv-com/quill-ui';
+import { Localize, localize } from '@deriv-com/translations';
+import { useDevice } from '@deriv-com/ui';
 
-import useContractsFor from 'AppV2/Hooks/useContractsFor';
-import { AVAILABLE_CONTRACTS, CONTRACT_LIST } from 'AppV2/Utils/trade-types-utils';
+import useAvailableContracts from 'AppV2/Hooks/useAvailableContracts';
+import useGuideContractTypes from 'AppV2/Hooks/useGuideContractTypes';
+import { AVAILABLE_CONTRACTS, TAvailableContract } from 'AppV2/Utils/trade-types-utils';
+import ImageGuide from 'Assets/SvgComponents/trade_explanations/img-guide.svg';
 import { useTraderStore } from 'Stores/useTraderStores';
-
-import { sendOpenGuideToAnalytics } from '../../../Analytics';
 
 import GuideDefinitionModal from './guide-definition-modal';
 import GuideDescriptionModal from './guide-description-modal';
 
+import './guide.scss';
+
 type TGuide = {
-    has_label?: boolean;
     is_open_by_default?: boolean;
     show_guide_for_selected_contract?: boolean;
     show_trigger_button?: boolean;
     show_description_in_a_modal?: boolean;
+    show_all_trade_types_in_guide?: boolean;
+    force_compact_trigger?: boolean;
+    /** Force which trade type the guide opens on (e.g. the market selector's selected type), instead
+     * of deriving it from the store's current contract_type. */
+    guide_contract_type?: string;
+    /** Override the trade types shown as chips (e.g. the market selector's own list), instead of the
+     * ones derived from the store's current symbol. */
+    guide_contract_types?: TAvailableContract[];
 };
 
 const Guide = observer(
     ({
-        has_label,
         is_open_by_default,
         show_guide_for_selected_contract,
         show_trigger_button = true,
         show_description_in_a_modal = true,
+        show_all_trade_types_in_guide,
+        force_compact_trigger,
+        guide_contract_type,
+        guide_contract_types,
     }: TGuide) => {
         const {
             ui: { is_dark_mode_on },
             common: { current_language },
         } = useStore();
         const { contract_type } = useTraderStore();
-        const contract_type_title = AVAILABLE_CONTRACTS.find(item => item.for.includes(contract_type))?.id ?? '';
-        const { trade_types } = useContractsFor();
-        const order = [
-            CONTRACT_LIST.RISE_FALL,
-            CONTRACT_LIST.ACCUMULATORS,
-            CONTRACT_LIST.MULTIPLIERS,
-            CONTRACT_LIST.VANILLAS,
-            CONTRACT_LIST.TURBOS,
-            CONTRACT_LIST.HIGHER_LOWER,
-            CONTRACT_LIST.TOUCH_NO_TOUCH,
-            CONTRACT_LIST.MATCHES_DIFFERS,
-            CONTRACT_LIST.EVEN_ODD,
-            CONTRACT_LIST.OVER_UNDER,
-        ];
+        const { isMobile } = useDevice();
+        const show_compact_trigger = isMobile || force_compact_trigger;
+        const available_contracts = useAvailableContracts();
+        const contract_type_title =
+            guide_contract_type ?? available_contracts.find(item => item.for.includes(contract_type))?.id ?? '';
+        const { trade_types } = useGuideContractTypes();
 
-        const filtered_contract_list = AVAILABLE_CONTRACTS.filter(contract =>
-            trade_types.some((trade: { text?: string }) => trade.text === contract.id)
-        );
+        const filtered_contract_list =
+            guide_contract_types ??
+            (show_all_trade_types_in_guide
+                ? available_contracts
+                : available_contracts.filter(contract =>
+                      trade_types.some((trade: { text?: string }) => trade.text === contract.id)
+                  ));
 
+        // Follow the single trade-type display order (AVAILABLE_CONTRACTS) so the Guide stays in sync
+        // with the market-selector tabs, sidebar, and search rather than defining its own order.
         const ordered_contract_list = [...filtered_contract_list].sort(
-            (a, b) => order.findIndex(item => item === a.id) - order.findIndex(item => item === b.id)
+            (a, b) =>
+                AVAILABLE_CONTRACTS.findIndex(item => item.id === a.id) -
+                AVAILABLE_CONTRACTS.findIndex(item => item.id === b.id)
         );
 
         const [is_description_opened, setIsDescriptionOpened] = React.useState(is_open_by_default);
@@ -77,31 +91,56 @@ const Guide = observer(
 
         return (
             <React.Fragment>
-                {show_trigger_button && (
-                    <Button
-                        color={is_dark_mode_on ? 'white' : 'black'}
-                        icon={<LabelPairedPresentationScreenSmRegularIcon key='guide-button-icon' />}
-                        onClick={() => {
-                            sendOpenGuideToAnalytics(contract_type, 'main_trade_page');
-                            setIsDescriptionOpened(true);
-                        }}
-                        variant={has_label ? 'secondary' : 'tertiary'}
-                        key={current_language}
-                    >
-                        {has_label && (
-                            <Text size='sm' bold color='quill-typography__color--prominent'>
-                                <Localize i18n_default_text='Guide' />
+                {show_trigger_button &&
+                    (show_compact_trigger ? (
+                        <Button
+                            color={is_dark_mode_on ? 'white' : 'black'}
+                            className='trade__guide'
+                            aria-label={localize('Guide')}
+                            onClick={() => {
+                                trackAnalyticsEvent('ce_trade_types_form_v2', {
+                                    action: 'info_open',
+                                    trade_type_name: contract_type_title || contract_type,
+                                    source: 'trade_page',
+                                });
+                                setIsDescriptionOpened(true);
+                            }}
+                            variant='tertiary'
+                            key={current_language}
+                        >
+                            <ImageGuide />
+                        </Button>
+                    ) : (
+                        <div
+                            className='guide-link'
+                            onClick={() => {
+                                trackAnalyticsEvent('ce_trade_types_form_v2', {
+                                    action: 'info_open',
+                                    trade_type_name: contract_type_title || contract_type,
+                                    source: 'trade_page',
+                                });
+                                setIsDescriptionOpened(true);
+                            }}
+                        >
+                            <Text size='sm' color='quill-typography__color--prominent'>
+                                <Localize
+                                    i18n_default_text='How to trade {{trade_type}}?'
+                                    values={{ trade_type: contract_type_title || 'this' }}
+                                />
                             </Text>
-                        )}
-                    </Button>
-                )}
+                            <LabelPairedChevronRightSmRegularIcon />
+                        </div>
+                    ))}
                 <GuideDescriptionModal
                     contract_list={ordered_contract_list}
                     is_dark_mode_on={is_dark_mode_on}
                     is_open={is_description_opened}
                     onChipSelect={(id: string) => {
                         const selected_trade_type = ordered_contract_list.find(item => item.id === id);
-                        sendOpenGuideToAnalytics(selected_trade_type?.for?.[0] ?? '', 'trade_type_page');
+                        trackAnalyticsEvent('ce_trade_types_form_v2', {
+                            action: 'info_switcher',
+                            trade_type_name: selected_trade_type?.id ?? '',
+                        });
                         onChipSelect(id);
                     }}
                     onClose={onClose}
@@ -109,12 +148,15 @@ const Guide = observer(
                     selected_contract_type={selected_contract_type}
                     show_guide_for_selected_contract={show_guide_for_selected_contract}
                     show_description_in_a_modal={show_description_in_a_modal}
+                    show_all_trade_types_in_guide={show_all_trade_types_in_guide}
                 />
-                <GuideDefinitionModal
-                    contract_type={selected_contract_type}
-                    term={selected_term}
-                    onClose={() => setSelectedTerm('')}
-                />
+                {isMobile && (
+                    <GuideDefinitionModal
+                        contract_type={selected_contract_type}
+                        term={selected_term}
+                        onClose={() => setSelectedTerm('')}
+                    />
+                )}
             </React.Fragment>
         );
     }

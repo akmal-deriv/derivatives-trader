@@ -1,9 +1,10 @@
-import { ActiveSymbols } from '@deriv/api-types';
+import { TActiveSymbolsResponse } from '@deriv/api';
+
 import { TTextValueStrings, TTradeTypesCategories } from '../constants/contract';
 import { routes } from '../routes';
 
 type TGetTradeURLParamsArgs = {
-    active_symbols?: ActiveSymbols;
+    active_symbols?: NonNullable<TActiveSymbolsResponse['active_symbols']>;
     contract_types_list?: TTradeTypesCategories;
 };
 
@@ -23,6 +24,7 @@ const TRADE_URL_PARAMS = {
     INTERVAL: 'interval',
     SYMBOL: 'symbol',
     TRADE_TYPE: 'trade_type',
+    VIEW_MARKETS: 'view_markets',
 };
 
 const tradeURLParamsConfig: TTradeURLParamsConfig = {
@@ -62,7 +64,7 @@ export const getTradeURLParams = ({ active_symbols = [], contract_types_list = {
         const validInterval = tradeURLParamsConfig.interval.find(item => item.text === interval);
         const validChartType = tradeURLParamsConfig.chartType.find(item => item.text === chart_type);
         const chartTypeParam = Number(validInterval?.value) === 0 ? 'line' : validChartType?.value;
-        const isSymbolValid = active_symbols.some(item => ((item as any).underlying_symbol || item.symbol) === symbol);
+        const isSymbolValid = active_symbols.some(item => item.underlying_symbol === symbol);
         const contractList = Object.keys(contract_types_list).reduce<string[]>((acc, key) => {
             const categories: TTradeTypesCategories['Ups & Downs']['categories'] =
                 contract_types_list[key]?.categories || [];
@@ -84,6 +86,22 @@ export const getTradeURLParams = ({ active_symbols = [], contract_types_list = {
             result.showModal = true;
     }
     return result;
+};
+
+/** Reads Deriv Home's one-time `view_markets=true` param (opens the market selector on load). */
+export const getViewMarketsFromURL = () => {
+    const searchParams = new URLSearchParams(window.location.search);
+    return searchParams.get(TRADE_URL_PARAMS.VIEW_MARKETS) === 'true';
+};
+
+/** Removes the one-time `view_markets` param once consumed (never persisted). */
+export const removeViewMarketsFromURL = () => {
+    const searchParams = new URLSearchParams(window.location.search);
+    if (!searchParams.has(TRADE_URL_PARAMS.VIEW_MARKETS)) return;
+    searchParams.delete(TRADE_URL_PARAMS.VIEW_MARKETS);
+    const query = searchParams.toString();
+    const newUrl = query ? `${window.location.pathname}?${query}` : window.location.pathname;
+    window.history.replaceState({}, document.title, newUrl);
 };
 
 export const setTradeURLParams = ({ contractType, symbol, chartType, granularity }: TTradeUrlParams) => {

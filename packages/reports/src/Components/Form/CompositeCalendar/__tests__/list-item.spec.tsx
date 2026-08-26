@@ -1,6 +1,8 @@
 import React from 'react';
+
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+
 import ListItem from '../list-item';
 
 const mockDefaultProps = {
@@ -22,11 +24,11 @@ describe('ListItem', () => {
         expect(screen.getByRole('listitem')).toHaveClass('composite-calendar__prepopulated-list--is-active');
     });
 
-    it('should call function onClick from props if user clicks on the component', () => {
+    it('should call function onClick from props if user clicks on the component', async () => {
         render(<ListItem {...mockDefaultProps} />);
 
         expect(mockDefaultProps.onClick).not.toBeCalled();
-        userEvent.click(screen.getByRole('listitem'));
+        await userEvent.click(screen.getByRole('listitem'));
         expect(mockDefaultProps.onClick).toBeCalled();
     });
 });

@@ -19,7 +19,7 @@
         cursor: pointer;
     }
     &__helper {
-        @include typeface(--small-left-light-grey);
+        @include typeface(--small-left-light-secondary);
     }
 }
 
@@ -93,6 +93,11 @@ button.dc-input-wrapper {
     width: 100%;
     height: 32px;
     padding-left: 0.8rem;
+
+    @include rtl {
+        padding-left: 0;
+        padding-right: 0.8rem;
+    }
     border-radius: $BORDER_RADIUS;
     transition: transform 0.3s;
     background-color: var(--color-surface-primary);
@@ -142,7 +147,7 @@ button.dc-input-wrapper {
             color: var(--brand-white);
         }
         &:after {
-            @include typeface(--small-left-normal-active);
+            @include typeface(--small-left-normal-primary);
             content: 'L';
             transform: scaleX(-1) rotate(-40deg);
             position: absolute;

@@ -8,20 +8,18 @@ const gitRevisionPlugin = new GitRevisionPlugin();
 const copyConfig = base => {
     const patterns = [
         {
-            from: path.resolve(__dirname, '../../../node_modules/@deriv-com/derivatives-charts/dist'),
+            from: path.resolve(__dirname, '../../../node_modules/@deriv-com/smartcharts-champion/dist'),
             to: 'js/smartcharts/',
+            globOptions: {
+                ignore: ['**/NOTICES'],
+            },
         },
         {
-            from: path.resolve(__dirname, '../../../node_modules/@deriv-com/derivatives-charts/dist/chart/assets'),
+            from: path.resolve(__dirname, '../../../node_modules/@deriv-com/smartcharts-champion/dist/assets'),
             to: 'assets',
-        },
-        {
-            from: path.resolve(__dirname, '../../../node_modules/@deriv-com/derivatives-charts/dist/chart/assets'),
-            to: 'contract/assets',
-        },
-        {
-            from: path.resolve(__dirname, '../../../node_modules/@deriv-com/derivatives-charts/dist/chart/assets'),
-            to: 'bot/assets',
+            globOptions: {
+                ignore: ['**/NOTICES'],
+            },
         },
         {
             from: path.resolve(__dirname, '../../../node_modules/@deriv/trader/dist/trader'),
@@ -58,11 +56,6 @@ const copyConfig = base => {
         },
         { from: path.resolve(__dirname, '../src/root_files/custom404.html'), to: 'custom404.html', toType: 'file' },
         {
-            from: path.resolve(__dirname, '../src/root_files/localstorage-sync.html'),
-            to: 'localstorage-sync.html',
-            toType: 'file',
-        },
-        {
             from: path.resolve(__dirname, '../src/root_files/front-channel.html'),
             to: 'front-channel.html',
             toType: 'file',
@@ -82,8 +75,10 @@ const copyConfig = base => {
         {
             from: path.resolve(__dirname, '../src/public/videos/'),
             to: 'public/videos',
+            globOptions: {
+                ignore: ['**/*.mp4', '**/*.webm'],
+            },
         },
-        // { from: path.resolve(__dirname, '../src/public/images/common/og_image.gif'), to: 'images/common/og_image.gif' }, // Once the design for og_image is ready, bring this back.
         {
             from: path.resolve(__dirname, '../src/public/images/common/callback_loader.gif'),
             to: 'public/images/common/callback_loader.gif',
@@ -92,7 +87,6 @@ const copyConfig = base => {
             from: path.resolve(__dirname, '../src/public/images/common/logos/platform_logos/'),
             to: 'public/images/common/logos/platform_logos/',
         },
-        { from: path.resolve(__dirname, '../src/public/images/app/header/'), to: 'public/images/app/header/' },
         {
             from: path.resolve(__dirname, '../src/templates/app/manifest.json'),
             to: 'manifest.json',
@@ -115,6 +109,36 @@ const generateSWConfig = () => ({
     cleanupOutdatedCaches: true,
     exclude: [/\**/],
     runtimeCaching: [
+        // Google Fonts stylesheets - long cache
+        {
+            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+                cacheName: 'google-fonts-stylesheets',
+                expiration: {
+                    maxEntries: 20,
+                    maxAgeSeconds: 60 * 60 * 24 * 365, // 1 year
+                },
+            },
+        },
+        // Google Fonts webfonts - intentionally not cached by SW.
+        // Under Cross-Origin-Embedder-Policy, Firefox applies COEP checks to SW-intercepted responses
+        // and rejects them if fonts.gstatic.com does not return Cross-Origin-Resource-Policy header
+        // (NS_ERROR_INTERCEPTION_FAILED). Native browser fetches (non-SW) are not subject to this
+        // check, so fonts load correctly when the SW does not intercept them. The browser's own
+        // HTTP cache handles font caching via Cache-Control headers from gstatic (1 year TTL).
+        // CDN resources (GTM, analytics, cookies)
+        {
+            urlPattern: /^https:\/\/(www\.googletagmanager\.com|cdn\.jsdelivr\.net)\/.*/i,
+            handler: 'StaleWhileRevalidate',
+            options: {
+                cacheName: 'cdn-resources',
+                expiration: {
+                    maxEntries: 20,
+                    maxAgeSeconds: 60 * 60 * 24, // 1 day
+                },
+            },
+        },
         {
             urlPattern: /public\/images\/(?!.*favicons).*$/,
             handler: 'CacheFirst',

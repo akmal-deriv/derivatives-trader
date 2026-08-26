@@ -1,45 +1,50 @@
+import { Analytics } from '@deriv-com/analytics';
 import { logError } from '../logging';
-import { datadogRum } from '@datadog/browser-rum';
 
-jest.mock('@datadog/browser-rum', () => ({
-    datadogRum: {
-        addError: jest.fn(),
+jest.mock('@deriv-com/analytics', () => ({
+    Analytics: {
+        trackEvent: jest.fn(),
     },
 }));
 
 describe('logError', () => {
+    const mockAnalytics = Analytics as jest.Mocked<typeof Analytics>;
+
     beforeEach(() => {
         jest.clearAllMocks();
-        (window as any).TrackJS = undefined;
-        (window as any).DD_RUM = undefined;
     });
 
-    it('should log to TrackJS and datadog when available', () => {
-        const trackSpy = jest.fn();
-        (window as any).TrackJS = { track: trackSpy };
-        (datadogRum.addError as jest.Mock).mockImplementation(() => {});
+    it('reports the message and data via Analytics.trackEvent', () => {
+        const testMessage = 'test error message';
+        const testData = { foo: 'bar', userId: '123' };
 
-        logError('test message', { foo: 'bar' });
+        logError(testMessage, testData);
 
-        expect(trackSpy).toHaveBeenCalledWith({ message: 'test message', foo: 'bar' });
-        expect(datadogRum.addError).toHaveBeenCalledWith('test message', { extra: { foo: 'bar' } });
+        expect(mockAnalytics.trackEvent).toHaveBeenCalledWith('log_error', {
+            message: testMessage,
+            ...testData,
+        });
     });
 
-    it('should fallback to window.DD_RUM when datadogRum is unavailable', () => {
-        const ddRumAddError = jest.fn();
-        // @ts-ignore - modify mocked module
-        datadogRum.addError = undefined;
-        (window as any).DD_RUM = { addError: ddRumAddError };
+    it('handles an empty data object', () => {
+        const testMessage = 'test error without data';
 
-        logError('another message');
+        logError(testMessage);
 
-        expect(ddRumAddError).toHaveBeenCalledWith('another message', { extra: {} });
+        expect(mockAnalytics.trackEvent).toHaveBeenCalledWith('log_error', {
+            message: testMessage,
+        });
     });
 
-    it('should not throw if no logging clients are available', () => {
-        // @ts-ignore - modify mocked module
-        datadogRum.addError = undefined;
+    it('swallows analytics errors so callers never break', () => {
+        const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+        (mockAnalytics.trackEvent as jest.Mock).mockImplementation(() => {
+            throw new Error('analytics error');
+        });
 
-        expect(() => logError('no clients')).not.toThrow();
+        expect(() => logError('test message')).not.toThrow();
+        expect(consoleSpy).toHaveBeenCalledWith('Failed to report error to analytics:', expect.any(Error));
+
+        consoleSpy.mockRestore();
     });
 });

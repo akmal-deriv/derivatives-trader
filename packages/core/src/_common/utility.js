@@ -68,12 +68,6 @@ const isEuCountry = country => eu_countries.includes(country);
 const countries_without_synthetics = ['sg', 'de', 'gr', 'es', 'au', 'it', 'lu'];
 // check if synthetics are offered based on country
 const isSyntheticsUnavailable = country => countries_without_synthetics.includes(country);
-// countries where binary options are blocked
-const blocked_options_countries = ['au', 'fr'];
-const isOptionsBlocked = country => blocked_options_countries.includes(country);
-// countries where only multipliers are offered
-const multipliers_only_countries = ['de', 'es', 'it', 'lu', 'gr', 'au', 'fr'];
-const isMultipliersOnly = country => multipliers_only_countries.includes(country);
 
 const getRegion = (landing_company_shortcode, residence) => {
     if (landing_company_shortcode === 'virtual') {
@@ -86,8 +80,6 @@ module.exports = {
     createElement,
     getStaticHash,
     isEuCountry,
-    isOptionsBlocked,
     isSyntheticsUnavailable,
-    isMultipliersOnly,
     getRegion,
 };

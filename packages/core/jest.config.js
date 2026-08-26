@@ -17,5 +17,6 @@ module.exports = {
         '^Services/(.*)$': '<rootDir>/src/Services/$1',
         '^Services$': '<rootDir>/src/Services/index.js',
         '^Stores/(.*)$': '<rootDir>/src/Stores/$1',
+        '^Stores$': '<rootDir>/src/Stores/index.js',
     },
 };

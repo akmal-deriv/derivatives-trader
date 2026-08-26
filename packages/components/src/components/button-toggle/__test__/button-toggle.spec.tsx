@@ -27,9 +27,10 @@ describe('ButtonToggle component', () => {
         });
         expect(counter).toBeInTheDocument();
     });
-    it('should call onChange function when clicking on the button', () => {
+    it('should call onChange function when clicking on the button', async () => {
+        const user = userEvent.setup();
         render(<ButtonToggle {...mocked_props} />);
-        userEvent.click(screen.getByText(mocked_props.buttons_arr[1].text));
+        await user.click(screen.getByText(mocked_props.buttons_arr[1].text));
         expect(mocked_props.onChange).toHaveBeenCalledWith({
             target: { value: mocked_props.buttons_arr[1].value, name: mocked_props.name },
         });
@@ -46,10 +47,11 @@ describe('ButtonToggle component', () => {
             exact: false,
         });
     });
-    it('should render an animated highlighted button toggle with rounded button calling onChange when clicked', () => {
+    it('should render an animated highlighted button toggle with rounded button calling onChange when clicked', async () => {
+        const user = userEvent.setup();
         render(<ButtonToggle {...mocked_props} is_animated has_rounded_button />);
         expect(screen.getByTestId('dt_highlight_rounded')).toBeInTheDocument();
-        userEvent.click(screen.getByText(mocked_props.buttons_arr[1].text));
+        await user.click(screen.getByText(mocked_props.buttons_arr[1].text));
         expect(mocked_props.onChange).toHaveBeenCalledWith({
             target: { value: mocked_props.buttons_arr[1].value, name: mocked_props.name },
         });

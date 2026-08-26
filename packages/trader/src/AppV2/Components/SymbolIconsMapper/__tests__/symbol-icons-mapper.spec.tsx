@@ -18,4 +18,8 @@ describe('<SymbolIconsMapper />', () => {
         const { container } = render(<SymbolIconsMapper symbol='test' />);
         expect(container).toBeEmptyDOMElement();
     });
+    it.each(['CRASH50', 'CRASH150N', 'BOOM50', 'BOOM150N'])('should render an icon for %s', symbol => {
+        render(<SymbolIconsMapper symbol={symbol} />);
+        expect(screen.getByRole('img')).toBeInTheDocument();
+    });
 });

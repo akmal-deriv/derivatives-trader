@@ -1,5 +1,8 @@
-import PropTypes from 'prop-types';
 import React from 'react';
+import PropTypes from 'prop-types';
+
+import { Analytics } from '@deriv-com/analytics';
+
 import ErrorComponent from './index';
 
 class ErrorBoundary extends React.Component {
@@ -8,7 +11,19 @@ class ErrorBoundary extends React.Component {
         this.state = { hasError: false };
     }
     componentDidCatch = (error, info) => {
-        if (window.TrackJS) window.TrackJS.console.log(this.props.root_store);
+        // Report the error to PostHog via the analytics wrapper. Wrapped in a
+        // try/catch so reporting can never prevent the fallback UI from rendering.
+        try {
+            Analytics.trackEvent('error_boundary', {
+                message: error.message,
+                name: error.name,
+                stack: error.stack,
+                component_stack: info.componentStack,
+            });
+        } catch (reportingError) {
+            // eslint-disable-next-line no-console
+            console.error('Failed to report error to analytics:', reportingError);
+        }
 
         this.setState({
             hasError: true,

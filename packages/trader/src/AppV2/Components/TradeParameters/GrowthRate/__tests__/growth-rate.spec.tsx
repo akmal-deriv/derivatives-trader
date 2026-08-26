@@ -2,7 +2,7 @@ import React from 'react';
 
 import { CONTRACT_TYPES, getGrowthRatePercentage } from '@deriv/shared';
 import { mockStore } from '@deriv/stores';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import ModulesProvider from 'Stores/Providers/modules-providers';
@@ -14,6 +14,11 @@ const growth_rate_param_label = 'Growth rate';
 const growth_rate_carousel_testid = 'dt_carousel';
 const skeleton_testid = 'dt_skeleton';
 const mocked_definition = 'A growth rate is...';
+
+jest.mock('@deriv/shared', () => ({
+    ...jest.requireActual('@deriv/shared'),
+    isMobile: jest.fn(() => true),
+}));
 
 jest.mock('@deriv-com/quill-ui', () => ({
     ...jest.requireActual('@deriv-com/quill-ui'),
@@ -97,12 +102,13 @@ describe('GrowthRate', () => {
         expect(screen.getByRole('textbox')).toBeDisabled();
     });
     it('opens ActionSheet with WheelPicker component, details, "Save" button and trade param definition if user clicks on "Growth rate" trade param', async () => {
+        const user = userEvent.setup();
         default_mock_store.modules.trade.maximum_ticks = 55;
         mockGrowthRate();
 
         expect(screen.queryByTestId('dt-actionsheet-overlay')).not.toBeInTheDocument();
 
-        await userEvent.click(screen.getByText(growth_rate_param_label));
+        await user.click(screen.getByText(growth_rate_param_label));
 
         expect(screen.getByTestId('dt-actionsheet-overlay')).toBeInTheDocument();
         expect(screen.getByText('WheelPicker')).toBeInTheDocument();
@@ -112,25 +118,57 @@ describe('GrowthRate', () => {
         ).toBeInTheDocument();
         expect(screen.getByText('Max duration')).toBeInTheDocument();
         expect(screen.getByText(`${default_mock_store.modules.trade.maximum_ticks} ticks`)).toBeInTheDocument();
-        expect(screen.getByText('Save')).toBeInTheDocument();
-        expect(screen.getByText(mocked_definition)).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
+        expect(screen.getAllByText(mocked_definition).length).toBeGreaterThan(0);
+    });
+    it('disables the header save action on open and reveals the definition tooltip on the info icon', async () => {
+        const user = userEvent.setup();
+        mockGrowthRate();
+
+        await user.click(screen.getByText(growth_rate_param_label));
+        expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+
+        fireEvent.mouseEnter(screen.getByRole('button', { name: 'Growth rate' }));
+        expect(screen.getByText(/The growth rate determines the rate/)).toBeInTheDocument();
+    });
+    it('sets the sheet title to Barrier when the barrier explanation is opened', async () => {
+        const user = userEvent.setup();
+        mockGrowthRate();
+
+        await user.click(screen.getByText(growth_rate_param_label));
+        expect(screen.getAllByText('Barrier')).toHaveLength(1);
+
+        await user.click(screen.getByText('Barrier'));
+        expect(screen.getAllByText('Barrier')).toHaveLength(2);
+    });
+    it('sets the sheet title to Max duration when the max duration explanation is opened', async () => {
+        const user = userEvent.setup();
+        mockGrowthRate();
+
+        await user.click(screen.getByText(growth_rate_param_label));
+        expect(screen.getAllByText('Max duration')).toHaveLength(1);
+
+        await user.click(screen.getByText('Max duration'));
+        expect(screen.getAllByText('Max duration')).toHaveLength(2);
     });
     it('renders skeleton instead of WheelPicker if accumulator_range_list is empty', async () => {
+        const user = userEvent.setup();
         default_mock_store.modules.trade.accumulator_range_list = [];
         mockGrowthRate();
 
-        await userEvent.click(screen.getByText(growth_rate_param_label));
+        await user.click(screen.getByText(growth_rate_param_label));
 
         expect(screen.getByTestId('dt-actionsheet-overlay')).toBeInTheDocument();
         expect(screen.queryByText('WheelPicker')).not.toBeInTheDocument();
         expect(screen.getByTestId(skeleton_testid)).toBeInTheDocument();
     });
     it('renders skeletons instead of details if proposal data is not available', async () => {
+        const user = userEvent.setup();
         default_mock_store.modules.trade.proposal_info = {};
         default_mock_store.modules.trade.is_purchase_enabled = false;
         mockGrowthRate();
 
-        await userEvent.click(screen.getByText(growth_rate_param_label));
+        await user.click(screen.getByText(growth_rate_param_label));
 
         expect(
             screen.queryByText(`±${default_mock_store.modules.trade.tick_size_barrier_percentage}`)
@@ -139,29 +177,64 @@ describe('GrowthRate', () => {
         expect(screen.getAllByTestId(skeleton_testid)).toHaveLength(2);
     });
     it('applies specific className if innerHeight is <= 640px', async () => {
+        const user = userEvent.setup();
         const original_height = window.innerHeight;
         window.innerHeight = 640;
         mockGrowthRate();
 
-        await userEvent.click(screen.getByText(growth_rate_param_label));
+        await user.click(screen.getByText(growth_rate_param_label));
 
         expect(screen.getByTestId(growth_rate_carousel_testid)).toHaveClass('growth-rate__carousel--small');
         window.innerHeight = original_height;
     });
     it('calls onChange function if user changes selected value', async () => {
-        jest.useFakeTimers();
+        const user = userEvent.setup();
         mockGrowthRate();
 
         const new_selected_value = default_mock_store.modules.trade.accumulator_range_list[1];
-        await userEvent.click(screen.getByText(growth_rate_param_label));
-        await userEvent.click(screen.getByText(`${getGrowthRatePercentage(new_selected_value)}%`));
-        await userEvent.click(screen.getByText('Save'));
+        await user.click(screen.getByText(growth_rate_param_label));
+        await user.click(screen.getByText(`${getGrowthRatePercentage(new_selected_value)}%`));
+
+        const save_button = screen.getByRole('button', { name: 'Save' });
+        expect(save_button).toBeEnabled();
+        await user.click(save_button);
 
         await waitFor(() => {
-            jest.advanceTimersByTime(200);
+            expect(default_mock_store.modules.trade.onChange).toBeCalled();
         });
+    });
+    it('keeps the header save enabled once the wheel change reaches the store', async () => {
+        // The wheel commits live so the barrier / max duration rows refresh. With the gate comparing
+        // draft against the live store, the store caught up ~200ms later and the check greyed out again.
+        const user = userEvent.setup();
+        default_mock_store.modules.trade.onChange = jest.fn(({ target }: { target: { value: number } }) => {
+            default_mock_store.modules.trade.growth_rate = target.value;
+        });
+        mockGrowthRate();
 
-        expect(default_mock_store.modules.trade.onChange).toBeCalled();
-        jest.useRealTimers();
+        const new_selected_value = default_mock_store.modules.trade.accumulator_range_list[1];
+        await user.click(screen.getByText(growth_rate_param_label));
+        await user.click(screen.getByText(`${getGrowthRatePercentage(new_selected_value)}%`));
+
+        await waitFor(() => expect(default_mock_store.modules.trade.growth_rate).toBe(new_selected_value));
+        expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
+    });
+
+    it('reverts to the committed growth rate when the sheet is dismissed via the overlay', async () => {
+        const user = userEvent.setup();
+        mockGrowthRate();
+
+        const new_selected_value = default_mock_store.modules.trade.accumulator_range_list[1];
+        await user.click(screen.getByText(growth_rate_param_label));
+        await user.click(screen.getByText(`${getGrowthRatePercentage(new_selected_value)}%`));
+        await user.click(screen.getByTestId('dt-actionsheet-overlay'));
+
+        // Dismissal discards the browsed value: the last store update reverts to the opened value.
+        await waitFor(() => {
+            const calls = default_mock_store.modules.trade.onChange.mock.calls;
+            expect(calls[calls.length - 1][0]).toEqual({
+                target: { name: 'growth_rate', value: default_mock_store.modules.trade.growth_rate },
+            });
+        });
     });
 });

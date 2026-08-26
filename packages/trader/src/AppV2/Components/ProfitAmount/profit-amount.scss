@@ -1,0 +1,11 @@
+// Signed P/L amount (currency symbol + value). Colours ship with the component so it renders
+// consistently wherever it's used (chart pill/sheet/rows, market tabs, …).
+.chart-pl-amount {
+    &.positive {
+        color: var(--semantic-color-emerald-solid-textIcon-normal-mid);
+    }
+
+    &.negative {
+        color: var(--semantic-color-red-solid-textIcon-normal-mid);
+    }
+}

@@ -1,14 +1,13 @@
 import React from 'react';
 
 import { Text } from '@deriv/components';
-import { TranslationFlag } from '@deriv/shared';
+import { LabelPairedGlobeSmRegularIcon } from '@deriv/quill-icons';
 import { observer, useStore } from '@deriv/stores';
 import { Localize, useTranslations } from '@deriv-com/translations';
 
 const MenuTitle = observer(() => {
-    const { localize } = useTranslations();
-    const { common, ui } = useStore();
-    const { current_language } = common;
+    const { localize, currentLang } = useTranslations();
+    const { ui } = useStore();
     const { is_mobile_language_menu_open, setMobileLanguageMenuOpen } = ui;
 
     return (
@@ -24,9 +23,9 @@ const MenuTitle = observer(() => {
             >
                 {!is_mobile_language_menu_open && (
                     <React.Fragment>
-                        {TranslationFlag[current_language] && TranslationFlag[current_language](22, 16)}
+                        <LabelPairedGlobeSmRegularIcon />
                         <Text weight='bold' size='xxs' className='ic-settings-language__text'>
-                            <Localize i18n_default_text={current_language} />
+                            <Localize i18n_default_text={currentLang} />
                         </Text>
                     </React.Fragment>
                 )}

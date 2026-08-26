@@ -1,7 +1,7 @@
-import React from 'react';
 import clsx from 'clsx';
 
 import { CaptionText, Skeleton, Text } from '@deriv-com/quill-ui';
+import { useDevice } from '@deriv-com/ui';
 
 type TDigitsProps = {
     is_active?: boolean;
@@ -14,11 +14,12 @@ type TDigitsProps = {
 };
 
 const Digit = ({ digit, digit_stats = [], is_active, is_disabled, is_max, is_min, onClick }: TDigitsProps) => {
+    const { isDesktop } = useDevice();
     const stats = digit_stats.length ? digit_stats[digit] : null;
     const percentage = stats ? (stats * 100) / 1000 : null;
     const display_percentage = percentage && !isNaN(percentage) ? parseFloat(percentage.toFixed(1)) : null;
 
-    if (!digit && isNaN(digit)) return null;
+    if (digit === undefined || digit === null || isNaN(digit)) return null;
     return (
         <div key={digit} className='digit'>
             <button
@@ -27,7 +28,7 @@ const Digit = ({ digit, digit_stats = [], is_active, is_disabled, is_max, is_min
                 onClick={() => onClick?.(digit)}
                 name='last_digit'
             >
-                <Text size='xl' color={is_disabled ? 'quill-typography__color--disabled' : ''}>
+                <Text size={isDesktop ? 'md' : 'xl'} color={is_disabled ? 'quill-typography__color--disabled' : ''}>
                     {digit}
                 </Text>
             </button>

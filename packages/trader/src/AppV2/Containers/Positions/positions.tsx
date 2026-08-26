@@ -2,13 +2,12 @@ import React from 'react';
 import { useHistory } from 'react-router-dom';
 import { observer } from 'mobx-react-lite';
 
-import { useLocalStorageData } from '@deriv/api';
-import { getPositionsV2TabIndexFromURL } from '@deriv/shared';
+import { useLocalStorageData, useMobileBridge } from '@deriv/api';
+import { getPositionsV2TabIndexFromURL, routes, trackAnalyticsEvent } from '@deriv/shared';
 import { useStore } from '@deriv/stores';
-import { Localize } from '@deriv-com/translations';
 import { Tab } from '@deriv-com/quill-ui';
+import { Localize } from '@deriv-com/translations';
 
-import BottomNav from 'AppV2/Components/BottomNav';
 import OnboardingGuide from 'AppV2/Components/OnboardingGuide/GuideForPages';
 import { setPositionURLParams, TAB_NAME } from 'AppV2/Utils/positions-utils';
 import { useModulesStore } from 'Stores/useModulesStores';
@@ -16,10 +15,10 @@ import { useModulesStore } from 'Stores/useModulesStores';
 import PositionsContent from './positions-content';
 
 const Positions = observer(() => {
+    const analyticsCalledRef = React.useRef(false);
     const [hasButtonsDemo, setHasButtonsDemo] = React.useState(false);
     const [activeTab, setActiveTab] = React.useState(getPositionsV2TabIndexFromURL());
     const [guide_dtrader_v2] = useLocalStorageData<Record<string, boolean>>('guide_dtrader_v2', {
-        trade_types_selection: false,
         trade_page: false,
         positions_page: false,
     });
@@ -27,8 +26,8 @@ const Positions = observer(() => {
 
     const {
         client: { is_logged_in },
-        ui: { is_dark_mode_on },
     } = useStore();
+    const { isBridgeAvailable } = useMobileBridge();
     const {
         positions: { onUnmount },
     } = useModulesStore();
@@ -52,6 +51,15 @@ const Positions = observer(() => {
     };
 
     React.useEffect(() => {
+        if (analyticsCalledRef.current) return;
+        analyticsCalledRef.current = true;
+        trackAnalyticsEvent('ce_reports_form_v2', {
+            action: 'open',
+            platform: 'DTrader',
+        });
+    }, []);
+
+    React.useEffect(() => {
         setPositionURLParams(tabs[activeTab].id);
 
         if (guide_dtrader_v2?.positions_page) {
@@ -59,18 +67,20 @@ const Positions = observer(() => {
         }
 
         return () => {
-            const is_contract_details = history.location.pathname.startsWith('/contract/');
+            const is_contract_details = history.location.pathname.startsWith(
+                routes.contract.replace('/:contract_id', '')
+            );
             if (!is_contract_details) onUnmount();
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     return (
-        <BottomNav>
+        <>
             <div className='positions-page'>
                 <Tab.Container
                     contentStyle='fill'
-                    className='positions-page__tabs'
+                    className='positions-page-container__tabs'
                     size='md'
                     selectedTabIndex={activeTab}
                     onChangeTab={onChangeTab}
@@ -80,21 +90,19 @@ const Positions = observer(() => {
                             <Tab.Trigger key={id}>{title}</Tab.Trigger>
                         ))}
                     </Tab.List>
-                    <Tab.Content className='positions-page__tabs-content'>
+                    <Tab.Content className='positions-page-container__tabs-content'>
                         {tabs.map(({ id, content }) => (
                             <Tab.Panel key={id}>{content}</Tab.Panel>
                         ))}
                     </Tab.Content>
                 </Tab.Container>
             </div>
-            {!guide_dtrader_v2?.positions_page && is_logged_in && (
-                <OnboardingGuide
-                    type='positions_page'
-                    is_dark_mode_on={is_dark_mode_on}
-                    callback={() => setHasButtonsDemo(true)}
-                />
+            {/* TODO: Remove isBridgeAvailable check when onboarding video with Accumulators is available*/}
+            {/* OnboardingGuide now only shows for mobile users */}
+            {!guide_dtrader_v2?.positions_page && is_logged_in && !isBridgeAvailable && (
+                <OnboardingGuide type='positions_page' callback={() => setHasButtonsDemo(true)} />
             )}
-        </BottomNav>
+        </>
     );
 });
 

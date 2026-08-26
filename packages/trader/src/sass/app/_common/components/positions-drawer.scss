@@ -1,0 +1,25 @@
+.positions-drawer {
+    &-footer {
+        &--summary {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+            width: 100%;
+        }
+
+        &--count {
+            line-height: 1.4;
+            color: var(--component-textIcon-normal-subtle);
+        }
+
+        &--total {
+            display: flex;
+            gap: 0.4rem;
+            align-items: center;
+            justify-content: space-between;
+            .dc-text {
+                line-height: 1.4;
+            }
+        }
+    }
+}

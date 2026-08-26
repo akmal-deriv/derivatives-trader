@@ -2,7 +2,14 @@ import React from 'react';
 
 import { render, screen } from '@testing-library/react';
 
+import { CONTRACT_LIST } from 'AppV2/Utils/trade-types-utils';
+
 import OverUnderTradeDescription from '../over-under-trade-description';
+
+jest.mock('@deriv/stores', () => ({
+    ...jest.requireActual('@deriv/stores'),
+    useStore: () => ({ ui: { is_dark_mode_on: false } }),
+}));
 
 jest.mock('@lottiefiles/dotlottie-react', () => ({
     DotLottieReact: jest.fn(() => <div>DotLottieReact</div>),
@@ -10,12 +17,10 @@ jest.mock('@lottiefiles/dotlottie-react', () => ({
 
 describe('OverUnderTradeDescription', () => {
     it('should render a proper content', () => {
-        render(<OverUnderTradeDescription />);
+        const mockOnTermClick = jest.fn();
+        render(<OverUnderTradeDescription contract_type={CONTRACT_LIST.OVER_UNDER} onTermClick={mockOnTermClick} />);
 
-        expect(
-            screen.getByText(
-                /you will win the payout if the last digit of the last tick is greater than your prediction/i
-            )
-        ).toBeInTheDocument();
+        const earnElements = screen.getAllByText(/earn a/i);
+        expect(earnElements.length).toBeGreaterThan(0);
     });
 });

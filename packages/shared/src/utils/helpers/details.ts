@@ -1,7 +1,8 @@
-import { epochToMoment, formatMilliseconds, getDiffDuration } from '../date';
 import { localize } from '@deriv-com/translations';
-import moment from 'moment';
+
 import { TContractInfo } from '../contract';
+import { epochToMoment, formatMilliseconds, getDiffDuration } from '../date';
+import dayjs, { type Duration } from '../date/dayJs-config';
 
 type TUnitMap = {
     name_plural?: string;
@@ -9,7 +10,7 @@ type TUnitMap = {
     name?: string;
 };
 
-export const getDurationUnitValue = (obj_duration: moment.Duration) => {
+export const getDurationUnitValue = (obj_duration: Duration) => {
     const duration_ms = obj_duration.asMilliseconds() / 1000;
     // Check with isEndTime to find out if value of duration has decimals
     // for days we do not require precision for End Time value since users cannot select with timepicker if not in same day
@@ -56,7 +57,7 @@ const TIME = {
     DAY: 86400000,
 } as const;
 
-export const getDurationUnitText = (obj_duration: moment.Duration, should_ignore_end_time?: boolean) => {
+export const getDurationUnitText = (obj_duration: Duration, should_ignore_end_time?: boolean) => {
     const unit_map = getUnitMap();
     const duration_ms = obj_duration.asMilliseconds() / TIME.SECOND;
     // return empty suffix string if duration is End Time set except for days and seconds, refer to L18 and L19
@@ -88,8 +89,8 @@ export const formatResetDuration = (contract_info: TContractInfo) => {
         duration_ms === TIME.MINUTE ? `m [${time_duration.m.name_singular}] ` : `m [${time_duration.m.name_plural}] `;
     const reset_seconds = duration_ms % TIME.MINUTE === 0 ? '' : `s [${time_duration.s.name}]`;
 
-    return moment
-        .utc(moment.duration(duration_ms, 'milliseconds').asMilliseconds())
+    return dayjs
+        .utc(dayjs.duration(duration_ms, 'milliseconds').asMilliseconds())
         .format(
             `${duration_ms >= TIME.HOUR ? reset_hours : ''}${
                 duration_ms >= TIME.MINUTE && duration_ms % TIME.HOUR !== 0 ? reset_minutes : ''

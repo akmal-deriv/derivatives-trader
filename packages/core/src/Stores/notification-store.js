@@ -2,12 +2,12 @@ import { action, computed, makeObservable, observable, reaction } from 'mobx';
 
 import { StaticUrl } from '@deriv/components';
 import {
-    checkServerMaintenance,
     extractInfoFromShortcode,
+    getBrandUrl,
     getEndTime,
     getMarketName,
     getPathname,
-    getStaticUrl,
+    getPlatformName,
     getTotalProfit,
     getTradeTypeName,
     getUrlBase,
@@ -15,11 +15,10 @@ import {
     isMobile,
     isMultiplierContract,
     LocalStore,
+    trackAnalyticsEvent,
     unique,
-    getPlatformName,
 } from '@deriv/shared';
 import { Localize, localize } from '@deriv-com/translations';
-import { Analytics } from '@deriv-com/analytics';
 
 import { sortNotifications, sortNotificationsMobile } from '../App/Components/Elements/NotificationMessage/constants';
 
@@ -146,7 +145,7 @@ export default class NotificationStore extends BaseStore {
             purchase_time,
             shortcode,
             status,
-            underlying,
+            underlying_symbol,
         } = contract_info;
         const id = `${contract_id}_${status}`;
         if (this.trade_notifications.some(({ id: notification_id }) => notification_id === id)) return;
@@ -164,10 +163,7 @@ export default class NotificationStore extends BaseStore {
             currency,
             profit: isMultiplierContract(contract_type) && !isNaN(profit) ? getTotalProfit(contract_info) : profit,
             status,
-            // Backward compatibility: fallback to old field name
-            symbol: getMarketName(
-                (contract_info.underlying_symbol || underlying) ?? extractInfoFromShortcode(shortcode).underlying
-            ),
+            symbol: getMarketName(underlying_symbol ?? extractInfoFromShortcode(shortcode).underlying_symbol),
             timestamp: status === 'open' ? purchase_time : getEndTime(contract_info),
         });
         /* Consider notifications older than 100s ago as stale and filter out such trade_notifications from the array
@@ -210,16 +206,11 @@ export default class NotificationStore extends BaseStore {
     }
 
     async handleClientNotifications() {
-        const { is_eu, is_logged_in, website_status } = this.root_store.client;
+        const { is_eu, is_logged_in } = this.root_store.client;
         const { current_language, selected_contract_type } = this.root_store.common;
 
-        const is_server_down = checkServerMaintenance(website_status);
-
-        if (website_status?.message?.length || is_server_down) {
-            this.addNotificationMessage(this.client_notifications.site_maintenance);
-        } else {
-            this.removeNotificationByKey({ key: this.client_notifications.site_maintenance });
-        }
+        // No longer checking server maintenance from website_status
+        // Site maintenance notifications will be handled through other means if needed
 
         if (!is_eu && isMultiplierContract(selected_contract_type) && current_language === 'EN' && is_logged_in) {
             this.addNotificationMessage(this.client_notifications.deriv_go);
@@ -293,9 +284,9 @@ export default class NotificationStore extends BaseStore {
     }
 
     resetVirtualBalanceNotification(loginid) {
-        const { current_account, is_logged_in } = this.root_store.client;
+        const { current_account, is_logged_in, is_virtual } = this.root_store.client;
         if (!is_logged_in) return;
-        if (!current_account?.is_virtual || current_account?.loginid !== loginid) return;
+        if (!is_virtual || current_account?.loginid !== loginid) return;
         const min_reset_limit = 1000;
         const max_reset_limit = 999000;
         const balance = parseInt(current_account?.balance);
@@ -439,7 +430,7 @@ export default class NotificationStore extends BaseStore {
                 cta_btn: {
                     text: localize('Learn more'),
                     onClick: () => {
-                        window.open(getStaticUrl('/landing/deriv-go'), '_blank');
+                        window.open(`${getBrandUrl()}/landing/deriv-go`);
                     },
                 },
                 img_src: getUrlBase('/public/images/common/derivgo_banner.png'),
@@ -470,11 +461,12 @@ export default class NotificationStore extends BaseStore {
     }
 
     toggleNotificationsModal() {
-        Analytics.trackEvent('ce_notification_form', {
-            action: this.is_notifications_visible ? 'close' : 'open',
-            form_name: 'ce_notification_form',
-            notification_num: this.notifications.length,
-        });
+        if (!this.is_notifications_visible) {
+            trackAnalyticsEvent('ce_notification_form_v2', {
+                action: 'open',
+                platform: 'DTrader',
+            });
+        }
 
         this.is_notifications_visible = !this.is_notifications_visible;
     }

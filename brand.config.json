@@ -1,10 +1,33 @@
 {
     "brand_name": "Deriv",
-    "brand_domain": "https://deriv.com",
     "brand_logo": "BrandDerivLogoCoralIcon",
-    "brand_url": {
-        "staging": "https://staging-app.champion.trade/champion",
-        "production": "https://app.champion.trade/champion"
+    "brand_domains": ["deriv.com", "deriv.be", "deriv.me"],
+    "brand_hostname": {
+        "staging": "staging-home.deriv.com/dashboard",
+        "production": "home.deriv.com/dashboard"
+    },
+    "documents_hostname": "docs.deriv.com",
+    "platform": {
+        "name": "Derivatives Trader",
+        "logo": "IcRebrandingDerivTrader",
+        "hostname": {
+            "staging": "staging-dtrader.deriv.com",
+            "beta": "beta-dtrader.deriv.com",
+            "production": "dtrader.deriv.com"
+        },
+        "help_centre_url": "https://trade.deriv.com/help-centre/deriv-trader"
+    },
+    "auth": {
+        "staging": "https://staging-auth.deriv.com",
+        "production": "https://auth.deriv.com"
+    },
+    "api_core": {
+        "staging": "staging-api-core.deriv.com",
+        "production": "api-core.deriv.com"
+    },
+    "api": {
+        "staging": "staging-api.deriv.com",
+        "production": "api.deriv.com"
     },
     "colors": {
         "primary": "#ff444f",
@@ -15,16 +38,12 @@
         "warning": "#ffad3a",
         "info": "#2196f3",
         "neutral": "#999999",
-        "black": "#0e0e0e",
+        "black": "#181c25",
         "white": "#ffffff"
     },
     "color_variants": {
         "auto_generate": true,
         "lighten_percentage": 10,
         "darken_percentage": 10
-    },
-    "platform": {
-        "name": "Derivatives Trader",
-        "icon": "IcRebrandingDerivTrader"
     }
 }

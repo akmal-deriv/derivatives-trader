@@ -2,10 +2,11 @@ import React from 'react';
 
 import { Loading } from '@deriv/components';
 import {
-    LegacyOpenPositionIcon,
-    LegacyProfitTableIcon,
+    IllustrativeEtfIcon,
     LegacyReportsIcon,
-    LegacyStatementIcon,
+    StandaloneBriefcaseRegularIcon,
+    StandaloneClockThreeRegularIcon,
+    StandaloneTableLayoutRegularIcon,
 } from '@deriv/quill-icons';
 import { makeLazyLoader, moduleLoader, routes } from '@deriv/shared';
 import { localize } from '@deriv-com/translations';
@@ -33,20 +34,26 @@ const initRoutesConfig = (): TRouteConfig[] => {
                     path: routes.positions,
                     component: lazyLoadReportComponent('OpenPositions'),
                     getTitle: () => localize('Open positions'),
-                    icon_component: <LegacyOpenPositionIcon iconSize='xs' />,
+                    icon_component: <StandaloneClockThreeRegularIcon iconSize='sm' />,
                     default: true,
                 },
                 {
                     path: routes.profit,
                     component: lazyLoadReportComponent('ProfitTable'),
                     getTitle: () => localize('Trade table'),
-                    icon_component: <LegacyProfitTableIcon iconSize='xs' />,
+                    icon_component: <StandaloneTableLayoutRegularIcon iconSize='sm' />,
                 },
                 {
                     path: routes.statement,
                     component: lazyLoadReportComponent('Statement'),
                     getTitle: () => localize('Statement'),
-                    icon_component: <LegacyStatementIcon iconSize='xs' />,
+                    icon_component: <IllustrativeEtfIcon iconSize='sm' />,
+                },
+                {
+                    path: routes.archived_statement,
+                    component: lazyLoadReportComponent('ArchivedStatement'),
+                    getTitle: () => localize('Archived statement'),
+                    icon_component: <StandaloneBriefcaseRegularIcon iconSize='sm' />,
                 },
             ],
         },

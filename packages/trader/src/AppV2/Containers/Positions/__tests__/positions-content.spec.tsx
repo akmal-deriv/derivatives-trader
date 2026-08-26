@@ -6,6 +6,8 @@ import { mockStore } from '@deriv/stores';
 import { TPortfolioPosition } from '@deriv/stores/types';
 import { render, screen, waitFor } from '@testing-library/react';
 
+import useAvailableContracts from 'AppV2/Hooks/useAvailableContracts';
+import useIsEuAccount from 'AppV2/Hooks/useIsEuAccount';
 import ModulesProvider from 'Stores/Providers/modules-providers';
 
 import TraderProviders from '../../../../trader-providers';
@@ -16,6 +18,11 @@ const contractCardList = 'ContractCardList';
 const emptyPositions = 'EmptyPositions';
 const loaderTestId = 'dt_positions_loader';
 const totalProfitLoss = 'Total profit/loss:';
+const mockAvailableContracts = [
+    { id: 'Multipliers', tradeType: 'Multipliers' },
+    { id: 'Rise/Fall', tradeType: 'Rise/Fall' },
+    { id: 'Accumulators', tradeType: 'Accumulators' },
+];
 
 jest.mock('@deriv/shared', () => ({
     ...jest.requireActual('@deriv/shared'),
@@ -44,6 +51,8 @@ jest.mock('@deriv/shared', () => ({
         tradingTimes: jest.fn(),
         wait: jest.fn(),
         profitTable: jest.fn().mockReturnValue({ profit_table: { transactions: [] } }),
+        setOnReconnect: jest.fn(),
+        removeOnReconnect: jest.fn(),
     },
 }));
 
@@ -73,6 +82,16 @@ jest.mock('AppV2/Components/Filter', () => ({
     TimeFilter: jest.fn(() => <div>TimeFilter</div>),
 }));
 
+jest.mock('AppV2/Hooks/useAvailableContracts', () => ({
+    __esModule: true,
+    default: jest.fn(),
+}));
+
+jest.mock('AppV2/Hooks/useIsEuAccount', () => ({
+    __esModule: true,
+    default: jest.fn(),
+}));
+
 describe('PositionsContent', () => {
     let defaultMockStore: ReturnType<typeof mockStore>;
 
@@ -82,35 +101,34 @@ describe('PositionsContent', () => {
     };
 
     beforeEach(() => {
+        (useAvailableContracts as jest.Mock).mockReturnValue(mockAvailableContracts);
+        (useIsEuAccount as jest.Mock).mockReturnValue({ is_eu: false, is_ready: true });
         defaultMockStore = mockStore({
+            client: {
+                is_logged_in: true,
+            },
             portfolio: {
                 active_positions: [
                     {
                         contract_info: {
                             account_id: 147849428,
                             barrier_count: 1,
-                            bid_price: 41.4,
-                            buy_price: 10,
-                            commission: 0.36,
+                            bid_price: '41.4',
+                            buy_price: '10',
+                            commission: '0.36',
                             contract_id: 243687440268,
                             contract_type: 'MULTUP',
                             currency: 'USD',
-                            current_spot: 807.2,
-                            current_spot_display_value: '807.20',
+                            current_spot: '807.2',
                             current_spot_time: 1716882618,
                             date_expiry: 4870540799,
                             date_settlement: 4870540800,
                             date_start: 1716877413,
-                            display_name: 'Volatility 100 (1s) Index',
-                            entry_spot: 782.35,
-                            entry_spot_display_value: '782.35',
-                            entry_tick: 782.35,
-                            entry_tick_display_value: '782.35',
-                            entry_tick_time: 1716877414,
+                            entry_spot: '782.35',
+                            entry_spot_time: 1716877414,
                             expiry_time: 4870540799,
                             id: '3f168dfb-c3c3-5cb2-e636-e7b6e25a7c56',
                             is_expired: 0,
-                            is_forward_starting: 0,
                             is_intraday: 0,
                             is_path_dependent: 1,
                             is_settleable: 0,
@@ -128,7 +146,7 @@ describe('PositionsContent', () => {
                             longcode:
                                 "If you select 'Up', your total profit/loss will be the percentage increase in Volatility 100 (1s) Index, multiplied by 1000, minus commissions.",
                             multiplier: 100,
-                            profit: 31.4,
+                            profit: '31.4',
                             profit_percentage: 314,
                             purchase_time: 1716877413,
                             shortcode: 'MULTUP_1HZ100V_10.00_100_1716877413_4870540799_0_0.00_N1',
@@ -136,7 +154,7 @@ describe('PositionsContent', () => {
                             transaction_ids: {
                                 buy: 486015531488,
                             },
-                            underlying: '1HZ100V',
+                            underlying_symbol: '1HZ100V',
                         },
                         details:
                             "If you select 'Up', your total profit/loss will be the percentage increase in Volatility 100 (1s) Index, multiplied by 1000, minus commissions.",
@@ -164,28 +182,22 @@ describe('PositionsContent', () => {
                             account_id: 147849428,
                             barrier: '821.69',
                             barrier_count: 1,
-                            bid_price: 4.4,
-                            buy_price: 10,
+                            bid_price: '4.4',
+                            buy_price: '10',
                             contract_id: 243705193508,
                             contract_type: 'TURBOSLONG',
                             currency: 'USD',
-                            current_spot: 823.04,
-                            current_spot_display_value: '823.04',
+                            current_spot: '823.04',
                             current_spot_time: 1716891600,
                             date_expiry: 1716891900,
                             date_settlement: 1716891900,
                             date_start: 1716891504,
-                            display_name: 'Volatility 100 (1s) Index',
                             display_number_of_contracts: '3.692058',
-                            entry_spot: 824.24,
-                            entry_spot_display_value: '824.24',
-                            entry_tick: 824.24,
-                            entry_tick_display_value: '824.24',
-                            entry_tick_time: 1716891504,
+                            entry_spot: '824.24',
+                            entry_spot_time: 1716891504,
                             expiry_time: 1716891900,
                             id: '631c07ee-ff93-a6e0-3e14-7917581b8b1b',
                             is_expired: 0,
-                            is_forward_starting: 0,
                             is_intraday: 1,
                             is_path_dependent: 1,
                             is_settleable: 0,
@@ -194,7 +206,7 @@ describe('PositionsContent', () => {
                             is_valid_to_sell: 1,
                             longcode:
                                 'You will receive a payout at expiry if the spot price never breaches the barrier. The payout is equal to the payout per point multiplied by the distance between the final price and the barrier.',
-                            profit: -5.6,
+                            profit: '-5.6',
                             profit_percentage: -56,
                             purchase_time: 1716891504,
                             shortcode: 'TURBOSLONG_1HZ100V_10.00_1716891504_1716891900_S-255P_3.692058_1716891504',
@@ -202,7 +214,7 @@ describe('PositionsContent', () => {
                             transaction_ids: {
                                 buy: 486048790368,
                             },
-                            underlying: '1HZ100V',
+                            underlying_symbol: '1HZ100V',
                         },
                         details:
                             'You will receive a payout at expiry if the spot price never breaches the barrier. The payout is equal to the payout per point multiplied by the distance between the final price and the barrier.',
@@ -270,6 +282,17 @@ describe('PositionsContent', () => {
         render(mockPositionsContent());
 
         expect(screen.getByTestId(loaderTestId)).toBeInTheDocument();
+    });
+
+    it('should render loader when account is switching', () => {
+        defaultMockStore = mockStore({
+            ui: { is_switching_account: true },
+            portfolio: { ...defaultMockStore.portfolio, is_loading: false },
+        });
+        render(mockPositionsContent());
+
+        expect(screen.getByTestId(loaderTestId)).toBeInTheDocument();
+        expect(screen.queryByText(contractCardList)).not.toBeInTheDocument();
     });
 
     it('should render EmptyPositions if data has loaded but user has no open positions', () => {
@@ -346,5 +369,29 @@ describe('PositionsContent', () => {
         expect(screen.queryByText(emptyPositions)).not.toBeInTheDocument();
         expect(screen.getByText('MULTUP')).toBeInTheDocument();
         expect(screen.getByText('TURBOSLONG')).toBeInTheDocument();
+    });
+
+    it('should not render the contract type filter for EU accounts since only Multipliers is available', () => {
+        (useIsEuAccount as jest.Mock).mockReturnValue({ is_eu: true, is_ready: true });
+        render(mockPositionsContent());
+
+        expect(screen.queryByText(contractTypeFilter)).not.toBeInTheDocument();
+        expect(screen.getByText(contractCardList)).toBeInTheDocument();
+    });
+
+    it('should not render the contract type filter when only one trade type is available', () => {
+        (useAvailableContracts as jest.Mock).mockReturnValue([{ id: 'Multipliers', tradeType: 'Multipliers' }]);
+        render(mockPositionsContent());
+
+        expect(screen.queryByText(contractTypeFilter)).not.toBeInTheDocument();
+        expect(screen.getByText(contractCardList)).toBeInTheDocument();
+    });
+
+    it('should not render the contract type filter until the EU account status is resolved', () => {
+        (useIsEuAccount as jest.Mock).mockReturnValue({ is_eu: false, is_ready: false });
+        render(mockPositionsContent());
+
+        expect(screen.queryByText(contractTypeFilter)).not.toBeInTheDocument();
+        expect(screen.getByText(contractCardList)).toBeInTheDocument();
     });
 });

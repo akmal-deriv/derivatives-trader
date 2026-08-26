@@ -1,0 +1,234 @@
+// Direction-marker colours match the Figma "ongoing-marker" tokens, which have no quill-ui
+// custom-property equivalent (they are SmartCharts brand marker colours).
+$marker-color-up: #00c390;
+$marker-color-down: #de0040;
+
+.chart-profit-loss {
+    &__pill {
+        position: absolute;
+        inset-block-start: var(--core-spacing-400);
+        inset-inline-end: var(--core-spacing-800);
+        z-index: 3;
+        display: inline-flex;
+        align-items: center;
+        gap: var(--core-spacing-200);
+        height: var(--core-size-1200);
+        padding-block: 0;
+        padding-inline: var(--core-spacing-400) var(--core-spacing-200);
+        border: none;
+        border-radius: var(--core-borderRadius-2400);
+        background-color: var(--semantic-color-monochrome-surface-normal-lowest);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        cursor: pointer;
+        color: var(--component-field-label-color-enabled);
+    }
+
+    &__count {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        box-sizing: border-box;
+        min-width: var(--core-size-700);
+        height: var(--core-size-700);
+        padding-inline: var(--core-spacing-100);
+        border-radius: var(--core-borderRadius-1000);
+        background-color: var(--semantic-color-monochrome-surface-normal-high);
+        color: var(--semantic-color-slate-solid-surface-frame-low);
+        font-size: var(--core-size-500);
+        font-weight: 700;
+        line-height: 1;
+    }
+
+    &__return {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--core-spacing-200);
+    }
+
+    &__label {
+        color: var(--component-field-label-color-enabled);
+    }
+
+    &__amount {
+        font-size: var(--core-fontSize-50);
+        font-weight: 700;
+    }
+}
+
+.open-positions-sheet {
+    &__header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--core-spacing-400);
+        padding: var(--core-spacing-400) var(--core-spacing-800);
+    }
+
+    &__title {
+        font-size: var(--core-fontSize-300);
+        font-weight: 800;
+        line-height: var(--core-lineHeight-400);
+        color: var(--component-textIcon-normal-prominent);
+    }
+
+    &__total {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+    }
+
+    &__total-label {
+        color: var(--component-textIcon-normal-subtle);
+    }
+
+    &__total-value {
+        font-size: var(--core-fontSize-100);
+        font-weight: 700;
+    }
+
+    &__list {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        padding: 0 var(--core-spacing-800) var(--core-spacing-800);
+        overflow-y: auto;
+    }
+}
+
+.open-position-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--core-spacing-400);
+    padding-block: var(--core-spacing-800);
+    // A divider sits above every item (the first one separates the header from the list).
+    border-top: 1px solid var(--semantic-color-monochrome-border-normal-mid);
+
+    &__info {
+        display: flex;
+        align-items: flex-start;
+        gap: var(--core-spacing-400);
+    }
+
+    &__marker {
+        position: relative;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: var(--core-spacing-1200);
+        height: var(--core-spacing-1200);
+        border-radius: 50%;
+
+        // The design's "white circle": a 2px white ring on a 22px circle inset 1px from the 24px
+        // coloured base (so a thin coloured rim shows outside the ring). A pseudo-element border
+        // renders a crisp 2px ring — an inset box-shadow looked too thin. Kept theme-independent
+        // white to match the chart's entry-spot marker in both light and dark themes.
+        &:before {
+            content: '';
+            position: absolute;
+            inset: 1px;
+            border: 2px solid var(--component-textIcon-static-prominentDark);
+            border-radius: 50%;
+        }
+
+        &--up {
+            background-color: $marker-color-up;
+        }
+
+        &--down {
+            background-color: $marker-color-down;
+        }
+    }
+
+    &__marker-label {
+        color: var(--component-textIcon-static-prominentDark);
+        font-weight: 700;
+        font-size: var(--core-fontSize-50);
+        line-height: 1;
+
+        &--long {
+            font-size: var(--core-fontSize-25);
+        }
+    }
+
+    &__details {
+        display: flex;
+        flex-direction: column;
+        gap: var(--core-spacing-200);
+    }
+
+    &__pl-label {
+        color: var(--component-textIcon-normal-default);
+    }
+
+    &__meta {
+        display: flex;
+        align-items: center;
+        gap: var(--core-spacing-300);
+    }
+
+    &__muted {
+        color: var(--component-textIcon-normal-subtle);
+    }
+
+    &__separator {
+        flex-shrink: 0;
+        width: 1px;
+        height: var(--core-spacing-800);
+        background-color: var(--semantic-color-monochrome-border-normal-mid);
+    }
+
+    &__tag {
+        background-color: var(--component-tag-bg-default);
+        color: var(--component-tag-label-color-default);
+    }
+
+    &__actions {
+        display: flex;
+        flex-direction: column;
+        // Hug the widest button and stretch both to that width so Close and Cancel share the same
+        // width and their centres line up on one vertical axis (matching the design). Right-aligning
+        // instead would offset the narrower button's centre.
+        width: max-content;
+        align-items: stretch;
+        justify-content: center;
+        // Keep the Close/Cancel pair vertically centered as a compact group regardless of how tall
+        // the left-hand content is (self-alignment wins even if a parent overrides align-items).
+        align-self: center;
+        gap: var(--core-spacing-400);
+        flex-shrink: 0;
+    }
+
+    &__close,
+    &__cancel {
+        // The Figma button label line-height equals its font size (14px). quill's default label sits
+        // in a taller line box, which makes the text look optically high; pin it so the label is
+        // vertically centred within the button.
+        .quill-button-label {
+            line-height: 1;
+        }
+    }
+
+    &__close {
+        // Match the Figma spec: 64px minimum width for the Close button.
+        min-width: var(--core-size-3200);
+
+        // The Figma Close button is fully rounded (16px on a 32px button). quill's md button
+        // radius is only 12px, so override it (compound selector beats the quill size class).
+        &.quill-button__size--md {
+            border-radius: var(--core-borderRadius-800);
+        }
+    }
+
+    &__cancel {
+        min-width: var(--core-size-3200);
+
+        // quill's tertiary black-white variant underlines its label; the design's Cancel is plain
+        // bold text with no underline (compound selector beats quill's colour class).
+        &.quill__color--tertiary-black-white {
+            text-decoration: none;
+        }
+    }
+}

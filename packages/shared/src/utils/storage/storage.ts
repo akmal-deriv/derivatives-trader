@@ -1,7 +1,7 @@
 import Cookies from 'js-cookie';
 
+import { getTrustedDomainName } from '../brand';
 import { getPropertyValue, isEmptyObject } from '../object/object';
-import { deriv_urls } from '../url/constants';
 
 type TCookieStorageThis = {
     initialized: boolean;
@@ -186,10 +186,7 @@ export const CookieStorage = function (this: TCookieStorageThis, cookie_name: st
 
     this.initialized = false;
     this.cookie_name = cookie_name;
-    this.domain =
-        cookie_domain ||
-        /* eslint-disable no-nested-ternary */
-        (hostname.includes('binary.sx') ? 'binary.sx' : deriv_urls.DERIV_HOST_NAME);
+    this.domain = cookie_domain || getTrustedDomainName();
     /* eslint-enable no-nested-ternary */
     this.path = '/';
     this.expires = new Date('Thu, 1 Jan 2037 12:00:00 GMT');
@@ -210,7 +207,8 @@ CookieStorage.prototype = {
         if (!this.initialized) this.read();
         this.value = val;
         if (expireDate) this.expires = expireDate;
-        Cookies.set(this.cookie_name, this.value, {
+        // js-cookie v3 no longer auto-serializes objects (v2 did); stringify explicitly to keep the JSON.parse round-trip in read()
+        Cookies.set(this.cookie_name, JSON.stringify(this.value), {
             expires: this.expires,
             path: this.path,
             domain: this.domain,
@@ -224,7 +222,8 @@ CookieStorage.prototype = {
     set(key: string, val: string) {
         if (!this.initialized) this.read();
         this.value[key] = val;
-        Cookies.set(this.cookie_name, this.value, {
+        // js-cookie v3 no longer auto-serializes objects (v2 did); stringify explicitly to keep the JSON.parse round-trip in read()
+        Cookies.set(this.cookie_name, JSON.stringify(this.value), {
             expires: new Date(this.expires),
             path: this.path,
             domain: this.domain,

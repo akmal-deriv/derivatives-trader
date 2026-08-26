@@ -3,7 +3,7 @@ import classNames from 'classnames';
 
 import { Button, DatePicker, InputField, MobileDialog, Text } from '@deriv/components';
 import { LegacyCalendar1pxIcon } from '@deriv/quill-icons';
-import { toMoment } from '@deriv/shared';
+import { type Dayjs, toMoment } from '@deriv/shared';
 import { useTranslations } from '@deriv-com/translations';
 
 import { TInputDateRange } from 'Types';
@@ -53,7 +53,7 @@ type TCompositeCalendarMobile = {
     current_focus?: string | null;
     duration_list?: Array<TInputDateRange>;
     onChange: (
-        value: { from?: moment.Moment; to?: moment.Moment; is_batch?: boolean },
+        value: { from?: Dayjs; to?: Dayjs; is_batch?: boolean },
         extra_data?: { date_range: TInputDateRange }
     ) => void;
     setCurrentFocus: (focus: string | null) => void;

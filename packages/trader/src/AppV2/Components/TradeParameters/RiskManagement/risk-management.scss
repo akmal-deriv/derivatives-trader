@@ -1,13 +1,12 @@
-$HANDLEBAR_HEIGHT: var(--core-size-1000);
-$HEADER_TITLE_HEIGHT: var(--core-size-3200);
-$SEGMENTED_CONTROL: var(--core-size-2000);
-$FOOTER_BUTTON_HEIGHT: var(--core-size-4000);
+// The fee row sits in its own band below the wheel container; reserve its height (matching the fee
+// row) so the wheel container shrinks to fit above it instead of the wheel overlapping the fee.
+$FEE_HEIGHT: 2rem;
 
 .deal-cancellation {
     &__container {
         display: flex;
         flex-direction: column;
-        height: calc(480px - $HANDLEBAR_HEIGHT - $HEADER_TITLE_HEIGHT - $SEGMENTED_CONTROL - $FOOTER_BUTTON_HEIGHT);
+        height: auto;
         gap: var(--core-spacing-400);
     }
 
@@ -19,23 +18,41 @@ $FOOTER_BUTTON_HEIGHT: var(--core-size-4000);
         margin-block-start: var(--core-spacing-400);
     }
 
+    // Matches `.take-profit__label`: label text with its info tooltip alongside.
+    &__label {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--core-spacing-400);
+    }
+
     &__wheel-picker {
-        flex-grow: 1;
         min-height: 0;
+    }
+
+    // Read-only fee summary, in its own fixed-height band between the wheel container and Save.
+    &__fee {
+        height: $FEE_HEIGHT;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
     }
 }
 
 .take-profit {
+    // Hugs its content: shared by the standalone TP/SL sheets and the Risk management TP & SL tab.
     &__wrapper {
         position: relative;
-        height: calc(400px - $HANDLEBAR_HEIGHT - $HEADER_TITLE_HEIGHT - $FOOTER_BUTTON_HEIGHT);
-        padding-block: 0;
+        padding-block-start: 0;
+
+        // Reserve the field + message row so the range/error text appearing doesn't shift the layout.
+        .quill-input__container {
+            min-height: 7.8rem;
+        }
     }
 
     &__accu-information {
-        position: absolute;
-        bottom: 0;
         inset-inline-start: var(--component-actionSheet-spacing-padding-md);
+        padding-top: var(--core-spacing-400);
     }
 
     &__warning {
@@ -49,6 +66,12 @@ $FOOTER_BUTTON_HEIGHT: var(--core-size-4000);
         padding-block: var(--core-spacing-400);
     }
 
+    &__label {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--core-spacing-400);
+    }
+
     &__overlay {
         all: unset;
         height: var(--core-size-2800);
@@ -60,46 +83,54 @@ $FOOTER_BUTTON_HEIGHT: var(--core-size-4000);
 }
 
 .risk-management {
-    &__carousel {
-        & > .carousel__item {
-            height: 100%;
+    // Read-only summary rows (DC fee, Expires on) at the top of the action sheet.
+    &__info {
+        display: flex;
+        flex-direction: column;
+        gap: var(--core-spacing-400);
+        margin-block-end: var(--core-spacing-800);
+
+        &-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
-        .trade-param-definition {
-            height: calc(480px - $HANDLEBAR_HEIGHT - $HEADER_TITLE_HEIGHT);
-        }
-        &--small {
-            .risk-management__picker {
-                height: calc(90dvh - $HANDLEBAR_HEIGHT - $HEADER_TITLE_HEIGHT);
-                max-height: calc(480px - $HANDLEBAR_HEIGHT - $HEADER_TITLE_HEIGHT);
-            }
-            .risk-management__tp-sl__wrapper {
-                height: calc(90dvh - $HANDLEBAR_HEIGHT - $HEADER_TITLE_HEIGHT - $SEGMENTED_CONTROL);
-                max-height: calc(480px - $HANDLEBAR_HEIGHT - $HEADER_TITLE_HEIGHT - $SEGMENTED_CONTROL);
-            }
-            .trade-param-definition {
-                height: calc(90dvh - $HANDLEBAR_HEIGHT - $HEADER_TITLE_HEIGHT);
-                max-height: calc(480px - $HANDLEBAR_HEIGHT - $HEADER_TITLE_HEIGHT);
-            }
-            .deal-cancellation {
-                &__container {
-                    height: calc(
-                        90dvh - $HANDLEBAR_HEIGHT - $HEADER_TITLE_HEIGHT - $SEGMENTED_CONTROL - $FOOTER_BUTTON_HEIGHT
-                    );
-                    max-height: calc(
-                        480px - $HANDLEBAR_HEIGHT - $HEADER_TITLE_HEIGHT - $SEGMENTED_CONTROL - $FOOTER_BUTTON_HEIGHT
-                    );
+    }
+
+    &__picker {
+        height: auto;
+        // Top only: quill's `.action-sheet--content` pads all four sides and the bottom one is wanted.
+        padding-block-start: 0;
+
+        // Pill-shaped TP & SL / Deal cancellation toggle, matching the other segmented controls.
+        .segmented-control-single {
+            @include pill-segmented-control;
+
+            button {
+                span,
+                .quill-typography {
+                    font-size: var(--core-fontSize-100); // 16px
+                }
+
+                // quill swaps the selected segment's `.selected` class for `.animated` after the
+                // first tab switch, so target both to keep the selected tab bold.
+                &.selected,
+                &.animated {
+                    span,
+                    .quill-typography {
+                        font-weight: 700 !important;
+                    }
                 }
             }
         }
     }
 
-    &__picker {
-        height: calc(480px - $HANDLEBAR_HEIGHT - $HEADER_TITLE_HEIGHT);
-        padding-block: 0;
-    }
-
     &__save-button {
-        margin: var(--core-spacing-800) 0;
+        flex-shrink: 0;
+        position: sticky;
+        bottom: var(--core-spacing-800);
+        margin-top: var(--core-spacing-800);
+        border-radius: 10rem !important;
     }
 
     &__description {
@@ -113,14 +144,13 @@ $FOOTER_BUTTON_HEIGHT: var(--core-size-4000);
     &__tp-sl {
         padding: 0;
         flex-grow: 0;
-        min-height: 140px;
-        height: 140px;
 
         &__wrapper {
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
-            height: calc(480px - $HANDLEBAR_HEIGHT - $HEADER_TITLE_HEIGHT - $SEGMENTED_CONTROL);
+            gap: var(--core-spacing-400);
+            // Not on `&__picker`: that is shared with the DC tab, which wants no top gap.
+            padding-block-start: var(--component-actionSheet-spacing-padding-md);
         }
 
         .take-profit__overlay {

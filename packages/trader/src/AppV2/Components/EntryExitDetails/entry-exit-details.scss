@@ -32,4 +32,26 @@
             text-align: end;
         }
     }
+
+    &__label--with-tooltip {
+        border-bottom: 1px dashed var(--semantic-color-monochrome-textIcon-normal-low);
+        cursor: pointer;
+        display: inline-block;
+        width: fit-content;
+    }
+
+    &__action-sheet {
+        .quill-action-sheet--title-text {
+            font-size: 2.4rem !important;
+            text-align: left !important;
+        }
+
+        .entry-exit-details__action-sheet-content p {
+            font-size: 1.6rem !important;
+        }
+
+        .quill-button {
+            border-radius: 50px;
+        }
+    }
 }

@@ -1,0 +1,179 @@
+// Full-screen modal shell (portalled to <body>). Sits just below the quill-ui ActionSheet layer
+// (z-index 150) so the Guide sheet — and snackbars — surface above it, while still covering the
+// page chrome (which tops out well below 150).
+.market-selection__modal {
+    position: fixed;
+    inset: 0;
+    z-index: 149;
+    display: flex;
+    flex-direction: column;
+    background: var(--semantic-color-slate-solid-surface-frame-low);
+}
+
+.market-selection {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+
+    &__header-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: var(--core-spacing-600, 12px) var(--core-spacing-800, 16px);
+        flex-shrink: 0;
+    }
+
+    &__header-actions {
+        display: flex;
+        align-items: center;
+        gap: var(--core-spacing-400, 8px);
+    }
+
+    &__header-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: none;
+        cursor: pointer;
+        padding: var(--core-spacing-200, 4px);
+        background: var(--semantic-color-monochrome-surface-normal-lowest);
+        border-radius: 50%;
+    }
+
+    &__trade-type-tabs {
+        display: flex;
+        gap: var(--core-spacing-1600, 32px);
+        overflow-x: auto;
+        padding: 0 var(--core-spacing-800, 16px);
+        border-block-end: 1px solid var(--color-surface-border);
+        flex-shrink: 0;
+        scrollbar-width: none;
+
+        &::-webkit-scrollbar {
+            display: none;
+        }
+    }
+
+    &__trade-type-tab {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        gap: var(--core-spacing-200, 4px);
+        background: transparent;
+        border: none;
+        padding: var(--core-spacing-400, 8px) 0;
+        white-space: nowrap;
+        cursor: pointer;
+
+        // Vertical separator centered in the 32px gap (16px on each side).
+        &:not(:last-child):after {
+            content: '';
+            position: absolute;
+            inset-inline-end: calc(var(--core-spacing-1600, 32px) / -2);
+            inset-block: 25%;
+            width: 1px;
+            background: var(--color-surface-border);
+        }
+
+        // Fire icon (🔥) sized to 20x20 within the tabs.
+        .fire-icon__animation {
+            width: 20px;
+            height: 20px;
+        }
+
+        // Active indicator: a fixed 3.2rem coral bar centered under the tab (not a full-width
+        // underline). Absolutely positioned so it doesn't affect the tab height. Uses :before since
+        // :after is the inter-tab separator.
+        &--active:before {
+            content: '';
+            position: absolute;
+            inset-block-end: 0;
+            inset-inline-start: 50%;
+            transform: translateX(-50%);
+            width: 3.2rem;
+            height: 0.2rem;
+            border-radius: var(--core-borderRadius-200, 4px) var(--core-borderRadius-200, 4px) 0 0;
+            background: var(--semantic-color-coral-solid-surface-static-mid);
+        }
+    }
+
+    // Small pill (e.g. Multipliers' "x500") next to a trade-type tab label — mirrors the desktop
+    // sidebar badge.
+    &__trade-type-tab-badge {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 18px;
+        width: 32px;
+        border-radius: var(--core-borderRadius-200, 4px);
+        background: rgb(165, 86, 221);
+        color: var(--component-textIcon-static-prominentDark, #fff);
+        font-size: 1rem;
+    }
+
+    &__category-chips {
+        display: flex;
+        gap: var(--core-spacing-400, 8px);
+        overflow-x: auto;
+        padding: var(--core-spacing-400, 8px) var(--core-spacing-800, 16px);
+        flex-shrink: 0;
+        scrollbar-width: none;
+
+        &::-webkit-scrollbar {
+            display: none;
+        }
+
+        // Keep each chip on a single line and stop it shrinking in the scroll row.
+        > * {
+            flex-shrink: 0;
+            white-space: nowrap;
+        }
+
+        // The design system's new selected-chip treatment (a bordered light surface) hasn't shipped
+        // in quill-ui yet. Override the selected state for the category chips
+        // until the library catches up. Include hover/active so a selected chip doesn't flash the old
+        // dark fill on interaction.
+        .quill-chip[data-state='selected'],
+        .quill-chip[data-state='selected']:hover,
+        .quill-chip[data-state='selected']:active {
+            background-color: var(--semantic-color-monochrome-surface-normal-lowest, rgba(0, 0, 0, 0.04));
+            border: 1px solid var(--semantic-color-slate-solid-border-inverse-lowest, #000);
+        }
+
+        // Keep the selected label readable on the light fill (overrides quill's mis-themed token).
+        .quill-chip[data-state='selected'] > p {
+            color: var(--component-textIcon-normal-prominent, #181c25);
+        }
+    }
+}
+
+@mixin themed-scrollbar {
+    /* Firefox — match WebKit thin thumb + transparent track */
+    scrollbar-width: thin;
+    scrollbar-color: var(--semantic-color-slate-solid-surface-frame-mid) transparent;
+
+    &::-webkit-scrollbar {
+        width: 0.6rem;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background: var(--semantic-color-slate-solid-surface-frame-mid);
+        border-radius: 0.3rem;
+    }
+}
+
+// The remaining surfaces live in ./styles partials. Import order continues the cascade begun by the
+// shell classes above (lists → discovery → search → info → desktop) so later rules still win.
+@import 'styles/market-selection-list'; // grouped list view + swipeable market row
+@import 'styles/market-favourites'; // favourites tab (grouped by trade type)
+@import 'styles/market-empty-state'; // shared empty state
+@import 'styles/market-discovery'; // discovery sections, sparkline, cards
+@import 'styles/market-search'; // search page + results
+@import 'styles/market-changes-dropdown'; // "Changes (window)" dropdown
+@import 'styles/market-info'; // market info screen
+@import 'styles/market-selection-desktop'; // desktop popover panel, sidebar, rows

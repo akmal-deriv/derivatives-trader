@@ -1,8 +1,20 @@
+// Locally named so quill's shared `skeleton-pulse` keyframes stay untouched. Mirrors its
+// 0/50/100 shape so only the colours differ, not the motion.
+@keyframes purchase-button-payout-pulsate {
+    0%,
+    100% {
+        background-color: var(--core-color-opacity-white-200);
+    }
+    50% {
+        background-color: var(--core-color-opacity-white-400);
+    }
+}
+
 .purchase-button {
     flex-direction: column-reverse;
     padding-block: var(--core-spacing-400);
     align-items: flex-end;
-    height: var(--core-size-2800);
+    height: var(--core-size-2400);
     gap: 0;
 
     &:not(.quill-button:first-child .purchase-button):not(.purchase-button--loading) {
@@ -20,6 +32,15 @@
     &--loading {
         align-items: center;
     }
+
+    // Design calls for a paler disabled pill than quill's 0.48 `--opacity-disabled`. Chained with
+    // quill's own colour class for (0,3,0) specificity so it wins whatever the stylesheet order —
+    // same load-order hazard as the payout-colour rule below.
+    &.quill__color--primary-purchase:disabled,
+    &.quill__color--primary-sell:disabled {
+        opacity: var(--core-opacity-300);
+    }
+
     &__information {
         &__wrapper {
             width: 100%;
@@ -36,20 +57,42 @@
             }
         }
 
-        &__item {
+        // Scope under the wrapper to raise specificity to (0,2,0) so this beats
+        // quill's equal-specificity `.quill-typography__color--prominent` rule
+        // regardless of stylesheet load order. Without this, navigating to Reports
+        // re-injects quill's base2.css after the trader CSS, flipping the cascade
+        // and turning the payout text black in light theme.
+        &__wrapper &__item {
             color: var(--component-button-label-color-sell-primary);
         }
+
+        // The pending-value placeholder sits on a saturated purchase/sell pill, where quill's
+        // monochrome page-surface tokens are all but invisible. Translucent white reads on both
+        // green and red in either theme. Scoped under the wrapper for (0,2,0)/(0,3,0) specificity
+        // so it beats quill's own rules whatever the stylesheet order — same hazard as above.
+        &__wrapper .quill-loader__skeleton {
+            background-color: var(--core-color-opacity-white-200);
+
+            &.quill-loader__skeleton--animated {
+                animation-name: purchase-button-payout-pulsate;
+            }
+        }
     }
+
     &__wrapper {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 0 var(--core-spacing-400) var(--core-spacing-400);
         gap: var(--core-spacing-400);
-        position: fixed;
         width: 100%;
         z-index: 2; // chart has z-index: 1, it should not push purchase buttons down
         bottom: var(--core-spacing-2800);
+        border-radius: 100px;
+
+        @include mobile-screen {
+            padding: var(--core-spacing-600) 0;
+        }
+
         &__un-auth {
             bottom: var(--core-spacing-50);
         }
@@ -68,6 +111,39 @@
                 transform: translateY(100%);
                 transition: transform 150ms ease-in-out 300ms;
             }
+        }
+
+        .quill-button {
+            border-radius: 28px;
+        }
+
+        // `isOpaque` makes quill wrap the button in a hard-coded white pill, so its translucent
+        // disabled fill always composites over white — pale mint/pink even in dark theme. The
+        // design wants the 24% tint to sit on the page surface instead (dark maroon/green in dark
+        // theme), so drop the white base. Scoped with `:has()` to disabled buy/sell only: the
+        // enabled and loading fills are opaque, and the accumulator Close pill keeps quill's look.
+        .quill-button__white-bg-wrapper:has(
+            .quill__color--primary-purchase:disabled,
+            .quill__color--primary-sell:disabled
+        ) {
+            background-color: transparent;
+        }
+    }
+
+    &__skeleton {
+        width: 100%;
+    }
+
+    // Allow long translations of "Review risk disclosure" to wrap.
+    &--review-disclosure {
+        height: auto !important;
+        min-height: 4.8rem;
+        padding-block: 0.8rem !important;
+        text-align: center;
+
+        .quill-button-label {
+            text-wrap: wrap !important;
+            white-space: normal !important;
         }
     }
 }

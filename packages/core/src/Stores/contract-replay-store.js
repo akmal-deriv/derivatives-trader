@@ -1,10 +1,11 @@
-import { action, observable, makeObservable, override, when } from 'mobx';
-import { routes, isEmptyObject, WS, contractCancelled, contractSold } from '@deriv/shared';
+import { action, makeObservable, observable, override, when } from 'mobx';
+
 import { Money } from '@deriv/components';
-import { Analytics } from '@deriv-com/analytics';
+import { contractCancelled, contractSold, isEmptyObject, trackAnalyticsEvent, WS } from '@deriv/shared';
 import { localize } from '@deriv-com/translations';
-import ContractStore from './contract-store';
+
 import BaseStore from './base-store';
+import ContractStore from './contract-store';
 
 export default class ContractReplayStore extends BaseStore {
     chart_state = '';
@@ -96,14 +97,18 @@ export default class ContractReplayStore extends BaseStore {
 
     onMount(contract_id) {
         if (contract_id) {
+            if (contract_id === this.contract_id && this.reconnectHandler) {
+                return;
+            }
             this.contract_id = contract_id;
             this.contract_store = new ContractStore(this.root_store, { contract_id });
             this.subscribeProposalOpenContract();
-            WS.setOnReconnect(() => {
+            this.reconnectHandler = () => {
                 if (!this.root_store.client.is_switching) {
                     this.subscribeProposalOpenContract();
                 }
-            });
+            };
+            WS.setOnReconnect(this.reconnectHandler);
         }
     }
 
@@ -116,7 +121,10 @@ export default class ContractReplayStore extends BaseStore {
         this.contract_info = {};
         this.chart_state = '';
         this.root_store.ui.toggleHistoryTab(false);
-        WS.removeOnReconnect();
+        if (this.reconnectHandler) {
+            WS.removeOnReconnect(this.reconnectHandler);
+            this.reconnectHandler = null;
+        }
 
         this.root_store.contract_trade.clearAccumulatorBarriersData(true, true);
     }
@@ -267,14 +275,17 @@ export default class ContractReplayStore extends BaseStore {
                 transaction_id: response.sell.transaction_id,
             };
 
+            // Clear accumulator barriers data when contract is sold from contract details
+            // This prevents stale barriers from being displayed when navigating back to trade page
+            this.root_store.contract_trade.clearAccumulatorBarriersData(false, true);
+
             this.root_store.notifications.addNotificationMessage(
                 contractSold(this.root_store.client.currency, response.sell.sold_for, Money)
             );
 
-            Analytics.trackEvent('ce_reports_form', {
+            trackAnalyticsEvent('ce_reports_form_v2', {
                 action: 'close_contract',
-                form_name: 'default',
-                subform_name: 'contract_details_form',
+                platform: 'DTrader',
             });
         }
     }
@@ -291,24 +302,5 @@ export default class ContractReplayStore extends BaseStore {
         this.has_error = false;
     }
 
-    setAccountSwitcherListener = (contract_id, history) => {
-        this.onSwitchAccount(() => this.accountSwitcherListener(contract_id, history));
-    };
-
-    accountSwitcherListener = (contract_id, history) => {
-        // if contract had an error on the previous account
-        // try fetching it again for the new account
-        // in case it belongs to this account
-        if (this.has_error) {
-            this.removeErrorMessage();
-            this.onMount(contract_id);
-        } else if (!this.root_store.common.is_language_changing) {
-            history.push(routes.reports);
-        }
-        return Promise.resolve();
-    };
-
-    removeAccountSwitcherListener = () => {
-        this.disposeSwitchAccount();
-    };
+    // Removed account switching methods - not needed for trading-only app
 }

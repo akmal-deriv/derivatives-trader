@@ -33,7 +33,7 @@ jest.mock('@deriv/shared', () => ({
     isEmptyObject: (obj: Record<string, any>) => Object.keys(obj).length === 0,
     routes: { index: '/index', is_logged_in: '/login' },
     removeBranchName: jest.fn(pathname => pathname.replace('/index', '')),
-    default_title: 'Default Title',
+    getBrandName: jest.fn(() => 'Default Title'),
 }));
 
 beforeEach(() => jest.clearAllMocks());
@@ -79,7 +79,7 @@ describe('<RouteWithSubRoutes />', () => {
     });
     it('should set document title to default title when getTitle is not defined', () => {
         render(<MockRouteWithSubRoutes />);
-        expect(document.title).toBe('| Default Title');
+        expect(document.title).toBe('Default Title');
     });
     it('should set document title based on route.getTitle', () => {
         const title = 'Test Title';

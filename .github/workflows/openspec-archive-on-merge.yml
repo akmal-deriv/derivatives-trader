@@ -1,0 +1,26 @@
+# Archive completed OpenSpec changes after a PR merges.
+# Thin caller for the shared reusable workflow; scaffolded by `deriv-spec-to-pr init`.
+# On a merged PR it runs `openspec archive` and opens a follow-up archive PR
+# (it never pushes to a protected branch). Safe to edit; pin the ref to a tag/SHA
+# for supply-chain safety — keep `action_ref` equal to the `uses:` ref.
+name: OpenSpec Archive on Merge
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [master]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  archive:
+    if: github.event.pull_request.merged == true
+    uses: deriv-com/shared-actions/.github/workflows/archive-on-merge.yml@master
+    with:
+      base_branch: master
+      action_ref: master
+    permissions:
+      contents: write
+      pull-requests: write

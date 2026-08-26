@@ -1,0 +1,272 @@
+// ---- Desktop shell (anchored popover panel + info card) ----
+
+// 900×808 popover (width comes from the InputPopover prop; height is fixed here).
+$market-desktop-panel-height: 80.8rem;
+$market-desktop-sidebar-width: 22rem;
+
+.market-selection-desktop {
+    // Override the InputPopover default padding — the panel manages its own two-column spacing.
+    padding: 0;
+
+    // The panel/info card ask for the design's 808px but shrink into the popover's viewport-fitted
+    // max-height on short screens (min-height: 0 lets the flex item go below its content size).
+    &__panel {
+        display: flex;
+        height: $market-desktop-panel-height;
+        min-height: 0;
+    }
+
+    &__info {
+        height: $market-desktop-panel-height;
+        min-height: 0;
+
+        // Desktop upgrades the favourite from a circular icon to a labelled outline pill.
+        .market-info__favourite {
+            width: auto;
+            height: auto;
+            padding: var(--core-spacing-200, 4px) var(--core-spacing-600, 12px);
+            background: transparent;
+            border: var(--component-chip-border-width) solid var(--component-textIcon-normal-default);
+            border-radius: var(--component-chip-border-radius);
+
+            &:hover {
+                background: var(--color-interactive-hover);
+            }
+        }
+
+        .market-info__favourite-label {
+            display: inline-flex;
+        }
+
+        // Desktop: the four stats sit in a single row (mobile keeps the 2×2 grid).
+        .market-info__stats {
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: auto;
+            grid-auto-flow: row;
+            row-gap: 0;
+        }
+
+        .market-info__stat:nth-child(n + 3) {
+            border-inline-start: none;
+        }
+
+        .market-info__stat:not(:first-child) {
+            border-inline-start: 1px solid var(--color-surface-border);
+        }
+    }
+
+    &__search {
+        padding: var(--core-spacing-800, 16px) var(--core-spacing-800, 16px) 0;
+    }
+
+    &__content {
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        min-width: 0;
+        gap: var(--core-spacing-400, 8px);
+    }
+
+    &__results {
+        flex: 1;
+        overflow-y: auto;
+        @include themed-scrollbar;
+    }
+}
+
+.market-selection-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: var(--core-spacing-400, 8px);
+    width: $market-desktop-sidebar-width;
+    flex-shrink: 0;
+    padding: var(--core-spacing-800, 16px) 0;
+    border-inline-end: 1px solid var(--color-surface-border);
+    overflow-y: auto;
+    @include themed-scrollbar;
+
+    &__header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 var(--core-spacing-800, 16px) var(--core-spacing-600, 12px);
+        border-block-end: 1px solid var(--color-surface-border);
+
+        &-label {
+            color: var(--component-textIcon-normal-prominent, #181c25);
+        }
+    }
+
+    &__groups {
+        display: flex;
+        flex-direction: column;
+        gap: var(--core-spacing-600, 12px);
+        flex: 1;
+    }
+
+    &__group {
+        display: flex;
+        flex-direction: column;
+        gap: var(--core-spacing-100, 2px);
+
+        // Hairline between adjacent groups (the last group's divider sits above Favourite instead).
+        &:not(:last-child) {
+            padding-block-end: var(--core-spacing-600, 12px);
+            border-block-end: 1px solid var(--color-surface-border);
+        }
+
+        &-label {
+            padding: var(--core-spacing-200, 4px) var(--core-spacing-800, 16px);
+            color: var(--component-textIcon-normal-prominent, #181c25);
+        }
+    }
+
+    &__item {
+        position: relative; // anchors the selected-state coral accent line
+        display: flex;
+        align-items: center;
+        gap: var(--core-spacing-200, 4px);
+        width: 100%;
+        text-align: start;
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        padding: var(--core-spacing-400, 8px) var(--core-spacing-400, 8px) var(--core-spacing-400, 8px)
+            var(--core-spacing-1200, 24px);
+        border-radius: var(--core-borderRadius-400, 8px);
+
+        &:hover {
+            background: var(--color-interactive-hover);
+        }
+
+        // Fire icon sized to 20x20 within the sidebar (matches the mobile tabs).
+        .fire-icon__animation {
+            width: 20px;
+            height: 20px;
+        }
+
+        &-label {
+            color: var(--component-textIcon-normal-prominent, #181c25);
+        }
+
+        // Selected trade type: no surface highlight — just a coral accent line (label is bolded in TSX).
+        &--selected:after {
+            content: '';
+            position: absolute;
+            inset-inline-start: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 3px;
+            height: 60%;
+            border-radius: var(--core-borderRadius-200, 4px);
+            background: var(--semantic-color-coral-solid-surface-static-mid);
+        }
+    }
+
+    &__badge {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 18px;
+        width: 32px;
+        border-radius: var(--core-borderRadius-200, 4px);
+        background: var(--semantic-color-grape-solid-surface-inverse-mid, #610a9f);
+        color: var(--component-textIcon-static-prominentDark, #fff);
+        font-size: 1rem;
+    }
+
+    &__favourite {
+        position: relative;
+        margin-block-start: auto;
+        // Room below the divider line so the label isn't flush against it.
+        padding-block-start: var(--core-spacing-600, 12px);
+
+        // Full-width hairline above Favourite, drawn as a line so the button keeps its rounded hover.
+        &:before {
+            content: '';
+            position: absolute;
+            inset-inline: 0;
+            inset-block-start: 0;
+            height: 1px;
+            background: var(--color-surface-border);
+        }
+
+        &:hover {
+            background: unset;
+        }
+    }
+}
+
+.market-row-desktop {
+    display: flex;
+    align-items: center;
+    height: 5.6rem;
+    gap: var(--core-spacing-800, 16px);
+    padding: var(--core-spacing-400, 8px);
+    cursor: pointer;
+    border-radius: var(--core-borderRadius-400, 8px);
+
+    &:hover {
+        background: var(--color-interactive-hover);
+    }
+
+    &__name {
+        flex: 1;
+        min-width: 0;
+    }
+
+    // Right-aligned cluster: worm chart, % change pill, then the info + favourite action group. The
+    // cluster spacing is 32px; the two action buttons sit tight (8px) within their own group. Grouping
+    // (rather than a negative margin on the second action) keeps spacing symmetric in LTR and RTL, so
+    // the favourite button always stays inside the row's hover highlight.
+    &__meta {
+        display: flex;
+        align-items: center;
+        gap: var(--core-spacing-1600, 32px);
+    }
+
+    &__actions {
+        display: flex;
+        align-items: center;
+        gap: var(--core-spacing-400, 8px);
+    }
+
+    &__change {
+        padding: 0 var(--core-spacing-200, 4px);
+        border-radius: var(--core-borderRadius-200, 4px);
+        // Keep the signed percentage LTR so the sign/% aren't reordered in an RTL layout.
+        direction: ltr;
+        unicode-bidi: isolate;
+
+        &--positive {
+            .quill-typography {
+                color: var(--component-tag-label-color-success);
+            }
+            background: var(--component-tag-bg-success);
+        }
+
+        &--negative {
+            .quill-typography {
+                color: var(--component-tag-label-color-danger);
+            }
+            background: var(--component-tag-bg-danger);
+        }
+    }
+
+    &__action {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        height: 3.2rem;
+        width: 3.2rem;
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        padding: var(--core-spacing-200, 4px);
+        border-radius: 50%;
+
+        &:hover {
+            background: var(--color-interactive-hover);
+        }
+    }
+}

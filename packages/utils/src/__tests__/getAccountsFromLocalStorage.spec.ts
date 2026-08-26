@@ -7,7 +7,7 @@ describe('getAccountsFromLocalStorage', () => {
         localStorage.setItem(
             'client.accounts',
             JSON.stringify({
-                CR1001: {
+                ROT1001: {
                     token: '12345',
                 },
             })
@@ -18,7 +18,7 @@ describe('getAccountsFromLocalStorage', () => {
         const result = getAccountsFromLocalStorage();
 
         expect(result).toMatchObject({
-            CR1001: {
+            ROT1001: {
                 token: '12345',
             },
         });

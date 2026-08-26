@@ -1,0 +1,96 @@
+.automate-mobile {
+    display: flex;
+    flex-direction: column;
+    height: calc(100% - 4.8rem);
+    overflow: hidden;
+    position: relative;
+    background-color: var(--semantic-color-slate-solid-surface-frame-mid);
+
+    // Reset trade page's mobile rule that offsets the chip row with
+    // `inset-inline-start` and pads it — so the row spans the full
+    // automate-mobile container width.
+    .trade__trade-types {
+        @include mobile-screen {
+            inset-inline-start: 0;
+            padding: 0;
+            width: 100%;
+        }
+    }
+
+    // Outer scroll region: trigger, chip row, `__content`.
+    &__main {
+        flex: 1;
+        overflow-y: auto;
+        padding: var(--core-spacing-400);
+        padding-block-start: var(--core-spacing-800);
+        -webkit-overflow-scrolling: touch;
+        display: flex;
+        flex-direction: column;
+        gap: var(--core-spacing-400);
+    }
+
+    // Market onwards. Owns the 4px sibling gap.
+    &__content {
+        display: flex;
+        flex-direction: column;
+        gap: var(--core-spacing-400);
+    }
+
+    &__trade-config,
+    &__automation-config {
+        background-color: var(--semantic-color-slate-solid-surface-frame-low);
+        border-radius: var(--core-borderRadius-400);
+        padding: var(--core-spacing-400);
+        display: flex;
+        flex-direction: column;
+        gap: var(--core-spacing-400);
+
+        .trade-params__option {
+            background-color: var(--semantic-color-slate-solid-surface-frame-mid);
+        }
+    }
+
+    &__section-header {
+        color: var(--component-field-label-color-default);
+    }
+
+    &__automation-fields {
+        display: flex;
+        flex-direction: column;
+        gap: var(--core-spacing-400);
+    }
+
+    .automation-actions__status {
+        padding: var(--core-spacing-400);
+    }
+
+    &__run-button {
+        padding: var(--core-spacing-400);
+        padding-bottom: var(--core-spacing-800);
+        background: transparent;
+
+        &-inner {
+            border-radius: 28px;
+        }
+    }
+
+    // Dark theme: swap frame-low and frame-mid for better contrast
+    .theme--dark & {
+        background-color: var(--semantic-color-slate-solid-surface-frame-low);
+
+        .automate-mobile__trade-config,
+        .automate-mobile__automation-config {
+            background-color: var(--semantic-color-slate-solid-surface-frame-mid);
+
+            .trade-params__option {
+                background-color: var(--semantic-color-slate-solid-surface-frame-low);
+            }
+        }
+
+        // Match the config cards (current-spot defaults to frame-low, which
+        // only matches in light theme).
+        .trade__current-spot {
+            background-color: var(--semantic-color-slate-solid-surface-frame-mid);
+        }
+    }
+}

@@ -10,6 +10,7 @@ type TCarousel = {
     classname?: string;
     current_index?: number;
     header?: typeof CarouselHeader;
+    adaptive_height?: boolean;
     is_swipeable?: boolean;
     is_infinite_loop?: boolean;
     onNextButtonClick?: () => void;
@@ -25,6 +26,7 @@ const Carousel = ({
     classname,
     current_index,
     header,
+    adaptive_height,
     is_swipeable,
     is_infinite_loop,
     onNextButtonClick,
@@ -76,13 +78,13 @@ const Carousel = ({
                 />
             )}
             <ul
-                className={clsx('carousel', classname)}
+                className={clsx('carousel', classname, { 'carousel--adaptive': adaptive_height })}
                 data-testid='dt_carousel'
                 {...(is_swipeable ? swipe_handlers : {})}
             >
-                {pages.map(({ component, id }) => (
+                {pages.map(({ component, id }, page_index) => (
                     <li
-                        className='carousel__item'
+                        className={clsx('carousel__item', { 'carousel__item--active': page_index === index })}
                         style={{ transform: `translateX(${index * 100 * (is_rtl ? 1 : -1)}%)` }}
                         key={id}
                     >

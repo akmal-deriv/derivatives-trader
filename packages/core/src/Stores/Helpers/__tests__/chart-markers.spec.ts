@@ -20,8 +20,8 @@ describe('createTickMarkers', () => {
                 { epoch: 9, tick: 1.2385, tick_display_value: '1.2385' },
                 { epoch: 10, tick: 1.239, tick_display_value: '1.239' },
             ],
-            entry_tick_time: 1,
-            entry_tick_display_value: '1.2345',
+            entry_spot_time: 1,
+            entry_spot: '1.2345',
             tick_count: 10,
         };
     });
@@ -46,8 +46,8 @@ describe('createTickMarkers', () => {
         contract_info.audit_details = { all_ticks: contract_info.tick_stream };
         contract_info.tick_count = 10;
         contract_info.status = 'won';
-        contract_info.exit_tick_time = 10;
-        contract_info.exit_tick_display_value = '1.239';
+        contract_info.exit_spot_time = 10;
+        contract_info.exit_spot = '1.239';
         const result = createTickMarkers(contract_info);
         expect(result).toHaveLength(10);
         expect(result[result.length - 1].content_config.spot_value).toBe('1.239');
@@ -74,8 +74,8 @@ describe('createTickMarkers', () => {
         expect(result[result.length - 1].content_config.spot_className).toBe(`${previous_spot_classname}--preexit`);
 
         contract_info.status = 'lost';
-        contract_info.exit_tick_time = 10;
-        contract_info.exit_tick_display_value = '1.239';
+        contract_info.exit_spot_time = 10;
+        contract_info.exit_spot = '1.239';
         const result_for_closed_contract = createTickMarkers(contract_info);
         expect(result_for_closed_contract[result_for_closed_contract.length - 2].content_config.spot_className).toBe(
             `${previous_spot_classname}--preexit`
@@ -88,8 +88,8 @@ describe('createTickMarkers', () => {
         expect(result[result.length - 1].content_config.spot_className).toBe(previous_spot_classname);
 
         contract_info.status = 'lost';
-        contract_info.exit_tick_time = 10;
-        contract_info.exit_tick_display_value = '1.239';
+        contract_info.exit_spot_time = 10;
+        contract_info.exit_spot = '1.239';
         const result_for_closed_contract = createTickMarkers(contract_info, true);
         expect(result_for_closed_contract[result_for_closed_contract.length - 2].content_config.spot_className).toBe(
             `${previous_spot_classname}--preexit`
@@ -99,9 +99,6 @@ describe('createTickMarkers', () => {
     it('should get the correct contract type', () => {
         contract_info.contract_type = CONTRACT_TYPES.ACCUMULATOR;
         expect(getMarkerContractType(contract_info)).toBe('AccumulatorContract');
-
-        contract_info.contract_type = CONTRACT_TYPES.MATCH_DIFF.MATCH;
-        expect(getMarkerContractType(contract_info)).toBe('DigitContract');
 
         contract_info.contract_type = CONTRACT_TYPES.CALL;
         contract_info.tick_count = 1;
@@ -120,5 +117,22 @@ describe('createTickMarkers', () => {
         });
         const result = getStartText(contract_info);
         expect(result).toBe('+$1.00');
+    });
+
+    it('should not show the profit text of a non-tick contract once it is sold', () => {
+        Object.assign(contract_info, {
+            contract_type: CONTRACT_TYPES.CALL,
+            tick_count: undefined,
+            profit: '1',
+            barrier: '1000',
+            currency: 'USD',
+            is_sold: 1,
+        });
+        expect(getStartText(contract_info)).toBeUndefined();
+    });
+
+    it('should keep showing the tick counter of a tick contract after it is sold', () => {
+        Object.assign(contract_info, { tick_passed: 10, is_sold: 1 });
+        expect(getStartText(contract_info)).toBe('10/10');
     });
 });

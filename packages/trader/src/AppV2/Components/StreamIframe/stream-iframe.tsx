@@ -1,17 +1,14 @@
 import React from 'react';
-import clsx from 'clsx';
 
 import { Skeleton } from '@deriv-com/quill-ui';
 
-import { ASPECT_RATIO } from 'AppV2/Utils/layout-utils';
+import { getVideoMp4Url } from 'AppV2/Utils/video-config';
 
-type TStreamIframeProps = Pick<React.ComponentProps<'iframe'>, 'height' | 'width' | 'onLoad'> & {
+type TStreamIframeProps = Pick<React.ComponentProps<'video'>, 'height' | 'width' | 'onLoad'> & {
     autoplay?: boolean;
     controls?: boolean;
-    letterbox_color?: string;
     loop?: boolean;
     muted?: boolean;
-    preload?: string;
     src: string;
     test_id?: string;
     title?: string;
@@ -20,38 +17,37 @@ type TStreamIframeProps = Pick<React.ComponentProps<'iframe'>, 'height' | 'width
 const StreamIframe = ({
     autoplay = true,
     controls = false,
-    letterbox_color = 'transparent',
     loop = true,
     muted = true,
-    preload = 'auto',
     src,
     test_id,
     title,
+    height,
+    width,
     ...props
 }: TStreamIframeProps) => {
     const [is_loading, setIsLoading] = React.useState(true);
 
-    const params = [
-        `letterboxColor=${encodeURIComponent(letterbox_color)}`,
-        `muted=${muted}`,
-        `preload=${preload}`,
-        `loop=${loop}`,
-        `autoplay=${autoplay}`,
-        `controls=${controls}`,
-    ].join('&');
-
     return (
-        <div className={clsx('stream__wrapper', is_loading && 'stream__wrapper--is-loading')}>
-            {is_loading && <Skeleton.Square height={`calc(100vw * ${ASPECT_RATIO})`} />}
-            <iframe
-                allowFullScreen={false}
+        <div className='stream__wrapper'>
+            {/* Fills the responsive 16:9 wrapper instead of sizing to the
+                viewport — a viewport-sized skeleton ballooned the height in
+                constrained containers (e.g. a desktop modal). */}
+            {is_loading && <Skeleton.Square className='stream__skeleton' fullWidth height='100%' />}
+            <video
                 className='stream__iframe'
-                width='100%'
-                height='100%'
-                src={`https://iframe.cloudflarestream.com/${src}?${params}`}
+                width={width ?? '100%'}
+                height={height ?? '100%'}
+                src={getVideoMp4Url(src)}
                 data-testid={test_id}
                 title={title}
-                onLoad={() => setIsLoading(false)}
+                autoPlay={autoplay}
+                controls={controls}
+                loop={loop}
+                muted={muted}
+                playsInline
+                preload='auto'
+                onLoadedData={() => setIsLoading(false)}
                 {...props}
             />
         </div>

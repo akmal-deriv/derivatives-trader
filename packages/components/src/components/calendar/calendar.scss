@@ -5,7 +5,8 @@
     z-index: 999;
     box-sizing: border-box;
     font-size: 1rem;
-    background: var(--color-surface-primary);
+    background: var(--color-modal-bg);
+    border: 1px solid var(--color-surface-border);
     box-shadow: 0 2px 8px 0 var(--color-shadow-medium);
 
     &__header,
@@ -66,7 +67,8 @@
                 height: 3.2rem;
 
                 &--other:not(.dc-calendar__cell--today):not(.dc-calendar__cell--active):not(
-                        .dc-calendar__cell--disabled) {
+                        .dc-calendar__cell--disabled
+                    ) {
                     color: var(--color-text-secondary);
                 }
             }
@@ -244,7 +246,6 @@
             width: 100%;
 
             &-icon {
-                margin-top: 0.1rem;
                 display: inherit;
             }
         }

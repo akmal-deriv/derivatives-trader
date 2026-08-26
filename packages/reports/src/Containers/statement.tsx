@@ -1,18 +1,19 @@
 import React from 'react';
-import { RouteComponentProps, withRouter } from 'react-router-dom';
+import { NavLink, RouteComponentProps, withRouter } from 'react-router-dom';
 
-import { Clipboard, DataList, DataTable, Text, usePrevious } from '@deriv/components';
+import { Clipboard, DataList, DataTable, Text } from '@deriv/components';
 import { TSource } from '@deriv/components/src/components/data-table/table-row';
 import { TRow } from '@deriv/components/src/components/types/common.types';
+import { LegacyChevronRight1pxIcon } from '@deriv/quill-icons';
 import {
     capitalizeFirstLetter,
     extractInfoFromShortcode,
-    formatDate,
     getContractPath,
     getUnsupportedContracts,
+    initMoment,
+    routes,
 } from '@deriv/shared';
 import { observer, useStore } from '@deriv/stores';
-import { Analytics } from '@deriv-com/analytics';
 import { Localize, useTranslations } from '@deriv-com/translations';
 import { useDevice } from '@deriv-com/ui';
 
@@ -27,7 +28,7 @@ import { ReportsMeta } from '../Components/reports-meta';
 import { getStatementTableColumnsTemplate } from '../Constants/data-table-constants';
 
 type TGetStatementTableColumnsTemplate = ReturnType<typeof getStatementTableColumnsTemplate>;
-type TColIndex = 'icon' | 'refid' | 'currency' | 'date' | 'action_type' | 'amount' | 'balance';
+type TColIndex = 'icon' | 'refid' | 'currency' | 'transaction_time' | 'action_type' | 'amount' | 'balance';
 
 type TAction =
     | {
@@ -84,8 +85,7 @@ const DetailsComponent = ({ message = '', action_type = '' }: TDetailsComponent)
 
 export const getRowAction = (row_obj: TSource | TRow): TAction => {
     let action: TAction = {};
-    const { action_type, desc, id, is_sold, longcode, purchase_time, shortcode, transaction_time, withdrawal_details } =
-        row_obj;
+    const { action_type, desc, id, longcode, shortcode, withdrawal_details } = row_obj;
     if (id && ['buy', 'sell'].includes(action_type)) {
         const contract_type = extractInfoFromShortcode(shortcode)?.category?.toUpperCase();
         const unsupportedContractConfig = getUnsupportedContracts()[contract_type as TUnsupportedContractType];
@@ -103,16 +103,26 @@ export const getRowAction = (row_obj: TSource | TRow): TAction => {
               }
             : getContractPath(id);
     } else if (action_type === 'withdrawal') {
-        if (withdrawal_details && longcode) {
+        // For withdrawal: show details only if withdrawal_details or longcode exists
+        if ((withdrawal_details && longcode) || desc) {
             action = {
-                message: `${withdrawal_details} ${longcode}`,
+                message: withdrawal_details && longcode ? `${withdrawal_details} ${longcode}` : desc,
             };
         } else {
-            action = {
-                message: desc,
-            };
+            // No details available, make row non-clickable
+            return { disabled: true } as any;
         }
-    } else if (desc && ['deposit', 'transfer', 'adjustment', 'hold', 'release'].includes(action_type)) {
+    } else if (action_type === 'deposit') {
+        // For deposit: show details only if desc/longcode exists
+        if (desc || longcode) {
+            action = {
+                message: desc || longcode,
+            };
+        } else {
+            // No details available, make row non-clickable
+            return { disabled: true } as any;
+        }
+    } else if (desc && ['transfer', 'adjustment', 'hold', 'release'].includes(action_type)) {
         action = {
             message: desc,
         };
@@ -131,69 +141,26 @@ const Statement = observer(({ component_icon }: TStatement) => {
     const { client, common } = useStore();
     const { current_language } = common;
     const { statement } = useReportsStore();
-    const { currency, is_virtual } = client;
-    const {
-        action_type,
-        data,
-        date_from,
-        date_to,
-        error,
-        handleScroll,
-        has_selected_date,
-        is_empty,
-        is_loading,
-        onMount,
-        onUnmount,
-    } = statement;
-    const prev_action_type = usePrevious(action_type);
-    const prev_date_from = usePrevious(date_from);
-    const prev_date_to = usePrevious(date_to);
-    const { isDesktop } = useDevice();
+    const { currency, has_archived_statement, is_virtual } = client;
+    const { data, error, handleScroll, has_selected_date, is_empty, is_loading, onMount, onUnmount } = statement;
+    const { isMobile } = useDevice();
+
+    React.useEffect(() => {
+        initMoment(current_language);
+    }, [current_language]);
 
     React.useEffect(() => {
         onMount();
-        Analytics.trackEvent('ce_reports_form', {
-            action: 'choose_report_type',
-            form_name: 'default',
-            subform_name: 'statement_form',
-            transaction_type_filter: action_type,
-            start_date_filter: formatDate(date_from, 'DD/MM/YYYY', false),
-            end_date_filter: formatDate(date_to, 'DD/MM/YYYY', false),
-        });
+
         return () => {
             onUnmount();
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    React.useEffect(() => {
-        if (prev_action_type) {
-            Analytics.trackEvent('ce_reports_form', {
-                action: 'filter_transaction_type',
-                form_name: 'default',
-                subform_name: 'statement_form',
-                transaction_type_filter: action_type,
-            });
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [action_type]);
-
-    React.useEffect(() => {
-        if (prev_date_from !== undefined && prev_date_to !== undefined) {
-            Analytics.trackEvent('ce_reports_form', {
-                action: 'filter_dates',
-                form_name: 'default',
-                subform_name: 'statement_form',
-                start_date_filter: formatDate(date_from, 'DD/MM/YYYY', false),
-                end_date_filter: formatDate(date_to, 'DD/MM/YYYY', false),
-            });
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [date_to, date_from]);
-
     if (error) return <p>{error}</p>;
 
-    const columns: TGetStatementTableColumnsTemplate = getStatementTableColumnsTemplate(currency, isDesktop);
+    const columns: TGetStatementTableColumnsTemplate = getStatementTableColumnsTemplate(currency, !isMobile);
     const columns_map = columns.reduce(
         (map, item) => {
             map[item.col_index as TColIndex] = item;
@@ -228,7 +195,7 @@ const Statement = observer(({ component_icon }: TStatement) => {
                 />
             </div>
             <div className='data-list__row'>
-                <DataList.Cell row={row} column={columns_map.date as TDataListCell['column']} />
+                <DataList.Cell row={row} column={columns_map.transaction_time as TDataListCell['column']} />
                 <DataList.Cell
                     className='data-list__row-cell--amount'
                     row={row}
@@ -241,8 +208,24 @@ const Statement = observer(({ component_icon }: TStatement) => {
         </React.Fragment>
     );
 
+    const archivedStatementBanner = has_archived_statement && (
+        <div className='statement__archived-banner'>
+            <Text size='xs' className='statement__archived-banner-text'>
+                <Localize i18n_default_text='Statements generated before the system upgrade are archived separately.' />
+            </Text>
+            <NavLink to={routes.archived_statement} className='statement__archived-link'>
+                <Text size='xs' color='less-prominent'>
+                    <Localize i18n_default_text='View archived statement' />
+                </Text>
+                <LegacyChevronRight1pxIcon iconSize='xs' fill='var(--color-text-secondary)' />
+            </NavLink>
+        </div>
+    );
+
+    // Archived statement banner sits above the filter on desktop, below the table on mobile.
     return (
         <React.Fragment>
+            {!isMobile && archivedStatementBanner}
             <ReportsMeta
                 className='reports__meta--statement'
                 filter_component={<FilterComponent />}
@@ -265,7 +248,7 @@ const Statement = observer(({ component_icon }: TStatement) => {
                     />
                 ) : (
                     <div className='reports__content'>
-                        {isDesktop ? (
+                        {!isMobile ? (
                             <DataTable
                                 className='statement'
                                 columns={columns}
@@ -297,6 +280,7 @@ const Statement = observer(({ component_icon }: TStatement) => {
                     </div>
                 )}
             </React.Fragment>
+            {isMobile && archivedStatementBanner}
         </React.Fragment>
     );
 });

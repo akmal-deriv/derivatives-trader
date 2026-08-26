@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter, useHistory, useLocation } from 'react-router-dom';
 
+import { routes } from '@deriv/shared';
 import { mockStore, StoreProvider } from '@deriv/stores';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -58,6 +59,35 @@ describe('ContractDetailsHeader', () => {
         await userEvent.click(screen.getByTestId('arrow'));
 
         expect(mock_store.common.routeBackInApp).toHaveBeenCalled();
+    });
+
+    test('clicking the back arrow returns to the automate route for an automation contract', async () => {
+        const historyMock = {
+            goBack: jest.fn(),
+            push: jest.fn(),
+        };
+        (useLocation as jest.Mock).mockReturnValue({ pathname: '' });
+        (useHistory as jest.Mock).mockReturnValue(historyMock);
+        const automation_store = mockStore({
+            contract_replay: {
+                contract_store: { contract_info: { auto_run_id: 'run_1' } },
+            },
+            common: {
+                routeBackInApp: jest.fn(),
+            },
+        });
+        render(
+            <StoreProvider store={automation_store}>
+                <BrowserRouter>
+                    <ContractDetailsHeader />
+                </BrowserRouter>
+            </StoreProvider>
+        );
+
+        await userEvent.click(screen.getByTestId('arrow'));
+
+        expect(historyMock.push).toHaveBeenCalledWith(routes.trader_automate);
+        expect(automation_store.common.routeBackInApp).not.toHaveBeenCalled();
     });
 
     test('clicking the back arrow calls history go back from Reports page', async () => {

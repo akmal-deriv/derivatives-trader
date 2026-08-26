@@ -1,5 +1,7 @@
-import { toMoment } from '@deriv/shared';
-import moment from 'moment';
+import { type ConfigType, type Dayjs, type OpUnitType, type QUnitType, toMoment } from '@deriv/shared';
+
+// Calendar can pivot on quarter/isoWeek which aren't in OpUnitType. Extend the union.
+export type TCalendarUnit = OpUnitType | QUnitType | 'isoWeek' | 'isoWeeks' | 'W';
 
 export const week_headers: Record<
     string,
@@ -38,24 +40,19 @@ export const getDaysOfTheWeek = (day: string) => {
     return days_of_the_week[day];
 };
 
-export const getDecade = (moment_date: moment.MomentInput) => {
+export const getDecade = (moment_date: ConfigType) => {
     const year = toMoment(moment_date).year();
     const decade_start_year = year - (year % 10) + 1;
     return `${decade_start_year}-${decade_start_year + 9}`;
 };
 
-export const getCentury = (moment_date: moment.MomentInput) => {
+export const getCentury = (moment_date: ConfigType) => {
     const year = toMoment(moment_date).year();
     const decade_start_year = year - (year % 10) + 1;
     return `${decade_start_year}-${decade_start_year + 99}`;
 };
 
-export const getDate = (
-    date: moment.Moment,
-    type: moment.unitOfTime.StartOf,
-    date_format: string,
-    selected_date_part: number
-) => {
+export const getDate = (date: Dayjs, type: TCalendarUnit, date_format: string, selected_date_part: number) => {
     switch (type) {
         case 'year':
         case 'y':
@@ -66,45 +63,37 @@ export const getDate = (
         case 'M':
             return date.month(selected_date_part).format(date_format);
         case 'week':
+        case 'weeks':
         case 'w':
             return date.week(selected_date_part).format(date_format);
-        case 'weeks':
-            return date.weeks(selected_date_part).format(date_format);
         case 'day':
+        case 'days':
         case 'd':
             return date.day(selected_date_part).format(date_format);
-        case 'days':
-            return date.days(selected_date_part).format(date_format);
         case 'hour':
+        case 'hours':
         case 'h':
             return date.hour(selected_date_part).format(date_format);
-        case 'hours':
-            return date.hours(selected_date_part).format(date_format);
         case 'minute':
+        case 'minutes':
         case 'm':
             return date.minute(selected_date_part).format(date_format);
-        case 'minutes':
-            return date.minutes(selected_date_part).format(date_format);
         case 'second':
+        case 'seconds':
         case 's':
             return date.second(selected_date_part).format(date_format);
-        case 'seconds':
-            return date.seconds(selected_date_part).format(date_format);
         case 'millisecond':
+        case 'milliseconds':
         case 'ms':
             return date.millisecond(selected_date_part).format(date_format);
-        case 'milliseconds':
-            return date.milliseconds(selected_date_part).format(date_format);
         case 'quarter':
-        case 'Q':
-            return date.quarter(selected_date_part).format(date_format);
         case 'quarters':
-            return date.quarters(selected_date_part).format(date_format);
+        case 'Q':
+            return (date as Dayjs & { quarter: (n: number) => Dayjs }).quarter(selected_date_part).format(date_format);
         case 'isoWeek':
-        case 'W':
-            return date.isoWeek(selected_date_part).format(date_format);
         case 'isoWeeks':
-            return date.isoWeeks(selected_date_part).format(date_format);
+        case 'W':
+            return (date as Dayjs & { isoWeek: (n: number) => Dayjs }).isoWeek(selected_date_part).format(date_format);
         case 'date':
         case 'dates':
         case 'D':

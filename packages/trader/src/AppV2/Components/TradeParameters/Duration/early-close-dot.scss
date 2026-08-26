@@ -1,0 +1,49 @@
+.early-close-dot {
+    position: absolute;
+    bottom: 4px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &__circle {
+        display: inline-block;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background-color: var(--component-textIcon-statusDanger, var(--status-danger, #ec3f3f));
+        cursor: pointer;
+    }
+
+    &__tooltip {
+        position: fixed;
+        transform: translate(-50%, -100%);
+        margin-top: -10px;
+        z-index: 9999;
+        pointer-events: none;
+    }
+
+    &__tooltip-content {
+        background-color: var(--color-surface-inverse, #333);
+        color: var(--color-text-inverse, #fff);
+        padding: 0.8rem 1.6rem;
+        border-radius: 0.8rem;
+        font-size: 1.2rem;
+        line-height: 1.5;
+        white-space: nowrap;
+        box-shadow: 0 0.4rem 1.2rem rgba(0, 0, 0, 0.3);
+    }
+
+    &__tooltip-arrow {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        bottom: -0.5rem;
+        width: 0;
+        height: 0;
+        border-style: solid;
+        border-width: 0.6rem 0.6rem 0;
+        border-color: var(--color-surface-inverse, #333) transparent transparent transparent;
+    }
+}

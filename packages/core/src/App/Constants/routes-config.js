@@ -1,16 +1,24 @@
 import React from 'react';
 
+import {
+    LegacyPositionIcon,
+    LegacyProfitTableIcon,
+    LegacyReportsIcon,
+    LegacyStatementIcon,
+    LegacyTimeIcon,
+} from '@deriv/quill-icons';
 import { routes } from '@deriv/shared';
 import { localize } from '@deriv-com/translations';
-import { LegacyReportsIcon, LegacyPositionIcon, LegacyProfitTableIcon, LegacyStatementIcon } from '@deriv/quill-icons';
-import Redirect from 'App/Containers/Redirect';
+
 import Endpoint from 'Modules/Endpoint';
-import CallbackPage from '../../Modules/Callback/CallbackPage.tsx';
 
 // Error Routes
 const Page404 = React.lazy(() => import(/* webpackChunkName: "404" */ 'Modules/Page404'));
+const PageUnavailable = React.lazy(() => import(/* webpackChunkName: "unavailable" */ 'Modules/PageUnavailable'));
 
-const Trader = React.lazy(() => import(/* webpackChunkName: "trader" */ '@deriv/trader'));
+const MenuPage = React.lazy(() => import(/* webpackChunkName: "menu" */ 'Modules/Menu'));
+
+const Trader = React.lazy(() => import(/* webpackChunkName: "trader", webpackPreload: true */ '@deriv/trader'));
 
 const Reports = React.lazy(() => import(/* webpackChunkName: "reports" */ '@deriv/reports'));
 
@@ -21,6 +29,7 @@ const getModules = () => {
             component: Reports,
             getTitle: () => localize('Reports'),
             icon_component: <LegacyReportsIcon />,
+            protected: true,
             routes: [
                 {
                     path: routes.positions,
@@ -28,35 +37,48 @@ const getModules = () => {
                     getTitle: () => localize('Open positions'),
                     icon_component: <LegacyPositionIcon />,
                     default: true,
+                    protected: true,
                 },
                 {
                     path: routes.profit,
                     component: Reports,
                     getTitle: () => localize('Trade table'),
                     icon_component: <LegacyProfitTableIcon />,
+                    protected: true,
                 },
                 {
                     path: routes.statement,
                     component: Reports,
                     getTitle: () => localize('Statement'),
                     icon_component: <LegacyStatementIcon />,
+                    protected: true,
+                },
+                {
+                    path: routes.archived_statement,
+                    component: Reports,
+                    getTitle: () => localize('Archived statement'),
+                    icon_component: <LegacyTimeIcon />,
+                    protected: true,
                 },
             ],
         },
         {
+            path: routes.menu,
+            component: MenuPage,
+            getTitle: () => localize('Menu'),
+            protected: false,
+        },
+        {
             path: routes.index,
             component: Trader,
-            getTitle: () => localize('Trader'),
+            getTitle: () => localize('Trade'),
+            protected: false,
         },
         {
             path: routes.contract,
             component: Trader,
             getTitle: () => localize('Contract Details'),
-        },
-        {
-            path: routes.callback_page,
-            component: CallbackPage,
-            getTitle: () => 'Callback',
+            protected: true,
         },
     ];
 
@@ -67,8 +89,12 @@ const getModules = () => {
 // TODO: search tag: test-route-parent-info -> Enable test for getting route parent info when there are nested routes
 const initRoutesConfig = () => [
     { path: routes.endpoint, component: Endpoint, getTitle: () => 'Endpoint' }, // doesn't need localization as it's for internal use
-    { path: routes.redirect, component: Redirect, getTitle: () => localize('Redirect') },
-    { path: routes.callback_page, component: CallbackPage, getTitle: () => 'Callback' },
+    {
+        path: routes.unavailable,
+        component: PageUnavailable,
+        getTitle: () => localize('Platform Unavailable'),
+        protected: false,
+    },
     ...getModules(),
 ];
 

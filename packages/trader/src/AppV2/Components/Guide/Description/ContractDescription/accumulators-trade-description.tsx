@@ -5,22 +5,68 @@ import { Localize } from '@deriv-com/translations';
 import { getContractDescription, getTerm } from 'AppV2/Utils/contract-description-utils';
 import { CONTRACT_LIST } from 'AppV2/Utils/trade-types-utils';
 
-const AccumulatorsTradeDescription = ({ onTermClick }: { onTermClick: (term: string) => void }) => {
-    const { GROWTH_RATE, RANGE, PREVIOUS_SPOT_PRICE, PAYOUT, TAKE_PROFIT, SLIPPAGE_RISK } = getTerm();
+import TermButton from '../term-button';
+
+const AccumulatorsTradeDescription = ({
+    contract_type,
+    onTermClick,
+}: {
+    contract_type: string;
+    onTermClick: (term: string) => void;
+}) => {
+    const { INDEX, STAKE, GROWTH_RATE, PAYOUT, SPOT_PRICE, RANGE, PREVIOUS_SPOT_PRICE, TAKE_PROFIT, SLIPPAGE_RISK } =
+        getTerm();
     const content = [
         {
             type: 'paragraph',
             text: (
                 <Localize
-                    i18n_default_text='Accumulators allow you to express a view on the range of movement of an index and grow your stake exponentially at a fixed <0>growth rate</0>.'
+                    i18n_default_text='Accumulators allow you to predict how much an <0>index</0> can move and potentially grow your <1>stake</1> exponentially at a fixed <2>growth rate</2>.'
                     components={[
-                        <button
-                            className='description__content--definition'
-                            key={0}
-                            onClick={() => onTermClick(GROWTH_RATE)}
-                        />,
+                        <TermButton key={0} term={INDEX} contract_type={contract_type} onTermClick={onTermClick}>
+                            {INDEX}
+                        </TermButton>,
+                        <TermButton key={1} term={STAKE} contract_type={contract_type} onTermClick={onTermClick}>
+                            {STAKE}
+                        </TermButton>,
+                        <TermButton key={2} term={GROWTH_RATE} contract_type={contract_type} onTermClick={onTermClick}>
+                            {GROWTH_RATE}
+                        </TermButton>,
                     ]}
                 />
+            ),
+        },
+        {
+            type: 'paragraph',
+            text: (
+                <Localize
+                    i18n_default_text='Your <0>payout</0> is the sum of your initial stake and profit. It keeps growing as long as the <1>spot price</1> stays within a specified barrier <2>range</2> from the <3>previous spot price</3> at each interval.'
+                    components={[
+                        <TermButton key={0} term={PAYOUT} contract_type={contract_type} onTermClick={onTermClick}>
+                            {PAYOUT}
+                        </TermButton>,
+                        <TermButton key={1} term={SPOT_PRICE} contract_type={contract_type} onTermClick={onTermClick}>
+                            {SPOT_PRICE}
+                        </TermButton>,
+                        <TermButton key={2} term={RANGE} contract_type={contract_type} onTermClick={onTermClick}>
+                            {RANGE}
+                        </TermButton>,
+                        <TermButton
+                            key={3}
+                            term={PREVIOUS_SPOT_PRICE}
+                            contract_type={contract_type}
+                            onTermClick={onTermClick}
+                        >
+                            {PREVIOUS_SPOT_PRICE}
+                        </TermButton>,
+                    ]}
+                />
+            ),
+        },
+        {
+            type: 'paragraph',
+            text: (
+                <Localize i18n_default_text='If the spot price goes outside that range, you lose your stake and the trade is terminated.' />
             ),
         },
         {
@@ -31,48 +77,11 @@ const AccumulatorsTradeDescription = ({ onTermClick }: { onTermClick: (term: str
             type: 'paragraph',
             text: (
                 <Localize
-                    i18n_default_text='Your payout will continue to grow as long as the current spot price remains within a specified <0>range</0> from the <1>previous spot price</1>. Otherwise, you lose your stake and the trade is terminated.'
+                    i18n_default_text='<0>Take profit</0>: Set a target payout to automatically close your contract and secure your gains (not available for ongoing trades).'
                     components={[
-                        <button
-                            className='description__content--definition'
-                            key={0}
-                            onClick={() => onTermClick(RANGE)}
-                        />,
-                        <button
-                            className='description__content--definition'
-                            key={1}
-                            onClick={() => onTermClick(PREVIOUS_SPOT_PRICE)}
-                        />,
-                    ]}
-                />
-            ),
-        },
-        {
-            type: 'paragraph',
-            text: (
-                <Localize
-                    i18n_default_text='Your <0>payout</0> is the sum of your initial stake and profit.'
-                    components={[
-                        <button
-                            className='description__content--definition'
-                            key={0}
-                            onClick={() => onTermClick(PAYOUT)}
-                        />,
-                    ]}
-                />
-            ),
-        },
-        {
-            type: 'paragraph',
-            text: (
-                <Localize
-                    i18n_default_text='<0>Take profit</0> is an additional feature that lets you manage your risk by automatically closing the trade when your profit reaches the target amount. This feature is unavailable for ongoing accumulator contracts.'
-                    components={[
-                        <button
-                            className='description__content--definition'
-                            key={0}
-                            onClick={() => onTermClick(TAKE_PROFIT)}
-                        />,
+                        <TermButton key={0} term={TAKE_PROFIT} contract_type={contract_type} onTermClick={onTermClick}>
+                            {TAKE_PROFIT}
+                        </TermButton>,
                     ]}
                 />
             ),
@@ -83,18 +92,21 @@ const AccumulatorsTradeDescription = ({ onTermClick }: { onTermClick: (term: str
                 <Localize
                     i18n_default_text='You can close your trade anytime. However, be aware of <0>slippage risk</0>.'
                     components={[
-                        <button
-                            className='description__content--definition'
+                        <TermButton
                             key={0}
-                            onClick={() => onTermClick(SLIPPAGE_RISK)}
-                        />,
+                            term={SLIPPAGE_RISK}
+                            contract_type={contract_type}
+                            onTermClick={onTermClick}
+                        >
+                            {SLIPPAGE_RISK}
+                        </TermButton>,
                     ]}
                 />
             ),
         },
     ];
 
-    return <React.Fragment>{getContractDescription(content)}</React.Fragment>;
+    return <>{getContractDescription(content)}</>;
 };
 
 export default AccumulatorsTradeDescription;

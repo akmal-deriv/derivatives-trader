@@ -1,0 +1,230 @@
+.automation-guide {
+    &__trigger {
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        transition: opacity 0.2s ease;
+        text-decoration: none;
+        color: inherit;
+        background: transparent;
+        border: 0;
+
+        @include rtl {
+            direction: rtl;
+        }
+
+        &:hover {
+            text-decoration: underline;
+            text-decoration-color: var(--component-textIcon-normal-prominent);
+        }
+
+        svg {
+            width: 16px;
+            height: 16px;
+            fill: var(--component-textIcon-normal-prominent);
+
+            @include rtl {
+                transform: scaleX(-1);
+            }
+        }
+
+        @include mobile-screen {
+            padding-inline: 8px;
+        }
+    }
+
+    &__modal {
+        max-width: 51.2rem;
+        width: 100%;
+
+        .quill-modal__button-wrapper .quill-button {
+            border-radius: var(--component-button-border-radius-xl);
+        }
+
+        // quill positions the close icon top-right; flip it to the left in RTL.
+        .quill-modal__close-icon {
+            @include rtl {
+                right: auto;
+                left: var(--core-spacing-800);
+            }
+        }
+    }
+
+    &__body {
+        display: flex;
+        flex-direction: column;
+        gap: var(--core-spacing-1600);
+        padding: var(--component-modal-spacing-overlay-padding-md) var(--component-modal-spacing-overlay-padding-md) 0;
+
+        @include rtl {
+            direction: rtl;
+            text-align: right;
+        }
+    }
+
+    // Mobile equivalent of desktop's `__body`.
+    &__sheet-content {
+        display: flex;
+        flex-direction: column;
+        gap: var(--core-spacing-1600);
+        padding: var(--component-modal-spacing-overlay-padding-sm);
+        overflow-x: hidden;
+        overflow-y: auto;
+
+        @include rtl {
+            direction: rtl;
+            text-align: right;
+        }
+    }
+
+    &__title {
+        margin: 0;
+    }
+
+    // Mobile-only ActionSheet that opens when the i icon is tapped.
+    &__strategy-info {
+        display: flex;
+        flex-direction: column;
+        gap: var(--core-spacing-1200);
+        padding: var(--component-modal-spacing-overlay-padding-sm);
+    }
+
+    &__strategy-info-title {
+        margin: 0;
+    }
+}
+
+// xl (24px) radius on our sheets' footer button — scoped so other
+// ActionSheets in the app keep their default radius.
+.quill-action-sheet--root:has(.automation-guide__sheet-content, .automation-guide__strategy-info)
+    .quill-action-sheet--footer
+    .quill-button {
+    border-radius: var(--component-button-border-radius-xl);
+}
+
+.automation-guide-content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--core-spacing-1200);
+
+    &__section {
+        display: flex;
+        flex-direction: column;
+        gap: var(--core-spacing-1200);
+    }
+
+    &__divider {
+        margin: 0;
+        border: 0;
+        border-block-start: 1px solid var(--semantic-color-monochrome-border-normal-mid);
+    }
+
+    &__heading {
+        margin: 0;
+    }
+
+    &__heading-row {
+        display: flex;
+        align-items: center;
+        gap: var(--core-spacing-400);
+    }
+
+    &__info-icon {
+        display: inline-flex;
+        align-items: center;
+        padding: 0;
+        background: transparent;
+        border: 0;
+        cursor: pointer;
+    }
+
+    &__paragraph {
+        color: var(--component-textIcon-normal-default);
+    }
+
+    &__chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--core-spacing-800);
+
+        .quill-chip {
+            cursor: pointer;
+        }
+
+        // Outlined selected state — same treatment as the trade-type chips
+        // on the automate tab.
+        .quill-chip[data-state='selected'] {
+            background-color: transparent !important;
+            border-color: var(--component-textIcon-normal-prominent) !important;
+
+            > p {
+                color: var(--component-textIcon-normal-prominent) !important;
+            }
+        }
+    }
+
+    &__params {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: var(--core-spacing-800);
+    }
+
+    &__param {
+        display: flex;
+        align-items: flex-start;
+        gap: var(--core-spacing-800);
+    }
+
+    // Outlined circle (no background fill) — matches the design.
+    &__param-index {
+        flex-shrink: 0;
+        width: 2.4rem;
+        height: 2.4rem;
+        border-radius: 50%;
+        border: 1px solid var(--semantic-color-monochrome-border-normal-mid);
+        color: var(--component-textIcon-normal-prominent);
+        font-size: var(--core-fontSize-75);
+        line-height: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    &__param-body {
+        display: flex;
+        flex-direction: column;
+        gap: var(--core-spacing-200);
+        flex: 1;
+    }
+
+    &__warning {
+        display: flex;
+        align-items: flex-start;
+        gap: var(--core-spacing-400);
+        padding: var(--core-spacing-800);
+        border-radius: var(--component-sectionMessage-border-radius);
+        background-color: var(--component-sectionMessage-bg-warning);
+
+        svg {
+            flex-shrink: 0;
+            margin-block-start: var(--core-spacing-100);
+        }
+    }
+}
+
+// Lift the tooltip portal above the Modal backdrop (z-index 9999) — quill
+// doesn't set one. The `.tooltip-content` sizing is intentionally global
+// (trigger lives in a different portal, no `popoverClassName` to scope).
+.react-tiny-popover-container {
+    z-index: 10000;
+
+    .tooltip-content {
+        max-width: 32.8rem;
+        padding: 0.8rem 1.6rem;
+        border-radius: 0.8rem;
+    }
+}

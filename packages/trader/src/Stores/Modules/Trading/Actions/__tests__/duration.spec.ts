@@ -1,6 +1,4 @@
-import moment from 'moment';
-
-import { TRADE_TYPES } from '@deriv/shared';
+import { dayjs, TRADE_TYPES } from '@deriv/shared';
 import { mockStore } from '@deriv/stores';
 
 import { ContractType } from '../../Helpers/contract-type';
@@ -148,7 +146,7 @@ const trade_store = {
         ...mockStore({}),
         common: {
             ...mockStore({}).common,
-            server_time: moment(new Date()).utc(),
+            server_time: dayjs(new Date()).utc(),
         },
     },
     strike_price_choices: { barrier: barrier_1, barrier_choices },
@@ -168,13 +166,14 @@ describe('onChangeExpiry', () => {
             contract_expiry_type: 'intraday',
         });
     });
-    it('should return an object with barriers and expiry type when duration_unit === d', () => {
-        expect(onChangeExpiry({ ...trade_store, duration_unit: 'd' })).toMatchObject({
-            barrier_1: '1790.00',
-            barrier_2: '',
-            barrier_count: 1,
-            contract_expiry_type: 'daily',
-        });
+    it('should return the expiry type only when duration_unit === d, without re-seeding barriers', () => {
+        // Barrier re-seeding moved to the trade-store reaction that owns `contract_expiry_type`:
+        // it can see the transition directly, whereas this function could only infer one by
+        // disagreeing with the store — which stopped being a reliable signal once the store
+        // derived the value correctly. See barrier-support.spec.ts for the re-seed coverage.
+        const result = onChangeExpiry({ ...trade_store, duration_unit: 'd' });
+
+        expect(result).toEqual({ contract_expiry_type: 'daily' });
     });
 });
 

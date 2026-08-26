@@ -21,6 +21,9 @@ type TAccumulatorStats = {
 export const ROW_SIZES = {
     DESKTOP_COLLAPSED: 10,
     DESKTOP_EXPANDED: 10,
+    TABLET_EXPANDED: 10,
+    TABLET_COLLAPSED_FLYOUT_OPEN: 3,
+    TABLET_COLLAPSED_FLYOUT_CLOSED: 9,
     MOBILE_COLLAPSED: 15,
     MOBILE_EXPANDED: 5,
 };
@@ -29,8 +32,8 @@ const AccumulatorsStats = observer(({ is_expandable = true }: TAccumulatorStats)
     const { localize } = useTranslations();
     const { ui } = useStore();
     const { ticks_history_stats = {} } = useTraderStore();
-    const { is_dark_mode_on: is_dark_theme } = ui;
-    const { isDesktop, isMobile } = useDevice();
+    const { is_dark_mode_on: is_dark_theme, active_sidebar_flyout } = ui;
+    const { isDesktop, isMobile, isTablet } = useDevice();
 
     const [is_collapsed, setIsCollapsed] = React.useState(true);
     const [is_manual_open, setIsManualOpen] = React.useState(false);
@@ -39,9 +42,28 @@ const AccumulatorsStats = observer(({ is_expandable = true }: TAccumulatorStats)
     const history_text_size = isDesktop || !is_collapsed ? 'xxs' : 'xxxs';
 
     const rows = ticks_history.reduce((acc: number[][], _el, index) => {
-        const desktop_row_size = is_collapsed ? ROW_SIZES.DESKTOP_COLLAPSED : ROW_SIZES.DESKTOP_EXPANDED;
-        const mobile_row_size = is_collapsed ? ROW_SIZES.MOBILE_COLLAPSED : ROW_SIZES.MOBILE_EXPANDED;
-        const row_size = isMobile ? mobile_row_size : desktop_row_size;
+        let row_size: number;
+
+        if (isMobile) {
+            // Mobile behavior
+            row_size = is_collapsed ? ROW_SIZES.MOBILE_COLLAPSED : ROW_SIZES.MOBILE_EXPANDED;
+        } else if (isTablet) {
+            // Tablet behavior
+            if (!is_collapsed) {
+                // Expanded state: always 10 stats
+                row_size = ROW_SIZES.TABLET_EXPANDED;
+            } else {
+                // Collapsed state: 3 stats when flyout is open, 10 when closed
+                row_size =
+                    active_sidebar_flyout !== null
+                        ? ROW_SIZES.TABLET_COLLAPSED_FLYOUT_OPEN
+                        : ROW_SIZES.TABLET_COLLAPSED_FLYOUT_CLOSED;
+            }
+        } else {
+            // Desktop behavior: always 10 stats
+            row_size = is_collapsed ? ROW_SIZES.DESKTOP_COLLAPSED : ROW_SIZES.DESKTOP_EXPANDED;
+        }
+
         if (index % row_size === 0) {
             acc.push(ticks_history.slice(index, index + row_size));
         }

@@ -1,68 +1,104 @@
-import React from 'react';
 import { Step } from 'react-joyride';
 
 import { Localize } from '@deriv-com/translations';
 
-const STEPS = [
+import { TRADE_PANEL_TABS, type TTradePanelTab } from 'AppV2/Components/AutomationPanel/automation-config';
+
+// Spotlight corner radius — shared with the Joyride config in guide-container so the value lives once.
+export const SPOTLIGHT_RADIUS = '8px';
+// Composed-card steps (params spotlight + the panel switcher lifted flush against its top-right) keep
+// the radius on every corner except that top-right seam, so the switcher still meets it flush (LTR).
+const COMPOSED_SPOTLIGHT_RADIUS = `${SPOTLIGHT_RADIUS} 0 ${SPOTLIGHT_RADIUS} ${SPOTLIGHT_RADIUS}`;
+
+/** Store actions the tour drives between steps so each anchor is on-screen for the breakpoint. */
+export type TTourActions = {
+    setMarketSelectorOpen: (open: boolean) => void;
+    setActiveTradePanelTab: (tab: TTradePanelTab) => void;
+};
+
+export type TOnboardingStep = Step & {
+    /** Runs BEFORE the step is shown, to CREATE its anchor (e.g. open the market selector). The
+     * tour waits for the anchor to mount before advancing. */
+    prepare?: (actions: TTourActions) => void;
+    /** Runs AFTER joyride re-anchors (from the step-index effect) — for side effects that must not
+     * share the advance tick, e.g. closing the selector or switching the panel tab. */
+    enter?: (actions: TTourActions) => void;
+    /** Desktop: lift the trade-panel switcher above the tour overlay so both items stay bright next
+     * to the spotlighted card — matches the design. */
+    spotlight_switcher?: boolean;
+};
+
+/**
+ * Unified trade-page tour. Copy is shared across breakpoints; anchors and the per-step hooks differ
+ * — desktop is a single screen with a side panel, mobile navigates via the bottom nav.
+ */
+const getOnboardingSteps = (isMobile: boolean): TOnboardingStep[] => [
     {
-        content: <Localize i18n_default_text='Scroll left or right to explore trade types.' />,
-        offset: 0,
-        spotlightPadding: 2,
-        target: '.trade__trade-types',
-        title: <Localize i18n_default_text='Explore trade types (1/6)' />,
+        title: <Localize i18n_default_text='Multiple tabs' />,
+        content: <Localize i18n_default_text='Trade multiple markets side by side. Give every trade its own tab.' />,
+        // The whole strip — the add (+) button and the open market tab(s) — so the spotlight frames
+        // both, per the design (not just the + icon).
+        target: '.market-tabs',
+        placement: 'bottom-start',
+        disableScrollParentFix: true,
     },
     {
-        content: <Localize i18n_default_text='View available markets here.' />,
-        offset: 4,
-        placement: 'bottom-start' as Step['placement'],
-        spotlightPadding: 8,
-        target: '.market-selector__container',
-        title: <Localize i18n_default_text='Choose a market (2/6)' />,
-    },
-    {
-        content: <Localize i18n_default_text='Specify your trade parameters.' />,
-        offset: 4,
-        spotlightPadding: 8,
-        target: '.trade-params',
-        title: <Localize i18n_default_text='Open your trade (3/6)' />,
-    },
-    {
-        content: '',
-        disableBeacon: false,
-        offset: 0,
-        spotlightPadding: 0,
-        styles: {
-            spotlight: {
-                display: 'none',
+        title: <Localize i18n_default_text='Trade types and markets' />,
+        content: <Localize i18n_default_text='Find all your trade types and markets in one place.' />,
+        target: isMobile ? '.market-selection' : '.market-selection-desktop',
+        // Mobile: the selector is a full-height page, so a top/bottom anchor lands off-screen. A
+        // 'center' step repinned to the bottom (below) reads as a bottom-sheet callout, always visible.
+        placement: isMobile ? 'center' : 'right',
+        prepare: ({ setMarketSelectorOpen }) => setMarketSelectorOpen(true),
+        ...(isMobile && {
+            // Full brightness (per design): the callout floats over the selector with no dim. Leaving
+            // it interactive is fine for this "here's where you browse" step.
+            disableOverlay: true,
+            floaterProps: {
+                styles: {
+                    floaterCentered: { top: 'auto', bottom: 'var(--core-spacing-800)', transform: 'translateX(-50%)' },
+                },
             },
-            arrow: {
-                display: 'none',
-            },
+        }),
+    },
+    {
+        title: <Localize i18n_default_text='Manual trading' />,
+        content: (
+            <Localize i18n_default_text="Stay in control of every trade. Configure your trade and buy when you're ready." />
+        ),
+        target: isMobile ? '.bottom-nav-item--trade' : '.trade-params__content',
+        placement: isMobile ? 'top' : 'left',
+        spotlight_switcher: !isMobile,
+        ...(!isMobile && { styles: { spotlight: { borderRadius: COMPOSED_SPOTLIGHT_RADIUS } } }),
+        enter: ({ setMarketSelectorOpen, setActiveTradePanelTab }) => {
+            setMarketSelectorOpen(false);
+            if (!isMobile) setActiveTradePanelTab(TRADE_PANEL_TABS.TRADE);
         },
-        target: '#react-joyride-portal',
-        title: 'scroll-icon',
     },
     {
-        content: <Localize i18n_default_text='Track market trends with our interactive charts.' />,
-        spotlightPadding: 8,
-        offset: 4,
-        target: '.trade__chart-tooltip',
-        title: <Localize i18n_default_text='Analyse with charts (4/6)' />,
-        placement: 'bottom' as Step['placement'],
+        title: <Localize i18n_default_text='Automated trading' />,
+        content: (
+            <Localize i18n_default_text='Let your strategy do the work. Configure your strategy, then tap Run to start automated trading.' />
+        ),
+        target: isMobile ? '.bottom-nav-item--automate' : '.trade-params__content',
+        placement: isMobile ? 'top' : 'left',
+        spotlight_switcher: !isMobile,
+        ...(!isMobile && { styles: { spotlight: { borderRadius: COMPOSED_SPOTLIGHT_RADIUS } } }),
+        enter: ({ setActiveTradePanelTab }) => {
+            if (!isMobile) setActiveTradePanelTab(TRADE_PANEL_TABS.AUTOMATION);
+        },
     },
     {
-        content: <Localize i18n_default_text='Scroll left or right to adjust your trade parameters.' />,
-        disableScrolling: false,
-        offset: -4,
-        target: '.trade__parameter',
-        title: <Localize i18n_default_text='Make quick adjustments (5/6)' />,
-    },
-    {
-        content: <Localize i18n_default_text='View your positions here.' />,
-        offset: -4,
-        target: '.user-guide__anchor',
-        title: <Localize i18n_default_text='Check your positions (6/6)' />,
+        title: <Localize i18n_default_text='Track your trades' />,
+        content: (
+            <Localize i18n_default_text='See all your open positions and monitor their performance in one place.' />
+        ),
+        target: isMobile ? '.bottom-nav-item--positions' : '[data-testid="dt_sidebar_positions"]',
+        placement: isMobile ? 'top' : 'right',
+        enter: ({ setActiveTradePanelTab }) => {
+            if (!isMobile) setActiveTradePanelTab(TRADE_PANEL_TABS.TRADE);
+        },
     },
 ];
 
-export default STEPS;
+export default getOnboardingSteps;

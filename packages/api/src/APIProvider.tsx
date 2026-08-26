@@ -1,8 +1,10 @@
-import React, { PropsWithChildren, createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import React, { createContext, PropsWithChildren, useCallback, useContext, useEffect, useRef, useState } from 'react';
+
 // @ts-expect-error `@deriv/deriv-api` is not in TypeScript, Hence we ignore the TS error.
 import DerivAPIBasic from '@deriv/deriv-api/dist/DerivAPIBasic';
-import { getAppId, getSocketURL, useWS } from '@deriv/shared';
+import { getAccountServer, getApiCoreBaseUrl, getBrandName, getSocketURL, useWS } from '@deriv/shared';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
 import {
     TSocketEndpointNames,
     TSocketError,
@@ -10,6 +12,7 @@ import {
     TSocketResponseData,
     TSocketSubscribableEndpointNames,
 } from '../types';
+
 import { hashObject } from './utils';
 
 type TSendFunction = <T extends TSocketEndpointNames>(
@@ -24,6 +27,10 @@ type TSubscribeFunction = <T extends TSocketSubscribableEndpointNames>(
 
 type TUnsubscribeFunction = (id: string) => void;
 
+type TRestAPIConfig = {
+    baseUrl: string;
+};
+
 type APIContextData = {
     derivAPI: DerivAPIBasic | null;
     switchEnvironment: (loginid: string | null | undefined) => void;
@@ -31,9 +38,10 @@ type APIContextData = {
     subscribe: TSubscribeFunction;
     unsubscribe: TUnsubscribeFunction;
     queryClient: QueryClient;
+    restAPIConfig: TRestAPIConfig;
 };
 
-const APIContext = createContext<APIContextData | null>(null);
+export const APIContext = createContext<APIContextData | null>(null);
 
 declare global {
     interface Window {
@@ -46,22 +54,33 @@ declare global {
 // This is a temporary workaround to share a single `QueryClient` instance between all the packages.
 const getSharedQueryClientContext = (): QueryClient => {
     if (!window.ReactQueryClient) {
-        window.ReactQueryClient = new QueryClient();
+        window.ReactQueryClient = new QueryClient({
+            defaultOptions: {
+                queries: {
+                    refetchOnWindowFocus: false,
+                    refetchOnReconnect: false,
+                },
+            },
+            logger: {
+                log: () => {},
+                warn: () => {},
+                error: () => {},
+            },
+        });
     }
 
     return window.ReactQueryClient;
 };
 
 /**
- * Retrieves the WebSocket URL based on the current environment.
+ * Builds the standalone WebSocket URL from the resolved socket endpoint and brand.
  * @returns {string} The WebSocket URL.
  */
 const getWebSocketURL = () => {
     const endpoint = getSocketURL();
-    const app_id = getAppId();
-    const language = localStorage.getItem('i18n_language');
-    const brand = 'deriv';
-    const wss_url = `wss://${endpoint}/websockets/v3?app_id=${app_id}&l=${language}&brand=${brand}`;
+    const brand = getBrandName().toLowerCase();
+    // TODO remove hardcoded app_id in future
+    const wss_url = `wss://${endpoint}/websockets/v3?app_id=16929&brand=${brand}`;
 
     return wss_url;
 };
@@ -103,7 +122,7 @@ export const getActiveWebsocket = () => {
 
 /**
  * Initializes a DerivAPI instance for the global window. This enables a standalone connection
- * without causing race conditions with deriv-app core stores.
+ * without causing race conditions with derivatives-trader core stores.
  * @returns {DerivAPIBasic} The initialized DerivAPI instance.
  */
 const initializeDerivAPI = (onWSClose: () => void): DerivAPIBasic => {
@@ -124,19 +143,15 @@ const initializeDerivAPI = (onWSClose: () => void): DerivAPIBasic => {
 const queryClient = getSharedQueryClientContext();
 
 /**
- * Determines the WS environment based on the login ID and custom server URL.
- * @param {string | null | undefined} loginid - The login ID (can be a string, null, or undefined).
- * @returns {string} Returns the WS environment: 'custom', 'real', or 'demo'.
+ * Determines the WS environment based on the account_id prefix and custom server URL.
+ * @returns {string} Returns the WS environment: 'custom', 'real', 'demo', or 'public'.
  */
-/**
- * @deprecated Please use 'WebSocketUtils.getEnvironmentFromLoginid' from '@deriv-com/utils' instead of this.
- */
-const getEnvironment = (loginid: string | null | undefined) => {
+const getEnvironment = () => {
     const customServerURL = window.localStorage.getItem('config.server_url');
     if (customServerURL) return 'custom';
 
-    if (loginid && !/^(VRT|VRW)/.test(loginid)) return 'real';
-    return 'demo';
+    // Server is derived purely from the account_id prefix (DOT → demo, ROT → real).
+    return getAccountServer();
 };
 
 type TAPIProviderProps = {
@@ -147,9 +162,7 @@ type TAPIProviderProps = {
 const APIProvider = ({ children, standalone = false }: PropsWithChildren<TAPIProviderProps>) => {
     const WS = useWS();
     const [reconnect, setReconnect] = useState(false);
-    const activeLoginid =
-        window.sessionStorage.getItem('active_loginid') || window.localStorage.getItem('active_loginid');
-    const [environment, setEnvironment] = useState(getEnvironment(activeLoginid));
+    const [environment, setEnvironment] = useState(getEnvironment());
     const standaloneDerivAPI = useRef(standalone ? initializeDerivAPI(() => setReconnect(true)) : null);
     const subscriptions = useRef<Record<string, DerivAPIBasic['subscribe']>>();
 
@@ -196,7 +209,7 @@ const APIProvider = ({ children, standalone = false }: PropsWithChildren<TAPIPro
     const switchEnvironment = useCallback(
         (loginid: string | null | undefined) => {
             if (!standalone) return;
-            const currentEnvironment = getEnvironment(loginid);
+            const currentEnvironment = getEnvironment();
             if (currentEnvironment !== 'custom' && currentEnvironment !== environment) {
                 setEnvironment(currentEnvironment);
             }
@@ -208,7 +221,7 @@ const APIProvider = ({ children, standalone = false }: PropsWithChildren<TAPIPro
         let interval_id: ReturnType<typeof setInterval>;
 
         if (standalone) {
-            interval_id = setInterval(() => standaloneDerivAPI.current?.send({ ping: 1 }), 10000);
+            interval_id = setInterval(() => standaloneDerivAPI.current?.send({ time: 1 }), 30000);
         }
 
         return () => clearInterval(interval_id);
@@ -226,6 +239,12 @@ const APIProvider = ({ children, standalone = false }: PropsWithChildren<TAPIPro
         return () => clearTimeout(reconnectTimerId);
     }, [environment, reconnect, standalone]);
 
+    const restAPIConfig: TRestAPIConfig = React.useMemo(() => {
+        return {
+            baseUrl: getApiCoreBaseUrl(),
+        };
+    }, []);
+
     return (
         <APIContext.Provider
             value={{
@@ -235,6 +254,7 @@ const APIProvider = ({ children, standalone = false }: PropsWithChildren<TAPIPro
                 subscribe,
                 unsubscribe,
                 queryClient,
+                restAPIConfig,
             }}
         >
             <QueryClientProvider client={queryClient}>

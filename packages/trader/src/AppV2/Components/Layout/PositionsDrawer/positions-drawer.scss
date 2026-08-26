@@ -1,0 +1,195 @@
+.positions-drawer-tabs {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+
+    &__tab-bar {
+        flex-shrink: 0;
+        min-height: 4.8rem;
+        max-height: 4.8rem;
+    }
+
+    &__tab-container {
+        .tab-list--item {
+            width: 100%;
+        }
+
+        .tab-menu {
+            flex: 1;
+        }
+    }
+
+    &__body {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+
+    &__footer {
+        flex-shrink: 0;
+        border-top: 1px solid var(--color-surface-border);
+
+        .positions-drawer-footer--summary {
+            padding: var(--core-spacing-400) var(--core-spacing-800);
+        }
+    }
+}
+
+.positions-drawer-open {
+    .contract-card-wrapper {
+        max-height: none;
+    }
+
+    .contract-card {
+        flex-direction: column;
+        height: auto;
+        background-color: var(--semantic-color-monochrome-surface-normal-lowest);
+
+        &__sell-btn,
+        &__cancel-btn {
+            margin-top: var(--core-spacing-400);
+        }
+    }
+}
+
+// Wraps the time filter + scrollable closed-positions list. Flex column
+// so the filter sits fixed at the top and the inner list takes the
+// remaining height for its own scroll.
+.positions-drawer-closed-tab {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+
+    &__filters {
+        display: flex;
+        align-items: center;
+        gap: var(--core-spacing-400);
+        padding: var(--core-spacing-400) var(--core-spacing-800);
+        border-bottom: 1px solid var(--semantic-color-monochrome-border-normal-mid);
+    }
+}
+
+.positions-drawer-closed {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+
+    .contract-card {
+        background-color: var(--semantic-color-monochrome-surface-normal-lowest);
+    }
+
+    .contract-cards-section__title {
+        position: static;
+        background-color: transparent;
+    }
+}
+
+// Shared chip-pill dropdown filter used by `PositionsDrawerDropdownFilter`
+// (both the time filter and the trade-mode filter in the closed-positions
+// drawer). Owns all chip/dropdown styling so visual tweaks only land here.
+.positions-drawer-dropdown-filter {
+    display: flex;
+    align-items: center;
+
+    /* postcss-bem-linter: ignore */
+    &__dropdown-wrapper {
+        position: relative;
+        display: flex;
+        align-items: center;
+    }
+
+    /* postcss-bem-linter: ignore */
+    &__radio-option {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.6rem;
+        width: 100%;
+    }
+
+    /* Hide RadioButton wrapper in trigger; show plain fallback label */
+    /* postcss-bem-linter: ignore */
+    .dc-dropdown__display-text &__radio-button-wrapper {
+        display: none;
+    }
+
+    /* Hide fallback label in dropdown list items; RadioButton renders the label */
+    /* postcss-bem-linter: ignore */
+    .dc-list__item-text &__radio-label-fallback {
+        display: none;
+    }
+
+    /* postcss-bem-linter: ignore */
+    &__dropdown {
+        .positions-drawer-dropdown-filter__dropdown-display {
+            justify-content: flex-start;
+        }
+        .dc-dropdown__display-text {
+            justify-content: flex-start;
+            width: auto;
+            text-align: left;
+        }
+        /* postcss-bem-linter: ignore */
+        .dc-dropdown__list .dc-list {
+            padding: var(--component-dropdownList-spacing-padding-sm);
+        }
+        /* postcss-bem-linter: ignore */
+        .dc-list__item-text {
+            padding: 0.6rem;
+        }
+        /* The Dropdown caps its scroll-area at the measured offsetHeight
+           (or 200px). The list is short and finite, so let it grow without
+           an internal scrollbar. */
+        /* postcss-bem-linter: ignore */
+        .dc-themed-scrollbars {
+            max-height: none !important;
+        }
+    }
+
+    /* postcss-bem-linter: ignore */
+    &__dropdown--selected {
+        .positions-drawer-dropdown-filter__dropdown-display {
+            background-color: var(--component-chip-bg-selected);
+            border-color: var(--component-chip-bg-selected);
+
+            .dc-dropdown__display-text,
+            .positions-drawer-dropdown-filter__radio-label-fallback {
+                color: var(--component-chip-item-color-default);
+            }
+            svg {
+                fill: var(--component-chip-icon-selected);
+            }
+        }
+        .dc-dropdown__select-arrow {
+            fill: var(--component-chip-icon-selected);
+        }
+    }
+
+    // Shrink the container so it hugs the chip width. The dropdown list
+    // popover inherits `width: 100%`, so without the explicit overrides
+    // below it would collapse to the chip width and wrap row labels.
+    /* postcss-bem-linter: ignore */
+    .dc-dropdown-container {
+        width: auto;
+        min-width: 0;
+    }
+
+    .dc-dropdown__list,
+    .dc-dropdown__list .dc-list {
+        width: max-content;
+        min-width: 18rem;
+    }
+
+    /* postcss-bem-linter: ignore */
+    &__dropdown-display {
+        border-radius: 2.4rem !important;
+        height: 3.2rem;
+        border-color: var(--color-interactive-disabled);
+
+        &:hover {
+            border-color: var(--color-text-secondary);
+        }
+    }
+}

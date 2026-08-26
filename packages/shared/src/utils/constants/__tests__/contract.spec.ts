@@ -64,6 +64,12 @@ describe('getMarketNamesMap', () => {
         expect(symbols_translation_object['1HZ50V']).toEqual('Volatility 50 (1s) Index');
         expect(symbols_translation_object['1HZ75V']).toEqual('Volatility 75 (1s) Index');
     });
+    it('should name the new Crash/Boom symbols consistently with the existing ones (no N suffix in the display name)', () => {
+        expect(symbols_translation_object.CRASH50).toEqual('Crash 50 Index');
+        expect(symbols_translation_object.CRASH150N).toEqual('Crash 150 Index');
+        expect(symbols_translation_object.BOOM50).toEqual('Boom 50 Index');
+        expect(symbols_translation_object.BOOM150N).toEqual('Boom 150 Index');
+    });
 });
 
 describe('getUnsupportedContracts', () => {

@@ -2,7 +2,14 @@ import React from 'react';
 
 import { render, screen } from '@testing-library/react';
 
+import { CONTRACT_LIST } from 'AppV2/Utils/trade-types-utils';
+
 import HigherLowerTradeDescription from '../higher-lower-trade-description';
+
+jest.mock('@deriv/stores', () => ({
+    ...jest.requireActual('@deriv/stores'),
+    useStore: () => ({ ui: { is_dark_mode_on: false } }),
+}));
 
 jest.mock('@lottiefiles/dotlottie-react', () => ({
     DotLottieReact: jest.fn(() => <div>DotLottieReact</div>),
@@ -10,10 +17,12 @@ jest.mock('@lottiefiles/dotlottie-react', () => ({
 
 describe('HigherLowerTradeDescription', () => {
     it('should render a proper content', () => {
-        render(<HigherLowerTradeDescription />);
+        const mockOnTermClick = jest.fn();
+        render(
+            <HigherLowerTradeDescription contract_type={CONTRACT_LIST.HIGHER_LOWER} onTermClick={mockOnTermClick} />
+        );
 
-        expect(
-            screen.getByText(/you win the payout if the exit spot is strictly higher than the barrier/i)
-        ).toBeInTheDocument();
+        const earnElements = screen.getAllByText(/earn a/i);
+        expect(earnElements.length).toBeGreaterThan(0);
     });
 });

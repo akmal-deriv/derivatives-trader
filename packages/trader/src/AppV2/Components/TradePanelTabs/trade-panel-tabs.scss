@@ -1,0 +1,143 @@
+.trade-params__option.segmented-control-single .item,
+.trade-params__option.segmented-control-single .item * {
+    z-index: auto;
+}
+
+.trade-panel-tabs {
+    display: flex;
+    justify-content: center;
+
+    &__tooltip {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    &__toggle.segmented-control-single {
+        // Figma specs: 48x128, border-radius 24, padding 4
+        grid-auto-flow: row;
+        grid-auto-columns: unset;
+        grid-auto-rows: 1fr;
+        width: 4.8rem;
+        height: 9.2rem;
+        border-radius: 0 var(--core-borderRadius-400) var(--core-borderRadius-400) 0;
+        background: unset;
+        padding: unset;
+        // Let the selected item's outward corner flares paint outside the toggle.
+        overflow: visible;
+
+        .item {
+            position: relative; // anchors the outward corner flares
+            // Normal radius on both right corners; the left corners are square (the flat, panel-side
+            // edge). The outward "inverse" flares on the left are added via :after below.
+            border-radius: 0 var(--core-borderRadius-400) var(--core-borderRadius-400) 0;
+            color: var(--component-textIcon-normal-default);
+            // Fill for the outward corner flares — follows the item's current surface so they blend
+            // with the selected OR hover background; transparent (invisible) when the item is idle.
+            --flare-color: transparent;
+
+            &.selected {
+                color: var(--component-segmentedControl-label-single-color-selected);
+                background: var(--semantic-color-slate-solid-surface-frame-low);
+            }
+
+            &.animated {
+                &:before {
+                    color: var(--component-segmentedControl-label-single-color-selected);
+                    background: var(--semantic-color-slate-solid-surface-frame-low);
+                }
+            }
+
+            &.selected,
+            &.animated {
+                --flare-color: var(--semantic-color-slate-solid-surface-frame-low);
+            }
+
+            &:hover:not(.selected):not(.animated) {
+                --flare-color: var(--component-segmentedControl-bg-single-item-hover);
+            }
+
+            // Outward ("inverse") radius on the LEFT corners: quarter-circle fillets flaring the
+            // active/hovered item into the panel, matching the market tabs. Coloured via --flare-color
+            // (so selected AND hover both get them). `:before` is taken by the segmented-control slide
+            // animation, so the fillets are drawn from `:after`.
+            //  • Top item    → bottom-left only (its top-left is the strip's outer corner: square).
+            //  • Bottom item → both top-left (the seam) and bottom-left (the strip's base).
+            &:first-child:after,
+            &:last-child:after {
+                content: '';
+                position: absolute;
+                inset-inline-start: 0;
+                width: var(--core-borderRadius-400);
+                pointer-events: none;
+            }
+
+            &:first-child:after {
+                bottom: calc(-1 * var(--core-borderRadius-400));
+                height: var(--core-borderRadius-400);
+                background: radial-gradient(
+                    circle at bottom right,
+                    transparent var(--core-borderRadius-400),
+                    var(--flare-color) var(--core-borderRadius-400)
+                );
+            }
+
+            &:last-child:after {
+                top: calc(-1 * var(--core-borderRadius-400));
+                bottom: calc(-1 * var(--core-borderRadius-400));
+                background:
+                    radial-gradient(
+                            circle at top right,
+                            transparent var(--core-borderRadius-400),
+                            var(--flare-color) var(--core-borderRadius-400)
+                        )
+                        left top / var(--core-borderRadius-400) var(--core-borderRadius-400) no-repeat,
+                    radial-gradient(
+                            circle at bottom right,
+                            transparent var(--core-borderRadius-400),
+                            var(--flare-color) var(--core-borderRadius-400)
+                        )
+                        left bottom / var(--core-borderRadius-400) var(--core-borderRadius-400) no-repeat;
+            }
+
+            // On hover (not selected), the bottom item uses a regular rounded top-left instead of the
+            // inverse flare — it reads as a standalone highlight, not connected to the tab above.
+            &:last-child:hover:not(.selected):not(.animated) {
+                border-top-left-radius: var(--core-borderRadius-400);
+
+                &:after {
+                    top: auto;
+                    height: var(--core-borderRadius-400);
+                    background: radial-gradient(
+                        circle at bottom right,
+                        transparent var(--core-borderRadius-400),
+                        var(--flare-color) var(--core-borderRadius-400)
+                    );
+                }
+            }
+
+            // Automation tab (2nd item) — orange when active
+            &:nth-child(2).selected,
+            &:nth-child(2).animated {
+                svg,
+                svg * {
+                    fill: var(--semantic-color-orange-solid-textIcon-normal-mid) !important;
+                    color: var(--semantic-color-orange-solid-textIcon-normal-mid) !important;
+                }
+            }
+        }
+    }
+}
+
+// While the onboarding tour spotlights the trade panel (body class toggled by the tour), lift the
+// whole switcher above the tour overlay (z-index 1200) so both items stay bright next to the
+// spotlighted card. Below the tour tooltip (z-index 1300).
+body.dtrader-tour--panel-switcher .trade-panel-tabs {
+    position: relative;
+    z-index: 1250;
+    // Nudge up a hair — joyride pixel-snaps the spotlight edge, so the exact-positioned switcher
+    // otherwise sits ~1px below it, leaving the top line looking notched.
+    transform: translateY(-1px);
+}

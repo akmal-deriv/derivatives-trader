@@ -3,13 +3,13 @@ import getActiveLoginIDFromLocalStorage from '../getActiveLoginIDFromLocalStorag
 describe('getActiveLoginIDFromLocalStorage', () => {
     beforeEach(() => {
         localStorage.clear();
-        localStorage.setItem('active_loginid', 'CR1001');
+        localStorage.setItem('active_loginid', 'ROT1001');
     });
 
     test('should return active account token', () => {
         const result = getActiveLoginIDFromLocalStorage();
 
-        expect(result).toBe('CR1001');
+        expect(result).toBe('ROT1001');
     });
 
     test('should return null', () => {

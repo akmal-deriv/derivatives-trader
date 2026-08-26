@@ -1,12 +1,10 @@
 import React from 'react';
-import moment from 'moment';
 
+import { dayjs } from '@deriv/shared';
 import { mockStore } from '@deriv/stores';
 import { TCoreStores } from '@deriv/stores/types';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-
-import { ContractType } from 'Stores/Modules/Trading/Helpers/contract-type';
 
 import TraderProviders from '../../../../../trader-providers';
 import DurationActionSheetContainer from '../container';
@@ -34,34 +32,39 @@ jest.mock('AppV2/Hooks/useActiveSymbols', () => ({
     })),
 }));
 
-jest.mock('@deriv-com/quill-ui', () => ({
-    ...jest.requireActual('@deriv-com/quill-ui'),
-    DatePicker: jest.fn(({ onChange }) => (
-        <div>
-            <button
-                onClick={() => {
-                    const mockDate = new Date(2024, 8, 10);
-                    onChange(mockDate);
-                }}
-            >
-                Date Picker
-            </button>
-        </div>
-    )),
+jest.mock('../day', () => ({
+    __esModule: true,
+    default: jest.fn(() => <div>Mocked DayInput</div>),
 }));
+
+const default_props = {
+    tab: 'time',
+    setTab: jest.fn(),
+    selected_ticks: 1,
+    setSelectedTicks: jest.fn(),
+    selected_time: [0, 30, 0],
+    setSelectedTime: jest.fn(),
+    selected_expiry_time: '',
+    selected_expiry_date: '',
+    setSelectedExpiryTime: jest.fn(),
+    setSelectedExpiryDate: jest.fn(),
+    onSave: jest.fn(),
+    is_save_disabled: false,
+};
 
 describe('DurationActionSheetContainer', () => {
     let default_trade_store: TCoreStores;
 
     beforeEach(() => {
+        jest.clearAllMocks();
         default_trade_store = mockStore({
             modules: {
                 trade: {
                     duration: 30,
                     duration_unit: 'm',
                     duration_units_list: [
-                        { value: 's', text: 'seconds' },
                         { value: 't', text: 'ticks' },
+                        { value: 's', text: 'seconds' },
                         { value: 'm', text: 'minutes' },
                         { value: 'h', text: 'hours' },
                         { value: 'd', text: 'days' },
@@ -91,187 +94,232 @@ describe('DurationActionSheetContainer', () => {
                 },
             },
             common: {
-                server_time: moment('2024-10-10T11:23:10.895Z'),
+                server_time: dayjs('2024-10-10T11:23:10.895Z'),
             },
         });
     });
 
     const renderDurationContainer = (
         mocked_store: TCoreStores,
-        unit = 'm',
-        setUnit = jest.fn(),
-        selected_hour = [0, 0],
-        setSelectedHour = jest.fn(),
-        saved_expiry_date_v2 = new Date().toISOString().slice(0, 10),
-        setSavedExpiryDateV2 = jest.fn(),
-        end_time = '',
-        setEndTime = jest.fn()
+        props: Partial<React.ComponentProps<typeof DurationActionSheetContainer>> = {}
     ) => {
         render(
             <TraderProviders store={mocked_store}>
-                <DurationActionSheetContainer
-                    selected_hour={selected_hour}
-                    setSelectedHour={setSelectedHour}
-                    unit={unit}
-                    setUnit={setUnit}
-                    saved_expiry_date_v2={saved_expiry_date_v2}
-                    setSavedExpiryDateV2={setSavedExpiryDateV2}
-                    end_time={end_time}
-                    setEndTime={setEndTime}
-                    expiry_time_string='24th Aug 2024'
-                    setExpiryTimeString={() => jest.fn()}
-                    unsaved_expiry_date_v2={''}
-                    setUnsavedExpiryDateV2={() => jest.fn()}
-                />
+                <DurationActionSheetContainer {...default_props} {...props} />
             </TraderProviders>
         );
     };
 
-    it('should render the DurationActionSheetContainer with default values', () => {
+    it('should render Ticks, Time and End time tabs when all units are available', () => {
         renderDurationContainer(default_trade_store);
-        expect(screen.getByText('Duration')).toBeInTheDocument();
-        expect(screen.getByText('Save')).toBeInTheDocument();
+
+        expect(screen.getByRole('tab', { name: 'Ticks' })).toBeInTheDocument();
+        expect(screen.getByRole('tab', { name: 'Time' })).toBeInTheDocument();
+        expect(screen.getByRole('tab', { name: 'End time' })).toBeInTheDocument();
     });
 
-    it('should select duration in hours if duration is more than 59 minutes', async () => {
-        default_trade_store.modules.trade.duration = 130;
-        renderDurationContainer(default_trade_store, 'h', jest.fn(), [2, 10]);
+    it('should not render Ticks tab when ticks are not available', () => {
+        default_trade_store.modules.trade.duration_units_list = [
+            { value: 'm', text: 'minutes' },
+            { value: 'h', text: 'hours' },
+            { value: 'd', text: 'days' },
+        ];
+        renderDurationContainer(default_trade_store);
 
-        const duration_chip = screen.getByText('1 h');
-        await userEvent.click(duration_chip);
-
-        expect(default_trade_store.modules.trade.onChangeMultiple).not.toHaveBeenCalled();
+        expect(screen.queryByRole('tab', { name: 'Ticks' })).not.toBeInTheDocument();
+        expect(screen.getByRole('tab', { name: 'Time' })).toBeInTheDocument();
+        expect(screen.getByRole('tab', { name: 'End time' })).toBeInTheDocument();
     });
 
-    it('should call onChangeMultiple with correct data with hours', async () => {
-        default_trade_store.modules.trade.duration = 130;
-        renderDurationContainer(default_trade_store, 'm', jest.fn(), [2, 10], jest.fn());
+    it('should not render Time tab when no intraday units are available', () => {
+        default_trade_store.modules.trade.duration_units_list = [
+            { value: 't', text: 'ticks' },
+            { value: 'd', text: 'days' },
+        ];
+        renderDurationContainer(default_trade_store, { tab: 't' });
 
-        await userEvent.click(screen.getByText('Save'));
-
-        expect(default_trade_store.modules.trade.onChangeMultiple).toHaveBeenCalledWith({
-            duration_unit: 'm',
-            duration: 1,
-            expiry_time: null,
-            expiry_type: 'duration',
-        });
+        expect(screen.getByRole('tab', { name: 'Ticks' })).toBeInTheDocument();
+        expect(screen.queryByRole('tab', { name: 'Time' })).not.toBeInTheDocument();
+        expect(screen.getByRole('tab', { name: 'End time' })).toBeInTheDocument();
     });
 
-    it('should call onChangeMultiple with correct data with ticks', async () => {
-        default_trade_store.modules.trade.duration = 5;
-
-        renderDurationContainer(default_trade_store, 't');
-
-        await userEvent.click(screen.getByText('Save'));
-
-        expect(default_trade_store.modules.trade.onChangeMultiple).toHaveBeenCalledWith({
-            duration_unit: 't',
-            duration: 5,
-            expiry_time: null,
-            expiry_type: 'duration',
-        });
-    });
-
-    it('should call change duration on changing chips', async () => {
-        renderDurationContainer(default_trade_store, 'h');
-
-        await userEvent.click(screen.getByText('minutes'));
-        expect(screen.getByText('1 min')).toBeInTheDocument();
-        await userEvent.click(screen.getByText('hours'));
-        expect(screen.getByText('1 h')).toBeInTheDocument();
-    });
-
-    it('should call onChangeMultiple with correct data with seconds', async () => {
-        default_trade_store.modules.trade.duration = 20;
-
-        renderDurationContainer(default_trade_store, 's');
-        await userEvent.click(screen.getByText('22 sec'));
-        await userEvent.click(screen.getByText('Save'));
-
-        expect(default_trade_store.modules.trade.onChangeMultiple).toHaveBeenCalledWith({
-            duration_unit: 's',
-            duration: 20,
-            expiry_time: null,
-            expiry_type: 'duration',
-        });
-    });
-
-    it('should call onChangeMultiple with correct data with hour', async () => {
-        default_trade_store.modules.trade.duration = 4;
-
-        renderDurationContainer(default_trade_store, 'h');
-        await userEvent.click(screen.getByText('4 h'));
-        await userEvent.click(screen.getByText('Save'));
-
-        expect(default_trade_store.modules.trade.onChangeMultiple).toHaveBeenCalledWith({
-            duration_unit: 'm',
-            duration: 60,
-            expiry_time: null,
-            expiry_type: 'duration',
-        });
-    });
-
-    it('should call onChangeMultiple with correct endtime with endtime', async () => {
-        default_trade_store.modules.trade.expiry_time = '23:35';
-
-        renderDurationContainer(
-            default_trade_store,
-            'd',
-            jest.fn(),
-            [0, 0],
-            jest.fn(),
-            new Date().toISOString().slice(0, 10),
-            jest.fn(),
-            '11:35',
-            jest.fn()
-        );
-        await userEvent.click(screen.getByText('Save'));
-
-        expect(default_trade_store.modules.trade.onChangeMultiple).toHaveBeenCalledWith({
-            expiry_time: '11:35',
-            expiry_type: 'endtime',
-        });
-    });
-
-    it('should show Expiry Date when days are selected', () => {
-        renderDurationContainer(default_trade_store, 'd');
-        expect(screen.getByText('Expiry')).toBeInTheDocument();
-    });
-
-    it('should show End Time Screen on selecting the days unit', () => {
-        renderDurationContainer(default_trade_store, 'd');
-        const date_input = screen.getByTestId('dt_date_input');
-        expect(date_input).toBeInTheDocument();
-    });
-
-    it('should open datepicker on clicking on date input in the days page', async () => {
-        renderDurationContainer(default_trade_store, 'd');
-        const mockEvents = [{ dates: 'Fridays, Saturdays', descrip: 'Some description' }];
-        jest.spyOn(ContractType, 'getTradingEvents').mockResolvedValue(mockEvents);
-
-        const date_input = screen.getByTestId('dt_date_input');
-        expect(date_input).toBeInTheDocument();
-        await userEvent.click(date_input);
-        expect(screen.getByText('Pick an end date'));
-    });
-
-    it('should save and close datepicker on clicking done button', async () => {
-        renderDurationContainer(default_trade_store, 'd');
-        const date_input = screen.getByTestId('dt_date_input');
-        expect(date_input).toBeInTheDocument();
-        await userEvent.click(date_input);
-        expect(screen.getByText('Pick an end date'));
-        await userEvent.click(screen.getByText('Done'));
-        await waitFor(() => expect(screen.queryByText('Pick an end date')).not.toBeInTheDocument());
-    });
-
-    it('should not render chips if duration_units_list contains only ticks', () => {
-        default_trade_store.modules.trade.duration = 1;
+    it('should not render tabs if duration_units_list contains only ticks', () => {
         default_trade_store.modules.trade.duration_unit = 't';
-        default_trade_store.modules.trade.duration_units_list = [{ value: 't' }];
-        renderDurationContainer(default_trade_store);
+        default_trade_store.modules.trade.duration_units_list = [{ value: 't', text: 'ticks' }];
+        renderDurationContainer(default_trade_store, { tab: 't' });
 
-        const chip_names = ['Ticks', 'Seconds', 'Minutes', 'Hours', 'Days', 'End Time'];
-        chip_names.forEach(name => expect(screen.queryByText(name)).not.toBeInTheDocument());
+        expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
+    });
+
+    it('should call setTab when switching tabs', async () => {
+        const setTab = jest.fn();
+        renderDurationContainer(default_trade_store, { setTab });
+
+        await userEvent.click(screen.getByRole('tab', { name: 'Ticks' }));
+        expect(setTab).toHaveBeenCalledWith('t');
+
+        await userEvent.click(screen.getByRole('tab', { name: 'End time' }));
+        expect(setTab).toHaveBeenCalledWith('d');
+    });
+
+    it('should render the full ticks range on the Ticks tab', () => {
+        renderDurationContainer(default_trade_store, { tab: 't', selected_ticks: 5 });
+
+        expect(screen.getByText('1 tick')).toBeInTheDocument();
+        expect(screen.getByText('5 ticks')).toBeInTheDocument();
+        expect(screen.getByText('10 ticks')).toBeInTheDocument();
+    });
+
+    it('should render hour, minute and second wheels on the Time tab', () => {
+        renderDurationContainer(default_trade_store, { selected_time: [1, 30, 0] });
+
+        expect(screen.getByText('1 hr')).toBeInTheDocument();
+        expect(screen.getByText('30 min')).toBeInTheDocument();
+        expect(screen.getByText('0 sec')).toBeInTheDocument();
+    });
+
+    it('should always render seconds from 0 even when the intraday minimum is higher', () => {
+        renderDurationContainer(default_trade_store, { selected_time: [0, 0, 15] });
+
+        expect(screen.getByText('0 sec')).toBeInTheDocument();
+        expect(screen.getByText('14 sec')).toBeInTheDocument();
+        expect(screen.getByText('15 sec')).toBeInTheDocument();
+        expect(screen.getByText('59 sec')).toBeInTheDocument();
+    });
+
+    it('should snap a selection below the intraday minimum back into range once the wheel settles', async () => {
+        const setSelectedTime = jest.fn();
+        renderDurationContainer(default_trade_store, { selected_time: [0, 0, 10], setSelectedTime });
+
+        await waitFor(() => expect(setSelectedTime).toHaveBeenCalledWith([0, 0, 15]));
+    });
+
+    it('should snap a selection above the intraday maximum back into range once the wheel settles', async () => {
+        const setSelectedTime = jest.fn();
+        renderDurationContainer(default_trade_store, { selected_time: [24, 30, 0], setSelectedTime });
+
+        await waitFor(() => expect(setSelectedTime).toHaveBeenCalledWith([24, 0, 0]));
+    });
+
+    it('should not snap a valid selection', async () => {
+        const setSelectedTime = jest.fn();
+        renderDurationContainer(default_trade_store, { selected_time: [1, 30, 45], setSelectedTime });
+
+        // Wait past the snap-back delay; the wheels echo the mounted value, but nothing may change it
+        await new Promise(resolve => setTimeout(resolve, 400));
+        setSelectedTime.mock.calls.forEach(([value]) => expect(value).toEqual([1, 30, 45]));
+    });
+
+    // Renders the container with real selection state and records every update the wheels emit
+    const renderStatefulTimeWheel = (initial_time: number[], selections: number[][]) => {
+        const Wrapper = () => {
+            const [selected_time, setSelectedTime] = React.useState(initial_time);
+            return (
+                <TraderProviders store={default_trade_store}>
+                    <DurationActionSheetContainer
+                        {...default_props}
+                        selected_time={selected_time}
+                        setSelectedTime={next => {
+                            selections.push(next);
+                            setSelectedTime(next);
+                        }}
+                    />
+                </TraderProviders>
+            );
+        };
+        render(<Wrapper />);
+    };
+
+    // Simulates the quill wheel's scroll listener (captured at mount) settling on an item index.
+    // Scoped to the Time wheel because the always-mounted Ticks wheel also renders a listbox.
+    const scrollWheelColumn = (column_index: number, item_index: number) => {
+        const list = within(screen.getByTestId('dt_duration_time_wheel')).getAllByRole('listbox')[column_index];
+        Object.defineProperty(list, 'scrollTop', { value: item_index * 48, configurable: true });
+        fireEvent.scroll(list);
+    };
+
+    it('should keep a minutes selection when seconds change afterwards', async () => {
+        const selections: number[][] = [];
+        renderStatefulTimeWheel([0, 0, 15], selections);
+
+        scrollWheelColumn(1, 1); // minutes → 1
+        scrollWheelColumn(2, 10); // seconds → 10
+
+        // 1 min 10 sec is valid, so it must survive both the update and the snap-back window
+        await new Promise(resolve => setTimeout(resolve, 400));
+        expect(selections[selections.length - 1]).toEqual([0, 1, 10]);
+    });
+
+    it('should relax seconds back to 0 when minutes move off the boundary that forced them up', async () => {
+        const selections: number[][] = [];
+        renderStatefulTimeWheel([0, 0, 15], selections);
+
+        scrollWheelColumn(1, 1); // minutes 0 → 1 releases the 15s floor
+
+        await waitFor(() => expect(selections[selections.length - 1]).toEqual([0, 1, 0]));
+    });
+
+    it('should keep a deliberate seconds value when minutes change', async () => {
+        const selections: number[][] = [];
+        renderStatefulTimeWheel([0, 5, 30], selections);
+
+        scrollWheelColumn(1, 6); // minutes 5 → 6; 30 sec was not forced, so it stays
+
+        await new Promise(resolve => setTimeout(resolve, 400));
+        expect(selections[selections.length - 1]).toEqual([0, 6, 30]);
+    });
+
+    it('should not render a seconds wheel when seconds are not available', () => {
+        default_trade_store.modules.trade.duration_units_list = [
+            { value: 'm', text: 'minutes' },
+            { value: 'h', text: 'hours' },
+            { value: 'd', text: 'days' },
+        ];
+        default_trade_store.modules.trade.duration_min_max.intraday = { min: 900, max: 86400 };
+        renderDurationContainer(default_trade_store, { selected_time: [0, 15, 0] });
+
+        expect(screen.queryByText(/sec/)).not.toBeInTheDocument();
+        expect(screen.getByText('0 min')).toBeInTheDocument();
+        expect(screen.getByText('15 min')).toBeInTheDocument();
+        expect(screen.getByText('59 min')).toBeInTheDocument();
+    });
+
+    it('should not render hours the contract can never reach', () => {
+        default_trade_store.modules.trade.duration_min_max.intraday = { min: 15, max: 3600 };
+        renderDurationContainer(default_trade_store, { selected_time: [0, 30, 0] });
+
+        expect(screen.getByText('0 hr')).toBeInTheDocument();
+        expect(screen.getByText('1 hr')).toBeInTheDocument();
+        expect(screen.queryByText('2 hr')).not.toBeInTheDocument();
+    });
+
+    it('should render DayInput and the header save action on the End time tab', () => {
+        renderDurationContainer(default_trade_store, { tab: 'd' });
+
+        expect(screen.getByText('Mocked DayInput')).toBeInTheDocument();
+        // The commit is a header icon-action (aria-label), not a visible-text footer button
+        expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
+    });
+
+    it('should not render a footer Save button for the End time tab', () => {
+        renderDurationContainer(default_trade_store, { tab: 'd' });
+
+        // The header save exposes only an aria-label, so there is no visible "Save" text anymore
+        expect(screen.queryByText('Save')).not.toBeInTheDocument();
+    });
+
+    it('should call onSave when the header save action is tapped', async () => {
+        const onSave = jest.fn();
+        renderDurationContainer(default_trade_store, { tab: 'd', onSave });
+
+        await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+        expect(onSave).toHaveBeenCalledTimes(1);
+    });
+
+    it('should disable the header save action when is_save_disabled is true', () => {
+        renderDurationContainer(default_trade_store, { tab: 'd', is_save_disabled: true });
+
+        expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
     });
 });

@@ -37,7 +37,11 @@
     }
     &__notification {
         .dc-toast__message {
-            background: var(--color-interactive-active);
+            // theme-inverted pill: black/white in light theme, white/black in dark.
+            // the previous --color-interactive-active background is light grey in
+            // light theme, which made the label unreadable
+            background: var(--color-surface-inverse);
+            color: var(--color-text-inverse);
             padding: 0.9rem 1.2rem;
         }
     }

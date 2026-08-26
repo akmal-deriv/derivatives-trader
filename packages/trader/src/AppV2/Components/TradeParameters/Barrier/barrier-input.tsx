@@ -1,286 +1,361 @@
 import React from 'react';
 import { observer } from 'mobx-react-lite';
 
-import { ActionSheet, Chip, Text, TextField, TextFieldAddon } from '@deriv-com/quill-ui';
+import { useDebounce } from '@deriv/api-v2';
+import { isTurbosContract } from '@deriv/shared';
+import { ActionSheet, Text, TextField, TextFieldAddon } from '@deriv-com/quill-ui';
 import { Localize, useTranslations } from '@deriv-com/translations';
 
+import { ActionSheetHeaderTitle } from 'AppV2/Components/ActionSheetHeaderTooltip';
+import { HorizontalTabSelector } from 'AppV2/Components/InputPopover';
+import { useProposal } from 'AppV2/Hooks/useProposal';
+import { getDisplayedContractTypes } from 'AppV2/Utils/trade-types-utils';
 import { useTraderStore } from 'Stores/useTraderStores';
 
-const chips_options = [
-    {
-        name: <Localize i18n_default_text='Above spot' />,
-    },
-    {
-        name: <Localize i18n_default_text='Below spot' />,
-    },
-    {
-        name: <Localize i18n_default_text='Fixed barrier' />,
-    },
-];
-const BarrierInput = observer(
-    ({
-        setInitialBarrierValue,
-        isDays,
-        onClose,
-    }: {
-        setInitialBarrierValue: (val: string) => void;
-        isDays: boolean;
-        onClose: (val: boolean) => void;
-    }) => {
-        const { barrier_1, onChange, validation_errors, tick_data, setV2ParamsInitialValues } = useTraderStore();
-        const [option, setOption] = React.useState(0);
-        const [should_show_error, setShouldShowError] = React.useState(false);
-        const [previous_value, setPreviousValue] = React.useState(barrier_1);
-        const { localize } = useTranslations();
+import BarrierDescription from './barrier-description';
+import { getBarrierErrorMessage } from './barrier-error-utils';
 
-        // Constants for localStorage keys
-        const SPOT_BARRIER_KEY = 'deriv_spot_barrier_value';
-        const FIXED_BARRIER_KEY = 'deriv_fixed_barrier_value';
+type TSign = '+' | '-';
 
-        // Helper functions for localStorage
-        const getStoredValue = (key: string) => {
-            try {
-                const storedValue = localStorage.getItem(key);
-                return storedValue || '';
-            } catch (e) {
+const BarrierInput = observer(({ onClose, is_open }: { onClose: (val: boolean) => void; is_open?: boolean }) => {
+    const trade_store = useTraderStore();
+    const { barrier_1, onChange, tick_data, symbol, contract_type, trade_type_tab, trade_types, barrier_choices } =
+        trade_store;
+
+    const { localize } = useTranslations();
+
+    const sign_tab_items = React.useMemo(
+        () => [
+            { value: '+', label: localize('Above spot') },
+            { value: '-', label: localize('Below spot') },
+        ],
+        [localize]
+    );
+
+    // Barrier support (relative offset vs absolute price), derived from the sign of the API's
+    // per-expiry-type default barrier — shared with the desktop barrier input.
+    const barrierSupport = trade_store.getSymbolBarrierSupport(symbol);
+    const isRelative = barrierSupport === 'relative';
+
+    // Helper function to calculate initial state from barrier_1 value
+    const calculateInitialState = React.useCallback(() => {
+        const source_value =
+            barrier_1 && barrier_1.trim() !== '' ? barrier_1 : trade_store.getDefaultBarrierValue(barrierSupport);
+
+        if (source_value.startsWith('-')) {
+            return { sign: '-' as TSign, inputValue: source_value.slice(1), barrierValue: source_value };
+        }
+        if (source_value.startsWith('+')) {
+            return { sign: '+' as TSign, inputValue: source_value.slice(1), barrierValue: source_value };
+        }
+        return { sign: '+' as TSign, inputValue: source_value, barrierValue: source_value };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [barrier_1, barrierSupport]);
+
+    // Calculate initial state immediately to prevent empty value validation
+    const initialState = calculateInitialState();
+
+    // Local state for editing - initialize with calculated values
+    const [sign, setSign] = React.useState<TSign>(initialState.sign);
+    const [inputValue, setInputValue] = React.useState(initialState.inputValue);
+    const [isInitialized, setIsInitialized] = React.useState(false);
+
+    // Local state for proposal request values (similar to Stake component)
+    const [proposalRequestValues, setProposalRequestValues] = React.useState({
+        barrier_1: initialState.barrierValue,
+    });
+
+    // Debounce the input value for real-time validation (300ms for responsive UX)
+    const debouncedInputValue = useDebounce(inputValue, 300);
+
+    const { pip_size } = tick_data ?? {};
+    const barrier_ref = React.useRef<HTMLInputElement | null>(null);
+
+    // Local validation error state for real-time feedback - must be declared before useProposal
+    const [localValidationError, setLocalValidationError] = React.useState<string>('');
+
+    // Get contract_types for proposal validation - only compute when modal is open
+    const contract_types = React.useMemo(
+        () => (is_open ? getDisplayedContractTypes(trade_types, contract_type, trade_type_tab) : []),
+        [is_open, trade_types, contract_type, trade_type_tab]
+    );
+
+    // Use proposal hook for real-time API validation without updating store
+    // Only enable when modal is open, value is not empty, and client-side validation passes
+    const { error: proposalError, isFetching: isLoadingProposal } = useProposal({
+        trade_store,
+        proposal_request_values: proposalRequestValues,
+        contract_type: contract_types[0],
+        is_enabled: is_open && proposalRequestValues.barrier_1 !== '' && localValidationError === '',
+    });
+
+    // Initialize state when modal opens - fixed to avoid circular dependency
+    React.useEffect(() => {
+        // Only update store if barrier_1 is empty and we need to set a default
+        if (!barrier_1 || barrier_1.trim() === '') {
+            onChange({
+                target: {
+                    name: 'barrier_1',
+                    value: trade_store.getDefaultBarrierValue(barrierSupport),
+                },
+            });
+        }
+
+        // Mark as initialized to enable validation
+        setIsInitialized(true);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [barrier_1, barrierSupport]); // Exclude onChange as it's from parent
+
+    // Update local state when barrier_1 changes from external sources (e.g., symbol change)
+    React.useEffect(() => {
+        if (!isInitialized || !barrier_1) {
+            return;
+        }
+
+        // Inline state calculation to avoid dependency issues
+        let newSign: TSign = '+';
+        let newInputValue = '';
+
+        if (barrier_1.startsWith('+')) {
+            newSign = '+';
+            newInputValue = barrier_1.slice(1);
+        } else if (barrier_1.startsWith('-')) {
+            newSign = '-';
+            newInputValue = barrier_1.slice(1);
+        } else {
+            newInputValue = barrier_1;
+        }
+
+        // Only update if values actually changed
+        setSign(prevSign => (prevSign !== newSign ? newSign : prevSign));
+        setInputValue(prevValue => (prevValue !== newInputValue ? newInputValue : prevValue));
+    }, [barrier_1, isInitialized]);
+
+    // Track API validation errors from useProposal hook
+    const apiValidationError = React.useMemo(() => {
+        if (
+            proposalError &&
+            (proposalError.details?.field === 'barrier' || proposalError.details?.field === 'barrier2')
+        ) {
+            return getBarrierErrorMessage(proposalError, barrier_choices, barrierSupport);
+        }
+        return '';
+    }, [proposalError, barrier_choices, barrierSupport]);
+
+    // Client-side validation function that replicates store validation rules
+    const validateBarrierValue = React.useCallback(
+        (value: string): string => {
+            // Skip validation if component is not initialized to prevent flash of error
+            if (!isInitialized) {
                 return '';
             }
-        };
 
-        const storeValue = (key: string, value: string) => {
-            try {
-                localStorage.setItem(key, value);
-            } catch (e) {
-                // Ignore errors (e.g., localStorage not available)
-            }
-        };
-
-        // Add separate state variables for different barrier types
-        const [spot_barrier_value, setSpotBarrierValue] = React.useState(getStoredValue(SPOT_BARRIER_KEY) || '');
-        const [fixed_barrier_value, setFixedBarrierValue] = React.useState(getStoredValue(FIXED_BARRIER_KEY) || '');
-        const [is_focused, setIsFocused] = React.useState(false);
-        const { pip_size } = tick_data ?? {};
-        const barrier_ref = React.useRef<HTMLInputElement | null>(null);
-        const show_hidden_error = validation_errors?.barrier_1.length > 0 && (barrier_1 || should_show_error);
-
-        React.useEffect(() => {
-            setInitialBarrierValue(barrier_1);
-            setV2ParamsInitialValues({ name: 'barrier_1', value: barrier_1 });
-
-            // Initialize the appropriate barrier value based on the initial barrier_1
-            if (barrier_1.includes('-')) {
-                setOption(1);
-                const valueWithoutSign = barrier_1.replace(/^[+-]/, '');
-                setSpotBarrierValue(valueWithoutSign);
-                // Store in localStorage if not already there
-                if (!spot_barrier_value) {
-                    storeValue(SPOT_BARRIER_KEY, valueWithoutSign);
-                }
-            } else if (barrier_1.includes('+')) {
-                setOption(0);
-                const valueWithoutSign = barrier_1.replace(/^[+-]/, '');
-                setSpotBarrierValue(valueWithoutSign);
-                // Store in localStorage if not already there
-                if (!spot_barrier_value) {
-                    storeValue(SPOT_BARRIER_KEY, valueWithoutSign);
-                }
-            } else {
-                setOption(2);
-                setFixedBarrierValue(barrier_1);
-                // Store in localStorage if not already there
-                if (!fixed_barrier_value) {
-                    storeValue(FIXED_BARRIER_KEY, barrier_1);
-                }
+            if (!value || value.trim() === '') {
+                return localize('Barrier is a required field.');
             }
 
-            onChange({ target: { name: 'barrier_1', value: barrier_1 } });
-            // eslint-disable-next-line react-hooks/exhaustive-deps
-        }, []);
+            // Check for incomplete decimal values like "0." or trailing decimals
+            if (value.endsWith('.') || /\.\s*$/.test(value)) {
+                return localize('Please enter a complete number.');
+            }
 
-        React.useEffect(() => {
-            const barrier_element = barrier_ref.current;
-            const checkFocus = () => {
-                setIsFocused(!!(barrier_element && barrier_element.contains(document.activeElement)));
-            };
-            document.addEventListener('focusin', checkFocus);
-            document.addEventListener('focusout', checkFocus);
+            const numericValue = parseFloat(value);
+            if (isNaN(numericValue)) {
+                return localize('Please enter a valid number.');
+            }
 
-            return () => {
-                document.removeEventListener('focusin', checkFocus);
-                document.removeEventListener('focusout', checkFocus);
-            };
+            // Check for zero values on ALL barrier types (both relative and fixed)
+            if (numericValue === 0) {
+                return localize('Barrier cannot be zero.');
+            }
+
+            return ''; // No error
+        },
+        [localize, isInitialized]
+    );
+
+    // Effect to run client-side validation and update proposal request values on debounced input changes
+    React.useEffect(() => {
+        // Only run validation after component is initialized and we have a meaningful value
+        if (!isInitialized || debouncedInputValue === undefined) {
+            return;
+        }
+
+        // Inline validation to avoid dependency issues
+        let error = '';
+
+        if (!debouncedInputValue || debouncedInputValue.trim() === '') {
+            error = localize('Barrier is a required field.');
+        } else if (debouncedInputValue.endsWith('.') || /\.\s*$/.test(debouncedInputValue)) {
+            error = localize('Please enter a complete number.');
+        } else {
+            const numericValue = parseFloat(debouncedInputValue);
+            if (isNaN(numericValue)) {
+                error = localize('Please enter a valid number.');
+            } else if (numericValue === 0) {
+                error = localize('Barrier cannot be zero.');
+            }
+        }
+
+        // Only update state if the error actually changed
+        setLocalValidationError(prevError => {
+            if (prevError !== error) {
+                return error;
+            }
+            return prevError;
         });
 
-        React.useEffect(() => {
-            if (is_focused) {
-                setShouldShowError(false);
+        // Update proposal request values for API validation (without updating store)
+        if (!error) {
+            const newValue = isRelative ? `${sign}${debouncedInputValue}` : debouncedInputValue;
+
+            // Only update if the value actually changed
+            setProposalRequestValues(prev => {
+                if (prev.barrier_1 !== newValue) {
+                    return { barrier_1: newValue };
+                }
+                return prev;
+            });
+        }
+    }, [debouncedInputValue, sign, isRelative, isInitialized]);
+
+    // Show validation errors in real-time (client-side + API errors). The API's range/format
+    // message is the most actionable correction, so it takes precedence when both apply.
+    const show_validation_error = localValidationError !== '' || apiValidationError !== '';
+    const displayError = apiValidationError || localValidationError;
+
+    // Mirror the value handleSave would commit so the header save only enables on an actual change.
+    const drafted_barrier = isRelative ? `${sign}${inputValue}` : inputValue;
+
+    // One window covering the whole validation of the drafted barrier: the debounce gap before the
+    // request goes out, plus the request itself. `isLoadingProposal` alone is false during that gap, so
+    // the check flickered on and off while the draft was still settling. It is also what `handleSave`
+    // enforces below, so the check is enabled only when tapping it would really commit.
+    const is_validating = drafted_barrier !== proposalRequestValues.barrier_1 || isLoadingProposal;
+    const is_save_disabled = show_validation_error || is_validating || drafted_barrier === barrier_1;
+
+    const handleSignToggle = (value: string) => {
+        setSign(value as TSign);
+    };
+
+    const handleOnChange = (e: { target: { name: string; value: string } }) => {
+        setInputValue(e.target.value);
+    };
+
+    const handleSave = () => {
+        // Prevent save while a validation error shows or the draft has not been validated yet
+        if (show_validation_error || is_validating) {
+            return;
+        }
+
+        // Run final validation before saving
+        const finalError = validateBarrierValue(inputValue);
+
+        if (finalError === '') {
+            // Update the trade store (this is the ONLY place where we update the store)
+            onChange({ target: { name: 'barrier_1', value: drafted_barrier } });
+            onClose(true);
+        } else {
+            // Update local error state if validation fails
+            setLocalValidationError(finalError);
+        }
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+            const isSaveDisabled = show_validation_error || is_validating;
+            if (!isSaveDisabled) {
+                handleSave();
             }
-        }, [is_focused]);
+        }
+    };
 
-        const handleChipSelect = (index: number) => {
-            const previousOption = option; // Store the previous option before updating
-            setOption(index);
-            let newValue = '';
+    return (
+        <>
+            <ActionSheet.Header
+                title={
+                    <ActionSheetHeaderTitle
+                        title={<Localize i18n_default_text='Barrier' />}
+                        description={
+                            <BarrierDescription
+                                barrierSupport={barrierSupport}
+                                is_turbos={isTurbosContract(contract_type)}
+                            />
+                        }
+                        label={localize('Barrier')}
+                    />
+                }
+                closeAction={{ ariaLabel: localize('Close') }}
+                saveAction={{ onAction: handleSave, ariaLabel: localize('Save') }}
+                isSaveActionDisabled={is_save_disabled}
+                shouldCloseOnSaveActionClick={false}
+            />
+            <ActionSheet.Content>
+                <div className='barrier-params'>
+                    {isRelative && (
+                        <HorizontalTabSelector
+                            className='barrier-params__sign'
+                            items={sign_tab_items}
+                            selectedValue={sign}
+                            onSelect={handleSignToggle}
+                        />
+                    )}
 
-            // Save current value to the appropriate state variable and localStorage
-            if (previousOption === 0 || previousOption === 1) {
-                // Coming from Above/Below spot, save to spot_barrier_value
-                const valueWithoutSign = barrier_1.replace(/^[+-]/, '');
-                setSpotBarrierValue(valueWithoutSign);
-                // Store in localStorage
-                storeValue(SPOT_BARRIER_KEY, valueWithoutSign);
-            } else if (previousOption === 2) {
-                // Coming from Fixed barrier, save to fixed_barrier_value
-                setFixedBarrierValue(barrier_1);
-                // Store in localStorage
-                storeValue(FIXED_BARRIER_KEY, barrier_1);
-            }
-
-            // Restore the appropriate value based on the tab we're switching to
-            if (index === 0 || index === 1) {
-                // Switching to Above/Below spot
-                const valueToUse = spot_barrier_value || '';
-                newValue = index === 0 ? `+${valueToUse}` : `-${valueToUse}`;
-            } else if (index === 2) {
-                // Switching to Fixed barrier
-                newValue = fixed_barrier_value || '';
-            }
-
-            if ((newValue.startsWith('+') || newValue.startsWith('-')) && newValue.charAt(1) === '.') {
-                newValue = `${newValue.charAt(0)}0${newValue.slice(1)}`;
-            } else if (newValue.startsWith('.')) {
-                newValue = `0${newValue}`;
-            }
-
-            setPreviousValue(newValue);
-            onChange({ target: { name: 'barrier_1', value: newValue } });
-        };
-
-        const handleOnChange = (e: { target: { name: string; value: string } }) => {
-            let value = e.target.value;
-            if (option === 0) value = `+${value}`;
-            if (option === 1) value = `-${value}`;
-
-            // Update the appropriate state variable based on the current tab
-            if (option === 0 || option === 1) {
-                // Above/Below spot - store without sign
-                const valueWithoutSign = value.replace(/^[+-]/, '');
-                setSpotBarrierValue(valueWithoutSign);
-                // Store in localStorage
-                storeValue(SPOT_BARRIER_KEY, valueWithoutSign);
-            } else if (option === 2) {
-                // Fixed barrier
-                setFixedBarrierValue(value);
-                // Store in localStorage
-                storeValue(FIXED_BARRIER_KEY, value);
-            }
-
-            onChange({ target: { name: 'barrier_1', value } });
-            setV2ParamsInitialValues({ name: 'barrier_1', value });
-            setPreviousValue(value);
-        };
-
-        return (
-            <>
-                <ActionSheet.Content>
-                    <div className='barrier-params'>
-                        {!isDays && (
-                            <div className='barrier-params__chips'>
-                                {chips_options.map((item, index) => (
-                                    <Chip.Selectable
-                                        key={index}
-                                        onClick={() => handleChipSelect(index)}
-                                        selected={index == option}
-                                    >
-                                        <Text size='sm'>{item.name}</Text>
-                                    </Chip.Selectable>
-                                ))}
-                            </div>
+                    <div>
+                        {isRelative ? (
+                            <TextFieldAddon
+                                fillAddonBorderColor='var(--semantic-color-slate-solid-surface-frame-mid)'
+                                customType='commaRemoval'
+                                name='barrier_1'
+                                noStatusIcon
+                                addonLabel={sign}
+                                decimals={pip_size}
+                                value={inputValue}
+                                allowDecimals
+                                inputMode='decimal'
+                                allowSign={false}
+                                status={show_validation_error ? 'error' : 'neutral'}
+                                onChange={handleOnChange}
+                                onKeyDown={handleKeyDown}
+                                placeholder={localize('Distance to spot')}
+                                regex={/[^0-9.,]/g}
+                                variant='fill'
+                                message={show_validation_error ? displayError : ''}
+                                ref={barrier_ref}
+                            />
+                        ) : (
+                            <TextField
+                                customType='commaRemoval'
+                                name='barrier_1'
+                                noStatusIcon
+                                status={show_validation_error ? 'error' : 'neutral'}
+                                value={inputValue}
+                                allowDecimals
+                                decimals={pip_size}
+                                allowSign={false}
+                                inputMode='decimal'
+                                regex={/[^0-9.,]/g}
+                                textAlignment='center'
+                                onChange={handleOnChange}
+                                onKeyDown={handleKeyDown}
+                                placeholder={localize('Price')}
+                                variant='fill'
+                                message={show_validation_error ? displayError : ''}
+                                ref={barrier_ref}
+                            />
                         )}
-
-                        <div>
-                            {option === 2 || isDays ? (
-                                <TextField
-                                    customType='commaRemoval'
-                                    name='barrier_1'
-                                    noStatusIcon
-                                    status={show_hidden_error ? 'error' : 'neutral'}
-                                    value={barrier_1}
-                                    allowDecimals
-                                    decimals={pip_size}
-                                    allowSign={false}
-                                    inputMode='decimal'
-                                    regex={/[^0-9.,]/g}
-                                    textAlignment='center'
-                                    onChange={handleOnChange}
-                                    placeholder={localize('Price')}
-                                    variant='fill'
-                                    message={show_hidden_error ? validation_errors?.barrier_1[0] : ''}
-                                    ref={barrier_ref}
-                                />
-                            ) : (
-                                <TextFieldAddon
-                                    fillAddonBorderColor='var(--semantic-color-slate-solid-surface-frame-mid)'
-                                    customType='commaRemoval'
-                                    name='barrier_1'
-                                    noStatusIcon
-                                    addonLabel={option == 0 ? '+' : '-'}
-                                    decimals={pip_size}
-                                    value={barrier_1.replace(/[+-]/g, '')}
-                                    allowDecimals
-                                    inputMode='decimal'
-                                    allowSign={false}
-                                    status={show_hidden_error ? 'error' : 'neutral'}
-                                    onChange={handleOnChange}
-                                    placeholder={localize('Distance to spot')}
-                                    regex={/[^0-9.,]/g}
-                                    variant='fill'
-                                    message={show_hidden_error ? validation_errors?.barrier_1[0] : ''}
-                                    ref={barrier_ref}
-                                />
-                            )}
-                            {(validation_errors?.barrier_1.length == 0 || !show_hidden_error) && (
-                                <div className='barrier-params__error-area' />
-                            )}
-                        </div>
-                        <div className='barrier-params__current-spot-wrapper'>
-                            <Text size='sm'>
-                                <Localize i18n_default_text='Current spot' />
-                            </Text>
-                            <Text size='sm'>{tick_data?.quote}</Text>
-                        </div>
+                        {!show_validation_error && <div className='barrier-params__error-area' />}
                     </div>
-                </ActionSheet.Content>
-                <ActionSheet.Footer
-                    alignment='vertical'
-                    shouldCloseOnPrimaryButtonClick={false}
-                    primaryAction={{
-                        content: <Localize i18n_default_text='Save' />,
-                        onAction: () => {
-                            if (validation_errors.barrier_1.length === 0) {
-                                // Save the current values to localStorage before closing
-                                if (option === 0 || option === 1) {
-                                    const valueWithoutSign = barrier_1.replace(/^[+-]/, '');
-                                    storeValue(SPOT_BARRIER_KEY, valueWithoutSign);
-                                } else if (option === 2) {
-                                    storeValue(FIXED_BARRIER_KEY, barrier_1);
-                                }
-
-                                onClose(true);
-
-                                // This is a workaround to re-trigger any validation errors that were hidden behind the action sheet
-                                handleOnChange({
-                                    target: { name: 'barrier_1', value: barrier_1.replace(/[+-]/g, '') },
-                                });
-                            } else {
-                                setShouldShowError(true);
-                            }
-                        },
-                    }}
-                />
-            </>
-        );
-    }
-);
+                    <div className='barrier-params__current-spot-wrapper'>
+                        <Text size='sm'>
+                            <Localize i18n_default_text='Current spot' />
+                        </Text>
+                        <Text size='sm'>{tick_data?.quote}</Text>
+                    </div>
+                </div>
+            </ActionSheet.Content>
+        </>
+    );
+});
 
 export default BarrierInput;

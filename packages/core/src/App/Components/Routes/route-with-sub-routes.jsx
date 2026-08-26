@@ -1,15 +1,24 @@
 import React from 'react';
 import { Redirect, Route } from 'react-router-dom';
-import { removeBranchName, routes, isEmptyObject, default_title } from '@deriv/shared';
-import Page404 from 'Modules/Page404';
+
+import { getBrandName, isEmptyObject, removeBranchName, routes } from '@deriv/shared';
 import { observer, useStore } from '@deriv/stores';
 
-const RouteWithSubRoutes = observer(route => {
-    const { common } = useStore();
+import Page404 from 'Modules/Page404';
 
-    const { checkAppId } = common;
+const RouteWithSubRoutes = observer(route => {
+    const { client } = useStore();
+    const { is_logged_in, is_logging_in } = client;
 
     const validateRoute = () => {
+        // Check if route requires authentication
+        if (route.protected) {
+            // If route is protected but user is not logged in and not logging in, deny access
+            if (!is_logged_in && !is_logging_in) {
+                return false;
+            }
+        }
+
         return true;
     };
 
@@ -17,11 +26,6 @@ const RouteWithSubRoutes = observer(route => {
         let result = null;
         const pathname = removeBranchName(location.pathname).replace(/\/$/, '');
         const is_valid_route = validateRoute(pathname);
-
-        // check if by re-rendering content should Platform app_id  change or not,
-        if (is_valid_route) {
-            checkAppId();
-        }
 
         if (route.component === Redirect) {
             let to = route.to;
@@ -36,20 +40,25 @@ const RouteWithSubRoutes = observer(route => {
             const default_subroute = route.routes ? route.routes.find(r => r.default) : {};
             const has_default_subroute = !isEmptyObject(default_subroute);
 
+            let content;
+            if (is_valid_route) {
+                content = <route.component {...props} routes={route.routes} passthrough={route.passthrough} />;
+            } else if (route.protected) {
+                content = <Redirect to={routes.index} />;
+            } else {
+                content = <Page404 />;
+            }
+
             result = (
                 <React.Fragment>
                     {has_default_subroute && pathname === route.path && <Redirect to={default_subroute.path} />}
-                    {is_valid_route ? (
-                        <route.component {...props} routes={route.routes} passthrough={route.passthrough} />
-                    ) : (
-                        <Page404 />
-                    )}
+                    {content}
                 </React.Fragment>
             );
         }
 
-        const title = route.getTitle?.() || '';
-        document.title = `${title} | ${default_title}`;
+        const title = route.getTitle?.();
+        if (title) document.title = `${title} | ${getBrandName()}`;
 
         return result;
     };

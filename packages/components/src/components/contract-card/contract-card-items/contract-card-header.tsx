@@ -1,29 +1,33 @@
 import React from 'react';
-import classNames from 'classnames';
 import { CSSTransition } from 'react-transition-group';
+import classNames from 'classnames';
+
+import { LabelPairedQuestionCaptionBoldIcon } from '@deriv/quill-icons';
 import {
-    isHighLow,
+    type Dayjs,
     getCurrentTick,
     getGrowthRatePercentage,
-    isAccumulatorContract,
-    isSmartTraderContract,
-    isMobile,
-    isTurbosContract,
-    isMultiplierContract,
     getLocalizedTurbosSubtype,
+    isAccumulatorContract,
+    isHighLow,
+    isMobile,
+    isMultiplierContract,
+    isSmartTraderContract,
+    isTurbosContract,
 } from '@deriv/shared';
+import { TContractInfo } from '@deriv/shared/src/utils/contract/contract-types';
+
 import { getUnderlyingFromShortcode } from '../../../utils/contract-helpers';
-import ContractTypeCell from './contract-type-cell';
 import Button from '../../button';
-import Text from '../../text';
-import ProgressSlider from '../../progress-slider';
 import DesktopWrapper from '../../desktop-wrapper';
 import MobileWrapper from '../../mobile-wrapper';
-import TickCounterBar from './tick-counter-bar';
+import ProgressSlider from '../../progress-slider';
 import SymbolIconsMapper from '../../symbol-icons-mapper';
-import { LabelPairedQuestionCaptionBoldIcon } from '@deriv/quill-icons';
-import { TContractInfo } from '@deriv/shared/src/utils/contract/contract-types';
+import Text from '../../text';
 import { TGetCardLables, TGetContractTypeDisplay } from '../../types/common.types';
+
+import ContractTypeCell from './contract-type-cell';
+import TickCounterBar from './tick-counter-bar';
 
 export type TContractCardHeaderProps = {
     contract_info: TContractInfo;
@@ -35,7 +39,7 @@ export type TContractCardHeaderProps = {
     is_sell_requested: boolean;
     is_valid_to_sell?: boolean;
     onClickSell: (contract_id?: number) => void;
-    server_time: moment.Moment;
+    server_time: Dayjs;
     id?: number;
     is_sold?: boolean;
 };
@@ -53,6 +57,7 @@ const ContractCardHeader = ({
     onClickSell,
     server_time,
 }: TContractCardHeaderProps) => {
+    const nodeRef = React.useRef(null);
     const current_tick = contract_info.tick_count ? getCurrentTick(contract_info) : null;
     const {
         growth_rate,
@@ -63,7 +68,6 @@ const ContractCardHeader = ({
         date_expiry,
         tick_count,
         tick_passed,
-        // @ts-expect-error TContractInfo has an invalid type, this will be fixed in a future update
         underlying_symbol,
     } = contract_info;
 
@@ -132,7 +136,7 @@ const ContractCardHeader = ({
                         })}
                         weight='bold'
                     >
-                        {display_name || contract_info.display_name}
+                        {display_name}
                     </Text>
                 </div>
                 <div
@@ -160,9 +164,10 @@ const ContractCardHeader = ({
                                 enterDone: 'dc-contract-card__sell-button--enter-done',
                                 exit: 'dc-contract-card__sell-button--exit',
                             }}
+                            nodeRef={nodeRef}
                             unmountOnExit
                         >
-                            <div className='dc-contract-card__sell-button-mobile'>
+                            <div ref={nodeRef} className='dc-contract-card__sell-button-mobile'>
                                 <Button
                                     id={`dc_contract_card_${id}_button`}
                                     className={classNames('dc-btn--sell', {

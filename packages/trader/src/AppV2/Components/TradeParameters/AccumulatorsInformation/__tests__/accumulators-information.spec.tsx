@@ -1,5 +1,3 @@
-import React from 'react';
-
 import { mockStore } from '@deriv/stores';
 import { render, screen } from '@testing-library/react';
 
@@ -9,7 +7,7 @@ import TraderProviders from '../../../../../trader-providers';
 import AccumulatorsInformation from '../accumulators-information';
 
 const payout_text = 'Max. payout';
-const payout_value = '4,000.00 USD';
+const payout_value = '$4,000.00';
 
 describe('AccumulatorsInformation', () => {
     let default_mock_store: ReturnType<typeof mockStore>;
@@ -53,7 +51,7 @@ describe('AccumulatorsInformation', () => {
         mockAccumulatorsInformation();
 
         expect(screen.getByText(payout_text)).toBeInTheDocument();
-        expect(screen.getByTestId('dt_skeleton')).toBeInTheDocument();
+        expect(screen.getAllByTestId('dt_skeleton')).toHaveLength(3);
         expect(screen.queryByText(payout_value)).not.toBeInTheDocument();
     });
 
@@ -62,13 +60,13 @@ describe('AccumulatorsInformation', () => {
 
         expect(screen.getByText(payout_text)).toBeInTheDocument();
         expect(screen.getByText(payout_value)).toBeInTheDocument();
-        expect(screen.getByText(payout_text)).not.toHaveClass('trade-params__text--disabled');
+        expect(screen.getByText(payout_text)).not.toHaveClass('accumulators-info__label--disabled');
     });
 
     it('applies specific className if is_market_closed === true', () => {
         default_mock_store.modules.trade.is_market_closed = true;
         mockAccumulatorsInformation();
 
-        expect(screen.getByText(payout_text)).toHaveClass('trade-params__text--disabled');
+        expect(screen.getByText(payout_text)).toHaveClass('accumulators-info__label--disabled');
     });
 });

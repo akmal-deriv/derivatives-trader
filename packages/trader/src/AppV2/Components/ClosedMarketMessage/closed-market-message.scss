@@ -1,20 +1,30 @@
 .closed-market-message {
     &--container {
         display: flex;
-        width: 100%;
+        flex-direction: column;
         padding: var(--core-spacing-800);
-        justify-content: space-between;
         align-items: center;
+        gap: var(--core-spacing-400);
         background-color: var(--semantic-color-slate-solid-surface-inverse-highest);
-        z-index: 3;
-        bottom: 0;
-        position: sticky;
+        border-radius: var(--core-borderRadius-400);
+
+        @include mobile-screen {
+            flex-direction: row;
+            justify-content: space-between;
+            width: 100%;
+            border-radius: var(--core-borderRadius-400);
+        }
     }
     &--left {
         display: flex;
         flex-direction: column;
         justify-content: center;
+        align-items: center;
         gap: var(--core-spacing-200);
+
+        @include mobile-screen {
+            align-items: flex-start;
+        }
 
         &-message {
             color: var(--component-textIcon-static-prominentDark);

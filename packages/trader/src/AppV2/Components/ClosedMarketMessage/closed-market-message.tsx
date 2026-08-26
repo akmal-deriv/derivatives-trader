@@ -1,13 +1,12 @@
 import React from 'react';
 import clsx from 'clsx';
 
-import { TradingTimesRequest } from '@deriv/api-types';
-import { isMarketClosed, toMoment, useIsMounted, WS } from '@deriv/shared';
+import { TTradingTimesRequest } from '@deriv/api';
+import { toMoment, useIsMounted, WS, mapErrorMessage } from '@deriv/shared';
 import { observer, useStore } from '@deriv/stores';
 import { Localize } from '@deriv-com/translations';
 import { CaptionText } from '@deriv-com/quill-ui';
 
-import useActiveSymbols from 'AppV2/Hooks/useActiveSymbols';
 import { calculateTimeLeft, getSymbol } from 'AppV2/Utils/closed-market-message-utils';
 import { useTraderStore } from 'Stores/useTraderStores';
 
@@ -22,10 +21,10 @@ type TWhenMarketOpens = {
 
 const days_to_check_before_exit = 7;
 
-const getTradingTimes = async (target_time: TradingTimesRequest['trading_times']) => {
+const getTradingTimes = async (target_time: TTradingTimesRequest['trading_times']) => {
     const data = await WS.tradingTimes(target_time);
     if (data.error) {
-        return { api_initial_load_error: data.error.message };
+        return { api_initial_load_error: mapErrorMessage(data.error) };
     }
     return data;
 };
@@ -34,7 +33,6 @@ const ClosedMarketMessage = observer(() => {
     const { common } = useStore();
     const { current_language } = common;
     const { symbol, prepareTradeStore, is_market_closed } = useTraderStore();
-    const { activeSymbols } = useActiveSymbols();
 
     const isMounted = useIsMounted();
     const [when_market_opens, setWhenMarketOpens] = React.useState<TWhenMarketOpens>({} as TWhenMarketOpens);
@@ -84,7 +82,7 @@ const ClosedMarketMessage = observer(() => {
         setTimeLeft({});
         setWhenMarketOpens({} as TWhenMarketOpens);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [activeSymbols, symbol]);
+    }, [symbol, is_market_closed]);
 
     React.useEffect(() => {
         let timer: ReturnType<typeof setTimeout>;
@@ -93,7 +91,7 @@ const ClosedMarketMessage = observer(() => {
                 setTimeLeft(calculateTimeLeft(when_market_opens.remaining_time_to_open));
                 if (+new Date(when_market_opens.remaining_time_to_open) - +new Date() < 1000) {
                     setLoading(true);
-                    prepareTradeStore(false);
+                    prepareTradeStore();
                 }
             }, 1000);
         }

@@ -1,15 +1,12 @@
-import { flow } from 'mobx';
-
-import { checkServerMaintenance, getPropertyValue, getSocketURL, State } from '@deriv/shared';
+import { getAccountId, getPropertyValue, getSocketURL, mapErrorMessage } from '@deriv/shared';
+import { Analytics } from '@deriv-com/analytics';
 import { localize } from '@deriv-com/translations';
 
 import WS from './ws-methods';
 
 import ServerTime from '_common/base/server_time';
-import BinarySocket from '_common/base/socket_base';
 
 let client_store, common_store, gtm_store;
-let reconnectionCounter = 1;
 
 // TODO: update commented statements to the corresponding functions from app
 const BinarySocketGeneral = (() => {
@@ -22,6 +19,26 @@ const BinarySocketGeneral = (() => {
         common_store.setIsSocketOpened(false);
     };
 
+    const onConnectionError = () => {
+        // Repeated refused handshakes are the WS server's only signal for stale session cookies,
+        // but at the socket layer they are indistinguishable from plain network trouble (browsers
+        // expose no HTTP status for a failed WS handshake). handleWhoAmI is the one validation
+        // path (shared with the visibility/focus checks): it verifies over REST using the same
+        // session state the WS server validates and, on a confirmed 401, runs the canonical
+        // cleanUp() — which clears credentials including the options_account_id cookie and
+        // reconnects, resolving the socket URL to the public server. For plain network trouble
+        // it does nothing and the network monitor keeps retrying with backoff.
+        if (getAccountId()) {
+            client_store.handleWhoAmI();
+            return;
+        }
+
+        // Already on the public connection: no session involved — genuine connectivity problem.
+        common_store.setError(true, {
+            message: localize('Connection failed. Please refresh this page to continue.'),
+        });
+    };
+
     const onOpen = is_ready => {
         responseTimeoutErrorTimer = setTimeout(() => {
             const expectedResponseTypes = WS?.get?.()?.expect_response_types || {};
@@ -32,25 +49,21 @@ const BinarySocketGeneral = (() => {
             const error = new Error('deriv-api: no message received after 30s');
             error.userId = client_store?.loginid;
 
-            window.TrackJS?.console?.error({
-                message: error.message,
-                clientsCountry: client_store?.clients_country,
-                websocketUrl: getSocketURL(),
-                pendingResponseTypes,
-            });
+            // Wrapped in a try/catch so a reporting failure can never surface as an
+            // unhandled error from this timer callback.
+            try {
+                Analytics.trackEvent('websocket_timeout', {
+                    message: error.message,
+                    websocketUrl: getSocketURL(),
+                    pendingResponseTypes,
+                });
+            } catch (reportingError) {
+                // eslint-disable-next-line no-console
+                console.error('Failed to report error to analytics:', reportingError);
+            }
         }, 30000);
 
         if (is_ready) {
-            if (client_store.is_logged_in || client_store.is_logging_in) {
-                WS.get()
-                    .expectResponse('authorize')
-                    .then(() => {
-                        WS.subscribeWebsiteStatus(ResponseHandlers.websiteStatus);
-                    });
-            } else {
-                WS.subscribeWebsiteStatus(ResponseHandlers.websiteStatus);
-            }
-
             ServerTime.init(() => common_store.setServerTime(ServerTime.get()));
             common_store.setIsSocketOpened(true);
         }
@@ -59,49 +72,35 @@ const BinarySocketGeneral = (() => {
     const onMessage = response => {
         clearTimeout(responseTimeoutErrorTimer);
         handleError(response);
-        // Header.hideNotification('CONNECTION_ERROR');
+
         switch (response.msg_type) {
-            case 'authorize':
-                if (response.error) {
-                    const is_active_tab = sessionStorage.getItem('active_tab') === '1';
-                    if (getPropertyValue(response, ['error', 'code']) === 'SelfExclusion' && is_active_tab) {
-                        sessionStorage.removeItem('active_tab');
-                    }
+            case 'balance':
+                // Always process authorization on balance response
+                // This handles both initial connection and reconnection
+                if (response.balance && response.balance.loginid) {
+                    const loginid_changed = response.balance.loginid !== client_store.loginid;
+                    const not_yet_authorized = !client_store.is_authorize;
 
-                    const hasSessionToken = !!localStorage.getItem('session_token');
-                    if (hasSessionToken) {
-                        return;
+                    // Only call authorizeAccount when needed
+                    if (loginid_changed || not_yet_authorized) {
+                        // Clear contract markers when account changes to prevent showing previous account's contracts
+                        if (loginid_changed) {
+                            client_store.root_store.contract_trade.clearContracts();
+                        }
+                        authorizeAccount(response);
                     }
-
-                    client_store.logout();
-                } else if (!/authorize/.test(State.get('skip_response'))) {
-                    if (response.authorize.loginid !== client_store.loginid) {
-                        client_store.setLoginId(response.authorize.loginid);
-                    }
-                    authorizeAccount(response);
                 }
-                break;
-            case 'payout_currencies':
-                client_store.responsePayoutCurrencies(response?.payout_currencies);
                 break;
             case 'transaction':
                 gtm_store.pushTransactionData(response);
-                if (client_store && client_store.loginid) {
-                    WS.authorized.balance().then(balance_response => {
-                        if (!balance_response.error) {
-                            ResponseHandlers.balanceActiveAccount(balance_response);
-                        }
-                    });
-                }
                 break;
             // no default
         }
     };
 
-    const setBalanceActiveAccount = flow(function* (obj_balance) {
-        yield BinarySocket?.wait('website_status');
+    const setBalanceActiveAccount = obj_balance => {
         client_store.setBalanceActiveAccount(obj_balance);
-    });
+    };
 
     const handleError = response => {
         const msg_type = response.msg_type;
@@ -109,33 +108,38 @@ const BinarySocketGeneral = (() => {
         switch (error_code) {
             case 'WrongResponse':
                 if (msg_type === 'balance') {
-                    WS.forgetAll('balance').then(subscribeBalances);
+                    WS.forgetAll('balance').then(subscribeBalance);
                 }
                 break;
             case 'RateLimit':
-                if (msg_type !== 'cashier_password') {
-                    common_store.setError(true, {
-                        message: localize('You have reached the rate limit of requests per second. Please try later.'),
-                    });
-                }
+                common_store.setError(true, {
+                    message: localize('You have reached the rate limit of requests per second. Please try later.'),
+                });
                 break;
             case 'InvalidAppID':
-                common_store.setError(true, { message: response.error.message });
+                common_store.setError(true, { message: mapErrorMessage(response.error) });
                 break;
             case 'DisabledClient':
-                common_store.setError(true, { message: response.error.message });
+                common_store.setError(true, { message: mapErrorMessage(response.error) });
                 break;
             case 'AuthorizationRequired': {
-                if (msg_type === 'buy') {
+                if (msg_type === 'buy' || msg_type?.startsWith('auto_')) {
                     return;
                 }
-
-                // For V2, check if we have a valid session token before logout
-                const hasSessionToken = !!localStorage.getItem('session_token');
-                if (hasSessionToken) {
-                    return;
+                if (getAccountId()) {
+                    client_store.logout();
                 }
-                client_store.logout();
+                break;
+            }
+            case 'InvalidToken': {
+                if (!getAccountId()) break;
+                // Give logout() a bounded window to clear the stale credentials, then reload
+                // regardless — its fetch has no timeout and can hang under exactly the flaky
+                // network this handles. A premature reload is safe: boot's whoami-401 cleanup
+                // clears the credentials (including the cookie) before any WS connection opens.
+                Promise.race([client_store.logout(), new Promise(resolve => setTimeout(resolve, 5000))]).finally(() =>
+                    window.location.reload()
+                );
                 break;
             }
             default:
@@ -143,33 +147,51 @@ const BinarySocketGeneral = (() => {
         }
     };
 
+    const subscribeBalance = () => {
+        WS.subscribeBalance(ResponseHandlers.balanceActiveAccount);
+    };
+
     const init = store => {
         client_store = store.client;
         common_store = store.common;
         gtm_store = store.gtm;
 
+        WS.setOnReconnect(() => {
+            if (getAccountId()) subscribeBalance();
+        });
+
         return {
             onDisconnect,
             onOpen,
             onMessage,
+            onConnectionError,
         };
     };
 
-    const subscribeBalances = () => {
-        if (client_store.current_account?.loginid) {
-            WS.subscribeBalanceActiveAccount(
-                ResponseHandlers.balanceActiveAccount,
-                client_store.current_account.loginid
-            );
-        }
-    };
-
     const authorizeAccount = response => {
-        client_store.responseAuthorize(response);
-        subscribeBalances(); // Single account balance
-        WS.storage.payoutCurrencies(); // Currency configs for trading
-        client_store.setIsAuthorize(true); // Set auth state
-        BinarySocket.sendBuffered(); // Send queued requests
+        // Balance response now contains authorization data
+        // Transform if needed to match authorize format
+        let authorize_data = response;
+
+        // If response is balance format, transform to authorize format
+        if (response.balance && !response.authorize) {
+            authorize_data = {
+                authorize: {
+                    loginid: response.balance.loginid,
+                    balance: response.balance.balance,
+                    currency: response.balance.currency,
+                    email: response.balance.email || '',
+                    landing_company_name: response.balance.landing_company_name || '',
+                    country: response.balance.country || '',
+                    user_id: response.balance.user_id || '',
+                    preferred_language: response.balance.preferred_language || '',
+                },
+            };
+        }
+
+        client_store.responseAuthorize(authorize_data);
+        client_store.setIsAuthorize(true); // Set BEFORE anything that depends on it
+        subscribeBalance(); // Continue balance subscription
     };
 
     return {
@@ -182,39 +204,16 @@ const BinarySocketGeneral = (() => {
 export default BinarySocketGeneral;
 
 const ResponseHandlers = (() => {
-    const websiteStatus = response => {
-        if (response.website_status) {
-            const is_server_down = checkServerMaintenance(response.website_status);
-
-            // If the site is down or updating, connect to WebSocket with an exponentially increasing delay on every attempt.
-            // Requests excluding - website_status/authorize will be blocked during backoff
-            // The delay starts off at approximately 1.024 seconds and grows exponentially, with a random factor between 0.5 and 2 to spread out the reconnection attempts.
-            // The maximum delay is capped at 10 minutes (600k ms).
-            if (is_server_down) {
-                const reconnectionDelay =
-                    Math.min(2 ** (reconnectionCounter + 9), 600000) * (0.5 + Math.random() * 1.5);
-
-                window.setTimeout(() => {
-                    reconnectionCounter++;
-                    BinarySocket.closeAndOpenNewConnection();
-                    BinarySocket.blockRequest(is_server_down);
-                }, reconnectionDelay);
-                // If site is up, and there was a reconnection attempted before
-            } else if (!is_server_down && reconnectionCounter > 1) {
-                window.location.reload();
-            }
-
-            // @deriv/deriv-api blockRequest(true) affects all API requests except website_status
-            BinarySocket.blockRequest(is_server_down);
-            BinarySocket.setAvailability(response.website_status.site_status);
-            client_store.setWebsiteStatus(response);
-        }
-    };
-
     const balanceActiveAccount = response => {
         if (!response.error) {
-            // Optimal balance extraction - only check formats that actually exist
-            const balance = response.balance?.balance || response.balance;
+            // Check if this is the first balance response (contains auth data)
+            if (!client_store.is_authorize && response.balance && response.balance.loginid) {
+                // This is the authorization response - handled in onMessage
+                return;
+            }
+
+            // Regular balance update
+            const balance = response.balance?.balance ?? response.balance;
 
             // Only update if we have a valid balance
             if (balance !== undefined && balance !== null && balance !== '') {
@@ -229,7 +228,6 @@ const ResponseHandlers = (() => {
     // Removed balanceOtherAccounts - not needed for single account
 
     return {
-        websiteStatus,
         balanceActiveAccount,
     };
 })();

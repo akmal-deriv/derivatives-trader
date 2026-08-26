@@ -1,47 +1,35 @@
-import React from 'react';
+import clsx from 'clsx';
 import { TooltipRenderProps } from 'react-joyride';
-import { useSwipeable } from 'react-swipeable';
 
-import { LabelPairedChevronsUpXlBoldIcon, LabelPairedXmarkSmBoldIcon } from '@deriv/quill-icons';
+import { LabelPairedXmarkSmBoldIcon } from '@deriv/quill-icons';
+import { Button, CaptionText, IconButton } from '@deriv-com/quill-ui';
 import { Localize } from '@deriv-com/translations';
-import { Button, CaptionText, IconButton, Text } from '@deriv-com/quill-ui';
 
 export interface GuideTooltipProps extends TooltipRenderProps {
-    setStepIndex: React.Dispatch<React.SetStateAction<number>>;
+    /** Advance the tour by one step (GuideContainer runs any `prepare` hook + waits for the anchor). */
+    onNext: (index: number) => void;
+    /** Finish/skip the tour. */
+    onClose: () => void;
 }
 
-const GuideTooltip = ({ isLastStep, primaryProps, skipProps, step, tooltipProps, setStepIndex }: GuideTooltipProps) => {
-    const swipe_handlers = useSwipeable({
-        onSwipedUp: () => {
-            document.querySelector('.trade__chart')?.scrollIntoView();
-            setStepIndex((prev: number) => prev + 1);
-        },
-        preventDefaultTouchmoveEvent: true,
-        trackTouch: true,
-        trackMouse: true,
-    });
-
-    if (step.title === 'scroll-icon') {
-        return (
-            <div {...swipe_handlers} className='guide-tooltip__wrapper-scroll'>
-                <LabelPairedChevronsUpXlBoldIcon className='guide-tooltip--bounce' fill='var(--color-text-primary)' />
-                <Text size='sm' bold className='guide-tooltip__wrapper-scroll-text'>
-                    <Localize i18n_default_text='Swipe up to see the chart' />
-                </Text>
-            </div>
-        );
-    }
-
+const GuideTooltip = ({ index, isLastStep, step, tooltipProps, onNext, onClose }: GuideTooltipProps) => {
+    const button_label = isLastStep ? <Localize i18n_default_text='Done' /> : <Localize i18n_default_text='Next' />;
+    // The 'center'-placed step is the mobile full-page-selector callout, pinned to the bottom. Widen
+    // it so the copy reads as a short, wide rectangle (per design) rather than a narrow, square card.
+    const is_bottom_callout = step.placement === 'center';
     return (
-        <div {...tooltipProps} className='guide-tooltip__wrapper'>
-            <div>
+        <div
+            {...tooltipProps}
+            className={clsx('guide-tooltip__wrapper', is_bottom_callout && 'guide-tooltip__wrapper--bottom')}
+        >
+            <div className='guide-tooltip__body'>
                 {step.title && (
                     <div className='guide-tooltip__header'>
                         <CaptionText bold className='guide-tooltip__header__title'>
                             {step.title}
                         </CaptionText>
                         <IconButton
-                            onClick={skipProps.onClick}
+                            onClick={onClose}
                             icon={
                                 <LabelPairedXmarkSmBoldIcon
                                     fill='var(--component-textIcon-inverse-prominent)'
@@ -58,15 +46,12 @@ const GuideTooltip = ({ isLastStep, primaryProps, skipProps, step, tooltipProps,
                 {step.content && <CaptionText className='guide-tooltip__content'>{step.content}</CaptionText>}
             </div>
             <Button
-                onClick={e => {
-                    setStepIndex((prev: number) => prev + 1);
-                    primaryProps.onClick(e);
-                }}
+                onClick={() => (isLastStep ? onClose() : onNext(index))}
                 color='white-black'
                 className='guide-tooltip__button'
                 variant='secondary'
                 size='sm'
-                label={isLastStep ? <Localize i18n_default_text='Done' /> : <Localize i18n_default_text='Next' />}
+                label={button_label}
             />
         </div>
     );

@@ -19,19 +19,19 @@ jest.mock('@deriv/shared', () => ({
     getStartTime: jest.fn(),
 }));
 
-jest.mock('App/Components/Elements/PositionsDrawer/helpers', () => ({
+jest.mock('Modules/Contract/Components/ContractAudit/positions-helper', () => ({
     getBarrierValue: jest.fn(),
 }));
 
 const mockData: TContractInfo = mockContractInfo({
     transaction_ids: { buy: 12345, sell: 67890 },
-    buy_price: 100,
+    buy_price: '100',
     currency: 'USD',
     tick_count: 5,
     tick_passed: 3,
     contract_type: '',
     display_number_of_contracts: '1',
-    commission: 5,
+    commission: '5',
     limit_order: {
         take_profit: { order_amount: 200 },
         stop_loss: { order_amount: 50 },
@@ -39,7 +39,6 @@ const mockData: TContractInfo = mockContractInfo({
     },
     barrier: '1000',
     growth_rate: 10,
-    entry_spot_display_value: '1000',
     is_expired: 1,
     multiplier: 3,
     reset_time: 1725422585,
@@ -74,7 +73,7 @@ describe('useOrderDetails', () => {
             [CARD_LABELS.DURATION]: '5 Ticks',
             [CARD_LABELS.BARRIER]: '1000',
             [CARD_LABELS.STAKE]: '100.00 USD',
-            [CARD_LABELS.POTENTIAL_PAYOUT]: 19.55,
+            [CARD_LABELS.POTENTIAL_PAYOUT]: '19.55',
         });
     });
 
@@ -99,7 +98,7 @@ describe('useOrderDetails', () => {
             [CARD_LABELS.DURATION]: '5 ticks',
             [CARD_LABELS.TARGET]: undefined,
             [CARD_LABELS.STAKE]: '100.00 USD',
-            [CARD_LABELS.POTENTIAL_PAYOUT]: 19.55,
+            [CARD_LABELS.POTENTIAL_PAYOUT]: '19.55',
         });
     });
 
@@ -207,6 +206,30 @@ describe('useOrderDetails', () => {
                     caption: '1000',
                 },
             ],
+        });
+    });
+
+    it('should return correct details for Higher contract', () => {
+        mockData.contract_type = CONTRACT_TYPES.HIGHER;
+        const { result } = renderHook(() => useOrderDetails(mockData));
+        expect(result.current?.details).toEqual({
+            [CARD_LABELS.REFERENCE_ID]: ['12345 (Buy)', '67890 (Sell)'],
+            [CARD_LABELS.DURATION]: '5 Ticks',
+            [CARD_LABELS.BARRIER]: '1000',
+            [CARD_LABELS.STAKE]: '100.00 USD',
+            [CARD_LABELS.POTENTIAL_PAYOUT]: '19.55',
+        });
+    });
+
+    it('should return correct details for Lower contract', () => {
+        mockData.contract_type = CONTRACT_TYPES.LOWER;
+        const { result } = renderHook(() => useOrderDetails(mockData));
+        expect(result.current?.details).toEqual({
+            [CARD_LABELS.REFERENCE_ID]: ['12345 (Buy)', '67890 (Sell)'],
+            [CARD_LABELS.DURATION]: '5 Ticks',
+            [CARD_LABELS.BARRIER]: '1000',
+            [CARD_LABELS.STAKE]: '100.00 USD',
+            [CARD_LABELS.POTENTIAL_PAYOUT]: '19.55',
         });
     });
 

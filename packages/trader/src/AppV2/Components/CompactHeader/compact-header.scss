@@ -1,0 +1,64 @@
+// Slim 56px header shown while the chart is maximized (mobile only). Overlays the shell header's
+// fixed 56px slot (position: fixed, top:0) and cross-fades in as the core header fades out — so
+// the swap happens in place with the content offset unchanged and the market strip never shifts.
+.compact-header {
+    position: fixed;
+    inset-block-start: 0;
+    inset-inline: 0;
+    z-index: 5;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--core-spacing-400);
+    height: $MOBILE_HEADER_DTRADER_V2_HEIGHT;
+    padding: 0 var(--core-spacing-800);
+    box-sizing: border-box;
+    background-color: var(--semantic-color-slate-solid-surface-frame-low);
+    border-bottom: 1px solid var(--semantic-color-monochrome-border-normal-mid);
+    opacity: 1;
+    transition: opacity 0.3s ease-in-out;
+
+    // Hidden (chart not maximized): faded out and non-interactive so the real shell header
+    // beneath stays usable. Always mounted so both maximize and minimize cross-fade in place.
+    &--hidden {
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    &__market {
+        display: flex;
+        align-items: center;
+        gap: var(--core-spacing-400);
+        min-width: 0;
+    }
+
+    &__market-labels {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+    }
+
+    &__symbol,
+    &__balance,
+    &__trade-type {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    &__trade-type {
+        color: var(--component-textIcon-normal-subtle);
+    }
+
+    &__account {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        min-width: 0;
+
+        // The account label + balance colours come from @deriv/components Text `color` props
+        // (tertiary / secondary-alternate / primary) — the same tokens the main header uses —
+        // so no colour overrides here; consistency is driven by the shared component.
+    }
+}

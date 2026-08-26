@@ -2,9 +2,9 @@ import React from 'react';
 import { Router } from 'react-router-dom';
 import { createBrowserHistory } from 'history';
 
-import { getCardLabels, getContractPath, getStartTime, toMoment } from '@deriv/shared';
+import { getCardLabels, getContractPath, toMoment } from '@deriv/shared';
 import { TPortfolioPosition } from '@deriv/stores/types';
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import { TClosedPosition } from 'AppV2/Containers/Positions/positions-content';
@@ -16,12 +16,33 @@ jest.mock('@deriv/shared', () => ({
     getStartTime: jest.fn(),
 }));
 
+let mockIsMobile = true;
+jest.mock('@deriv-com/ui', () => ({
+    ...jest.requireActual('@deriv-com/ui'),
+    useDevice: jest.fn(() => ({ isMobile: mockIsMobile })),
+}));
+
+let mockCurrentLang = 'EN';
+jest.mock('@deriv-com/translations', () => ({
+    ...jest.requireActual('@deriv-com/translations'),
+    useTranslations: () => ({
+        currentLang: mockCurrentLang,
+    }),
+}));
+
+let swipeableConfig: Record<string, () => void> = {};
+jest.mock('react-swipeable', () => ({
+    useSwipeable: jest.fn(config => {
+        swipeableConfig = config;
+        return {};
+    }),
+}));
+
 const mockedNow = Math.floor(Date.now() / 1000);
 
 const closedPositions = [
     {
         contract_info: {
-            app_id: 16929,
             buy_price: 10,
             contract_id: 243585717228,
             contract_type: 'TURBOSLONG',
@@ -29,15 +50,16 @@ const closedPositions = [
             longcode:
                 'You will receive a payout at expiry if the spot price never breaches the barrier. The payout is equal to the payout per point multiplied by the distance between the final price and the barrier.',
             payout: 0,
-            purchase_time: '27 May 2024 09:41:00',
+            purchase_time: 1716802860,
             sell_price: 0,
-            sell_time: '27 May 2024 09:43:36',
+            sell_time: 1716802916,
             shortcode: 'TURBOSLONG_1HZ100V_10.00_1716802860_1716804660_S-237P_3.971435_1716802860',
             transaction_id: 485824148848,
             underlying_symbol: '1HZ100V',
             profit_loss: '-10.00',
             display_name: '',
             purchase_time_unix: 1716802860,
+            sell_time_unix: 1716802916,
         },
     },
 ] as TClosedPosition[];
@@ -48,27 +70,22 @@ const openPositions = [
             account_id: 112905368,
             barrier: '682.60',
             barrier_count: 1,
-            bid_price: 6.38,
-            buy_price: 9,
+            bid_price: '6.38',
+            buy_price: '9',
             contract_id: 242807007748,
             contract_type: 'CALL',
             currency: 'USD',
-            current_spot: 681.76,
-            current_spot_display_value: '681.76',
+            current_spot: '681.76',
             current_spot_time: 1716220628,
             date_expiry: mockedNow + 1000,
             date_settlement: mockedNow + 1000,
             date_start: 1716220562,
             display_name: 'Volatility 100 (1s) Index',
-            entry_spot: 682.6,
-            entry_spot_display_value: '682.60',
-            entry_tick: 682.6,
-            entry_tick_display_value: '682.60',
-            entry_tick_time: 1716220563,
+            entry_spot: '682.6',
+            entry_spot_time: 1716220563,
             expiry_time: mockedNow + 1000,
             id: '917d1b48-305b-a2f4-5b9c-7fb1f2c6c145',
             is_expired: 0,
-            is_forward_starting: 0,
             is_intraday: 1,
             is_path_dependent: 0,
             is_settleable: 0,
@@ -78,7 +95,7 @@ const openPositions = [
             longcode:
                 'Win payout if Volatility 100 (1s) Index is strictly higher than entry spot at 2024-05-20 16:05:00 GMT.',
             payout: 17.61,
-            profit: -2.62,
+            profit: '-2.62',
             profit_percentage: -29.11,
             purchase_time: 1716220562,
             shortcode: `CALL_1HZ100V_17.61_1716220562_${mockedNow + 1000}F_S0P_0`,
@@ -86,7 +103,7 @@ const openPositions = [
             transaction_ids: {
                 buy: 484286139408,
             },
-            underlying: '1HZ100V',
+            underlying_symbol: '1HZ100V',
         },
         details:
             'Win payout if Volatility 100 (1s) Index is strictly higher than entry spot at 2024-05-20 16:05:00 GMT.',
@@ -107,8 +124,8 @@ const openPositions = [
         contract_info: {
             account_id: 112905368,
             barrier_count: 1,
-            bid_price: 8.9,
-            buy_price: 9.39,
+            bid_price: '8.9',
+            buy_price: '9.39',
             cancellation: {
                 ask_price: 0.39,
                 date_expiry: 1716224183,
@@ -117,22 +134,17 @@ const openPositions = [
             contract_id: 242807045608,
             contract_type: 'MULTUP',
             currency: 'USD',
-            current_spot: 681.71,
-            current_spot_display_value: '681.71',
+            current_spot: '681.71',
             current_spot_time: 1716220672,
             date_expiry: mockedNow + 1000,
             date_settlement: mockedNow + 1000,
             date_start: 1716220583,
             display_name: 'Volatility 100 (1s) Index',
-            entry_spot: 682.23,
-            entry_spot_display_value: '682.23',
-            entry_tick: 682.23,
-            entry_tick_display_value: '682.23',
-            entry_tick_time: 1716220584,
+            entry_spot: '682.23',
+            entry_spot_time: 1716220584,
             expiry_time: mockedNow + 1000,
             id: '917d1b48-305b-a2f4-5b9c-7fb1f2c6c145',
             is_expired: 0,
-            is_forward_starting: 0,
             is_intraday: 0,
             is_path_dependent: 1,
             is_settleable: 0,
@@ -156,7 +168,7 @@ const openPositions = [
             longcode:
                 "If you select 'Up', your total profit/loss will be the percentage increase in Volatility 100 (1s) Index, multiplied by 90, minus commissions.",
             multiplier: 10,
-            profit: -0.1,
+            profit: '-0.1',
             profit_percentage: -1.11,
             purchase_time: 1716220583,
             shortcode: `MULTUP_1HZ100V_9.00_10_1716220583_${mockedNow + 1000}_60m_0.00_N1`,
@@ -164,7 +176,7 @@ const openPositions = [
             transaction_ids: {
                 buy: 484286215128,
             },
-            underlying: '1HZ100V',
+            underlying_symbol: '1HZ100V',
             validation_error:
                 'The spot price has moved. We have not closed this contract because your profit is negative and deal cancellation is active. Cancel your contract to get your full stake back.',
             validation_error_code: 'General',
@@ -195,31 +207,25 @@ const openPositions = [
             account_id: 112905368,
             barrier_count: 2,
             barrier_spot_distance: '0.296',
-            bid_price: 9.84,
-            buy_price: 9,
+            bid_price: '9.84',
+            buy_price: '9',
             contract_id: 242807268688,
             contract_type: 'ACCU',
             currency: 'USD',
-            current_spot: 682.72,
-            current_spot_display_value: '682.72',
+            current_spot: '682.72',
             current_spot_high_barrier: '683.016',
             current_spot_low_barrier: '682.424',
             current_spot_time: 1716220720,
             date_expiry: mockedNow + 1000,
             date_settlement: mockedNow + 1000,
-            date_start: 1716220710,
-            display_name: 'Volatility 100 (1s) Index',
-            entry_spot: 682.58,
-            entry_spot_display_value: '682.58',
-            entry_tick: 682.58,
-            entry_tick_display_value: '682.58',
-            entry_tick_time: 1716220711,
+            date_start: mockedNow - 9,
+            entry_spot: '682.58',
+            entry_spot_time: 1716220711,
             expiry_time: mockedNow + 1000,
             growth_rate: 0.01,
             high_barrier: '683.046',
             id: '917d1b48-305b-a2f4-5b9c-7fb1f2c6c145',
             is_expired: 0,
-            is_forward_starting: 0,
             is_intraday: 0,
             is_path_dependent: 1,
             is_settleable: 0,
@@ -229,7 +235,7 @@ const openPositions = [
             longcode:
                 'After the entry spot tick, your stake will grow continuously by 1% for every tick that the spot price remains within the ± 0.04331% from the previous spot price.',
             low_barrier: '682.454',
-            profit: 0.84,
+            profit: '0.84',
             profit_percentage: 9.33,
             purchase_time: 1716220710,
             shortcode: 'ACCU_1HZ100V_9.00_0_0.01_1_0.000433139675_1716220710',
@@ -291,7 +297,7 @@ const openPositions = [
             transaction_ids: {
                 buy: 484286658868,
             },
-            underlying: '1HZ100V',
+            underlying_symbol: '1HZ100V',
         },
         details:
             'After the entry spot tick, your stake will grow continuously by 1% for every tick that the spot price remains within the ± 0.04331% from the previous spot price.',
@@ -309,13 +315,13 @@ const openPositions = [
         high_barrier: 683.046,
         low_barrier: 682.454,
     },
-] as TPortfolioPosition[];
+] as unknown as TPortfolioPosition[];
 
 const buttonLoaderId = 'dt_button_loader';
 const symbolName = 'Volatility 100 (1s) Index';
 
 describe('ContractCard', () => {
-    const { CANCEL, CLOSE, CLOSED } = getCardLabels();
+    const { CANCEL, CLOSE, CLOSED, RESALE_NOT_OFFERED } = getCardLabels();
     const history = createBrowserHistory();
     const mockProps: React.ComponentProps<typeof ContractCard> = {
         contractInfo: openPositions[0].contract_info,
@@ -331,6 +337,8 @@ describe('ContractCard', () => {
     );
     beforeEach(() => {
         history.push('/');
+        mockCurrentLang = 'EN';
+        mockIsMobile = true;
     });
     it('should not render component if contractInfo prop is empty/missing contract_type', () => {
         const { container } = render(mockedContractCard({ ...mockProps, contractInfo: {} }));
@@ -467,5 +475,150 @@ describe('ContractCard', () => {
         await userEvent.click(card);
         expect(mockedOnClick).toHaveBeenCalledTimes(1);
         expect(history.location.pathname).not.toBe(redirectTo);
+    });
+    it('should show buttons on swipe left in LTR mode', () => {
+        render(mockedContractCard());
+        act(() => swipeableConfig.onSwipedLeft());
+        expect(screen.getByTestId('dt_contract_card')).toHaveClass('show-buttons');
+    });
+    it('should hide buttons on swipe right in LTR mode', () => {
+        render(mockedContractCard());
+        act(() => swipeableConfig.onSwipedLeft());
+        expect(screen.getByTestId('dt_contract_card')).toHaveClass('show-buttons');
+        act(() => swipeableConfig.onSwipedRight());
+        expect(screen.getByTestId('dt_contract_card')).not.toHaveClass('show-buttons');
+    });
+    it('should show buttons on swipe right in RTL mode', () => {
+        mockCurrentLang = 'AR';
+        render(mockedContractCard());
+        act(() => swipeableConfig.onSwipedRight());
+        expect(screen.getByTestId('dt_contract_card')).toHaveClass('show-buttons');
+    });
+    it('should hide buttons on swipe left in RTL mode', () => {
+        mockCurrentLang = 'AR';
+        render(mockedContractCard());
+        act(() => swipeableConfig.onSwipedRight());
+        expect(screen.getByTestId('dt_contract_card')).toHaveClass('show-buttons');
+        act(() => swipeableConfig.onSwipedLeft());
+        expect(screen.getByTestId('dt_contract_card')).not.toHaveClass('show-buttons');
+    });
+    it('should not show buttons on swipe right in LTR mode', () => {
+        render(mockedContractCard());
+        act(() => swipeableConfig.onSwipedRight());
+        expect(screen.getByTestId('dt_contract_card')).not.toHaveClass('show-buttons');
+    });
+    it('should not show buttons on swipe left in RTL mode', () => {
+        mockCurrentLang = 'AR';
+        render(mockedContractCard());
+        act(() => swipeableConfig.onSwipedLeft());
+        expect(screen.getByTestId('dt_contract_card')).not.toHaveClass('show-buttons');
+    });
+
+    describe('desktop action buttons (positions drawer)', () => {
+        // The desktop buttons are identified by their dedicated classes, since the Cancel button's
+        // accessible name also contains the deal cancellation countdown.
+        const getDesktopCancelButton = () =>
+            screen.queryAllByRole('button').find(button => button.classList.contains('contract-card__cancel-btn'));
+        const getDesktopCloseButton = () =>
+            screen.queryAllByRole('button').find(button => button.classList.contains('contract-card__sell-btn'));
+        const multiplierWithActiveDC = {
+            ...openPositions[1].contract_info,
+            cancellation: {
+                ask_price: 0.39,
+                date_expiry: mockedNow + 1000,
+            },
+        } as TPortfolioPosition['contract_info'];
+
+        beforeEach(() => {
+            mockIsMobile = false;
+        });
+
+        it('should render an enabled Cancel button with DC countdown for a multiplier with active deal cancellation and negative profit, and should call onCancel on click', async () => {
+            const mockedOnCancel = jest.fn();
+            render(
+                mockedContractCard({
+                    ...mockProps,
+                    contractInfo: multiplierWithActiveDC,
+                    onCancel: mockedOnCancel,
+                })
+            );
+            const cancelButton = getDesktopCancelButton();
+            expect(cancelButton).toBeEnabled();
+            expect(cancelButton).toHaveTextContent(CANCEL);
+            expect(cancelButton).toHaveTextContent('16:40');
+            // Close is not usable while deal cancellation is active with negative profit (is_valid_to_sell: 0),
+            // so Cancel is the only available action:
+            expect(screen.getByRole('button', { name: RESALE_NOT_OFFERED })).toBeDisabled();
+
+            await userEvent.click(cancelButton as HTMLElement);
+            expect(mockedOnCancel).toHaveBeenCalledTimes(1);
+        });
+        it('should render the Cancel button without a countdown when cancellation date_expiry is missing', () => {
+            render(
+                mockedContractCard({
+                    ...mockProps,
+                    contractInfo: {
+                        ...multiplierWithActiveDC,
+                        cancellation: { ask_price: 0.39, date_expiry: undefined },
+                    },
+                })
+            );
+            const cancelButton = getDesktopCancelButton();
+            expect(cancelButton).toHaveTextContent(CANCEL);
+            expect(cancelButton?.textContent).not.toContain(':');
+        });
+        it('should not render the mobile swipe-reveal action block on desktop', () => {
+            render(
+                mockedContractCard({
+                    ...mockProps,
+                    contractInfo: multiplierWithActiveDC,
+                })
+            );
+            // Only the two quill buttons (Close + Cancel) should be in the DOM:
+            expect(screen.getAllByRole('button')).toHaveLength(2);
+        });
+        it('should disable the Cancel button when profit is >= 0', () => {
+            render(
+                mockedContractCard({
+                    ...mockProps,
+                    contractInfo: { ...multiplierWithActiveDC, profit: '0.5' },
+                })
+            );
+            expect(getDesktopCancelButton()).toBeDisabled();
+        });
+        it('should disable the Cancel button when a sell/cancel request is already in flight', () => {
+            render(
+                mockedContractCard({
+                    ...mockProps,
+                    contractInfo: multiplierWithActiveDC,
+                    isSellRequested: true,
+                })
+            );
+            expect(getDesktopCancelButton()).toBeDisabled();
+        });
+        it('should not render a Cancel button for a non-multiplier contract', () => {
+            render(mockedContractCard());
+            expect(getDesktopCancelButton()).toBeUndefined();
+            expect(getDesktopCloseButton()).toBeEnabled();
+        });
+        it('should not render a Cancel button for a multiplier when is_valid_to_cancel is falsy', () => {
+            render(
+                mockedContractCard({
+                    ...mockProps,
+                    contractInfo: { ...multiplierWithActiveDC, is_valid_to_cancel: 0, cancellation: undefined },
+                })
+            );
+            expect(getDesktopCancelButton()).toBeUndefined();
+        });
+        it('should not render any action buttons when hasActionButtons is false', () => {
+            render(
+                mockedContractCard({
+                    ...mockProps,
+                    contractInfo: multiplierWithActiveDC,
+                    hasActionButtons: false,
+                })
+            );
+            expect(screen.queryByRole('button')).not.toBeInTheDocument();
+        });
     });
 });

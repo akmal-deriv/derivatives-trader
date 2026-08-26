@@ -1,31 +1,23 @@
 import { getDurationMinMaxValues, getExpiryType } from '@deriv/shared';
 
-import { ContractType } from 'Stores/Modules/Trading/Helpers/contract-type';
 import { TTradeStore } from 'Types';
 
 type TOnChangeExpiry = (store: TTradeStore) => {
     contract_expiry_type: string;
-    barrier_count?: number;
-    barrier_1?: string;
-    barrier_2?: string;
 };
 type TAssertDurationParams = Partial<
     Pick<TTradeStore, 'contract_expiry_type' | 'duration' | 'duration_min_max' | 'duration_unit'>
 >;
 
-export const onChangeExpiry: TOnChangeExpiry = store => {
-    const contract_expiry_type = getExpiryType(store);
-
-    // TODO: there will be no barrier available if contract is only daily but client chooses intraday endtime. we should find a way to handle this.
-    const obj_barriers =
-        store.contract_expiry_type !== contract_expiry_type && // barrier value changes for tick/intraday/daily
-        ContractType.getBarriers(store.contract_type, contract_expiry_type);
-
-    return {
-        contract_expiry_type,
-        ...obj_barriers,
-    };
-};
+/**
+ * Re-derives `contract_expiry_type` for the pipeline. Barrier re-seeding on an expiry-type change
+ * is NOT done here: it used to be triggered by this function's result differing from the store,
+ * which only worked while the store's value was derived incorrectly. The trade-store reaction that
+ * owns `contract_expiry_type` can see the transition directly and re-seeds there instead.
+ */
+export const onChangeExpiry: TOnChangeExpiry = store => ({
+    contract_expiry_type: getExpiryType(store),
+});
 
 export const onChangeContractType = (store: TTradeStore) => {
     const contract_expiry_type = getExpiryType(store);

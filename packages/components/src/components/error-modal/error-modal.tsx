@@ -1,8 +1,10 @@
 import React from 'react';
+
 import DesktopWrapper from '../desktop-wrapper';
+import MobileDialog from '../mobile-dialog';
 import MobileWrapper from '../mobile-wrapper';
 import Modal from '../modal';
-import MobileDialog from '../mobile-dialog';
+
 import ErrorModalContent from './error-modal-content';
 
 type TMessageObject = {
@@ -16,7 +18,13 @@ type TErrorModalProps = {
 
 const ErrorModal = ({ messages }: TErrorModalProps) => {
     const [is_error_modal_open, setErrorModalOpen] = React.useState(false);
-    const error_message_description = messages?.[0]?.toString();
+
+    // Extract error message - handle both TMessageObject and React.ReactNode
+    const firstMessage = messages?.[0];
+    const error_message_description =
+        typeof firstMessage === 'object' && firstMessage && 'message' in firstMessage
+            ? firstMessage.message
+            : firstMessage?.toString();
 
     React.useEffect(() => {
         setErrorModalOpen(true);
@@ -27,7 +35,7 @@ const ErrorModal = ({ messages }: TErrorModalProps) => {
     };
 
     return (
-        <Modal has_close_icon width='440px' height='284px' is_open={is_error_modal_open} toggleModal={toggleErrorModal}>
+        <Modal has_close_icon width='440px' is_open={is_error_modal_open} toggleModal={toggleErrorModal}>
             <DesktopWrapper>
                 <Modal.Body>
                     <ErrorModalContent error_message={error_message_description} />

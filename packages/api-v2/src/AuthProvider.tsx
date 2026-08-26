@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
+import { isDemoAccountId } from '@deriv/shared';
 import { getAccountsFromLocalStorage, getActiveLoginIDFromLocalStorage, getToken } from '@deriv/utils';
 import { AppIDConstants } from '@deriv-com/utils';
 
@@ -131,7 +132,11 @@ const AuthProvider = ({ loginIDKey, children, cookieTimeout, selectDefaultAccoun
             return {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 subscribe: (onData: (response: any) => void) => {
-                    return wsClient?.subscribe(name, payload, onData);
+                    return wsClient?.subscribe(
+                        name,
+                        payload as TSocketRequestPayload<TSocketSubscribableEndpointNames>['payload'],
+                        onData
+                    );
                 },
             };
         },
@@ -147,15 +152,11 @@ const AuthProvider = ({ loginIDKey, children, cookieTimeout, selectDefaultAccoun
 
             setLoginid(activeLoginID);
 
-            const accountList = authorizeResponse.authorize?.account_list;
-            if (!accountList) return;
-
-            const activeAccount = accountList.find(acc => acc.loginid === activeLoginID);
-            if (!activeAccount) return;
-
             localStorage.setItem(loginIDKey ?? 'active_loginid', activeLoginID);
             sessionStorage.setItem(loginIDKey ?? 'active_loginid', activeLoginID);
-            const isDemo = activeAccount.is_virtual;
+
+            const isDemo = isDemoAccountId(activeLoginID);
+
             const shouldCreateNewWSConnection =
                 (isDemo && wsClient?.endpoint === AppIDConstants.environments.real) ||
                 (!isDemo && wsClient?.endpoint === AppIDConstants.environments.demo);
@@ -175,7 +176,7 @@ const AuthProvider = ({ loginIDKey, children, cookieTimeout, selectDefaultAccoun
     useEffect(() => {
         setOnReconnected(async () => {
             setIsAuthorized(false);
-            await mutateAsync({ payload: { authorize: getToken(loginid || '') ?? '' } });
+            await mutateAsync({ payload: { authorize: getToken(loginid || '') ?? '' } as any });
             setIsAuthorized(true);
         });
     }, [loginid]);
@@ -195,7 +196,7 @@ const AuthProvider = ({ loginIDKey, children, cookieTimeout, selectDefaultAccoun
                 setIsInitializing(true);
                 setIsFetching(true);
                 setIsAuthorized(false);
-                await mutateAsync({ payload: { authorize: token || '' } })
+                await mutateAsync({ payload: { authorize: token || '' } as any })
                     .then(res => {
                         setIsAuthorized(true);
                         processAuthorizeResponse(res);
@@ -205,7 +206,7 @@ const AuthProvider = ({ loginIDKey, children, cookieTimeout, selectDefaultAccoun
                         setLoginid(res?.authorize?.loginid ?? '');
                     })
                     .catch(async (e: TAuthorizeError) => {
-                        if (e?.error.code === API_ERROR_CODES.DISABLED_ACCOUNT) {
+                        if (e?.code === API_ERROR_CODES.DISABLED_ACCOUNT) {
                             await logout?.();
                         }
                         setIsLoading(false);
@@ -245,12 +246,14 @@ const AuthProvider = ({ loginIDKey, children, cookieTimeout, selectDefaultAccoun
 
             setIsAuthorized(false);
             try {
-                const authorizeResponse = await mutateAsync({ payload: { authorize: getToken(newLoginId) ?? '' } });
+                const authorizeResponse = await mutateAsync({
+                    payload: { authorize: getToken(newLoginId) ?? '' } as any,
+                });
                 setIsAuthorized(true);
                 setLoginid(newLoginId);
                 processAuthorizeResponse(authorizeResponse);
             } catch (e: unknown) {
-                if (typeof e === 'object' && (e as TAuthorizeError)?.error.code === API_ERROR_CODES.DISABLED_ACCOUNT) {
+                if (typeof e === 'object' && (e as TAuthorizeError)?.code === API_ERROR_CODES.DISABLED_ACCOUNT) {
                     await logout?.();
                 }
             } finally {

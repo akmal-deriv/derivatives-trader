@@ -11,11 +11,15 @@ type TChartBarrierStoreOptions =
           line_style?: string;
           not_draggable?: boolean;
           shade?: string;
+          foregroundColor?: string;
+          backgroundColor?: string;
       }
     | Record<string, never>;
 
 export class ChartBarrierStore {
     color?: string;
+    foregroundColor?: string;
+    backgroundColor?: string;
     lineStyle: string;
     shade?: string;
     shadeColor?: string;
@@ -28,16 +32,26 @@ export class ChartBarrierStore {
     hideBarrierLine?: boolean;
     hideOffscreenLine?: boolean;
     title?: string;
+    useInlineLabel?: boolean;
     onChartBarrierChange: TOnChartBarrierChange | null;
 
     constructor(
         high_barrier?: string | number,
         low_barrier?: string | number,
         onChartBarrierChange: TOnChartBarrierChange = null,
-        { color, hideBarrierLine, line_style, not_draggable, shade }: TChartBarrierStoreOptions = {}
+        {
+            color,
+            hideBarrierLine,
+            line_style,
+            not_draggable,
+            shade,
+            foregroundColor,
+            backgroundColor,
+        }: TChartBarrierStoreOptions = {}
     ) {
         makeObservable(this, {
             color: observable,
+            foregroundColor: observable,
             lineStyle: observable,
             shade: observable,
             shadeColor: observable,
@@ -49,6 +63,7 @@ export class ChartBarrierStore {
             hideBarrierLine: observable,
             hideOffscreenLine: observable,
             title: observable,
+            useInlineLabel: observable,
             updateBarriers: action.bound,
             updateBarrierShade: action.bound,
             updateColor: action.bound,
@@ -58,8 +73,10 @@ export class ChartBarrierStore {
         });
 
         this.color = color;
+        this.foregroundColor = foregroundColor;
+        this.backgroundColor = backgroundColor;
         this.hideBarrierLine = hideBarrierLine;
-        this.lineStyle = line_style || BARRIER_LINE_STYLES.DOTTED;
+        this.lineStyle = line_style || BARRIER_LINE_STYLES.DASHED;
         this.onChange = this.onBarrierChange;
 
         // trade_store's action to process new barriers on dragged
@@ -102,7 +119,10 @@ export class ChartBarrierStore {
 
     updateColor({ barrier_color, shade_color }: { barrier_color?: string; shade_color?: string }) {
         if (shade_color) this.shadeColor = shade_color;
-        if (barrier_color) this.color = barrier_color;
+        if (barrier_color) {
+            this.color = barrier_color;
+            this.foregroundColor = barrier_color;
+        }
     }
 
     onBarrierChange({ high, low, title, hidePriceLines }: TOnChangeParams) {

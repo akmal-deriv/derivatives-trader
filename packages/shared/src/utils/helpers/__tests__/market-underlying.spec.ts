@@ -84,6 +84,26 @@ describe('market-underlying', () => {
                 underlying: 'JD200',
             });
         });
+        it('should correctly extract the newly added Crash/Boom symbols from shortcodes', () => {
+            expect(getMarketInformation('MULTUP_CRASH50_100.00_100_1719905471_4873564799_0_0.00_N1')).toMatchObject({
+                category: 'multup',
+                underlying: 'CRASH50',
+            });
+            expect(getMarketInformation('MULTDOWN_CRASH150N_100.00_100_1719905471_4873564799_0_0.00_N1')).toMatchObject(
+                {
+                    category: 'multdown',
+                    underlying: 'CRASH150N',
+                }
+            );
+            expect(getMarketInformation('MULTUP_BOOM50_100.00_100_1719905399_4873564799_0_0.00_N1')).toMatchObject({
+                category: 'multup',
+                underlying: 'BOOM50',
+            });
+            expect(getMarketInformation('MULTDOWN_BOOM150N_100.00_100_1719905399_4873564799_0_0.00_N1')).toMatchObject({
+                category: 'multdown',
+                underlying: 'BOOM150N',
+            });
+        });
     });
 
     describe('getSymbolDisplayName integration with getMarketInformation', () => {
@@ -93,7 +113,7 @@ describe('market-underlying', () => {
             expect(underlying).toBe('JD100');
 
             // Test the complete flow with getSymbolDisplayName
-            const displayName = getSymbolDisplayName([], underlying);
+            const displayName = getSymbolDisplayName(underlying);
             expect(displayName).toBe('Jump 100 Index');
         });
 
@@ -110,7 +130,7 @@ describe('market-underlying', () => {
 
             testCases.forEach(({ shortcode, expected }) => {
                 const { underlying } = getMarketInformation(shortcode);
-                const displayName = getSymbolDisplayName([], underlying);
+                const displayName = getSymbolDisplayName(underlying);
                 expect(displayName).toBe(expected);
             });
         });
@@ -118,6 +138,26 @@ describe('market-underlying', () => {
     describe('getMarketName', () => {
         it('should return the correct symbol display name when symbol is provided', () => {
             expect(getMarketName('R_100')).toBe('Volatility 100 Index');
+        });
+        it('should resolve the newly added Crash/Boom symbols from their shortcodes', () => {
+            const test_cases = [
+                { shortcode: 'MULTUP_CRASH50_100.00_100_1719905471_4873564799_0_0.00_N1', expected: 'Crash 50 Index' },
+                {
+                    shortcode: 'MULTDOWN_CRASH150N_100.00_100_1719905471_4873564799_0_0.00_N1',
+                    expected: 'Crash 150 Index',
+                },
+                { shortcode: 'MULTUP_BOOM50_100.00_100_1719905399_4873564799_0_0.00_N1', expected: 'Boom 50 Index' },
+                {
+                    shortcode: 'MULTDOWN_BOOM150N_100.00_100_1719905399_4873564799_0_0.00_N1',
+                    expected: 'Boom 150 Index',
+                },
+            ];
+
+            test_cases.forEach(({ shortcode, expected }) => {
+                const { underlying } = getMarketInformation(shortcode);
+                expect(getMarketName(underlying)).toBe(expected);
+                expect(getSymbolDisplayName(underlying)).toBe(expected);
+            });
         });
         it('should return null when symbol is not provided', () => {
             expect(getMarketName('')).toBe(null);
@@ -134,6 +174,12 @@ describe('market-underlying', () => {
         it('should return the correct Rise or Fall contract type display name when is_how_low === false', () => {
             expect(getTradeTypeName(position.contract_type)).toBe('Rise');
             expect(getTradeTypeName(CONTRACT_TYPES.PUT)).toBe('Fall');
+        });
+        it('should return the correct display name for End contracts including the "or equal" barrier variants', () => {
+            expect(getTradeTypeName(CONTRACT_TYPES.END.IN)).toBe('Ends Between');
+            expect(getTradeTypeName(CONTRACT_TYPES.EXPIRYRANGEE)).toBe('Ends Between');
+            expect(getTradeTypeName(CONTRACT_TYPES.END.OUT)).toBe('Ends Outside');
+            expect(getTradeTypeName(CONTRACT_TYPES.EXPIRYMISSE)).toBe('Ends Outside');
         });
         it('should return the correct Up or Down contract type display name when show_button_name is true', () => {
             expect(getTradeTypeName(CONTRACT_TYPES.TURBOS.LONG, { showButtonName: true })).toBe('Up');

@@ -40,23 +40,24 @@ const svg_file_loaders = [
 
 const svg_loaders = [
     {
-        loader: 'babel-loader',
+        loader: '@svgr/webpack',
         options: {
-            cacheDirectory: true,
-            rootMode: 'upward',
-        },
-    },
-    {
-        loader: 'react-svg-loader',
-        options: {
-            jsx: true,
-            svgo: {
-                plugins: [
-                    { removeTitle: false },
-                    { removeUselessStrokeAndFill: false },
-                    { removeUknownsAndDefaults: false },
-                ],
+            svgoConfig: {
                 floatPrecision: 2,
+                plugins: [
+                    {
+                        name: 'preset-default',
+                        params: {
+                            overrides: {
+                                removeTitle: false,
+                                removeUselessStrokeAndFill: false,
+                                removeUnknownsAndDefaults: false,
+                                cleanupIds: false,
+                            },
+                        },
+                    },
+                    'prefixIds',
+                ],
             },
         },
     },
@@ -70,6 +71,15 @@ const css_loaders = [
         loader: 'css-loader',
         options: {
             sourceMap: !IS_RELEASE,
+            // Block external @import statements from being processed by webpack
+            import: url => {
+                // Block external URLs (http://, https://, //)
+                if (/^https?:\/\//.test(url) || url.startsWith('//')) {
+                    return false;
+                }
+                // Allow all relative and webpack module imports
+                return true;
+            },
         },
     },
     {
@@ -85,7 +95,6 @@ const css_loaders = [
         loader: 'resolve-url-loader',
         options: {
             sourceMap: true,
-            keepQuery: true,
         },
     },
     {

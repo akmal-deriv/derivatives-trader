@@ -1,6 +1,6 @@
 import React from 'react';
-import moment from 'moment';
 
+import { dayjs } from '@deriv/shared';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
@@ -26,19 +26,19 @@ describe('TwoMonthPicker', () => {
     const mockProps = {
         onChange: jest.fn(),
         isPeriodDisabled: jest.fn(),
-        value: moment(),
+        value: dayjs(),
     };
 
     describe('should render TwoMonthPicker component', () => {
         it('should render TwoMonthPicker component with different years for December/January months', () => {
-            const january_10th_2025 = moment('2025-01-10', 'YYYY-MM-DD');
+            const january_10th_2025 = dayjs('2025-01-10', 'YYYY-MM-DD');
 
             render(<TwoMonthPicker {...mockProps} value={january_10th_2025} />);
 
-            const currentMonth = moment().month(0).format('MMM'); // January
-            const prevMonth = moment().month(0).subtract(1, 'month').format('MMM'); // December
-            const currentYear = moment().year(2025).format('YYYY'); // 2025
-            const prevYear = moment().year(2024).format('YYYY'); // 2024
+            const currentMonth = dayjs().month(0).format('MMM'); // January
+            const prevMonth = dayjs().month(0).subtract(1, 'month').format('MMM'); // December
+            const currentYear = dayjs().year(2025).format('YYYY'); // 2025
+            const prevYear = dayjs().year(2024).format('YYYY'); // 2024
 
             expect(screen.getByText(currentMonth)).toBeInTheDocument();
             expect(screen.getByText(prevMonth)).toBeInTheDocument();
@@ -47,14 +47,14 @@ describe('TwoMonthPicker', () => {
         });
 
         it('should render TwoMonthPicker component with same years for January/February months', () => {
-            const february_10th_2025 = moment('2025-02-10', 'YYYY-MM-DD');
+            const february_10th_2025 = dayjs('2025-02-10', 'YYYY-MM-DD');
 
             render(<TwoMonthPicker {...mockProps} value={february_10th_2025} />);
 
-            const currentMonth = moment().month(1).format('MMM'); // February
-            const prevMonth = moment().month(1).subtract(1, 'month').format('MMM'); // January
-            const currentYear = moment().year(2025).format('YYYY'); // 2025
-            const prevYear = moment().year(2025).format('YYYY'); // 2025
+            const currentMonth = dayjs().month(1).format('MMM'); // February
+            const prevMonth = dayjs().month(1).subtract(1, 'month').format('MMM'); // January
+            const currentYear = dayjs().year(2025).format('YYYY'); // 2025
+            const prevYear = dayjs().year(2025).format('YYYY'); // 2025
 
             expect(screen.getByText(currentMonth)).toBeInTheDocument();
             expect(screen.getByText(prevMonth)).toBeInTheDocument();

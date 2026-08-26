@@ -1,6 +1,4 @@
-import moment from 'moment';
-
-import { TRADE_TYPES } from '@deriv/shared';
+import { dayjs } from '@deriv/shared';
 import { mockStore } from '@deriv/stores';
 
 import { ContractType } from '../contract-type';
@@ -147,7 +145,7 @@ jest.mock('@deriv/shared', () => ({
                                                 },
                                             ],
                                             name: 'AUD/JPY',
-                                            symbol: 'frxAUDJPY',
+                                            underlying_symbol: 'frxAUDJPY',
                                             times: {
                                                 close: ['23:59:59'],
                                                 open: ['00:00:00'],
@@ -176,7 +174,7 @@ jest.mock('@deriv/shared', () => ({
                                                 },
                                             ],
                                             name: 'AUD/AED',
-                                            symbol: 'frxAUDAED',
+                                            underlying_symbol: 'frxAUDAED',
                                             times: {
                                                 close: ['23:59:59'],
                                                 open: ['00:00:00'],
@@ -452,13 +450,13 @@ describe('ContractType Helper Functions', () => {
         });
 
         it('should return proper expiry date for endtime expiry type', () => {
-            const start_date = moment('2023-12-01T11:00:00').unix();
+            const start_date = dayjs('2023-12-01T11:00:00').unix();
             const result = ContractType.getExpiryDate(duration_units_list, '2023-12-01', 'endtime', start_date);
             expect(result.expiry_date).toBe('2023-12-01');
         });
 
         it('should handle intraday duration units correctly', () => {
-            const start_date = moment('2023-12-01T11:00:00').unix();
+            const start_date = dayjs('2023-12-01T11:00:00').unix();
             const result = ContractType.getExpiryDate(duration_units_list, '2023-12-01', 'endtime', start_date);
             // With intraday units, it should return the expiry date as-is
             expect(result.expiry_date).toBe('2023-12-01');
@@ -466,7 +464,7 @@ describe('ContractType Helper Functions', () => {
 
         it('should handle non-intraday duration units correctly', () => {
             const duration_units_list_daily = [{ text: 'Days', value: 'd' }];
-            const start_date = moment('2023-12-01T11:00:00').unix();
+            const start_date = dayjs('2023-12-01T11:00:00').unix();
             const result = ContractType.getExpiryDate(duration_units_list_daily, '2022-11-30', 'endtime', start_date);
             // Without intraday units, invalid dates get adjusted to start_date + 1 day
             expect(result.expiry_date).toBe('2023-12-02');

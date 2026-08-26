@@ -55,21 +55,24 @@ describe('ContractCardList', () => {
 
         jest.advanceTimersByTime(720);
         expect(mockedSetHasButtonsDemo).toHaveBeenCalledWith(false);
+        jest.useRealTimers();
     });
     it('should call onClickCancel with contract_id when a Cancel button is clicked on a contract card', async () => {
         const mockedOnClickCancel = jest.fn();
+        const user = userEvent.setup();
         render(<ContractCardList {...mockProps} onClickCancel={mockedOnClickCancel} />);
 
         const firstCardCancelButton = screen.getAllByText(cancelButton)[0];
-        await userEvent.click(firstCardCancelButton);
+        await user.click(firstCardCancelButton);
         expect(mockedOnClickCancel).toHaveBeenCalledWith(243585717228);
     });
     it('should call onClickSell with contract_id when a Close button is clicked on a contract card', async () => {
         const mockedOnClickSell = jest.fn();
+        const user = userEvent.setup();
         render(<ContractCardList {...mockProps} onClickSell={mockedOnClickSell} />);
 
         const secondCardCloseButton = screen.getAllByText(closeButton)[1];
-        await userEvent.click(secondCardCloseButton);
+        await user.click(secondCardCloseButton);
         expect(mockedOnClickSell).toHaveBeenCalledWith(243578583348);
     });
 });

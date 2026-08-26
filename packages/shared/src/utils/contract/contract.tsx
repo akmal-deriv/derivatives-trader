@@ -1,8 +1,11 @@
-import moment from 'moment';
 import React from 'react';
+
 import { Localize } from '@deriv-com/translations';
+
+import dayjs, { type Dayjs } from '../date/dayJs-config';
 import { unique } from '../object';
 import { capitalizeFirstLetter } from '../string/string_util';
+
 import { TContractInfo, TContractStore, TDigitsInfo, TLimitOrder, TTickItem } from './contract-types';
 
 type TGetAccuBarriersDTraderTimeout = (params: {
@@ -44,6 +47,7 @@ export const CONTRACT_TYPES = {
     CALL_PUT_SPREAD: { CALL: 'CALLSPREAD', PUT: 'PUTSPREAD' },
     END: { IN: 'EXPIRYRANGE', OUT: 'EXPIRYMISS' },
     EVEN_ODD: { ODD: 'DIGITODD', EVEN: 'DIGITEVEN' },
+    EXPIRYMISSE: 'EXPIRYMISSE',
     EXPIRYRANGEE: 'EXPIRYRANGEE',
     FALL: 'FALL',
     HIGHER: 'HIGHER',
@@ -106,12 +110,10 @@ export const TRADE_TYPES = {
     },
 } as const;
 export const getContractStatus = (contract_info: TContractInfo) => {
-    // Backward compatibility: handle both old and new field names
-    // @ts-expect-error - exit_spot_time exists in runtime but not in type definition
-    const exit_spot_time = contract_info.exit_spot_time || contract_info.exit_tick_time;
+    const exit_spot_time = contract_info.exit_spot_time;
     const { contract_type, profit, status } = contract_info;
 
-    const closed_contract_status = profit && profit < 0 && exit_spot_time ? 'lost' : 'won';
+    const closed_contract_status = profit && Number(profit) < 0 && exit_spot_time ? 'lost' : 'won';
     const is_accumulator = isAccumulatorContract(contract_type);
 
     let result;
@@ -124,7 +126,12 @@ export const getContractStatus = (contract_info: TContractInfo) => {
     return result;
 };
 
-export const getFinalPrice = (contract_info: TContractInfo) => contract_info.sell_price || contract_info.bid_price;
+export const getFinalPrice = (contract_info: TContractInfo) => {
+    if (contract_info.sell_price && contract_info.sell_price !== '0') {
+        return contract_info.sell_price;
+    }
+    return contract_info.bid_price;
+};
 
 export const getIndicativePrice = (contract_info: TContractInfo) =>
     getFinalPrice(contract_info) && isEnded(contract_info)
@@ -140,12 +147,13 @@ export const isEnded = (contract_info?: TContractInfo) =>
     !!(
         (contract_info?.status && contract_info.status !== 'open') ||
         contract_info?.is_expired ||
-        contract_info?.is_settleable
+        contract_info?.is_settleable ||
+        contract_info?.exit_spot_time
     );
 
 export const isOpen = (contract_info: TContractInfo) => {
     const contract_status = getContractStatus(contract_info);
-    const result = contract_status === 'open';
+    const result = contract_status === 'open' && !isEnded(contract_info);
 
     return result;
 };
@@ -164,6 +172,11 @@ export const isUserSold = (contract_info?: TContractInfo) => {
 
     return result;
 };
+
+// Ended on our side (expired/settleable/exit spot) but not yet settled by the backend —
+// the server still counts it as an open position until is_sold arrives.
+export const isPendingSettlement = (contract_info?: TContractInfo) =>
+    !!contract_info && isEnded(contract_info) && !isUserSold(contract_info);
 
 export const isValidToCancel = (contract_info?: TContractInfo) => !!contract_info?.is_valid_to_cancel;
 
@@ -300,9 +313,9 @@ export const getLimitOrderAmount = (limit_order?: TLimitOrder) => {
     };
 };
 
-export const getTimePercentage = (server_time: moment.Moment, start_time: number, expiry_time: number) => {
-    const duration_from_purchase = moment.duration(moment.unix(expiry_time).diff(moment.unix(start_time)));
-    const duration_from_now = moment.duration(moment.unix(expiry_time).diff(server_time));
+export const getTimePercentage = (server_time: Dayjs, start_time: number, expiry_time: number) => {
+    const duration_from_purchase = dayjs.duration(dayjs.unix(expiry_time).diff(dayjs.unix(start_time)));
+    const duration_from_now = dayjs.duration(dayjs.unix(expiry_time).diff(server_time));
     let percentage = (duration_from_now.asMilliseconds() / duration_from_purchase.asMilliseconds()) * 100;
 
     if (percentage < 0.5) {

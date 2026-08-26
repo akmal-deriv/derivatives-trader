@@ -13,6 +13,13 @@ jest.mock('@deriv/quill-icons', () => ({
     ...jest.requireActual('@deriv/quill-icons'),
 }));
 
+jest.mock('@deriv-com/ui', () => ({
+    ...jest.requireActual('@deriv-com/ui'),
+    // Mobile renders the ActionSheet; desktop/tablet render the popover. These tests cover the
+    // ActionSheet path, so report a mobile device (Barrier gates on `!isMobile`).
+    useDevice: jest.fn(() => ({ isMobile: true })),
+}));
+
 describe('Barrier Component', () => {
     let default_mock_store: ReturnType<typeof mockStore>;
 
@@ -59,5 +66,42 @@ describe('Barrier Component', () => {
         expect(screen.getByText('Barrier Input')).toBeInTheDocument();
         await userEvent.click(screen.getByTestId('dt-actionsheet-overlay'));
         await waitFor(() => expect(screen.queryByText('Barrier Input')).not.toBeInTheDocument());
+    });
+
+    describe('barrier error handling', () => {
+        it('should render component when validation_errors.barrier_1 has errors', () => {
+            default_mock_store.modules.trade.validation_errors = { barrier_1: ['Invalid barrier'] };
+            mockBarriers();
+            // Component should still render with errors
+            expect(screen.getByRole('textbox')).toBeInTheDocument();
+        });
+
+        it('should render component when proposal has barrier error', () => {
+            default_mock_store.modules.trade.proposal_info = {
+                CALL: {
+                    has_error: true,
+                    error_field: 'barrier',
+                    message: 'Barrier error message',
+                },
+            };
+            default_mock_store.modules.trade.trade_type_tab = 'CALL';
+            mockBarriers();
+            // Component should still render with errors
+            expect(screen.getByRole('textbox')).toBeInTheDocument();
+        });
+
+        it('should not crash when validation_errors does not contain barrier_1 key', () => {
+            default_mock_store.modules.trade.validation_errors = {};
+            expect(() => mockBarriers()).not.toThrow();
+            expect(screen.getByRole('textbox')).toBeInTheDocument();
+        });
+
+        it('should not show error status when ActionSheet is open', async () => {
+            default_mock_store.modules.trade.validation_errors = { barrier_1: ['Invalid barrier'] };
+            mockBarriers();
+            await userEvent.click(screen.getByRole('textbox'));
+            // When ActionSheet is open, error status should not be shown on the TextField
+            expect(screen.getByText('Barrier Input')).toBeInTheDocument();
+        });
     });
 });

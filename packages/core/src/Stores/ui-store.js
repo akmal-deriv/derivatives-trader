@@ -4,30 +4,26 @@ import { isMobile, isTouchDevice } from '@deriv/shared';
 
 import { MAX_MOBILE_WIDTH, MAX_TABLET_WIDTH } from 'Constants/ui';
 
-import { isOutsystemsSupported, redirectToOutSystems } from './Helpers/redirectToOutSystems';
 import BaseStore from './base-store';
 
 const store_name = 'ui_store';
 
 export default class UIStore extends BaseStore {
     url_hashed_values = '';
-    is_positions_drawer_on = false;
     is_reports_visible = false;
     reports_route_tab_index = 0;
     is_history_tab_active = false;
+    active_sidebar_flyout = null; // 'theme' | 'language' | 'positions' | 'account' | null
     // TODO: [cleanup ui-store]
     // Take profit, Stop loss & Deal cancellation checkbox
     should_show_cancellation_warning = true;
 
     // Extensions
-    footer_extensions = [];
-    header_extension = undefined;
     settings_extension = undefined;
     notification_messages_ui = undefined;
 
     is_dark_mode_on = window?.matchMedia?.('(prefers-color-scheme: dark)').matches && isMobile();
     is_settings_modal_on = false;
-    is_language_settings_modal_on = false;
     is_mobile_language_menu_open = false;
 
     // Purchase Controls
@@ -44,6 +40,16 @@ export default class UIStore extends BaseStore {
     // @observable is_chart_asset_info_visible = true;
     is_chart_countdown_visible = false;
     is_chart_layout_default = true;
+
+    // Mobile (AppV2) chart maximize mode: hides the header/market strip/bottom-nav so the
+    // chart grows while trade params stay visible. Session-only (not persisted) — resets on
+    // reload and on leaving the trade page. Read across packages (core shell + trader page).
+    is_chart_maximized = false;
+
+    // True only during the ~300ms maximize/minimize transition. Gates the chart container's
+    // height transition so it animates in lockstep with the collapsing chrome on toggle, but
+    // NOT on unrelated height changes (trade-type switches, viewport/keyboard resize).
+    is_chart_maximize_animating = false;
 
     // PWA event and config
     pwa_prompt_event = null;
@@ -73,7 +79,6 @@ export default class UIStore extends BaseStore {
     is_real_acc_signup_on = false;
     is_from_signup_account = false;
     real_account_signup_target = undefined;
-    deposit_real_account_signup_target = undefined;
     has_real_account_signup_ended = false;
 
     // verification modal
@@ -155,8 +160,14 @@ export default class UIStore extends BaseStore {
     is_switch_to_deriv_account_modal_visible = false;
     is_mt5_migration_modal_enabled = false;
     isUrlUnavailableModalVisible = false;
+    // 'trade_type' | 'symbol' | 'both' — which URL value(s) were invalid
+    urlUnavailableModalReason = 'trade_type';
+    is_logout_success_modal_visible = false;
+    is_try_real_modal_visible = false;
     sub_section_index = 0;
     field_ref_to_focus = null;
+    is_switching_account = false;
+    is_chart_loading = false;
 
     // tnc update
     is_tnc_update_modal_open = false;
@@ -178,7 +189,7 @@ export default class UIStore extends BaseStore {
             'is_chart_countdown_visible',
             'is_chart_layout_default',
             'is_dark_mode_on',
-            'is_positions_drawer_on',
+            'active_sidebar_flyout',
             'is_reports_visible',
             // 'is_purchase_confirm_on',
             // 'is_purchase_lock_on',
@@ -198,6 +209,8 @@ export default class UIStore extends BaseStore {
             sub_section_index: observable,
             is_chart_countdown_visible: observable,
             is_chart_layout_default: observable,
+            is_chart_maximized: observable,
+            is_chart_maximize_animating: observable,
             pwa_prompt_event: observable,
             screen_width: observable,
             screen_height: observable,
@@ -208,15 +221,12 @@ export default class UIStore extends BaseStore {
             app_contents_scroll_ref: observable,
             choose_crypto_currency_target: observable,
             current_focus: observable,
-            deposit_real_account_signup_target: observable,
             duration_d: observable,
             duration_h: observable,
             duration_m: observable,
             duration_s: observable,
             duration_t: observable,
-            footer_extensions: observable,
             has_real_account_signup_ended: observable,
-            header_extension: observable,
             is_account_needed_modal_on: observable,
             is_forced_to_exit_pnv: observable,
             is_phone_verification_completed: observable,
@@ -232,11 +242,11 @@ export default class UIStore extends BaseStore {
 
             is_history_tab_active: observable,
             is_landscape: observable,
-            is_language_settings_modal_on: observable,
             is_mobile_language_menu_open: observable,
             is_nativepicker_visible: observable,
 
-            is_positions_drawer_on: observable,
+            active_sidebar_flyout: observable,
+            is_positions_drawer_on: computed,
             is_real_acc_signup_on: observable,
             is_real_tab_enabled: observable,
             is_reports_visible: observable,
@@ -252,6 +262,11 @@ export default class UIStore extends BaseStore {
             is_verification_submitted: observable,
             is_tnc_update_modal_open: observable,
             isUrlUnavailableModalVisible: observable,
+            urlUnavailableModalReason: observable,
+            is_logout_success_modal_visible: observable,
+            is_try_real_modal_visible: observable,
+            is_switching_account: observable,
+            is_chart_loading: observable,
             manage_real_account_tab_index: observable,
             modal_index: observable,
             notification_messages_ui: observable,
@@ -292,11 +307,8 @@ export default class UIStore extends BaseStore {
             openAccountNeededModal: action.bound,
             openDerivRealAccountNeededModal: action.bound,
             openPositionsDrawer: action.bound,
-            openRealAccountSignup: action.bound,
             openSwitchToRealAccountModal: action.bound,
             openTopUpModal: action.bound,
-            populateFooterExtensions: action.bound,
-            populateHeaderExtensions: action.bound,
             populateSettingsExtensions: action.bound,
             removePWAPromptEvent: action.bound,
             removeToast: action.bound,
@@ -307,6 +319,9 @@ export default class UIStore extends BaseStore {
             setAppContentsScrollRef: action.bound,
             setChartCountdown: action.bound,
             setChartLayout: action.bound,
+            setIsChartMaximized: action.bound,
+            setChartMaximizeAnimating: action.bound,
+            toggleChartMaximized: action.bound,
             setCurrentFocus: action.bound,
             setDarkMode: action.bound,
             setHashedValue: action.bound,
@@ -340,18 +355,22 @@ export default class UIStore extends BaseStore {
             toggleCancellationWarning: action.bound,
             toggleHistoryTab: action.bound,
             toggleOnScreenKeyboard: action.bound,
-            togglePositionsDrawer: action.bound,
             toggleReports: action.bound,
             toggleResetEmailModal: action.bound,
             toggleResetPasswordModal: action.bound,
             toggleServicesErrorModal: action.bound,
             toggleSettingsModal: action.bound,
-            toggleLanguageSettingsModal: action.bound,
             toggleUpdateEmailModal: action.bound,
             toggleUrlUnavailableModal: action.bound,
             field_ref_to_focus: observable,
             setFieldRefToFocus: action.bound,
             toggleTncUpdateModal: action.bound,
+            toggleLogoutSuccessModal: action.bound,
+            toggleTryRealModal: action.bound,
+            setSidebarFlyout: action.bound,
+            closeSidebarFlyout: action.bound,
+            setIsSwitchingAccount: action.bound,
+            setIsChartLoading: action.bound,
         });
 
         window.addEventListener('resize', this.handleResize);
@@ -406,14 +425,6 @@ export default class UIStore extends BaseStore {
         this.app_contents_scroll_ref = value;
     }
 
-    populateFooterExtensions(footer_extensions) {
-        this.footer_extensions = footer_extensions;
-    }
-
-    populateHeaderExtensions(component) {
-        this.header_extension = component;
-    }
-
     populateSettingsExtensions(menu_items) {
         this.settings_extension = menu_items;
     }
@@ -445,6 +456,10 @@ export default class UIStore extends BaseStore {
 
     get is_tablet() {
         return MAX_MOBILE_WIDTH < this.screen_width && this.screen_width <= MAX_TABLET_WIDTH;
+    }
+
+    get is_positions_drawer_on() {
+        return this.active_sidebar_flyout === 'positions';
     }
 
     setRouteModal() {
@@ -503,6 +518,21 @@ export default class UIStore extends BaseStore {
         this.is_chart_countdown_visible = is_visible;
     }
 
+    setIsChartMaximized(is_maximized) {
+        this.is_chart_maximized = is_maximized;
+    }
+
+    setChartMaximizeAnimating(is_animating) {
+        this.is_chart_maximize_animating = is_animating;
+    }
+
+    toggleChartMaximized() {
+        // Flag the transition window synchronously with the toggle so the chart container's
+        // height transition is armed on the same render the height changes (both directions).
+        this.is_chart_maximize_animating = true;
+        this.is_chart_maximized = !this.is_chart_maximized;
+    }
+
     // @action.bound
     // togglePurchaseLock() {
     //     this.is_purchase_lock_on = !this.is_purchase_lock_on;
@@ -540,29 +570,9 @@ export default class UIStore extends BaseStore {
         this.is_settings_modal_on = !this.is_settings_modal_on;
     }
 
-    toggleLanguageSettingsModal() {
-        window.fcWidget?.close();
-        this.is_language_settings_modal_on = !this.is_language_settings_modal_on;
-    }
-
     openPositionsDrawer() {
         // show and hide Positions Drawer
-        this.is_positions_drawer_on = true;
-    }
-
-    openRealAccountSignup(target) {
-        const acceptedTargets = target === 'maltainvest' || target === 'svg';
-        const hasRealAccount = this.root_store.client.has_active_real_account;
-
-        if (target) {
-            if (isOutsystemsSupported && acceptedTargets && !hasRealAccount) {
-                redirectToOutSystems(target);
-            } else {
-                this.is_real_acc_signup_on = true;
-            }
-            this.real_account_signup_target = target;
-            localStorage.removeItem('current_question_index');
-        }
+        this.active_sidebar_flyout = 'positions';
     }
 
     setShouldShowCancel(value) {
@@ -570,7 +580,6 @@ export default class UIStore extends BaseStore {
     }
 
     resetRealAccountSignupTarget() {
-        this.deposit_real_account_signup_target = this.real_account_signup_target;
         this.real_account_signup_target = '';
     }
 
@@ -606,11 +615,6 @@ export default class UIStore extends BaseStore {
             target_label: '',
             target_dmt5_label: '',
         };
-    }
-
-    togglePositionsDrawer() {
-        // toggle Positions Drawer
-        this.is_positions_drawer_on = !this.is_positions_drawer_on;
     }
 
     toggleReports(is_visible) {
@@ -807,11 +811,49 @@ export default class UIStore extends BaseStore {
         this.should_trigger_tour_guide = value;
     }
 
-    toggleUrlUnavailableModal(value) {
+    toggleUrlUnavailableModal(value, reason = 'trade_type') {
+        if (value && this.isUrlUnavailableModalVisible && this.urlUnavailableModalReason !== reason) {
+            // A second validation reported a different invalid URL value while the popup was already
+            // on screen. Replacing the reason used to rewrite the title under the user's eyes (a link
+            // with an invalid trade type *and* market showed "Unsupported trade type" and then flipped
+            // to "Unsupported market" — GRWT-9320). Widen to 'both' instead, so the copy only ever
+            // becomes more complete, never contradictory. TradeStore.resolveInitialMarket validates
+            // the symbol and the trade type in separate sequential phases and reports each one as it
+            // fails, so a both-invalid deep link legitimately arrives here twice — this widening is
+            // what turns that into a single stable "Unsupported link".
+            this.urlUnavailableModalReason = 'both';
+            return;
+        }
         this.isUrlUnavailableModalVisible = value;
+        if (value) this.urlUnavailableModalReason = reason;
     }
 
     toggleTncUpdateModal(value) {
         this.is_tnc_update_modal_open = value;
+    }
+
+    toggleLogoutSuccessModal(value) {
+        this.is_logout_success_modal_visible = value;
+    }
+
+    toggleTryRealModal(value) {
+        this.is_try_real_modal_visible = value;
+    }
+
+    setIsSwitchingAccount(value) {
+        this.is_switching_account = value;
+    }
+
+    setIsChartLoading(value) {
+        this.is_chart_loading = value;
+    }
+
+    setSidebarFlyout(flyout_type) {
+        // flyout_type can be 'theme' | 'language' | 'positions' | 'account' | null
+        this.active_sidebar_flyout = flyout_type;
+    }
+
+    closeSidebarFlyout() {
+        this.active_sidebar_flyout = null;
     }
 }

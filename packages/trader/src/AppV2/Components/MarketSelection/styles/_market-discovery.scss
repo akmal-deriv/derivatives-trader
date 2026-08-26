@@ -1,0 +1,194 @@
+// ---- Discovery (Phase 2) ----
+
+.market-selection__discovery {
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    flex: 1;
+    @include themed-scrollbar;
+}
+
+.market-selection__discovery-empty {
+    padding: var(--core-spacing-1600, 32px) var(--core-spacing-800, 16px);
+    text-align: center;
+}
+
+.market-selection__discovery-section {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: var(--core-spacing-400, 8px);
+    padding: 0 0 var(--core-spacing-800, 16px) 0;
+
+    // Inline-end fade indicating the row scrolls horizontally for more markets (mobile only). The block
+    // sits at the inline-end edge (flips via inset-inline-end), but linear-gradient is physical, so the
+    // solid stop must point at that edge explicitly: to the right in LTR, to the left in RTL.
+    &:after {
+        content: '';
+        position: absolute;
+        inset-block: 0;
+        inset-inline-end: 0;
+        width: 48px;
+        background: linear-gradient(to right, transparent, var(--color-surface-primary));
+        pointer-events: none;
+
+        @include rtl {
+            background: linear-gradient(to left, transparent, var(--color-surface-primary));
+        }
+    }
+
+    &-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 var(--core-spacing-800, 16px);
+    }
+
+    &-title {
+        color: var(--component-textIcon-normal-prominent, #181c25);
+    }
+
+    // Segmented pill: two chevron halves split by a divider, rounded ends (not separate round icons).
+    &-nav {
+        display: flex;
+        align-items: center;
+        overflow: hidden;
+        border-radius: var(--core-borderRadius-800, 16px);
+        background: var(--component-segmentedControl-bg-single-body);
+    }
+
+    &-nav-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2.5rem;
+        height: 2.4rem;
+        border: none;
+        background: transparent;
+        cursor: pointer;
+
+        &:first-child {
+            border-inline-end: 1px solid var(--color-surface-border);
+        }
+
+        &:not(:disabled):hover {
+            background: var(--color-interactive-hover);
+        }
+
+        &:disabled {
+            cursor: default;
+        }
+
+        // Grey out just the chevron at each end (the divider + pill stay intact).
+        &:disabled svg {
+            opacity: 0.32;
+        }
+    }
+
+    &-cards {
+        display: flex;
+        gap: var(--core-spacing-400, 8px);
+        overflow-x: auto;
+        padding: 0 var(--core-spacing-800, 16px);
+        scrollbar-width: none;
+
+        &::-webkit-scrollbar {
+            display: none;
+        }
+    }
+
+    // Desktop uses chevron controls instead of the fade hint.
+    &--desktop:after {
+        content: none;
+    }
+}
+
+// Worm sparkline shared by the discovery cards and the list rows. Colour follows direction via
+// currentColor (line + gradient area); neutral grey when flat.
+.market-sparkline {
+    flex-shrink: 0;
+    color: var(--component-textIcon-normal-subtle);
+
+    &--positive {
+        color: var(--semantic-color-emerald-solid-textIcon-normal-mid, #00c390);
+    }
+
+    &--negative {
+        color: var(--semantic-color-cherry-solid-textIcon-normal-mid, #de0040);
+    }
+}
+
+.market-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--core-spacing-800, 16px);
+    // Fixed 208×160 card; flex-shrink:0 keeps the size so the row overflows and scrolls.
+    width: 20.8rem;
+    height: 16rem;
+    flex-shrink: 0;
+    padding: var(--core-spacing-800, 16px);
+    border-radius: var(--core-borderRadius-800, 16px);
+    background: var(--semantic-color-monochrome-surface-normal-lowest);
+    cursor: pointer;
+
+    &__top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+    }
+
+    &__body {
+        display: flex;
+        flex-direction: column;
+        gap: var(--core-spacing-100, 2px);
+    }
+
+    &__name {
+        flex: 1;
+    }
+
+    &__value {
+        color: var(--component-textIcon-normal-prominent);
+    }
+
+    &__change-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--core-spacing-400, 8px);
+    }
+
+    &__change {
+        // A signed percentage (e.g. -0.23%) is bidi-neutral around its digits, so in an RTL layout the
+        // sign/% get reordered (0.23%-). Pin the pill LTR and isolate it so it always reads +0.23%/-0.23%.
+        direction: ltr;
+        unicode-bidi: isolate;
+
+        &--positive {
+            color: var(--semantic-color-green-solid-textIcon-normal-mid);
+        }
+
+        &--negative {
+            color: var(--semantic-color-red-solid-textIcon-normal-mid);
+        }
+    }
+
+    &__window {
+        color: var(--component-textIcon-normal-subtle);
+    }
+
+    // Right chevron that opens the market info screen.
+    &__info {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        padding: 0;
+    }
+
+    &:hover {
+        background: var(--color-interactive-hover);
+    }
+}

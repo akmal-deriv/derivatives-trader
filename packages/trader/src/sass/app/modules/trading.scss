@@ -38,7 +38,7 @@
             }
         }
     }
-    .sidebar__items--blur {
+    .trade-params-v1__items--blur {
         .popover {
             display: none;
         }
@@ -380,7 +380,7 @@
         display: flex;
         flex-direction: column;
         position: relative;
-        bottom: 0.1rem;
+        padding: 0.8rem;
 
         .trade-container__fieldset-info--left {
             transform: translateX(0.7rem);
@@ -456,6 +456,9 @@
         display: flex;
         flex-direction: column;
         transition: opacity 0.25s cubic-bezier(0.25, 0.1, 0.1, 0.25);
+        background: var(--color-modal-bg);
+        border: 1px solid var(--color-surface-border);
+
         &--enter,
         &--exit {
             opacity: 0;
@@ -657,9 +660,6 @@
         &-type-tabs {
             border-radius: $BORDER_RADIUS;
             padding: 0.8rem;
-            background-color: var(--color-surface-section);
-            border-color: var(--color-surface-border);
-            color: var(--color-text-secondary);
             @include mobile-screen {
                 width: 45%;
                 padding: 0;
@@ -1098,5 +1098,29 @@
                 bottom: calc(100vh - 100vw);
             }
         }
+    }
+
+    // AppV2: swap vh/vw references to account for -90deg body rotation
+    .sidebar {
+        height: 100svw;
+    }
+
+    .trade {
+        height: 100svw;
+        width: calc(100svh - 7.2rem);
+    }
+
+    .trade__grid {
+        height: calc(100svw - 6.5rem);
+    }
+}
+
+@keyframes blink {
+    0%,
+    100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.3;
     }
 }

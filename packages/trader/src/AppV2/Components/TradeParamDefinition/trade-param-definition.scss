@@ -1,7 +1,6 @@
-$HANDLEBAR_HEIGHT: var(--core-size-1000);
-$HEADER_TITLE_HEIGHT: var(--core-size-3200);
-
+// No fixed height: the carousel stretches every page to its tallest, so this fills the sheet without
+// pinning it taller than the sheet's own content needs.
 .trade-param-definition {
-    height: calc(400px - $HANDLEBAR_HEIGHT - $HEADER_TITLE_HEIGHT);
+    height: auto;
     padding-block-start: 0;
 }

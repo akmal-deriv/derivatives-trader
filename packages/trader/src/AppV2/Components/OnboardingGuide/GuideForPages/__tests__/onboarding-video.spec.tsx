@@ -1,48 +1,41 @@
 import React from 'react';
 
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 
 import OnboardingVideo from '../onboarding-video';
 
 const dt_video = 'dt_onboarding_guide_video';
-const dt_loader = 'square-skeleton';
 
-jest.mock('@deriv/shared', () => ({
-    ...jest.requireActual('@deriv/shared'),
-    getUrlBase: jest.fn(() => 'video_src.mp4'),
+jest.mock('AppV2/Components/StreamIframe', () => jest.fn(() => <div data-testid={dt_video}>StreamIframe</div>));
+
+jest.mock('AppV2/Utils/video-config', () => ({
+    getOnboardingVideoId: jest.fn(() => 'mock_video_id_123'),
+}));
+
+jest.mock('@deriv/stores', () => ({
+    useStore: jest.fn(() => ({
+        ui: {
+            is_dark_mode_on: false,
+        },
+    })),
 }));
 
 describe('OnboardingVideo', () => {
     beforeAll(() => {
-        Object.defineProperty(HTMLMediaElement.prototype, 'muted', {
-            set: jest.fn(),
-        });
+        HTMLVideoElement.prototype.load = jest.fn();
+        HTMLVideoElement.prototype.play = jest.fn();
     });
 
-    it('should render loader and video if the data is not fully loaded', () => {
-        render(<OnboardingVideo type='trade_page' />);
+    it('should render StreamIframe component', () => {
+        render(<OnboardingVideo page_type='trade_page' />);
 
-        expect(screen.getByTestId(dt_loader)).toBeInTheDocument();
         expect(screen.getByTestId(dt_video)).toBeInTheDocument();
+        expect(screen.getByText('StreamIframe')).toBeInTheDocument();
     });
 
-    it('should render only video tag if the data has already loaded', () => {
-        render(<OnboardingVideo type='trade_page' />);
+    it('should render StreamIframe for positions page', () => {
+        render(<OnboardingVideo page_type='positions_page' />);
 
-        const video = screen.getByTestId(dt_video);
-        fireEvent.loadedData(video);
-
-        expect(screen.queryByTestId(dt_loader)).not.toBeInTheDocument();
-        expect(video).toBeInTheDocument();
-    });
-
-    it('should render only video tag if the data has already loaded', () => {
-        render(<OnboardingVideo type='positions_page' />);
-
-        const video = screen.getByTestId(dt_video);
-        fireEvent.loadedData(video);
-
-        expect(screen.queryByTestId(dt_loader)).not.toBeInTheDocument();
-        expect(video).toBeInTheDocument();
+        expect(screen.getByTestId(dt_video)).toBeInTheDocument();
     });
 });

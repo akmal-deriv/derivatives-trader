@@ -1,30 +1,33 @@
 import React from 'react';
-import classNames from 'classnames';
+import { observer } from 'mobx-react-lite';
 
 import { Skeleton } from '@deriv/components';
 import { getUrlBase } from '@deriv/shared';
-import { useDevice } from '@deriv-com/ui';
-import { DotLottieReact } from '@lottiefiles/dotlottie-react';
+import { useStore } from '@deriv/stores';
+import type { DotLottieReact } from '@lottiefiles/dotlottie-react';
 
-import { CONTRACT_LIST } from 'AppV2/Utils/trade-types-utils';
+import LottieAnimation from 'AppV2/Components/LottieAnimation';
+import { getContractDescriptionAnimationSrc } from 'AppV2/Utils/video-config';
 
 type TVideoFragment = {
     contract_type: string;
 };
 
-const VideoFragment = ({ contract_type }: TVideoFragment) => {
+const VideoFragment = observer(({ contract_type }: TVideoFragment) => {
     const [is_loading, setIsLoading] = React.useState(true);
     const [dotLottie, setDotLottie] = React.useState<EventTarget | null>(null);
 
-    const { isMobile } = useDevice();
+    const {
+        ui: { is_dark_mode_on },
+    } = useStore();
 
     // memoize file paths for videos and open the modal only after we get them
-    const getVideoSource = React.useCallback(
-        (extension: string) =>
-            getUrlBase(`/public/videos/${contract_type.toLowerCase()}_${isMobile ? 'mobile' : 'desktop'}.${extension}`),
-        [contract_type, isMobile]
+    // Using mobile videos for both desktop and mobile as desktop-specific videos don't exist yet.
+    // Select the light/dark asset by theme and recompute the src when the theme toggles.
+    const lottie_src = React.useMemo(
+        () => getUrlBase(getContractDescriptionAnimationSrc(contract_type, is_dark_mode_on)),
+        [contract_type, is_dark_mode_on]
     );
-    const lottie_src = React.useMemo(() => getVideoSource('lottie'), [getVideoSource]);
 
     React.useEffect(() => {
         const onLoad = () => setIsLoading(false);
@@ -37,14 +40,9 @@ const VideoFragment = ({ contract_type }: TVideoFragment) => {
     }, [dotLottie]);
 
     return (
-        <div
-            className={classNames('video-fragment__wrapper', {
-                'video-fragment__wrapper--accumulator':
-                    contract_type.toLowerCase() === CONTRACT_LIST.ACCUMULATORS.toLowerCase(),
-            })}
-        >
-            {is_loading && <Skeleton width={248} height={161} className='skeleton-video-loader' />}
-            <DotLottieReact
+        <div className='video-fragment__wrapper'>
+            {is_loading && <Skeleton width={320} height={208} className='skeleton-video-loader' />}
+            <LottieAnimation
                 autoplay
                 dotLottieRefCallback={
                     ((dotLottie: EventTarget | null) => setDotLottie(dotLottie)) as React.ComponentProps<
@@ -56,6 +54,6 @@ const VideoFragment = ({ contract_type }: TVideoFragment) => {
             />
         </div>
     );
-};
+});
 
 export default VideoFragment;

@@ -4,13 +4,21 @@ import { Localize } from '@deriv-com/translations';
 
 import { getContractDescription, getTerm } from 'AppV2/Utils/contract-description-utils';
 
-const MultipliersTradeDescription = ({ onTermClick }: { onTermClick: (term: string) => void }) => {
+import TermButton from '../term-button';
+
+const MultipliersTradeDescription = ({
+    contract_type,
+    onTermClick,
+}: {
+    contract_type: string;
+    onTermClick: (term: string) => void;
+}) => {
     const { STOP_OUT_LEVEL, TAKE_PROFIT, STOP_LOSS, DEAL_CANCELLATION, SLIPPAGE_RISK } = getTerm();
     const content = [
         {
-            type: 'general',
+            type: 'paragraph',
             text: (
-                <Localize i18n_default_text='Use multipliers to leverage your potential returns. Predict if the asset price will move upward (bullish) or downward (bearish). We’ll charge a commission when you open a multipliers trade.' />
+                <Localize i18n_default_text='Multipliers let you amplify your potential profit or loss by applying a multiplier to the asset price movement.' />
             ),
         },
         {
@@ -20,10 +28,7 @@ const MultipliersTradeDescription = ({ onTermClick }: { onTermClick: (term: stri
         {
             type: 'paragraph',
             text: (
-                <Localize
-                    i18n_default_text='If you select "<0>Up</0>", your total profit/loss will be the percentage increase in the underlying asset price, times the multiplier and stake, minus commissions.'
-                    components={[<span className='description__content--bold' key={0} />]}
-                />
+                <Localize i18n_default_text='Earn a profit if the asset price rises above the entry price at the time you close the trade.' />
             ),
         },
         {
@@ -37,10 +42,7 @@ const MultipliersTradeDescription = ({ onTermClick }: { onTermClick: (term: stri
         {
             type: 'paragraph',
             text: (
-                <Localize
-                    i18n_default_text='If you select "<0>Down</0>", your total profit/loss will be the percentage decrease in the underlying asset price, times the multiplier and stake, minus commissions.'
-                    components={[<span className='description__content--bold' key={0} />]}
-                />
+                <Localize i18n_default_text='Earn a profit if the asset price falls below the entry price at the time you close the trade.' />
             ),
         },
         {
@@ -48,20 +50,31 @@ const MultipliersTradeDescription = ({ onTermClick }: { onTermClick: (term: stri
             text: 'multipliers_down',
         },
         {
-            type: 'heading',
-            text: <Localize i18n_default_text='Additional Information' />,
+            type: 'paragraph',
+            text: (
+                <Localize i18n_default_text='A fixed commission is charged when you open a Multipliers trade. The amount varies by asset class and market volatility.' />
+            ),
+        },
+        {
+            type: 'paragraph',
+            text: (
+                <Localize i18n_default_text='Profit/loss = (Percentage of price difference × multiplier × stake) − commission.' />
+            ),
         },
         {
             type: 'paragraph',
             text: (
                 <Localize
-                    i18n_default_text='Your contract will be closed when the <0>stop out level</0> is reached.'
+                    i18n_default_text='Your trade closes automatically if the <0>stop out level</0> is hit.'
                     components={[
-                        <button
-                            className='description__content--definition'
+                        <TermButton
                             key={0}
-                            onClick={() => onTermClick(STOP_OUT_LEVEL)}
-                        />,
+                            term={STOP_OUT_LEVEL}
+                            contract_type={contract_type}
+                            onTermClick={onTermClick}
+                        >
+                            {STOP_OUT_LEVEL}
+                        </TermButton>,
                     ]}
                 />
             ),
@@ -70,23 +83,22 @@ const MultipliersTradeDescription = ({ onTermClick }: { onTermClick: (term: stri
             type: 'paragraph',
             text: (
                 <Localize
-                    i18n_default_text='Additional features are available to manage your positions: <0>Take profit</0>, <1>Stop loss</1> and <2>Deal cancellation</2> allow you to adjust your level of risk aversion.'
+                    i18n_default_text='You can manage risk with features like <0>take profit</0>, <1>stop loss</1>, and <2>deal cancellation</2> (when available).'
                     components={[
-                        <button
-                            className='description__content--definition quoted-button'
-                            key={0}
-                            onClick={() => onTermClick(TAKE_PROFIT)}
-                        />,
-                        <button
-                            className='description__content--definition quoted-button'
-                            key={1}
-                            onClick={() => onTermClick(STOP_LOSS)}
-                        />,
-                        <button
-                            className='description__content--definition quoted-button'
+                        <TermButton key={0} term={TAKE_PROFIT} contract_type={contract_type} onTermClick={onTermClick}>
+                            {TAKE_PROFIT}
+                        </TermButton>,
+                        <TermButton key={1} term={STOP_LOSS} contract_type={contract_type} onTermClick={onTermClick}>
+                            {STOP_LOSS}
+                        </TermButton>,
+                        <TermButton
                             key={2}
-                            onClick={() => onTermClick(DEAL_CANCELLATION)}
-                        />,
+                            term={DEAL_CANCELLATION}
+                            contract_type={contract_type}
+                            onTermClick={onTermClick}
+                        >
+                            {DEAL_CANCELLATION}
+                        </TermButton>,
                     ]}
                 />
             ),
@@ -95,38 +107,23 @@ const MultipliersTradeDescription = ({ onTermClick }: { onTermClick: (term: stri
             type: 'paragraph',
             text: (
                 <Localize
-                    i18n_default_text='You can close your trade anytime. However, be aware of <0>slippage risk</0>.'
+                    i18n_default_text='You can close your trade anytime. However, be aware that <0>slippage risk</0> may affect your final return.'
                     components={[
-                        <button
-                            className='description__content--definition'
+                        <TermButton
                             key={0}
-                            onClick={() => onTermClick(SLIPPAGE_RISK)}
-                        />,
+                            term={SLIPPAGE_RISK}
+                            contract_type={contract_type}
+                            onTermClick={onTermClick}
+                        >
+                            {SLIPPAGE_RISK}
+                        </TermButton>,
                     ]}
                 />
-            ),
-        },
-        {
-            type: 'paragraph',
-            text: (
-                <Localize i18n_default_text='For entry spot, we use current-tick-execution mechanism, which is the latest asset price when the trade opening is processed by our servers.' />
-            ),
-        },
-        {
-            type: 'paragraph',
-            text: (
-                <Localize i18n_default_text='For exit spot, the latest asset price when the trade closure is processed by our servers.' />
-            ),
-        },
-        {
-            type: 'paragraph',
-            text: (
-                <Localize i18n_default_text='Note: Deal cancellation is only available for Volatility Indices on Multipliers.' />
             ),
         },
     ];
 
-    return <React.Fragment>{getContractDescription(content)}</React.Fragment>;
+    return <>{getContractDescription(content)}</>;
 };
 
 export default MultipliersTradeDescription;

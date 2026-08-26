@@ -23,6 +23,45 @@ module.exports = function (env) {
             moduleIds: 'named',
             minimize: IS_RELEASE,
             minimizer: MINIMIZERS,
+            splitChunks: {
+                chunks: 'all',
+                minSize: 75000, // 75KB minimum chunk size for balanced granularity
+                minSizeReduction: 75000,
+                maxSize: 1000000, // 1MB max chunks - fewer chunks for better performance
+                maxAsyncRequests: 30,
+                maxInitialRequests: 30,
+                cacheGroups: {
+                    // Vendor CSS into its own file so it loads ahead of app CSS
+                    vendorStyles: {
+                        test: module =>
+                            module.type === 'css/mini-extract' && /[\\/]node_modules[\\/]/.test(module.identifier()),
+                        name: 'vendor',
+                        chunks: 'all',
+                        priority: 30,
+                        enforce: true,
+                    },
+                    // Quill UI is the largest UI dep in trader — group into one stable chunk
+                    quillUI: {
+                        test: /[\\/]node_modules[\\/]@deriv-com[\\/]quill-ui[\\/]/,
+                        name: 'quill-ui-vendor',
+                        priority: 40,
+                        enforce: true,
+                        reuseExistingChunk: true,
+                    },
+                    default: {
+                        minChunks: 2,
+                        minSize: 75000,
+                        priority: -20,
+                        reuseExistingChunk: true,
+                    },
+                    defaultVendors: {
+                        idHint: 'vendors',
+                        test: /[\\/]node_modules[\\/]/,
+                        priority: -10,
+                        reuseExistingChunk: true,
+                    },
+                },
+            },
         },
         output: {
             filename: 'trader/js/[name].js',
@@ -44,8 +83,9 @@ module.exports = function (env) {
                 '@deriv/shared': '@deriv/shared',
                 '@deriv/components': '@deriv/components',
                 '@deriv-com/translations': '@deriv-com/translations',
-                '@deriv-com/derivatives-charts': '@deriv-com/derivatives-charts',
+                '@deriv-com/smartcharts-champion': '@deriv-com/smartcharts-champion',
                 '@deriv-com/analytics': '@deriv-com/analytics',
+                dayjs: 'dayjs',
             },
             /^@deriv\/shared\/.+$/,
             /^@deriv\/components\/.+$/,

@@ -1,15 +1,12 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 
-import { toMoment, useIsMounted } from '@deriv/shared';
+import { dayjs, toMoment, useIsMounted } from '@deriv/shared';
 import { DatePicker } from '@deriv-com/quill-ui';
 
 import { ContractType } from 'Stores/Modules/Trading/Helpers/contract-type';
 import { useTraderStore } from 'Stores/useTraderStores';
 
-type TMarketEvent = {
-    dates: string[];
-    descrip: string;
-};
+import { getEarlyCloseTileContent, TMarketEvent } from './early-close-dot';
 
 const DaysDatepicker = ({
     start_date,
@@ -21,6 +18,7 @@ const DaysDatepicker = ({
     end_date: Date;
 }) => {
     const [disabled_days, setDisabledDays] = React.useState<number[]>([]);
+    const [market_events, setMarketEvents] = React.useState<TMarketEvent[]>([]);
     const { symbol } = useTraderStore();
     const isMounted = useIsMounted();
 
@@ -41,8 +39,8 @@ const DaysDatepicker = ({
                     .filter(index => index !== -1);
             }
 
-            events?.forEach(evt => {
-                const dates = evt.dates.split(', '); // convert dates str into array
+            events?.forEach((evt: { dates: string; descrip: string }) => {
+                const dates = evt.dates.split(', ');
                 new_market_events.push({
                     dates,
                     descrip: evt.descrip,
@@ -51,9 +49,21 @@ const DaysDatepicker = ({
 
             if (isMounted()) {
                 setDisabledDays(new_disabled_days);
+                setMarketEvents(new_market_events);
             }
         },
         [isMounted, symbol]
+    );
+
+    const tileContent = useMemo(() => getEarlyCloseTileContent(market_events), [market_events]);
+
+    const handleActiveStartDateChange = React.useCallback(
+        ({ activeStartDate }: { activeStartDate: Date | null }) => {
+            if (activeStartDate) {
+                onChangeCalendarMonth(dayjs(activeStartDate).format('YYYY-MM-DD'));
+            }
+        },
+        [onChangeCalendarMonth]
     );
 
     useEffect(() => {
@@ -65,16 +75,22 @@ const DaysDatepicker = ({
         const day = date.getDay();
         return disabled_days.includes(day);
     };
+
+    const min_date = new Date(start_date);
+    const selected_date = end_date instanceof Date && !isNaN(end_date.getTime()) ? end_date : min_date;
+
     return (
         <div className='duration-datepicker duration-container__date-picker'>
             <DatePicker
                 className='date-picker'
                 hasFixedWidth={false}
-                minDate={new Date(start_date)}
+                minDate={min_date}
                 maxDate={new Date(new Date().setFullYear(new Date().getFullYear() + 1))}
                 view='month'
-                value={end_date}
+                value={selected_date}
                 tileDisabled={getDisabledDays}
+                tileContent={tileContent}
+                onActiveStartDateChange={handleActiveStartDateChange}
                 onChange={date => {
                     if (date && date instanceof Date) {
                         setEndDate(date);

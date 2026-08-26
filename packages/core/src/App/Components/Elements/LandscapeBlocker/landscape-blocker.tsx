@@ -1,12 +1,17 @@
 import React from 'react';
 import { useLocation } from 'react-router-dom';
+
 import { isDisabledLandscapeBlockerRoute, isMobileOs, isTabletOs, routes } from '@deriv/shared';
 import { observer } from '@deriv/stores';
-import LandscapeBlockerSvg from 'Assets/SvgComponents/settings/landscape-blocker.svg';
-import './landscape-blocker.scss';
+import { useTranslations } from '@deriv-com/translations';
 import { useDevice } from '@deriv-com/ui';
 
+import LandscapeBlockerSvg from 'Assets/SvgComponents/settings/landscape-blocker.svg';
+
+import './landscape-blocker.scss';
+
 const LandscapeBlocker = observer(() => {
+    const { localize } = useTranslations();
     const { isMobile } = useDevice();
     const location = useLocation();
     const pathname = location?.pathname;
@@ -26,12 +31,10 @@ const LandscapeBlocker = observer(() => {
                 <LandscapeBlockerSvg />
             </div>
             <div className='landscape-blocker__message--landscape'>
-                Please adjust your screen size for optimal viewing.
+                {localize('Please rotate your device to portrait view.')}
             </div>
             <div className='landscape-blocker__message--portrait'>
-                Please adjust your <br />
-                screen size for <br />
-                optimal viewing.
+                {localize('Please rotate your device to portrait view.')}
             </div>
         </div>
     );

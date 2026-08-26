@@ -1,21 +1,24 @@
 import React from 'react';
-import classNames from 'classnames';
 import { NavLink } from 'react-router-dom';
-import ContractCard from '../contract-card';
+import classNames from 'classnames';
+
 import {
-    getContractPath,
-    isAccumulatorContract,
-    isCryptoContract,
-    isMultiplierContract,
-    isTurbosContract,
+    type Dayjs,
     getCardLabels,
+    getContractPath,
     getContractTypeDisplay,
     getEndTime,
+    isAccumulatorContract,
+    isCryptoContract,
     isMobile,
+    isMultiplierContract,
+    isTurbosContract,
     isVanillaContract,
 } from '@deriv/shared';
 import { TContractInfo, TContractStore } from '@deriv/shared/src/utils/contract/contract-types';
+
 import { getUnderlyingFromShortcode } from '../../utils/contract-helpers';
+import ContractCard from '../contract-card';
 import { TToastConfig } from '../types/contract.types';
 
 type TPositionsDrawerCardProps = {
@@ -40,7 +43,7 @@ type TPositionsDrawerCardProps = {
     removeToast: (key: string) => void;
     result?: string;
     setCurrentFocus: (value: string | null) => void;
-    server_time?: moment.Moment;
+    server_time?: Dayjs;
     should_show_transition?: boolean;
     should_show_cancellation_warning: boolean;
     toggleCancellationWarning: () => void;
@@ -76,7 +79,6 @@ const PositionsDrawerCard = ({
     const is_multiplier = isMultiplierContract(contract_info?.contract_type || '');
     const is_turbos = isTurbosContract(contract_info?.contract_type);
     const is_vanilla = isVanillaContract(contract_info?.contract_type);
-    // @ts-expect-error TContractInfo has an invalid type, this will be fixed in a future update
     const is_crypto = isCryptoContract(contract_info?.underlying_symbol || '');
     const has_progress_slider = !is_multiplier || (is_crypto && is_multiplier);
     const end_time = getEndTime(contract_info as TContractInfo);
@@ -103,7 +105,7 @@ const PositionsDrawerCard = ({
             is_mobile={is_mobile}
             is_sell_requested={!!is_sell_requested}
             onClickSell={onClickSell}
-            server_time={server_time as moment.Moment}
+            server_time={server_time as Dayjs}
         />
     );
 
@@ -128,7 +130,7 @@ const PositionsDrawerCard = ({
             is_vanilla={is_vanilla}
             has_progress_slider={is_mobile && has_progress_slider}
             removeToast={removeToast}
-            server_time={server_time as moment.Moment}
+            server_time={server_time as Dayjs}
             setCurrentFocus={setCurrentFocus}
             should_show_cancellation_warning={should_show_cancellation_warning}
             toggleCancellationWarning={toggleCancellationWarning}
@@ -145,7 +147,7 @@ const PositionsDrawerCard = ({
             onClickCancel={onClickCancel}
             onClickSell={onClickSell}
             onFooterEntered={onFooterEntered}
-            server_time={server_time as moment.Moment}
+            server_time={server_time as Dayjs}
             should_show_transition={!!should_show_transition}
         />
     );
@@ -157,7 +159,6 @@ const PositionsDrawerCard = ({
         </React.Fragment>
     );
     const effective_underlying =
-        // @ts-expect-error TContractInfo has an invalid type, this will be fixed in a future update
         contract_info?.underlying_symbol || getUnderlyingFromShortcode(contract_info?.shortcode);
 
     const contract_card_body = is_link_disabled ? (

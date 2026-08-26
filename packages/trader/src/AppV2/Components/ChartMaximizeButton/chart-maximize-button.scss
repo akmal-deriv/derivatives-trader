@@ -1,0 +1,24 @@
+// Frosted circular overlay button pinned to the chart's bottom-right corner. Mirrors the
+// ChartProfitLoss pill's blurred translucent style so it stays legible over any chart content.
+.chart-maximize-button {
+    position: absolute;
+    inset-block-end: var(--core-spacing-1200);
+    right: var(--core-spacing-800);
+    z-index: 3;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--core-size-2000);
+    height: var(--core-size-2000);
+    padding: 0;
+
+    border: none;
+    border-radius: 50%;
+    background-color: var(--semantic-color-monochrome-surface-normal-lowest);
+    backdrop-filter: blur(1px);
+    -webkit-backdrop-filter: blur(1px);
+    cursor: pointer;
+    // Drives the stroke colour of the expand/compress glyph (stroke='currentColor').
+    color: var(--component-textIcon-normal-prominent);
+}

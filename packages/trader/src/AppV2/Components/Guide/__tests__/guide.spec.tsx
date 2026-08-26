@@ -1,23 +1,73 @@
 import React from 'react';
-import Loadable from 'react-loadable';
 
 import { TRADE_TYPES } from '@deriv/shared';
 import { mockStore, StoreProvider } from '@deriv/stores';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-import { getTerm } from 'AppV2/Utils/contract-description-utils';
-import { AVAILABLE_CONTRACTS, CONTRACT_LIST } from 'AppV2/Utils/trade-types-utils';
+import { CONTRACT_LIST } from 'AppV2/Utils/trade-types-utils';
 
-import { sendOpenGuideToAnalytics } from '../../../../Analytics';
 import TraderProviders from '../../../../trader-providers';
 import Guide from '../guide';
 
-jest.mock('../../../../Analytics', () => ({
-    sendOpenGuideToAnalytics: jest.fn(),
+const mockUseDevice = jest.fn(() => ({ isMobile: false }));
+
+jest.mock('@deriv-com/ui', () => ({
+    ...jest.requireActual('@deriv-com/ui'),
+    useDevice: () => mockUseDevice(),
 }));
 
 const trade_types = 'Trade types';
+
+// Mock available contracts - matches the structure returned by useAvailableContracts
+const mockAvailableContracts = [
+    {
+        tradeType: 'Accumulators',
+        id: CONTRACT_LIST.ACCUMULATORS,
+        for: [TRADE_TYPES.ACCUMULATOR],
+    },
+    {
+        tradeType: 'Vanillas',
+        id: CONTRACT_LIST.VANILLAS,
+        for: [TRADE_TYPES.VANILLA.CALL, TRADE_TYPES.VANILLA.PUT],
+    },
+    {
+        tradeType: 'Turbos',
+        id: CONTRACT_LIST.TURBOS,
+        for: [TRADE_TYPES.TURBOS.LONG, TRADE_TYPES.TURBOS.SHORT],
+    },
+    {
+        tradeType: 'Multipliers',
+        id: CONTRACT_LIST.MULTIPLIERS,
+        for: [TRADE_TYPES.MULTIPLIER],
+    },
+    {
+        tradeType: 'Rise/Fall',
+        id: CONTRACT_LIST.RISE_FALL,
+        for: [TRADE_TYPES.RISE_FALL, TRADE_TYPES.RISE_FALL_EQUAL],
+    },
+    {
+        tradeType: 'Higher/Lower',
+        id: CONTRACT_LIST.HIGHER_LOWER,
+        for: [TRADE_TYPES.HIGH_LOW],
+    },
+    {
+        tradeType: 'Touch/No Touch',
+        id: CONTRACT_LIST.TOUCH_NO_TOUCH,
+        for: [TRADE_TYPES.TOUCH],
+    },
+    {
+        tradeType: 'Matches/Differs',
+        id: CONTRACT_LIST.MATCHES_DIFFERS,
+        for: [TRADE_TYPES.MATCH_DIFF],
+    },
+    { tradeType: 'Even/Odd', id: CONTRACT_LIST.EVEN_ODD, for: [TRADE_TYPES.EVEN_ODD] },
+    {
+        tradeType: 'Over/Under',
+        id: CONTRACT_LIST.OVER_UNDER,
+        for: [TRADE_TYPES.OVER_UNDER],
+    },
+];
 
 const mock_contract_data = [
     {
@@ -85,7 +135,23 @@ jest.mock('AppV2/Hooks/useContractsFor', () => ({
     })),
 }));
 
-Loadable.preloadAll();
+jest.mock('AppV2/Hooks/useGuideContractTypes', () => ({
+    __esModule: true,
+    default: jest.fn(() => ({
+        trade_types: [
+            { text: 'Accumulators', value: 'accumulator' },
+            { text: 'Vanillas', value: 'vanillalongcall' },
+            { text: 'Turbos', value: 'turboslong' },
+            { text: 'Multipliers', value: 'multiplier' },
+            { text: 'Rise/Fall', value: 'rise_fall' },
+            { text: 'Higher/Lower', value: 'high_low' },
+            { text: 'Touch/No Touch', value: 'touch' },
+            { text: 'Matches/Differs', value: 'match_diff' },
+            { text: 'Even/Odd', value: 'even_odd' },
+            { text: 'Over/Under', value: 'over_under' },
+        ],
+    })),
+}));
 
 describe('Guide', () => {
     let default_mock_store: ReturnType<typeof mockStore>;
@@ -96,7 +162,7 @@ describe('Guide', () => {
         });
     });
     const renderGuide = (
-        mockProps: React.ComponentProps<typeof Guide> = { has_label: true, show_guide_for_selected_contract: false }
+        mockProps: React.ComponentProps<typeof Guide> = { show_guide_for_selected_contract: false }
     ) => {
         render(
             <StoreProvider store={default_mock_store}>
@@ -111,43 +177,73 @@ describe('Guide', () => {
         jest.clearAllMocks();
     });
 
-    it('should render component with label and if user clicks on it, should show available contract information', async () => {
+    it('should render component with icon button and if user clicks on it, should show available contract information', async () => {
         renderGuide();
 
-        expect(screen.getByText('Guide')).toBeInTheDocument();
+        expect(screen.getByText(/How to trade Rise\/Fall\?/)).toBeInTheDocument();
 
-        await userEvent.click(screen.getByRole('button'));
+        await userEvent.click(screen.getByText(/How to trade Rise\/Fall\?/));
 
         expect(screen.getByText(trade_types)).toBeInTheDocument();
-        AVAILABLE_CONTRACTS.forEach(({ id }) => expect(screen.getByText(id)).toBeInTheDocument());
+        mockAvailableContracts.forEach(({ id }) => expect(screen.getByText(id)).toBeInTheDocument());
     });
 
     it('should render component with description for only for selected trade type if show_guide_for_selected_contract === true', async () => {
         renderGuide({ show_guide_for_selected_contract: true });
 
-        await userEvent.click(screen.getByRole('button'));
+        await userEvent.click(screen.getByText(/How to trade Rise\/Fall\?/));
 
         expect(screen.queryByText(trade_types)).not.toBeInTheDocument();
         expect(screen.getByText(CONTRACT_LIST.RISE_FALL)).toBeInTheDocument();
-        expect(sendOpenGuideToAnalytics).toHaveBeenCalledWith(TRADE_TYPES.RISE_FALL, 'main_trade_page');
 
-        AVAILABLE_CONTRACTS.forEach(({ id }) =>
+        mockAvailableContracts.forEach(({ id }) =>
             id === CONTRACT_LIST.RISE_FALL
                 ? expect(screen.getByText(id)).toBeInTheDocument()
                 : expect(screen.queryByText(id)).not.toBeInTheDocument()
         );
     });
 
-    it('should render term definition if user clicked on it', async () => {
+    it('should render term definition in tooltip on desktop when hovering over term', async () => {
+        // Desktop mode - definitions show in tooltips on hover
+        mockUseDevice.mockReturnValue({ isMobile: false });
+
         renderGuide();
 
-        const term_definition = 'You can choose a growth rate with values of 1%, 2%, 3%, 4%, and 5%.';
+        await userEvent.click(screen.getByText(/How to trade Rise\/Fall\?/));
+        await userEvent.click(screen.getByText(CONTRACT_LIST.ACCUMULATORS));
+
+        // Wait for the AccumulatorsTradeDescription component to load
+        const growth_rate_text = await screen.findByText(/growth rate/i, {}, { timeout: 3000 });
+
+        // On desktop, term definitions appear in tooltips (TooltipPortal component)
+        expect(growth_rate_text).toBeInTheDocument();
+
+        // Verify that term buttons are rendered (wrapped in TooltipPortal on desktop)
+        const termButtons = screen.getAllByRole('button', { name: /growth rate/i });
+        expect(termButtons.length).toBeGreaterThan(0);
+    });
+
+    it('should render term definition in modal on mobile when clicking term', async () => {
+        // Mobile mode - definitions show in modal on click
+        mockUseDevice.mockReturnValue({ isMobile: true });
+
+        renderGuide();
+
+        const term_definition =
+            'The growth rate determines the rate at which your stake will grow with each successful tick.';
         expect(screen.queryByText(term_definition)).not.toBeInTheDocument();
 
-        await userEvent.click(screen.getByText('Guide'));
-        await userEvent.click(screen.getByText(CONTRACT_LIST.ACCUMULATORS));
-        await userEvent.click(screen.getByRole('button', { name: getTerm().GROWTH_RATE.toLowerCase() }));
+        // On mobile, the guide trigger is a labelled "Guide" button instead of a text link
+        const guideButton = screen.getByRole('button', { name: 'Guide' });
+        await userEvent.click(guideButton);
 
+        await userEvent.click(screen.getByText(CONTRACT_LIST.ACCUMULATORS));
+
+        // Wait for the AccumulatorsTradeDescription component to load and find the term
+        const growth_rate_text = await screen.findByText(/growth rate/i, {}, { timeout: 3000 });
+        await userEvent.click(growth_rate_text);
+
+        // On mobile, clicking a term opens GuideDefinitionModal with the definition
         expect(await screen.findByText(term_definition)).toBeInTheDocument();
     });
 });

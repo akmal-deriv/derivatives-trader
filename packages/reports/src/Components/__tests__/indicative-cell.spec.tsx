@@ -1,8 +1,10 @@
 import React from 'react';
+
+import { mockContractInfo } from '@deriv/shared';
+import { mockStore } from '@deriv/stores';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { mockStore } from '@deriv/stores';
-import { mockContractInfo } from '@deriv/shared';
+
 import ReportsProviders from '../../reports-providers';
 import IndicativeCell from '../indicative-cell';
 
@@ -71,26 +73,26 @@ describe('IndicativeCell component', () => {
         expect(amountContainer).toHaveClass('dc-contract-card--loss');
     });
 
-    it('should not call onClickSell if user clicks on Sell button, but contract_id is falsy', () => {
+    it('should not call onClickSell if user clicks on Sell button, but contract_id is falsy', async () => {
         render(
             <ReportsProviders store={customStore}>
                 <IndicativeCell {...mockProps} contract_info={mockContractInfo({ contract_id: 0 })} />
             </ReportsProviders>
         );
 
-        userEvent.click(screen.getByText('Sell'));
+        await userEvent.click(screen.getByText('Sell'));
 
         expect(customStore.portfolio.onClickSell).not.toHaveBeenCalled();
     });
 
-    it('should call onClickSell with contract_id if user clicks on Sell button', () => {
+    it('should call onClickSell with contract_id if user clicks on Sell button', async () => {
         render(
             <ReportsProviders store={customStore}>
                 <IndicativeCell {...mockProps} />
             </ReportsProviders>
         );
 
-        userEvent.click(screen.getByText('Sell'));
+        await userEvent.click(screen.getByText('Sell'));
 
         expect(customStore.portfolio.onClickSell).toHaveBeenCalledWith(contractID);
     });

@@ -1,7 +1,7 @@
 import React from 'react';
 
 import { CONTRACT_TYPES } from '@deriv/shared';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import useContractDetails from 'AppV2/Hooks/useContractDetails';
@@ -19,11 +19,30 @@ jest.mock('@deriv-com/quill-ui', () => ({
     ActionSheet: {
         Root: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
         Portal: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-        Header: () => <div>Action Sheet Title</div>,
-        Content: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-        Footer: ({ primaryAction }: { primaryAction: { content: React.ReactNode; onAction: () => void } }) => (
-            <button onClick={primaryAction.onAction}>{primaryAction.content}</button>
+        Header: ({
+            closeAction,
+            saveAction,
+            isSaveActionDisabled,
+        }: {
+            closeAction?: { ariaLabel: string };
+            saveAction?: { ariaLabel: string; onAction: () => void };
+            isSaveActionDisabled?: boolean;
+        }) => (
+            <div>
+                Action Sheet Title
+                {closeAction && <button aria-label={closeAction.ariaLabel}>{closeAction.ariaLabel}</button>}
+                {saveAction && (
+                    <button
+                        aria-label={saveAction.ariaLabel}
+                        disabled={isSaveActionDisabled}
+                        onClick={saveAction.onAction}
+                    >
+                        {saveAction.ariaLabel}
+                    </button>
+                )}
+            </div>
         ),
+        Content: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
     },
     Text: ({ children, color }: { children: React.ReactNode; color?: string }) => (
         <span className={color}>{children}</span>
@@ -37,28 +56,39 @@ jest.mock('@deriv-com/quill-ui', () => ({
         onChange: (value: boolean) => void;
         disabled?: boolean;
     }) => <input type='checkbox' checked={checked} onChange={() => onChange(!checked)} disabled={disabled} />,
+    // After the stepper swap both the read-only display field and the editable amount field render as
+    // a plain TextField, so a single stub covers both call shapes (display: onClick/onFocus/disabled;
+    // editable: onChange/value/message/status/placeholder).
     TextField: ({
         value,
         onClick,
         onFocus,
-        disabled,
-    }: {
-        value: string;
-        onClick: () => void;
-        onFocus: () => void;
-        disabled: boolean;
-    }) => <input type='text' value={value} onClick={onClick} onFocus={onFocus} disabled={disabled} />,
-    TextFieldWithSteppers: ({
-        value,
         onChange,
+        disabled,
+        placeholder,
+        message,
         status,
     }: {
-        value: number;
-        onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+        value: string | number;
+        onClick?: () => void;
+        onFocus?: () => void;
+        onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+        disabled?: boolean;
+        placeholder?: string;
+        message?: React.ReactNode;
         status?: string;
     }) => (
         <div>
-            <input type='number' value={value} onChange={onChange} />
+            <input
+                type='text'
+                value={value}
+                onClick={onClick}
+                onFocus={onFocus}
+                onChange={onChange}
+                disabled={disabled}
+                placeholder={placeholder}
+            />
+            {message && <span>{message}</span>}
             {status === 'error' && <span>Error</span>}
         </div>
     ),
@@ -135,10 +165,10 @@ describe('RiskManagementItem component', () => {
         expect(screen.getByText('Modal content')).toBeInTheDocument();
     });
 
-    it('opens action sheet when toggle is enabled', async () => {
+    it('opens action sheet with a header save action when toggle is enabled', async () => {
         renderComponent({ value: 10 });
         await userEvent.click(screen.getByRole('checkbox'));
-        expect(screen.getByText('Save')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
     });
 
     it('displays correct value in text field', async () => {
@@ -148,10 +178,32 @@ describe('RiskManagementItem component', () => {
         expect(textField).toHaveValue('10.00 USD');
     });
 
-    it('handles save action correctly', async () => {
+    it('disables the header save action on open (nothing changed yet)', async () => {
         renderComponent({ value: 10 });
-        await userEvent.click(screen.getByRole('checkbox'));
-        await userEvent.click(screen.getByText('Save'));
+        await userEvent.click(screen.getByRole('textbox'));
+        expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+    });
+
+    it('enables the header save action once the amount changes', async () => {
+        renderComponent({ value: 10 });
+        await userEvent.click(screen.getByRole('textbox'));
+        fireEvent.change(screen.getByPlaceholderText('Amount'), { target: { value: '50' } });
+        expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
+    });
+
+    it('commits the change when the header save action is tapped', async () => {
+        renderComponent({ value: 10 });
+        await userEvent.click(screen.getByRole('textbox'));
+        fireEvent.change(screen.getByPlaceholderText('Amount'), { target: { value: '50' } });
+        await userEvent.click(screen.getByRole('button', { name: 'Save' }));
         expect(mockUseContractDetails().contract.updateLimitOrder).toHaveBeenCalled();
+    });
+
+    it('does not commit when the sheet is dismissed via the close action', async () => {
+        renderComponent({ value: 10 });
+        await userEvent.click(screen.getByRole('textbox'));
+        fireEvent.change(screen.getByPlaceholderText('Amount'), { target: { value: '50' } });
+        await userEvent.click(screen.getByRole('button', { name: 'Close' }));
+        expect(mockUseContractDetails().contract.updateLimitOrder).not.toHaveBeenCalled();
     });
 });

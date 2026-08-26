@@ -1,17 +1,20 @@
-import classNames from 'classnames';
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { useIsMounted, clickAndKeyEventHandler } from '@deriv/shared';
-import { TPassThrough, TRow } from '../types/common.types';
-import { TColIndex, TDataListCell } from './data-list-cell';
-import { TSource } from '../data-table/table-row';
+import classNames from 'classnames';
+
+import { clickAndKeyEventHandler, type Dayjs, useIsMounted } from '@deriv/shared';
+
 import { useDebounce } from '../../hooks/use-debounce';
+import { TSource } from '../data-table/table-row';
+import { TPassThrough, TRow } from '../types/common.types';
+
+import { TColIndex, TDataListCell } from './data-list-cell';
 
 type TMobileRowRenderer = {
     row?: TRow;
     is_footer?: boolean;
     columns_map?: Record<TColIndex, TDataListCell['column']>;
-    server_time?: moment.Moment;
+    server_time?: Dayjs;
     onClickCancel: (contract_id?: number) => void;
     onClickSell: (contract_id?: number) => void;
     measure?: () => void;
@@ -51,7 +54,7 @@ const DataListRow = ({
     const debouncedHideDetails = useDebounce(() => setShowDescription(false), 5000);
 
     const toggleDetails = () => {
-        if (action_desc) {
+        if (action_desc && !(action_desc as any)?.disabled) {
             setShowDescription(!show_description);
             debouncedHideDetails();
         }
@@ -88,7 +91,7 @@ const DataListRow = ({
                         'data-list__item--dynamic-height-wrapper': is_dynamic_height,
                     })}
                 >
-                    {action_desc ? (
+                    {action_desc && !(action_desc as any)?.disabled ? (
                         <div
                             className='data-list__item'
                             onClick={toggleDetailsDecorator}
